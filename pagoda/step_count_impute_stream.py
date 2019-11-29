@@ -115,30 +115,31 @@ def hourly_step_count(data_path,output_path,hz,q,c,k,h):
   for i in os.listdir(data_path):
     result0 = []
     t_vec = []
-    patient_path = data_path+"/"+i+"/accelerometer/"
-    for j in os.listdir(patient_path):
-      path = patient_path + j
-      t0,step = imp_hour(path,hz,q,c,k,h)
-      t1 = datetime.fromtimestamp(t0/1000)
-      t_vec.append(t0)
-      result0.append([t1.year,t1.month,t1.day,t1.hour,step])
-    t_vec = np.array(t_vec)
-    nrow = int((t_vec[-1]-t_vec[0])/(1000*60*60)+1)
-    result1 = []
-    m = 0
-    for k in range(nrow):
-      current_t = t_vec[0] + 1000*60*60*k
-      if current_t == t_vec[m]:
-        result1.append(result0[m])
-        m = m + 1
-      else:
-        stamp = datetime.fromtimestamp(current_t/1000)
-        r = np.random.choice(range(len(empirical_steps['no_records'][stamp.hour])),60)
-        step = sum(empirical_steps['no_records'][stamp.hour][r])
-        result1.append([stamp.year,stamp.month,stamp.day,stamp.hour,step])
-    result1 = pd.DataFrame(np.array(result1))
-    result1.columns = ["year","month","day","hour","steps"]
-    result1.to_csv(output_path + "/" + i + ".csv", index=False)
+    patient_path = data_path+"/"+i+"/accelerometer"
+    if os.path.exists(patient_path):
+      for j in os.listdir(patient_path):
+        path = patient_path + "/" + j
+        t0,step = imp_hour(path,hz,q,c,k,h)
+        t1 = datetime.fromtimestamp(t0/1000)
+        t_vec.append(t0)
+        result0.append([t1.year,t1.month,t1.day,t1.hour,step])
+      t_vec = np.array(t_vec)
+      nrow = int((t_vec[-1]-t_vec[0])/(1000*60*60)+1)
+      result1 = []
+      m = 0
+      for k in range(nrow):
+        current_t = t_vec[0] + 1000*60*60*k
+        if current_t == t_vec[m]:
+          result1.append(result0[m])
+          m = m + 1
+        else:
+          stamp = datetime.fromtimestamp(current_t/1000)
+          r = np.random.choice(range(len(empirical_steps['no_records'][stamp.hour])),60)
+          step = sum(empirical_steps['no_records'][stamp.hour][r])
+          result1.append([stamp.year,stamp.month,stamp.day,stamp.hour,step])
+      result1 = pd.DataFrame(np.array(result1))
+      result1.columns = ["year","month","day","hour","steps"]
+      result1.to_csv(output_path + "/" + i + ".csv", index=False)
 
 ## recommended parameters
 hz = 10; q=75; c=1.05; k=60; h=60
