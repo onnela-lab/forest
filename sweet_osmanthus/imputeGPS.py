@@ -904,10 +904,10 @@ for name in names:
       full_traj = pd.DataFrame(traj)
       full_traj.columns = ["status","x0","y0","t0","x1","y1","t1","obs"]
       dest_path = output_path + "/" + name + "_traj.csv"
-      full_traj.to_csv(dest_path)
+      full_traj.to_csv(dest_path,index=False)
       summary_stats = GetStats(traj)
       dest_path = output_path + "/" + name + "_stats.csv"
-      summary_stats.to_csv(dest_path)
+      summary_stats.to_csv(dest_path,index=False)
       sys.stdout.write( "Done" + '\n')
     else:
       sys.stdout.write( "Data quality is too low to impute" + '\n')
