@@ -878,10 +878,12 @@ def GetStats(traj):
                           "dist_traveled","diameter","num_sig_places"]
   return(summary_stats)
 
-path = "F:/HOPE_DATA"
-names = os.listdir(path)
+
+input_path = "C:/Users/glius/Downloads/stroke_data"
+output_path = "C:/Users/glius/Downloads/stroke_output"
+names = os.listdir(input_path)
 for name in names:
-  gps_path = path + "/" + name + "/gps"
+  gps_path = input_path + "/" + name + "/gps"
   if os.path.exists(gps_path):
     sys.stdout.write( "User ID: " + name + '\n')
     file_list = os.listdir(gps_path)
@@ -901,11 +903,11 @@ for name in names:
       traj = Imp2traj(imp_table,MobMat)
       full_traj = pd.DataFrame(traj)
       full_traj.columns = ["status","x0","y0","t0","x1","y1","t1","obs"]
-      output_path = "C:/Users/glius/Downloads/" + name + "_traj.csv"
-      full_traj.to_csv(output_path)
+      dest_path = output_path + "/" + name + "_traj.csv"
+      full_traj.to_csv(dest_path)
       summary_stats = GetStats(traj)
-      output_path = "C:/Users/glius/Downloads/" + name + "_stats.csv"
-      summary_stats.to_csv(output_path)
+      dest_path = output_path + "/" + name + "_stats.csv"
+      summary_stats.to_csv(dest_path)
       sys.stdout.write( "Done" + '\n')
     else:
       sys.stdout.write( "Data quality is too low to impute" + '\n')
