@@ -37,10 +37,11 @@ def smooth_data(data,hz):
       new_data.append([t0+1/hz*1000*num[i],mean_x,mean_y,mean_z])
       j = i
       i = i+1
-  new_data = np.array(new_data)
+  w = len(new_data)
+  new_data = np.array(new_data).reshape((w,4))
   mag = np.sqrt(new_data[:,1]**2+new_data[:,2]**2+new_data[:,3]**2)
   stamp = new_data[:,0]
-  return hr,t0,stamp,mag
+  return w,hr,t0,stamp,mag
 
 ## 2. minute-wise step estimation funciton
 def step_est_min(stamp,mag,t0,hz,q,c):
@@ -101,34 +102,37 @@ def imp_steps(output,final,hr):
       steps[i] = empirical_steps['walk'][hr][r]
   return(sum(steps))
 
-## 5. put everything together when read in a raw csv file
-def imp_hour(path,hz,q,c,k,h):
-  data = pd.read_csv(path)
-  hr,t0,stamp,mag = smooth_data(data,hz)
-  output = step_est_min(stamp,mag,t0,hz,q,c)
-  final = nearby_walk(output,k,h)
-  step = imp_steps(output,final,hr)
-  return t0,step
 
-## 6. read in all the data from the folder one by one, and fill in the hours without records
+## 5. read in all the data from the folder one by one, and fill in the hours without records
 def hourly_step_count(data_path,output_path,hz,q,c,k,h):
   for i in os.listdir(data_path):
     result0 = []
     t_vec = []
     patient_path = data_path+"/"+i+"/accelerometer"
     if os.path.exists(patient_path):
+      sys.stdout.write("Read and preprocess the data from user "+i+"..." + '\n')
       for j in os.listdir(patient_path):
         path = patient_path + "/" + j
-        t0,step = imp_hour(path,hz,q,c,k,h)
-        t1 = datetime.fromtimestamp(t0/1000)
-        t_vec.append(t0)
-        result0.append([t1.year,t1.month,t1.day,t1.hour,step])
+        sys.stdout.write(j+"...")
+        data = pd.read_csv(path)
+        w,hr,t0,stamp,mag = smooth_data(data,hz)
+        if w>10:
+          sys.stdout.write("  Estimating Steps..."+'\n')
+          output = step_est_min(stamp,mag,t0,hz,q,c)
+          final = nearby_walk(output,k,h)
+          step = imp_steps(output,final,hr)
+          t1 = datetime.fromtimestamp(t0/1000)
+          t_vec.append(t0)
+          result0.append([t1.year,t1.month,t1.day,t1.hour,step])
+        else:
+          sys.stdout.write("  Data quality is too low..."+'\n')
       t_vec = np.array(t_vec)
       nrow = int((t_vec[-1]-t_vec[0])/(1000*60*60)+1)
       result1 = []
       m = 0
-      for k in range(nrow):
-        current_t = t_vec[0] + 1000*60*60*k
+      sys.stdout.write("Impute the steps during inactive hours..."+'\n')
+      for b in range(nrow):
+        current_t = t_vec[0] + 1000*60*60*b
         if current_t == t_vec[m]:
           result1.append(result0[m])
           m = m + 1
@@ -140,11 +144,12 @@ def hourly_step_count(data_path,output_path,hz,q,c,k,h):
       result1 = pd.DataFrame(np.array(result1))
       result1.columns = ["year","month","day","hour","steps"]
       result1.to_csv(output_path + "/" + i + ".csv", index=False)
+      sys.stdout.write("Done"+'\n')
+
 
 ## recommended parameters
 hz = 10; q=75; c=1.05; k=60; h=60
-
 ## usage
-data_path = "C:/Users/glius/Downloads/test_data"
-output_path = "C:/Users/glius/Downloads/test_output"
+data_path = "C:/Users/glius/Desktop/trial"
+output_path = "C:/Users/glius/Desktop/output"
 hourly_step_count(data_path,output_path,hz,q,c,k,h)
