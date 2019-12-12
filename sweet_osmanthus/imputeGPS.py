@@ -887,6 +887,9 @@ for name in names:
   if os.path.exists(gps_path):
     sys.stdout.write( "User ID: " + name + '\n')
     file_list = os.listdir(gps_path)
+    for i in range(len(file_list)):
+      if file_list[i][0]==".":
+        file_list[i]=file_list[i][2:]
     file_path = [gps_path + "/"+ file_list[j] for j in range(len(file_list))]
     ## check if there are enough data for the following algorithm
     quality_yes = 0
