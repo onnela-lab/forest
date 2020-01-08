@@ -565,7 +565,7 @@ def I_flight(method,current_t,current_x,current_y,dest_t,dest_x,dest_y,BV_set,z)
   pause_K = K[BV_set[:,0]==2]
   sorted_flight = np.sort(flight_K)[::-1]
   sorted_pause = np.sort(pause_K)[::-1]
-  p0 = np.mean(sorted_flight[0:num])/(np.mean(sorted_flight[0:num])+np.mean(sorted_pause[0:num]))
+  p0 = np.mean(sorted_flight[0:num])/(np.mean(sorted_flight[0:num])+np.mean(sorted_pause[0:num])+1e-8)
   d_dest = great_circle_dist(current_x,current_y,dest_x,dest_y)
   v_dest = d_dest/(dest_t-current_t+0.0001)
   ## design an exponential function here to adjust the probability based on the speed needed
@@ -955,8 +955,8 @@ num = 15
 switch = 3
 
 ### run script ###
-input_path = "C:/Users/glius/Downloads/stroke_data"
-output_path = "C:/Users/glius/Downloads/stroke_output"
+input_path = "C:/Users/glius/Downloads/abdominal_data"
+output_path = "C:/Users/glius/Downloads/abdominal_output"
 names = os.listdir(input_path)
 for name in names:
   gps_path = input_path + "/" + name + "/gps"
