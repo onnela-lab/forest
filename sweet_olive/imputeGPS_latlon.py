@@ -211,7 +211,7 @@ def GPS2MobMat(filelist,itrvl=10,accuracylim=51, r=None, w=None,h=None):
       outmat = np.vstack((outmat,temp))
       curind=i+1
   if curind<avgmat.shape[0]:
-    print(np.arange(curind,avgmat.shape[0]))
+    #print(np.arange(curind,avgmat.shape[0]))
     temp = ExtractFlights(avgmat[np.arange(curind,avgmat.shape[0]),:],itrvl,r,w,h)
     outmat = np.vstack((outmat,temp))
 
@@ -644,7 +644,7 @@ def ImputeGPS(MobMat,BV_set,method,switch):
       counter = 0
       while start_t < end_t:
         if abs(start_x-end_x)+abs(start_y-end_y)>0 and end_t-start_t<30: ## avoid extreme high speed
-          print(1)
+          #print(1)
           imp_s = np.append(imp_s,1)
           imp_t0 = np.append(imp_t0,start_t)
           imp_t1 = np.append(imp_t1,end_t)
@@ -663,7 +663,7 @@ def ImputeGPS(MobMat,BV_set,method,switch):
           direction =''
           I0 = I_flight(method,start_t,start_x,start_y,end_t,end_x,end_y,BV_set,switch)
           if (sum(I0==1)==switch and start_s==2) or (sum(I0==0)<switch and start_s==1):
-            print(2)
+            #print(2)
             weight = K1(method,start_t,start_x,start_y,flight_table)
             normalize_w = (weight+1e-5)/sum(weight+1e-5)
             flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
@@ -693,7 +693,7 @@ def ImputeGPS(MobMat,BV_set,method,switch):
               start_x = current_x; start_y = current_y; start_t = current_t; start_s=1
               counter = counter+1
           else:
-            print(3)
+            #print(3)
             weight = K1(method,start_t,start_x,start_y,pause_table)
             normalize_w = (weight+1e-5)/sum(weight+1e-5)
             pause_index = np.random.choice(pause_table.shape[0], p=normalize_w)
@@ -724,7 +724,7 @@ def ImputeGPS(MobMat,BV_set,method,switch):
           direction = ''
           I1 = I_flight(method,end_t,end_x,end_y,start_t,start_x,start_y,BV_set,switch)
           if (sum(I1==1)==switch and end_s==2) or (sum(I1==0)<switch and end_s==1):
-            print(4)
+            #print(4)
             weight = K1(method,end_t,end_x,end_y,flight_table)
             normalize_w = (weight+1e-5)/sum(weight+1e-5)
             flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
@@ -754,7 +754,7 @@ def ImputeGPS(MobMat,BV_set,method,switch):
               end_x = current_x; end_y = current_y; end_t = current_t; end_s = 1
               counter = counter+1
           else:
-            print(5)
+            #print(5)
             weight = K1(method,end_t,end_x,end_y,pause_table)
             normalize_w = (weight+1e-5)/sum(weight+1e-5)
             pause_index = np.random.choice(pause_table.shape[0], p=normalize_w)
