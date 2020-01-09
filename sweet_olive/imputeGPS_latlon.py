@@ -599,8 +599,10 @@ def multiplier(t_diff):
     return 1
   elif t_diff<=60*60:
     return 5
-  else:
+  elif t_diff<=720*60:
     return 10
+  else:
+    return 50
 
 def checkbound(current_x,current_y,MobMat):
   max_x = max(MobMat[:,1])
