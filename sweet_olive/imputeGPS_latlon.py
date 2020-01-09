@@ -661,127 +661,127 @@ def ImputeGPS(MobMat,BV_set,method,switch):
           else:
             direction = 'backward'
 
-        if direction == 'forward':
-          direction =''
-          I0 = I_flight(method,start_t,start_x,start_y,end_t,end_x,end_y,BV_set,switch)
-          if (sum(I0==1)==switch and start_s==2) or (sum(I0==0)<switch and start_s==1):
-            #print(2)
-            weight = K1(method,start_t,start_x,start_y,flight_table)
-            normalize_w = (weight+1e-5)/sum(weight+1e-5)
-            flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
-            delta_x = (flight_table[flight_index,4]-flight_table[flight_index,1])*multiplier(end_t-start_t)
-            delta_y = (flight_table[flight_index,5]-flight_table[flight_index,2])*multiplier(end_t-start_t)
-            delta_t = (flight_table[flight_index,6]-flight_table[flight_index,3])*multiplier(end_t-start_t)
-            if(start_t + delta_t > end_t):
-              temp = delta_t
-              delta_t = end_t-start_t
-              delta_x = delta_x*delta_t/temp
-              delta_y = delta_y*delta_t/temp
-            delta_x,delta_y = adjust_direction(delta_x,delta_y,start_x,start_y,end_x,end_y,mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])
-            try_t = start_t + delta_t
-            try_x = (end_t-try_t)/(end_t-start_t+1e-5)*(start_x+delta_x)+(try_t-start_t+1e-5)/(end_t-start_t)*end_x
-            try_y = (end_t-try_t)/(end_t-start_t+1e-5)*(start_y+delta_y)+(try_t-start_t+1e-5)/(end_t-start_t)*end_y
-            if end_t>start_t and checkbound(try_x,try_y,MobMat)==1:
-              imp_s = np.append(imp_s,1)
-              imp_t0 = np.append(imp_t0,start_t)
-              current_t = start_t + delta_t
-              imp_t1 = np.append(imp_t1,current_t)
-              imp_x0 = np.append(imp_x0,start_x)
-              current_x = (end_t-current_t)/(end_t-start_t)*(start_x+delta_x)+(current_t-start_t)/(end_t-start_t)*end_x
-              imp_x1 = np.append(imp_x1,current_x)
-              imp_y0 = np.append(imp_y0,start_y)
-              current_y = (end_t-current_t)/(end_t-start_t)*(start_y+delta_y)+(current_t-start_t)/(end_t-start_t)*end_y
-              imp_y1 = np.append(imp_y1,current_y)
-              start_x = current_x; start_y = current_y; start_t = current_t; start_s=1
-              counter = counter+1
-          else:
-            #print(3)
-            weight = K1(method,start_t,start_x,start_y,pause_table)
-            normalize_w = (weight+1e-5)/sum(weight+1e-5)
-            pause_index = np.random.choice(pause_table.shape[0], p=normalize_w)
-            delta_t = (pause_table[pause_index,6]-pause_table[pause_index,3])*multiplier(end_t-start_t)
-            if start_t + delta_t < end_t:
-              imp_s = np.append(imp_s,2)
-              imp_t0 = np.append(imp_t0,start_t)
-              current_t = start_t + delta_t
-              imp_t1 = np.append(imp_t1,current_t)
-              imp_x0 = np.append(imp_x0,start_x)
-              imp_x1 = np.append(imp_x1,start_x)
-              imp_y0 = np.append(imp_y0,start_y)
-              imp_y1 = np.append(imp_y1,start_y)
-              start_t = current_t
-              start_s = 2
-              counter = counter+1
+          if direction == 'forward':
+            direction =''
+            I0 = I_flight(method,start_t,start_x,start_y,end_t,end_x,end_y,BV_set,switch)
+            if (sum(I0==1)==switch and start_s==2) or (sum(I0==0)<switch and start_s==1):
+              #print(2)
+              weight = K1(method,start_t,start_x,start_y,flight_table)
+              normalize_w = (weight+1e-5)/sum(weight+1e-5)
+              flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
+              delta_x = (flight_table[flight_index,4]-flight_table[flight_index,1])*multiplier(end_t-start_t)
+              delta_y = (flight_table[flight_index,5]-flight_table[flight_index,2])*multiplier(end_t-start_t)
+              delta_t = (flight_table[flight_index,6]-flight_table[flight_index,3])*multiplier(end_t-start_t)
+              if(start_t + delta_t > end_t):
+                temp = delta_t
+                delta_t = end_t-start_t
+                delta_x = delta_x*delta_t/temp
+                delta_y = delta_y*delta_t/temp
+              delta_x,delta_y = adjust_direction(delta_x,delta_y,start_x,start_y,end_x,end_y,mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])
+              try_t = start_t + delta_t
+              try_x = (end_t-try_t)/(end_t-start_t+1e-5)*(start_x+delta_x)+(try_t-start_t+1e-5)/(end_t-start_t)*end_x
+              try_y = (end_t-try_t)/(end_t-start_t+1e-5)*(start_y+delta_y)+(try_t-start_t+1e-5)/(end_t-start_t)*end_y
+              if end_t>start_t and checkbound(try_x,try_y,MobMat)==1:
+                imp_s = np.append(imp_s,1)
+                imp_t0 = np.append(imp_t0,start_t)
+                current_t = start_t + delta_t
+                imp_t1 = np.append(imp_t1,current_t)
+                imp_x0 = np.append(imp_x0,start_x)
+                current_x = (end_t-current_t)/(end_t-start_t)*(start_x+delta_x)+(current_t-start_t)/(end_t-start_t)*end_x
+                imp_x1 = np.append(imp_x1,current_x)
+                imp_y0 = np.append(imp_y0,start_y)
+                current_y = (end_t-current_t)/(end_t-start_t)*(start_y+delta_y)+(current_t-start_t)/(end_t-start_t)*end_y
+                imp_y1 = np.append(imp_y1,current_y)
+                start_x = current_x; start_y = current_y; start_t = current_t; start_s=1
+                counter = counter+1
             else:
-              imp_s = np.append(imp_s,1)
-              imp_t0 = np.append(imp_t0,start_t)
-              imp_t1 = np.append(imp_t1,end_t)
-              imp_x0 = np.append(imp_x0,start_x)
-              imp_x1 = np.append(imp_x1,end_x)
-              imp_y0 = np.append(imp_y0,start_y)
-              imp_y1 = np.append(imp_y1,end_y)
-              start_t = end_t
+              #print(3)
+              weight = K1(method,start_t,start_x,start_y,pause_table)
+              normalize_w = (weight+1e-5)/sum(weight+1e-5)
+              pause_index = np.random.choice(pause_table.shape[0], p=normalize_w)
+              delta_t = (pause_table[pause_index,6]-pause_table[pause_index,3])*multiplier(end_t-start_t)
+              if start_t + delta_t < end_t:
+                imp_s = np.append(imp_s,2)
+                imp_t0 = np.append(imp_t0,start_t)
+                current_t = start_t + delta_t
+                imp_t1 = np.append(imp_t1,current_t)
+                imp_x0 = np.append(imp_x0,start_x)
+                imp_x1 = np.append(imp_x1,start_x)
+                imp_y0 = np.append(imp_y0,start_y)
+                imp_y1 = np.append(imp_y1,start_y)
+                start_t = current_t
+                start_s = 2
+                counter = counter+1
+              else:
+                imp_s = np.append(imp_s,1)
+                imp_t0 = np.append(imp_t0,start_t)
+                imp_t1 = np.append(imp_t1,end_t)
+                imp_x0 = np.append(imp_x0,start_x)
+                imp_x1 = np.append(imp_x1,end_x)
+                imp_y0 = np.append(imp_y0,start_y)
+                imp_y1 = np.append(imp_y1,end_y)
+                start_t = end_t
 
-        if direction == 'backward':
-          direction = ''
-          I1 = I_flight(method,end_t,end_x,end_y,start_t,start_x,start_y,BV_set,switch)
-          if (sum(I1==1)==switch and end_s==2) or (sum(I1==0)<switch and end_s==1):
-            #print(4)
-            weight = K1(method,end_t,end_x,end_y,flight_table)
-            normalize_w = (weight+1e-5)/sum(weight+1e-5)
-            flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
-            delta_x = -(flight_table[flight_index,4]-flight_table[flight_index,1])*multiplier(end_t-start_t)
-            delta_y = -(flight_table[flight_index,5]-flight_table[flight_index,2])*multiplier(end_t-start_t)
-            delta_t = (flight_table[flight_index,6]-flight_table[flight_index,3])*multiplier(end_t-start_t)
-            if(start_t + delta_t > end_t):
-              temp = delta_t
-              delta_t = end_t-start_t
-              delta_x = delta_x*delta_t/temp
-              delta_y = delta_y*delta_t/temp
-            delta_x,delta_y = adjust_direction(delta_x,delta_y,end_x,end_y,start_x,start_y,mis_table[i,3],mis_table[i,4],mis_table[i,0],mis_table[i,1])
-            try_t = end_t - delta_t
-            try_x = (end_t-try_t)/(end_t-start_t+1e-5)*start_x+(try_t-start_t)/(end_t-start_t+1e-5)*(end_x+delta_x)
-            try_y = (end_t-try_t)/(end_t-start_t+1e-5)*start_y+(try_t-start_t)/(end_t-start_t+1e-5)*(end_y+delta_y)
-            if end_t>start_t and checkbound(try_x,try_y,MobMat)==1:
-              imp_s = np.append(imp_s,1)
-              imp_t1 = np.append(imp_t1,end_t)
-              current_t = end_t - delta_t
-              imp_t0 = np.append(imp_t0,current_t)
-              imp_x1 = np.append(imp_x1,end_x)
-              current_x = (end_t-current_t)/(end_t-start_t)*start_x+(current_t-start_t)/(end_t-start_t)*(end_x+delta_x)
-              imp_x0 = np.append(imp_x0,current_x)
-              imp_y1 = np.append(imp_y1,end_y)
-              current_y = (end_t-current_t)/(end_t-start_t)*start_y+(current_t-start_t)/(end_t-start_t)*(end_y+delta_y)
-              imp_y0 = np.append(imp_y0,current_y)
-              end_x = current_x; end_y = current_y; end_t = current_t; end_s = 1
-              counter = counter+1
-          else:
-            #print(5)
-            weight = K1(method,end_t,end_x,end_y,pause_table)
-            normalize_w = (weight+1e-5)/sum(weight+1e-5)
-            pause_index = np.random.choice(pause_table.shape[0], p=normalize_w)
-            delta_t = (pause_table[pause_index,6]-pause_table[pause_index,3])*multiplier(end_t-start_t)
-            if start_t + delta_t < end_t:
-              imp_s = np.append(imp_s,2)
-              imp_t1 = np.append(imp_t1,end_t)
-              current_t = end_t - delta_t
-              imp_t0 = np.append(imp_t0,current_t)
-              imp_x0 = np.append(imp_x0,end_x)
-              imp_x1 = np.append(imp_x1,end_x)
-              imp_y0 = np.append(imp_y0,end_y)
-              imp_y1 = np.append(imp_y1,end_y)
-              end_t = current_t
-              end_s = 2
-              counter = counter+1
+          if direction == 'backward':
+            direction = ''
+            I1 = I_flight(method,end_t,end_x,end_y,start_t,start_x,start_y,BV_set,switch)
+            if (sum(I1==1)==switch and end_s==2) or (sum(I1==0)<switch and end_s==1):
+              #print(4)
+              weight = K1(method,end_t,end_x,end_y,flight_table)
+              normalize_w = (weight+1e-5)/sum(weight+1e-5)
+              flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
+              delta_x = -(flight_table[flight_index,4]-flight_table[flight_index,1])*multiplier(end_t-start_t)
+              delta_y = -(flight_table[flight_index,5]-flight_table[flight_index,2])*multiplier(end_t-start_t)
+              delta_t = (flight_table[flight_index,6]-flight_table[flight_index,3])*multiplier(end_t-start_t)
+              if(start_t + delta_t > end_t):
+                temp = delta_t
+                delta_t = end_t-start_t
+                delta_x = delta_x*delta_t/temp
+                delta_y = delta_y*delta_t/temp
+              delta_x,delta_y = adjust_direction(delta_x,delta_y,end_x,end_y,start_x,start_y,mis_table[i,3],mis_table[i,4],mis_table[i,0],mis_table[i,1])
+              try_t = end_t - delta_t
+              try_x = (end_t-try_t)/(end_t-start_t+1e-5)*start_x+(try_t-start_t)/(end_t-start_t+1e-5)*(end_x+delta_x)
+              try_y = (end_t-try_t)/(end_t-start_t+1e-5)*start_y+(try_t-start_t)/(end_t-start_t+1e-5)*(end_y+delta_y)
+              if end_t>start_t and checkbound(try_x,try_y,MobMat)==1:
+                imp_s = np.append(imp_s,1)
+                imp_t1 = np.append(imp_t1,end_t)
+                current_t = end_t - delta_t
+                imp_t0 = np.append(imp_t0,current_t)
+                imp_x1 = np.append(imp_x1,end_x)
+                current_x = (end_t-current_t)/(end_t-start_t)*start_x+(current_t-start_t)/(end_t-start_t)*(end_x+delta_x)
+                imp_x0 = np.append(imp_x0,current_x)
+                imp_y1 = np.append(imp_y1,end_y)
+                current_y = (end_t-current_t)/(end_t-start_t)*start_y+(current_t-start_t)/(end_t-start_t)*(end_y+delta_y)
+                imp_y0 = np.append(imp_y0,current_y)
+                end_x = current_x; end_y = current_y; end_t = current_t; end_s = 1
+                counter = counter+1
             else:
-              imp_s = np.append(imp_s,1)
-              imp_t1 = np.append(imp_t1,end_t)
-              imp_t0 = np.append(imp_t0,start_t)
-              imp_x0 = np.append(imp_x0,start_x)
-              imp_x1 = np.append(imp_x1,end_x)
-              imp_y0 = np.append(imp_y0,start_y)
-              imp_y1 = np.append(imp_y1,end_y)
-              end_t = start_t
+              #print(5)
+              weight = K1(method,end_t,end_x,end_y,pause_table)
+              normalize_w = (weight+1e-5)/sum(weight+1e-5)
+              pause_index = np.random.choice(pause_table.shape[0], p=normalize_w)
+              delta_t = (pause_table[pause_index,6]-pause_table[pause_index,3])*multiplier(end_t-start_t)
+              if start_t + delta_t < end_t:
+                imp_s = np.append(imp_s,2)
+                imp_t1 = np.append(imp_t1,end_t)
+                current_t = end_t - delta_t
+                imp_t0 = np.append(imp_t0,current_t)
+                imp_x0 = np.append(imp_x0,end_x)
+                imp_x1 = np.append(imp_x1,end_x)
+                imp_y0 = np.append(imp_y0,end_y)
+                imp_y1 = np.append(imp_y1,end_y)
+                end_t = current_t
+                end_s = 2
+                counter = counter+1
+              else:
+                imp_s = np.append(imp_s,1)
+                imp_t1 = np.append(imp_t1,end_t)
+                imp_t0 = np.append(imp_t0,start_t)
+                imp_x0 = np.append(imp_x0,start_x)
+                imp_x1 = np.append(imp_x1,end_x)
+                imp_y0 = np.append(imp_y0,start_y)
+                imp_y1 = np.append(imp_y1,end_y)
+                end_t = start_t
   imp_table=np.stack([imp_s,imp_x0,imp_y0,imp_t0,imp_x1,imp_y1,imp_t1], axis=1)
   imp_table = imp_table[imp_table[:,3].argsort()].astype(float)
   return imp_table
