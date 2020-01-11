@@ -496,7 +496,7 @@ def SOGP(X,Y,sigma2,tol,d,Q=[],C=[],alpha=[],bv=[]):
         eps = np.zeros(d)
         for j in range(d):
           eps[j] = alpha_vec[j]/(q_mat[j,j]+c_mat[j,j])-s_mat[j,j]/q_mat[j,j]+np.log(1+c_mat[j,j]/q_mat[j,j])
-        loc = np.where(eps == np.min(eps))[0]
+        loc = np.where(eps == np.min(eps))[0][0]
         bv = np.array(np.delete(bv,loc),dtype=int)
         if loc==0:
           index = np.append(np.arange(1,d+1),0)
@@ -604,11 +604,11 @@ def multiplier(t_diff):
   else:
     return 50
 
-def checkbound(current_x,current_y,MobMat):
-  max_x = max(MobMat[:,1])
-  min_x = min(MobMat[:,1])
-  max_y = max(MobMat[:,2])
-  min_y = min(MobMat[:,2])
+def checkbound(current_x,current_y,start_x,start_y,end_x,end_y):
+  max_x = max(start_x,end_x)
+  min_x = min(start_x,end_x)
+  max_y = max(start_y,end_y)
+  min_y = min(start_y,end_y)
   if current_x<max_x+0.01 and current_x>min_x-0.01 and current_y<max_y+0.01 and current_y>min_y-0.01:
     return 1
   else:
@@ -669,9 +669,9 @@ def ImputeGPS(MobMat,BV_set,method,switch):
               weight = K1(method,start_t,start_x,start_y,flight_table)
               normalize_w = (weight+1e-5)/sum(weight+1e-5)
               flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
-              delta_x = (flight_table[flight_index,4]-flight_table[flight_index,1])*multiplier(end_t-start_t)
-              delta_y = (flight_table[flight_index,5]-flight_table[flight_index,2])*multiplier(end_t-start_t)
-              delta_t = (flight_table[flight_index,6]-flight_table[flight_index,3])*multiplier(end_t-start_t)
+              delta_x = flight_table[flight_index,4]-flight_table[flight_index,1]
+              delta_y = flight_table[flight_index,5]-flight_table[flight_index,2]
+              delta_t = flight_table[flight_index,6]-flight_table[flight_index,3]
               if(start_t + delta_t > end_t):
                 temp = delta_t
                 delta_t = end_t-start_t
@@ -681,7 +681,7 @@ def ImputeGPS(MobMat,BV_set,method,switch):
               try_t = start_t + delta_t
               try_x = (end_t-try_t)/(end_t-start_t+1e-5)*(start_x+delta_x)+(try_t-start_t+1e-5)/(end_t-start_t)*end_x
               try_y = (end_t-try_t)/(end_t-start_t+1e-5)*(start_y+delta_y)+(try_t-start_t+1e-5)/(end_t-start_t)*end_y
-              if end_t>start_t and checkbound(try_x,try_y,MobMat)==1:
+              if end_t>start_t and checkbound(try_x,try_y,mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])==1:
                 imp_s = np.append(imp_s,1)
                 imp_t0 = np.append(imp_t0,start_t)
                 current_t = start_t + delta_t
@@ -730,9 +730,9 @@ def ImputeGPS(MobMat,BV_set,method,switch):
               weight = K1(method,end_t,end_x,end_y,flight_table)
               normalize_w = (weight+1e-5)/sum(weight+1e-5)
               flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
-              delta_x = -(flight_table[flight_index,4]-flight_table[flight_index,1])*multiplier(end_t-start_t)
-              delta_y = -(flight_table[flight_index,5]-flight_table[flight_index,2])*multiplier(end_t-start_t)
-              delta_t = (flight_table[flight_index,6]-flight_table[flight_index,3])*multiplier(end_t-start_t)
+              delta_x = -(flight_table[flight_index,4]-flight_table[flight_index,1])
+              delta_y = -(flight_table[flight_index,5]-flight_table[flight_index,2])
+              delta_t = flight_table[flight_index,6]-flight_table[flight_index,3]
               if(start_t + delta_t > end_t):
                 temp = delta_t
                 delta_t = end_t-start_t
@@ -742,7 +742,7 @@ def ImputeGPS(MobMat,BV_set,method,switch):
               try_t = end_t - delta_t
               try_x = (end_t-try_t)/(end_t-start_t+1e-5)*start_x+(try_t-start_t)/(end_t-start_t+1e-5)*(end_x+delta_x)
               try_y = (end_t-try_t)/(end_t-start_t+1e-5)*start_y+(try_t-start_t)/(end_t-start_t+1e-5)*(end_y+delta_y)
-              if end_t>start_t and checkbound(try_x,try_y,MobMat)==1:
+              if end_t>start_t and checkbound(try_x,try_y,mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])==1:
                 imp_s = np.append(imp_s,1)
                 imp_t1 = np.append(imp_t1,end_t)
                 current_t = end_t - delta_t
@@ -939,21 +939,20 @@ def GetStats(traj):
                           "dist_traveled","diameter","num_sig_places"]
   return(summary_stats)
 
-
 ### parameters ###
-l1 = 30
-l2 = 30
-l3 = 0.0005
-a1 = 10
-a2 = 10
+l1 = 60*60*24*10
+l2 = 60*60*24*30
+l3 = 0.002
+g = 200
+a1 = 5
+a2 = 1
 b1 = 0.3
 b2 = 0.2
 b3 = 0.5
-d = 150
+d = 200
 sigma2 = 0.01
 tol = 0.05
-g = 25
-num = 15
+num = 10
 switch = 3
 
 ### run script ###
