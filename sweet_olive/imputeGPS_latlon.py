@@ -632,6 +632,30 @@ def ImputeGPS(MobMat,BV_set,method,switch):
       imp_y1 = np.append(imp_y1, mis_table[i,4])
       imp_t0 = np.append(imp_t0, mis_table[i,2])
       imp_t1 = np.append(imp_t1, mis_table[i,5])
+    elif great_circle_dist(mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])>300000:
+      d_diff = great_circle_dist(mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])
+      t_diff = mis_table[i,5] - mis_table[i,2]
+      v_diff = d_diff/t_diff
+      if v_diff>210:
+        imp_s = np.append(imp_s,1)
+        imp_x0 = np.append(imp_x0, mis_table[i,0])
+        imp_x1 = np.append(imp_x1, mis_table[i,3])
+        imp_y0 = np.append(imp_y0, mis_table[i,1])
+        imp_y1 = np.append(imp_y1, mis_table[i,4])
+        imp_t0 = np.append(imp_t0, mis_table[i,2])
+        imp_t1 = np.append(imp_t1, mis_table[i,5])
+      else:
+        v_random = np.random.uniform(low=244, high=258)
+        t_need = d_diff/v_random
+        t_s = np.random.uniform(low = mis_table[i,2], high = mis_table[i,5]-t_need)
+        t_e = t_s + t_need
+        imp_s = np.append(imp_s,[2,1,2])
+        imp_x0 = np.append(imp_x0, [mis_table[i,0],mis_table[i,0],mis_table[i,3]])
+        imp_x1 = np.append(imp_x1, [mis_table[i,0],mis_table[i,3],mis_table[i,3]])
+        imp_y0 = np.append(imp_y0, [mis_table[i,1],mis_table[i,1],mis_table[i,4]])
+        imp_y1 = np.append(imp_y1, [mis_table[i,1],mis_table[i,4],mis_table[i,4]])
+        imp_t0 = np.append(imp_t0, [mis_table[i,2],t_s,t_e])
+        imp_t1 = np.append(imp_t1, [t_s,t_e,mis_table[i,5]])
     else:
       ## solve the problem that a person has a trajectory like flight/pause/flight/pause/flight...
       ## we want it more like flght/flight/flight/pause/pause/pause/flight/flight...
