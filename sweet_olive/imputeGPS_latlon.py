@@ -1012,7 +1012,7 @@ for name in names:
       if df.shape[0]>60:
         quality_yes = quality_yes + 1
     quality_check = quality_yes/len(file_path)
-    if quality_check>0.75:
+    if quality_check>0.5:
       obs = GPS2MobMat(file_path,itrvl=10,accuracylim=51, r=None, w=None,h=None)
       MobMat = InferMobMat(obs,itrvl=10,r=None)
       BV_set = BV_select(MobMat,sigma2,tol,d)["BV_set"]
