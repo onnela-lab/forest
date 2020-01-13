@@ -927,19 +927,31 @@ def GetStats(traj):
   for i in range(int(h)):
     t0 = start_stamp + i*3600
     t1 = start_stamp + (i+1)*3600
+    current_t = datetime.fromtimestamp(t0)
+    year,month,day,hour = current_t.year, current_t.month,current_t.day,current_t.hour
     ## take a subset, the starting point of the last traj <t1 and the ending point of the first traj >t0
     index = (traj[:,3]<t1)*(traj[:,6]>t0)
     temp = traj[index,:]
-    p0 = (temp[0,6]-t0)/(temp[0,6]-temp[0,3])
-    p1 = (t1-temp[-1,3])/(temp[-1,6]-temp[-1,3])
-    temp[0,1] = (1-p0)*temp[0,1]+p0*temp[0,4]
-    temp[0,2] = (1-p0)*temp[0,2]+p0*temp[0,5]
-    temp[0,3] = t0
-    temp[-1,4] = (1-p1)*temp[-1,1] + p1*temp[-1,4]
-    temp[-1,5] = (1-p1)*temp[-1,2] + p1*temp[-1,5]
-    temp[-1,6] = t1
-    current_t = datetime.fromtimestamp(t0)
-    year,month,day,hour = current_t.year, current_t.month,current_t.day,current_t.hour
+    if sum(index)==1:
+      p0 = (t0-temp[0,3])/(temp[0,6]-temp[0,3])
+      p1 = (t1-temp[0,3])/(temp[0,6]-temp[0,3])
+      x0 = temp[0,1]; x1 = temp[0,4]; y0 = temp[0,2]; y1 = temp[0,5]
+      temp[0,1] = (1-p0)*x0+p0*x1
+      temp[0,2] = (1-p0)*y0+p0*y1
+      temp[0,3] = t0
+      temp[0,4] = (1-p1)*x0+p1*x1
+      temp[0,5] = (1-p1)*y0+p1*y1
+      temp[0,6] = t1
+    else:
+      p0 = (temp[0,6]-t0)/(temp[0,6]-temp[0,3])
+      p1 = (t1-temp[-1,3])/(temp[-1,6]-temp[-1,3])
+      temp[0,1] = (1-p0)*temp[0,4]+p0*temp[0,1]
+      temp[0,2] = (1-p0)*temp[0,5]+p0*temp[0,2]
+      temp[0,3] = t0
+      temp[-1,4] = (1-p1)*temp[-1,1] + p1*temp[-1,4]
+      temp[-1,5] = (1-p1)*temp[-1,2] + p1*temp[-1,5]
+      temp[-1,6] = t1
+
     missing_length = sum((temp[:,6]-temp[:,3])[temp[:,7]==0])/60
     d_home_1 = great_circle_dist(home_x,home_y,temp[:,1],temp[:,2])
     d_home_2 = great_circle_dist(home_x,home_y,temp[:,4],temp[:,5])
@@ -963,6 +975,7 @@ def GetStats(traj):
                           "dist_traveled","diameter","num_sig_places"]
   return(summary_stats)
 
+
 ### parameters ###
 l1 = 60*60*24*10
 l2 = 60*60*24*30
@@ -980,7 +993,7 @@ num = 10
 switch = 3
 
 ### run script ###
-input_path = "C:/Users/glius/Downloads/abdominal_data"
+input_path = "C:/Users/glius/Downloads/New folder"
 output_path = "C:/Users/glius/Downloads/abdominal_output"
 names = os.listdir(input_path)
 for name in names:
