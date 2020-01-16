@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 def comm_logs(data_filepath,output_path):
   patient_names = os.listdir(data_filepath)
   for patient_name in patient_names:
+    print(patient_name)
     data_folder_calls = data_filepath + "/" + patient_name +  "/calls"
     data_folder_texts = data_filepath + "/" + patient_name +  "/texts"
     ## deal with calls
@@ -52,7 +53,12 @@ def comm_logs(data_filepath,output_path):
                     seconds=current_t.second, microseconds=current_t.microsecond)
         final_t = datetime.timestamp(final_t)
         m_len = np.array(hour_texts['message length'])
-        m_len[m_len=="MMS"]=0
+        for k in range(len(m_len)):
+          if m_len[k]=="MMS":
+            m_len[k]=0
+          if isinstance(m_len[k], str)==False:
+            if np.isnan(m_len[k]):
+               m_len[k]=0
         m_len = m_len.astype(int)
         index_s = np.array(hour_texts['sent vs received'])=="sent SMS"
         index_r = np.array(hour_texts['sent vs received'])=="received SMS"
@@ -74,48 +80,48 @@ def comm_logs(data_filepath,output_path):
 
     ## create a full table, fill the days without records as 0
     ## use identifier to find the first hour
-    identifier_Files = os.listdir(data_filepath + "/" + patient_name +  "/identifiers")
-    identifiers = pd.read_csv(data_filepath + "/" + patient_name +  "/identifiers/"+ identifier_Files[0], sep = ",")
-    start_t = datetime.fromtimestamp(identifiers["timestamp"][0]/1000)
-    start_t = start_t - timedelta(minutes=start_t.minute,seconds=start_t.second, microseconds=start_t.microsecond)+timedelta(hours=1)
+    if os.path.exists(data_folder_calls) and os.path.exists(data_folder_texts):
+      identifier_Files = os.listdir(data_filepath + "/" + patient_name +  "/identifiers")
+      identifiers = pd.read_csv(data_filepath + "/" + patient_name +  "/identifiers/"+ identifier_Files[0], sep = ",")
+      start_t = datetime.fromtimestamp(identifiers["timestamp"][0]/1000)
+      start_t = start_t - timedelta(minutes=start_t.minute,seconds=start_t.second, microseconds=start_t.microsecond)+timedelta(hours=1)
 
-    ##Last hour: look at all the subject's directories (except survey) and find the latest datefor each directory
-    directories = os.listdir(data_filepath + "/" + patient_name)
-    directories = list(set(directories)-set(["survey_answers","survey_timings"]))
-    lastDate = []
-    for i in directories:
-      files = os.listdir(data_filepath + "/" + patient_name + "/" + i)
-      lastDate.append(files[-1])
-    from_zone = tz.gettz('UTC')
-    to_zone = tz.gettz('America/New_York')
-    UTC = [datetime.strptime(i, '%Y-%m-%d %H_%M_%S.csv') for i in lastDate]
-    EST = [i.replace(tzinfo=from_zone).astimezone(to_zone) for i in UTC]
-    end_t = max(EST).replace(tzinfo=None)
-    hour_diff = int((end_t - start_t).total_seconds()/(60*60))+1
-    call_t_array = np.array(call_stats["time"])
-    text_t_array = np.array(text_stats["time"])
-    full_logs = np.zeros([1,20]).astype(float)  ##  number of columns in the final output
-    for j in range(hour_diff):
-      current_t = datetime.timestamp(start_t) + 3600*j
-      if sum(call_t_array==current_t)==1:
-        call_log = (np.array(call_stats.loc[call_t_array==current_t])[0])[np.array([1,2,3,5,6,7,8,9])].astype(float)
-      else:
-        call_log = np.zeros(8).astype(float)
-      if sum(text_t_array==current_t)==1:
-        text_log = (np.array(text_stats.loc[text_t_array==current_t])[0])[np.array([1,2,3,4,6,7,8,9])].astype(float)
-      else:
-        text_log = np.zeros(8).astype(float)
-      t = datetime.fromtimestamp(current_t)
-      hour_log = np.concatenate((np.array([t.year,t.month,t.day,t.hour]),call_log,text_log))
-      full_logs = np.vstack((full_logs,hour_log))
-    full_logs = pd.DataFrame(np.delete(full_logs,0,0))
-    full_logs.columns = ["year","month","day","hour","num_in","num_out","num_mis","uniq_in","uniq_out","uniq_mis",
-                        "time_in","time_out","num_s","num_r","uniq_s","uniq_r","words_s","words_r","mms_s","mms_r"]
+      ##Last hour: look at all the subject's directories (except survey) and find the latest datefor each directory
+      directories = os.listdir(data_filepath + "/" + patient_name)
+      directories = list(set(directories)-set(["survey_answers","survey_timings"]))
+      lastDate = []
+      for i in directories:
+        files = os.listdir(data_filepath + "/" + patient_name + "/" + i)
+        lastDate.append(files[-1])
+      from_zone = tz.gettz('UTC')
+      to_zone = tz.gettz('America/New_York')
+      UTC = [datetime.strptime(i, '%Y-%m-%d %H_%M_%S.csv') for i in lastDate]
+      EST = [i.replace(tzinfo=from_zone).astimezone(to_zone) for i in UTC]
+      end_t = max(EST).replace(tzinfo=None)
+      hour_diff = int((end_t - start_t).total_seconds()/(60*60))+1
+      call_t_array = np.array(call_stats["time"])
+      text_t_array = np.array(text_stats["time"])
+      full_logs = np.zeros([1,20]).astype(float)  ##  number of columns in the final output
+      for j in range(hour_diff):
+        current_t = datetime.timestamp(start_t) + 3600*j
+        if sum(call_t_array==current_t)==1:
+          call_log = (np.array(call_stats.loc[call_t_array==current_t])[0])[np.array([1,2,3,5,6,7,8,9])].astype(float)
+        else:
+          call_log = np.zeros(8).astype(float)
+        if sum(text_t_array==current_t)==1:
+          text_log = (np.array(text_stats.loc[text_t_array==current_t])[0])[np.array([1,2,3,4,6,7,8,9])].astype(float)
+        else:
+          text_log = np.zeros(8).astype(float)
+        t = datetime.fromtimestamp(current_t)
+        hour_log = np.concatenate((np.array([t.year,t.month,t.day,t.hour]),call_log,text_log))
+        full_logs = np.vstack((full_logs,hour_log))
+      full_logs = pd.DataFrame(np.delete(full_logs,0,0))
+      full_logs.columns = ["year","month","day","hour","num_in","num_out","num_mis","uniq_in","uniq_out","uniq_mis",
+                          "time_in","time_out","num_s","num_r","uniq_s","uniq_r","words_s","words_r","mms_s","mms_r"]
 
-    full_logs.to_csv(output_path + "/" + patient_name + ".csv",index=False)
-
+      full_logs.to_csv(output_path + "/" + patient_name + ".csv",index=False)
 
 ## example:
-data_filepath = "C:/Users/glius/Google Drive/HOPE/data"
-output_path = "C:/Users/glius/Downloads"
+data_filepath = "F:/DATA/hope"
+output_path = "C:/Users/glius/Desktop/out"
 comm_logs(data_filepath,output_path)
