@@ -533,8 +533,49 @@ for(id in uniq_ids){
 ```
 
 
+## 7. Prepare data for CNN
+```{r}
+data4CNN = function(path1,path2,hours_before,priority=c(10,2,3,1,5,6)){
+  CNNset = c()
+  clinical_events = wide2long(path2)
+  uniq_ids = unique(clinical_events$ID)
+  for(id in uniq_ids){
+    ## priority:  ICU>HA>ED>paracentesis>procedure>urgent care
+    record = subset(clinical_events, ID==id & hcu_event %in% c(1,3,4,5,6,10))
+    if(nrow(record)>0){
+      temp = data_integrate(id,path1)
+      if(!is.null(temp)){
+        enroll_hour = paste0(temp$year[1],"-",temp$month[1],"-",temp$day[1]," ",temp$hour[1],":00:00")
+        temp = temp[,5:ncol(temp)] ## remove time
+        temp[temp==-1]=NA ## change -1 to NA
+        for (i in 1:ncol(temp)){
+          if(!is.na(temp[1,i])){
+            temp[,i]=rank(temp[,i])/nrow(temp)
+          }
+        }
+        temp$events = 0
+        enroll_stamp = as.numeric(as.POSIXct(enroll_hour))-60*60
+        start_hour = round((record$stamp0-enroll_stamp)/3600,0)
+        events = record$hcu_event[start_hour<=nrow(temp)]
+        start_hour = start_hour[start_hour<=nrow(temp)]
+        for(j in priority[priority %in% events]){
+          for(t in start_hour[events==j]){
+            temp$events[max(1,(t-hours_before+1)):t]=j
+          }
+        }
+        temp$ID = id 
+        CNNset = rbind(CNNset,temp)
+      }
+    }
+  }
+  return(CNNset)
+}
+```
 
-
+```{r}
+cnndata = data4CNN(path1,path2,36,priority=c(10,2,3,1,5,6))
+write.csv(cnndata,"C:/Users/glius/Google Drive/HOPE/detailed_clinical_events/cnndata.csv",row.names = F)
+```
 
 
 
