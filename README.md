@@ -20,3 +20,25 @@ Pagoda is a repo to deal with accelerometer data. The function "hourly_step_coun
 
 # sweet osmanthus
 Sweet osmanthus is created for GPS data. The file "imputeGPS.py" is the one to use to get hourly GPS summary statistics and complete trajectories as CSV file, similarly, you only need to provide the path of the data folder and the path of the output folder. It consists of three main parts: "GPS2MobMat.ipynb", "ImputeMobMat.ipynb" and "Mat2Stats.ipynb". In "GPS2MobMat.ipynb", there are codes on how to covert longitude/lattitude to coordinates on a 2D plane, how to smooth the raw data over time, and how to summarize those raw data into trajectories (linear flights and pauses). "ImputeMobMat.ipynb" shows how to apply sparse online Gaussian Process to select representative flights and pauses to impute the missing trajectories. Finally, "Mat2Stats.ipynb" tells you how to get summary statistics from the imputed trajectories. 
+
+# poplar
+This repo contains two directories.  The first directory is the `beiwetools` package.  Install this package with `pip install /path/to/beiwetools` or similar.
+
+The second directory contains ipython notebooks with example code, and also some sample Beiwe study configuration files.  These configuration files correspond to studies found in the [public data sets](https://zenodo.org/record/1188879#.XcDUyHWYW02).
+
+There are currently three sub-packages in `beiwetools`:
+
+* `helpers`: Functions and classes for handling common scenarios, such as converting time formats, summarizing sensor sampling rates, and plotting timestamps,
+* `configread`: Tools for querying Beiwe configuration files and generating study documentation,
+* `manage`: Tools for organizing and summarizing directories of raw Beiwe data.
+
+A fourth sub-package, `localize`, will be added shortly.  This sub-package  provides some classes and functions for incorporating each user's time zone into the analysis of processed Beiwe data.
+
+The example notebooks and `beiwetools/README.md` provide an overview of the package.  More details are documented in the various modules.
+
+Some features of text files from the Beiwe platform are documented in specific locations:
+
+* The module `beiwetools/helpers/time_constants.py` includes common Beiwe time formats.
+* Some raw data features are described in `data_streams.json` and `headers.py`, both found in `beiwetools/manage`.
+* The contents of configuration settings are documented in three `JSON` files in `beiwetools/configread`.
+

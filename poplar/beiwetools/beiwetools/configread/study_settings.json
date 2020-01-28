@@ -1,0 +1,58 @@
+{
+     "Identifiers": [
+          "id",
+          "_id"
+     ],
+     "Deleted Status": [
+          "deleted"
+     ],
+     "Survey Settings": [
+          "check_for_new_surveys_frequency_seconds",
+          "voice_recording_max_time_length_seconds"
+     ],
+     "App Settings": [
+          "allow_upload_over_cellular_data",
+          "create_new_data_files_frequency_seconds",
+          "seconds_before_auto_logout",
+          "upload_data_files_frequency_seconds",
+          "use_anonymized_hashing",
+          "use_gps_fuzzing"
+     ],
+     "Display Settings": [
+          "about_page_text",
+          "call_clinician_button_enabled",
+          "call_clinician_button_text",
+          "call_research_assistant_button_enabled",
+          "consent_form_text",
+          "consent_sections",
+          "survey_submit_success_toast_text"
+     ],
+     "Passive Data Settings": [
+          "accelerometer",
+          "accelerometer_off_duration_seconds",
+          "accelerometer_on_duration_seconds",
+          "bluetooth",
+          "bluetooth_global_offset_seconds",
+          "bluetooth_on_duration_seconds",
+          "bluetooth_total_duration_seconds",
+          "calls",
+          "devicemotion",
+          "devicemotion_off_duration_seconds",
+          "devicemotion_on_duration_seconds",
+          "gps",
+          "gps_off_duration_seconds",
+          "gps_on_duration_seconds",
+          "gyro",
+          "gyro_off_duration_seconds",
+          "gyro_on_duration_seconds",
+          "magnetometer",
+          "magnetometer_off_duration_seconds",
+          "magnetometer_on_duration_seconds",
+          "power_state",
+          "proximity",
+          "reachability",
+          "texts",
+          "wifi",
+          "wifi_log_frequency_seconds"
+     ]
+}
