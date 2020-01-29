@@ -356,11 +356,25 @@ mov_mean = function(vec,window){
 }
 ```
 
-## 6.2 daily and hourly
+## 6.2 Get communication active level score
+```{r}
+comm_score = function(data){
+  comm_cols = data[,c("num_in","num_out","num_mis","time_in","time_out","num_s","num_r",
+                      "words_s","words_r","mms_s","mms_r")]
+  for(i in 1:ncol(comm_cols)){
+       comm_cols[,i] = rank(as.matrix(comm_cols[,i]))/nrow(comm_cols)
+  }
+  score = rowSums(comm_cols)-2*comm_cols$num_mis
+  return(score)
+}
+```
+
+## 6.3 daily and hourly
 ```{r}
 gps_linechart = function(id,path1,path2=NULL,path3=NULL,window,option1,option2){
   if(option1 == "day"){
     daily_summary = hour2day(id,path1)
+    num_graph = 2
     if(!is.null(daily_summary)){
       daily_summary$key = 1:nrow(daily_summary)
       enroll_date = paste0(daily_summary$year[1],"-",daily_summary$month[1],"-",daily_summary$day[1])
@@ -373,9 +387,24 @@ gps_linechart = function(id,path1,path2=NULL,path3=NULL,window,option1,option2){
           scale_alpha_continuous("Confidence in Estimates") + 
           xlab("Days since enrollment") + ylab("Hometime (hr)")
       p2 = ggplot(data= daily_summary,aes(x=key, y=dist_traveled,alpha=obs/max(obs))) + geom_point(col="grey") +
-          geom_line(data = daily_summary, aes(x=key, y=smooth_dist, alpha=smooth_obs/(max(smooth_obs))), col="black",size=1.5)+ ylim(0,quantile(daily_summary$dist_traveled,0.95))+
+          geom_line(data = daily_summary, aes(x=key, y=smooth_dist, alpha=smooth_obs/(max(smooth_obs))), col="black",size=1.5)+
+          ylim(0,quantile(daily_summary$dist_traveled,0.95))+
           scale_alpha_continuous("Confidence in Estimates") + 
           xlab("Days since enrollment") + ylab("Distance Traveled (km)")
+      if("steps" %in% colnames(daily_summary)){
+        num_graph = num_graph + 1
+        smooth_step = mov_mean(daily_summary$steps,window)
+        p3 = ggplot(data = daily_summary,aes(x=key, y=steps)) + geom_point(col="grey") + 
+             geom_line(data = daily_summary,aes(x=key, y=smooth_step),col="black",size=0.8)+
+             ylim(min(daily_summary$steps),quantile(daily_summary$steps,0.95))+
+             xlab("Days since enrollment") + ylab("Step Count")
+      }
+      if("num_in" %in% colnames(daily_summary)){
+        daily_summary$score = comm_score(daily_summary)
+        num_graph = num_graph + 1
+        p4 = ggplot(data = daily_summary,aes(x=key, y=score)) + geom_point(col="grey") + geom_line(col="black",size=0.8)+
+        xlab("Days since enrollment") + ylab("Communication Active Level")
+      }
       if(is.null(path2)==F){
         visit_type=c("ED Visit","Scan","Procedure","Paracentesis","Hospital admission",
                "ICU admission","Palliative care visit","Hospice care referral",
@@ -406,17 +435,37 @@ gps_linechart = function(id,path1,path2=NULL,path3=NULL,window,option1,option2){
         p2 = p2 + geom_vline(data = new_set,aes(xintercept = x_day, color= event_color),alpha=0.8)+
                 scale_colour_manual(name ='Events', values=color_type[events], labels=visit_type[events])
       }
-      graph = ggarrange(p1, p2,ncol=1, nrow=2,common.legend = TRUE,legend="right")
+      if(!"num_in" %in% colnames(daily_summary) & !"steps" %in% colnames(daily_summary)){
+        graph = ggarrange(p1, p2,ncol=1, nrow=2,common.legend = TRUE,legend="right")
+      }
+      if(!"num_in" %in% colnames(daily_summary) & "steps" %in% colnames(daily_summary)){
+        p3 = p3 + geom_vline(data = new_set,aes(xintercept = x_day, color= event_color),alpha=0.8)+
+                scale_colour_manual(name ='Events', values=color_type[events], labels=visit_type[events])
+        graph = ggarrange(p1, p2, p3,ncol=1, nrow=3,common.legend = TRUE,legend="right")
+      }
+      if("num_in" %in% colnames(daily_summary) & !"steps" %in% colnames(daily_summary)){
+        p4 = p4 + geom_vline(data = new_set,aes(xintercept = x_day, color= event_color),alpha=0.8)+
+                scale_colour_manual(name ='Events', values=color_type[events], labels=visit_type[events])
+        graph = ggarrange(p1, p2, p4,ncol=1, nrow=3,common.legend = TRUE,legend="right")
+      }
+      if("num_in" %in% colnames(daily_summary) & "steps" %in% colnames(daily_summary)){
+        p3 = p3 + geom_vline(data = new_set,aes(xintercept = x_day, color= event_color),alpha=0.8)+
+                scale_colour_manual(name ='Events', values=color_type[events], labels=visit_type[events])
+        p4 = p4 + geom_vline(data = new_set,aes(xintercept = x_day, color= event_color),alpha=0.8)+
+                scale_colour_manual(name ='Events', values=color_type[events], labels=visit_type[events])
+        graph = ggarrange(p1, p2, p3,p4, ncol=1, nrow=4,common.legend = TRUE,legend="right")
+      }
+      
       if(option2=="show"){
         return(graph)
       }
       else if(option2=="save"){
         if(is.null(path3)){
-          ggsave(paste0(id,"_linechart_day.pdf"), plot = graph, device = "pdf", path = NULL,scale = 1, width = 20, height = 5, units = "in",dpi = 300, limitsize = TRUE)
+          ggsave(paste0(id,"_linechart_day.pdf"), plot = graph, device = "pdf", path = NULL,scale = 1, width = 20, height = 2.5*num_graph, units = "in",dpi = 300, limitsize = TRUE)
           print(paste0(id," daily linechart is Done."))
         }
         else{
-          ggsave(paste0(path3,"/",id,"_linechart_day.pdf"), plot = graph, device = "pdf", path = NULL,scale = 1, width = 20, height = 5, units = "in",dpi = 300, limitsize = TRUE)
+          ggsave(paste0(path3,"/",id,"_linechart_day.pdf"), plot = graph, device = "pdf", path = NULL,scale = 1, width = 20, height = 2.5*num_graph, units = "in",dpi = 300, limitsize = TRUE)
           print(paste0(id," daily linechart is Done."))
         }
       }
