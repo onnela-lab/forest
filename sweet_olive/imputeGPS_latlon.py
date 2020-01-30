@@ -296,12 +296,12 @@ def InferMobMat(mobmat,itrvl=10,r=None):
   for j in np.arange(1,mobmat.shape[0]):
     if mobmat[j,3] > mobmat[j-1,6]:
       d = great_circle_dist(mobmat[j,1],mobmat[j,2],mobmat[j-1,4],mobmat[j-1,5])
-      if d<5:
+      if d<10:
         if mobmat[j,0]==2 and mobmat[j-1,0]==2:
-          mean_x = (mobmat[j,1] + mobmat[j-1,4])/2
-          mean_y = (mobmat[j,2] + mobmat[j-1,5])/2
-          mobmat[j,1] = mobmat[j,4] = mobmat[j-1,1] = mobmat[j-1,4] = mean_x
-          mobmat[j,2] = mobmat[j,5] = mobmat[j-1,2] = mobmat[j-1,5] = mean_y
+          initial_x = mobmat[j-1,4]
+          initial_y = mobmat[j-1,5]
+          mobmat[j,1] = mobmat[j,4] = mobmat[j-1,1] = mobmat[j-1,4] = initial_x
+          mobmat[j,2] = mobmat[j,5] = mobmat[j-1,2] = mobmat[j-1,5] = initial_y
         if mobmat[j,0]==1 and mobmat[j-1,0]==2:
           mobmat[j,1] = mobmat[j-1,4]
           mobmat[j,2] = mobmat[j-1,5]
@@ -679,6 +679,15 @@ def ImputeGPS(MobMat,BV_set,method,switch):
           imp_y0 = np.append(imp_y0,start_y)
           imp_y1 = np.append(imp_y1,end_y)
           start_t = end_t
+        elif start_x==end_x and start_y==end_y and end_t-start_t<12*60*60:
+          imp_s = np.append(imp_s,0)
+          imp_t0 = np.append(imp_t0,start_t)
+          imp_t1 = np.append(imp_t1,end_t)
+          imp_x0 = np.append(imp_x0,start_x)
+          imp_x1 = np.append(imp_x1,end_x)
+          imp_y0 = np.append(imp_y0,start_y)
+          imp_y1 = np.append(imp_y1,end_y)
+          start_t = end_t
         else:
           if counter % 2 == 0:
             direction = 'forward'
@@ -705,7 +714,11 @@ def ImputeGPS(MobMat,BV_set,method,switch):
               try_t = start_t + delta_t
               try_x = (end_t-try_t)/(end_t-start_t+1e-5)*(start_x+delta_x)+(try_t-start_t+1e-5)/(end_t-start_t)*end_x
               try_y = (end_t-try_t)/(end_t-start_t+1e-5)*(start_y+delta_y)+(try_t-start_t+1e-5)/(end_t-start_t)*end_y
-              if end_t>start_t and checkbound(try_x,try_y,mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])==1:
+              mov1 = great_circle_dist(try_x,try_y,start_x,start_y)
+              mov2 =  great_circle_dist(end_x,end_y,start_x,start_y)
+              check1 = checkbound(try_x,try_y,mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])
+              check2 = (mov1<mov2)*1
+              if end_t>start_t and check1==1 and check2==1:
                 imp_s = np.append(imp_s,1)
                 imp_t0 = np.append(imp_t0,start_t)
                 current_t = start_t + delta_t
@@ -717,6 +730,19 @@ def ImputeGPS(MobMat,BV_set,method,switch):
                 current_y = (end_t-current_t)/(end_t-start_t)*(start_y+delta_y)+(current_t-start_t)/(end_t-start_t)*end_y
                 imp_y1 = np.append(imp_y1,current_y)
                 start_x = current_x; start_y = current_y; start_t = current_t; start_s=1
+                counter = counter+1
+              if end_t>start_t and check2==0:
+                sp = mov1/delta_t
+                t_need = mov2/sp
+                imp_s = np.append(imp_s,1)
+                imp_t0 = np.append(imp_t0,start_t)
+                current_t = start_t + t_need
+                imp_t1 = np.append(imp_t1,current_t)
+                imp_x0 = np.append(imp_x0,start_x)
+                imp_x1 = np.append(imp_x1,end_x)
+                imp_y0 = np.append(imp_y0,start_y)
+                imp_y1 = np.append(imp_y1,end_y)
+                start_x = end_x; start_y = end_y; start_t = current_t; start_s=1
                 counter = counter+1
             else:
               #print(3)
@@ -766,7 +792,11 @@ def ImputeGPS(MobMat,BV_set,method,switch):
               try_t = end_t - delta_t
               try_x = (end_t-try_t)/(end_t-start_t+1e-5)*start_x+(try_t-start_t)/(end_t-start_t+1e-5)*(end_x+delta_x)
               try_y = (end_t-try_t)/(end_t-start_t+1e-5)*start_y+(try_t-start_t)/(end_t-start_t+1e-5)*(end_y+delta_y)
-              if end_t>start_t and checkbound(try_x,try_y,mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])==1:
+              mov1 = great_circle_dist(try_x,try_y,end_x,end_y)
+              mov2 =  great_circle_dist(end_x,end_y,start_x,start_y)
+              check1 = checkbound(try_x,try_y,mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])
+              check2 = (mov1<mov2)*1
+              if end_t>start_t and check1==1 and check2==1:
                 imp_s = np.append(imp_s,1)
                 imp_t1 = np.append(imp_t1,end_t)
                 current_t = end_t - delta_t
@@ -778,6 +808,19 @@ def ImputeGPS(MobMat,BV_set,method,switch):
                 current_y = (end_t-current_t)/(end_t-start_t)*start_y+(current_t-start_t)/(end_t-start_t)*(end_y+delta_y)
                 imp_y0 = np.append(imp_y0,current_y)
                 end_x = current_x; end_y = current_y; end_t = current_t; end_s = 1
+                counter = counter+1
+              if end_t>start_t and check2==0:
+                sp = mov1/delta_t
+                t_need = mov2/sp
+                imp_s = np.append(imp_s,1)
+                imp_t1 = np.append(imp_t1,end_t)
+                current_t = end_t - t_need
+                imp_t0 = np.append(imp_t0,current_t)
+                imp_x1 = np.append(imp_x1,end_x)
+                imp_x0 = np.append(imp_x0,start_x)
+                imp_y1 = np.append(imp_y1,end_y)
+                imp_y0 = np.append(imp_y0,start_y)
+                end_x = start_x; end_y = start_y; end_t = current_t; end_s = 1
                 counter = counter+1
             else:
               #print(5)
@@ -818,7 +861,7 @@ def Imp2traj(imp_table,MobMat,itrvl=10,r=None,w=None,h=None):
   if h is None:
     h = r
   if w is None:
-    w = 3*r
+    w = 2*r
   mis_table = np.zeros(8)
   for i in range(np.shape(MobMat)[0]-1):
     if MobMat[i+1,3]!=MobMat[i,6]:
@@ -873,7 +916,9 @@ def Imp2traj(imp_table,MobMat,itrvl=10,r=None,w=None,h=None):
   traj = np.hstack((traj,np.zeros((traj.shape[0],1))))
   MobMat = np.hstack((MobMat,np.ones((MobMat.shape[0],1))))
   full_traj = np.vstack((traj,MobMat))
-  return(full_traj[full_traj[:,3].argsort()].astype(float))
+  float_traj = full_traj[full_traj[:,3].argsort()].astype(float)
+  final_traj = float_traj[float_traj[:,6]-float_traj[:,3]>0,:]
+  return(final_traj)
 
 def num_sig_places(data,dist):
   loc_x = []; loc_y = []; num_xy=[]; t_xy = []
@@ -1039,10 +1084,10 @@ sigma2 = 0.01
 tol = 0.05
 num = 10
 switch = 3
-option = "hourly"
+option = "daily"
 
 ### run script ###
-input_path = "C:/Users/glius/Downloads/New folder"
+input_path = "C:/Users/glius/Downloads/abdominal_data"
 output_path = "C:/Users/glius/Downloads/abdominal_output"
 names = os.listdir(input_path)
 for name in names:
