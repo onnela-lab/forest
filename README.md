@@ -22,17 +22,13 @@ Pagoda is a repo to deal with accelerometer data. The function "hourly_step_coun
 Sweet osmanthus is created for GPS data. The file "imputeGPS.py" can return hourly GPS summary statistics and full trajectories as CSV files once you specify the path of the data folder and the path of the output folder. To illustrate the long code, I decompose it to three parts in Jupyter Notebooks with outputs and graphs from each step. "GPS2MobMat.ipynb" is about how to covert longitude/lattitude to coordinates on a 2D plane, how to smooth the raw data over time, and how to summarize those raw data into trajectories (linear flights and pauses) using the rectangle method. "ImputeMobMat.ipynb" shows how to apply sparse online Gaussian Process to select representative flights and pauses, and then how to use those flights and pauses to impute the missing trajectories so this is the key part of the code. Finally, "Mat2Stats.ipynb" tells you how to get summary statistics from the imputed trajectories. 
 
 # sweet olive
-Sweet olive is same as sweet osmanthus, so is the code. When we applied the code in sweet osmanthus on the real data, we observed abnormal distances traveled if the user had long-distance flights. The reason is the projection of the latitude and longitude to the 2D plane will distort the coordinates near the edges. To fix this problem, sweet olive does every thing on the 3D sphere instead of the 2D plane. The usage of the function stays the same. Finally, "GetStats" function (feed full trajectories as inputs) has a "daily" or "hourly" option to choose, and "daily" option will give you more statistics like "number of significant places visited", "entropy", etc.
+Sweet olive is same as sweet osmanthus, so is the code. When we applied the code in sweet osmanthus on the real data, we observed abnormal distances traveled if the user had long-distance flights. The reason is the projection of the latitude and longitude to the 2D plane will distort the coordinates near the edges. To fix this problem, sweet olive does every thing on the 3D sphere instead of the 2D plane. The usage of the function stays the same. Finally, in "GetStats" function (feed full trajectories as inputs) has a "daily" or "hourly" option to choose, and "daily" option will give you more statistics like "number of significant places visited", "entropy", etc.
 
 # coconut_tree
 Coconut trees are pretty, so the code here generates good-looking graphs. The code is written in R, the R notebook is a good way to see what the functions do in the repo. The functions are (1) heatmaps for GPS quality check (2) Integrate all summary statistics from GPS, accelerometer and communication logs from the same user together as one big dataset (3) convert the hourly output to daily level for some of the statistics (4) reshape clinical events data, this one is ad-hoc, very specific to a dataset, not useful for general datasets (5) heatmaps for all the summary statistics from a user during the follow-up (6) linecharts for some statistics with the transparency reflecting the confidence we have in the estimates.
 
 # poplar
-This repo contains two directories.  The first directory is the `beiwetools` package.  Install this package with `pip install /path/to/beiwetools` or similar.
-
-The second directory contains ipython notebooks with example code, and also some sample Beiwe study configuration files.  These configuration files correspond to studies found in the [public data sets](https://zenodo.org/record/1188879#.XcDUyHWYW02).
-
-There are currently three sub-packages in `beiwetools`:
+This repo contains the `beiwetools` package.  This package contains tools for managing and documenting Beiwe study settings and raw data sets.  There are currently three sub-packages:
 
 * `helpers`: Functions and classes for handling common scenarios, such as converting time formats, summarizing sensor sampling rates, and plotting timestamps,
 * `configread`: Tools for querying Beiwe configuration files and generating study documentation,
@@ -40,11 +36,12 @@ There are currently three sub-packages in `beiwetools`:
 
 A fourth sub-package, `localize`, will be added shortly.  This sub-package  provides some classes and functions for incorporating each user's time zone into the analysis of processed Beiwe data.
 
-The example notebooks and `beiwetools/README.md` provide an overview of the package.  More details are documented in the various modules.
+The `examples` directory contains ipython notebooks with sample code, and also some sample Beiwe study configuration files.  These configuration files correspond to studies found in the [public data sets](https://zenodo.org/record/1188879#.XcDUyHWYW02).
 
-Some features of text files from the Beiwe platform are documented in specific locations:
+See `beiwetools/README.md` for a summary of conventions used in raw Beiwe data, such as time formats, file-naming conventions, and directory structure.  Some specific features of text files from the Beiwe platform are documented in these locations:
 
 * The module `beiwetools/helpers/time_constants.py` includes common Beiwe time formats.
 * Some raw data features are described in `data_streams.json` and `headers.py`, both found in `beiwetools/manage`.
 * The contents of configuration settings are documented in three `JSON` files in `beiwetools/configread`.
 
+The example notebooks and `beiwetools/README.md` provide an overview of the package, along with some simple use cases.  More details are documented within the various modules.
