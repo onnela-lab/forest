@@ -116,8 +116,8 @@ def comm_logs(data_filepath,output_path):
         hour_log = np.concatenate((np.array([t.year,t.month,t.day,t.hour]),call_log,text_log))
         full_logs = np.vstack((full_logs,hour_log))
       full_logs = pd.DataFrame(np.delete(full_logs,0,0))
-      full_logs.columns = ["year","month","day","hour","num_in","num_out","num_mis","uniq_in","uniq_out","uniq_mis",
-                          "time_in","time_out","num_s","num_r","uniq_s","uniq_r","words_s","words_r","mms_s","mms_r"]
+      full_logs.columns = ["year","month","day","hour","num_in","num_mis","num_out","time_in","time_out","uniq_in",
+                     "uniq_mis","uniq_out","mms_r","mms_s","num_r","num_s","words_r","words_s","uniq_r","uniq_s"]
 
       full_logs.to_csv(output_path + "/" + patient_name + ".csv",index=False)
 

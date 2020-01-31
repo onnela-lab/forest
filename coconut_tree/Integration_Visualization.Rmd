@@ -365,7 +365,8 @@ comm_score = function(data){
        comm_cols[,i] = rank(as.matrix(comm_cols[,i]))/nrow(comm_cols)
   }
   score = rowSums(comm_cols)-2*comm_cols$num_mis
-  return(score)
+  standard_score = (score-min(score))/(max(score)-min(score))
+  return(standard_score)
 }
 ```
 
@@ -572,11 +573,11 @@ gps_linechart(id,path1,path2,NULL,3,"hour","show")
 clinical_events = wide2long(path2)
 uniq_ids = unique(clinical_events$ID)
 for(id in uniq_ids){
-  path3 = "C:/Users/glius/Downloads/heatmap"
+  path3 = "C:/Users/glius/Google Drive/HOPE/visualization/heatmap"
   heatmap(id,path1,path2,path3,"save")
-  path3 = "C:/Users/glius/Downloads/linechart_day"
+  path3 = "C:/Users/glius/Google Drive/HOPE/visualization/linechart_day"
   gps_linechart(id,path1,path2,path3,3,"day","save")
-  path3 = "C:/Users/glius/Downloads/linechart_hour"
+  path3 = "C:/Users/glius/Google Drive/HOPE/visualization/linechart_hour"
   gps_linechart(id,path1,path2,path3,3,"hour","save")
 }
 ```
