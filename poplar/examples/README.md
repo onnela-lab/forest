@@ -24,16 +24,23 @@ This directory contains six Beiwe study configuration files.  Five of these file
 
 
 ## 2. `configread_example.ipynb`
+These examples include code for the following tasks:
 
+1. Read a Beiwe configuration file,
+2. Query specific configuration settings,
+3. Generate human-readable documentation,
+4. Inspect a tracking survey question,
+5. Assign names to study objects.
+
+## 3. `manage_example.ipynb`
 This notebook provides code for three example tasks:
+
 1. Create a registry for a single directory of raw data,
 2. Create a registry for multiple directories,
 3. Query a registry for study settings, device parameters, and available file paths.
 
 In addition to creating registries, these tasks demonstrate how to:  
+
 * Manage user names and object names,
 * Review numerical summaries of raw user data,
 * Save and reload a raw data registry.
-
-
-## 3. `manage_example.ipynb`
