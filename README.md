@@ -28,7 +28,7 @@ Sweet olive is same as sweet osmanthus, so is the code. When we applied the code
 Coconut trees are pretty, so the code here generates good-looking graphs. The code is written in R, the R notebook is a good way to see what the functions do in the repo. The functions are (1) heatmaps for GPS quality check (2) Integrate all summary statistics from GPS, accelerometer and communication logs from the same user together as one big dataset (3) convert the hourly output to daily level for some of the statistics (4) reshape clinical events data, this one is ad-hoc, very specific to a dataset, not useful for general datasets (5) heatmaps for all the summary statistics from a user during the follow-up (6) linecharts for some statistics with the transparency reflecting the confidence we have in the estimates.
 
 # poplar
-This repo contains the `beiwetools` package.  This package contains tools for managing and documenting Beiwe study settings and raw data sets.  There are currently three sub-packages:
+This repo contains the `beiwetools` package.  This package provides tools for managing and documenting Beiwe study settings and raw data sets.  There are currently three sub-packages:
 
 * `helpers`: Functions and classes for handling common scenarios, such as converting time formats, summarizing sensor sampling rates, and plotting timestamps,
 * `configread`: Tools for querying Beiwe configuration files and generating study documentation,
@@ -45,3 +45,9 @@ See `beiwetools/README.md` for a summary of conventions used in raw Beiwe data, 
 * The contents of configuration settings are documented in three `JSON` files in `beiwetools/configread`.
 
 The example notebooks and `beiwetools/README.md` provide an overview of the package, along with some simple use cases.  More details are documented within the various modules.
+
+# ash
+This repo contains the `accrep` package, which provides tools for processing raw Beiwe accelerometer data.
+
+# ginkgo
+This repo contains the `gpsrep` package, which provides tools for some basic GPS data processing tasks, including time zone extraction.
