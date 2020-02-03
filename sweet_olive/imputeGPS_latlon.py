@@ -621,9 +621,13 @@ def ImputeGPS(MobMat,BV_set,method,switch):
   imp_y0 = np.array([]); imp_y1 = np.array([])
   imp_t0 = np.array([]); imp_t1 = np.array([])
   imp_s = np.array([])
-
   for i in range(mis_table.shape[0]):
-     ## if a person remains at the same place at the begining and end of missing, just assume he satys there all the time
+    #print(i)
+    mis_t0 = mis_table[i,2]; mis_t1 = mis_table[i,5]
+    nearby_flight = sum((flight_table[:,6]>mis_t0-12*60*60)*(flight_table[:,3]<mis_t1+12*60*60))
+    d_diff = great_circle_dist(mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])
+    t_diff = mis_table[i,5] - mis_table[i,2]
+    ## if a person remains at the same place at the begining and end of missing, just assume he satys there all the time
     if mis_table[i,0]==mis_table[i,3] and mis_table[i,1]==mis_table[i,4]:
       imp_s = np.append(imp_s,2)
       imp_x0 = np.append(imp_x0, mis_table[i,0])
@@ -632,9 +636,7 @@ def ImputeGPS(MobMat,BV_set,method,switch):
       imp_y1 = np.append(imp_y1, mis_table[i,4])
       imp_t0 = np.append(imp_t0, mis_table[i,2])
       imp_t1 = np.append(imp_t1, mis_table[i,5])
-    elif great_circle_dist(mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])>300000:
-      d_diff = great_circle_dist(mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])
-      t_diff = mis_table[i,5] - mis_table[i,2]
+    elif d_diff>300000:
       v_diff = d_diff/t_diff
       if v_diff>210:
         imp_s = np.append(imp_s,1)
@@ -647,6 +649,32 @@ def ImputeGPS(MobMat,BV_set,method,switch):
       else:
         v_random = np.random.uniform(low=244, high=258)
         t_need = d_diff/v_random
+        t_s = np.random.uniform(low = mis_table[i,2], high = mis_table[i,5]-t_need)
+        t_e = t_s + t_need
+        imp_s = np.append(imp_s,[2,1,2])
+        imp_x0 = np.append(imp_x0, [mis_table[i,0],mis_table[i,0],mis_table[i,3]])
+        imp_x1 = np.append(imp_x1, [mis_table[i,0],mis_table[i,3],mis_table[i,3]])
+        imp_y0 = np.append(imp_y0, [mis_table[i,1],mis_table[i,1],mis_table[i,4]])
+        imp_y1 = np.append(imp_y1, [mis_table[i,1],mis_table[i,4],mis_table[i,4]])
+        imp_t0 = np.append(imp_t0, [mis_table[i,2],t_s,t_e])
+        imp_t1 = np.append(imp_t1, [t_s,t_e,mis_table[i,5]])
+    ## add one more check about how many flights observed in the nearby 24 hours
+    elif nearby_flight<=5 and t_diff>6*60*60:
+      if d_diff<3000:
+        v_random = np.random.uniform(low=1, high=1.8)
+        t_need = min(d_diff/v_random,t_diff)
+      if d_diff>=3000:
+        v_random = np.random.uniform(low=13, high=32)
+        t_need = min(d_diff/v_random,t_diff)
+      if t_need == t_diff:
+        imp_s = np.append(imp_s,1)
+        imp_x0 = np.append(imp_x0, mis_table[i,0])
+        imp_x1 = np.append(imp_x1, mis_table[i,3])
+        imp_y0 = np.append(imp_y0, mis_table[i,1])
+        imp_y1 = np.append(imp_y1, mis_table[i,4])
+        imp_t0 = np.append(imp_t0, mis_table[i,2])
+        imp_t1 = np.append(imp_t1, mis_table[i,5])
+      else:
         t_s = np.random.uniform(low = mis_table[i,2], high = mis_table[i,5]-t_need)
         t_e = t_s + t_need
         imp_s = np.append(imp_s,[2,1,2])
