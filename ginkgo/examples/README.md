@@ -6,7 +6,7 @@ ___
 examples
 ===
 
-This directory contains sample code for the `gpsrep` package.  The contents are as follows.
+This directory contains sample code for the `gpsrep` package.
 
 ## 1. `gpsrep_example.ipynb`
 
