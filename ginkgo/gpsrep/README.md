@@ -53,12 +53,12 @@ ___
 ## 3. Modules
 
 <a name="headers"/>
-### `headers`
+#### `headers`
 This module contains headers for `csv` files that are handled by `gpsrep`, including raw Beiwe GPS files.  Each variable is described with a brief comment.
 
 ___
 <a name="functions"/>
-### `functions`
+#### `functions`
 This module provides functions for loading raw Beiwe GPS files.
 
 

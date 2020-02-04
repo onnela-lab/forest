@@ -67,26 +67,27 @@ During accelerometer-off periods, no observations are recorded.  During accelero
 
 Accelerometer observations are collected and organized by the Beiwe backend according to standard conventions for raw data.  See `beiwetools/README.md` for more information about Beiwe time formats, file-naming conventions, and directory structure.
 
-
+___
 <a name="modules"/>
 ## 3. Modules
 
 <a name="headers"/>
-### `headers`
+#### `headers`
 This module contains headers for `csv` files that are handled by `accrep`, including raw Beiwe accelerometer files.  Each variable is described with a brief comment.
 
 ___
 <a name="functions"/>
-### `functions`
+#### `functions`
 This module provides functions for loading raw Beiwe accelerometer files, along with implementations of commonly used transformations of triaxial accelerometer data, including Vector Magnitude and ENMO. Overall Dynamic Body Acceleration (Wilson et al. 2006) and the absolute and relative versions of the Activity Index (Bai et al. 2016) are not implemented; these will be provided in a subsequent version of the package.
 
+___
 <a name="summary"/>
-### `summary`
+#### `summary`
 
 
 ___
 <a name="calibration"/>
-### `calibration`
+#### `calibration`
 
 
 ___
@@ -96,7 +97,7 @@ ___
 
 ___
 <a name="spectral"/>
-### `spectral`
+#### `spectral`
 
 
 Tudor-Locke et al. 2019 - cutoffs of 100 and 130 steps per minute.
@@ -110,8 +111,9 @@ Oberg et al. 1993
 Verghese et al. 2014
 Neurology - motoric cognitive risk syndrome, slow gait
 
+___
 <a name="plot"/>
-### `plot`
+#### `plot`
 
 ___
 <a name="examples"/>
