@@ -155,19 +155,17 @@ def summarize_acc(input_path,output_path,option,hz=10,q=75,c=1.05):
         dest_path = output_path + "/" + user_list[i] + "_daily_acc.csv"
         daily_stats.to_csv(dest_path,index=False)
       if option == "both":
-        output_path1 = output_path+"/hourly"
-        output_path2 = output_path+"/daily"
         daily_stats = hour2day(full_stats)
         daily_stats = pd.DataFrame(daily_stats)
         daily_stats.columns = ["year","month","day","active_min","steps","mean_mag","sd_mag",
                               "cur_len","energy","entropy"]
-        dest_path = output_path2 + "/" + user_list[i] + "_daily_acc.csv"
+        dest_path = output_path+"/daily/" + user_list[i] + "_daily_acc.csv"
         daily_stats.to_csv(dest_path,index=False)
         full_stats = full_stats[:,1:]
         full_stats = pd.DataFrame(full_stats)
         full_stats.columns = ["year","month","day","hour","active_min","steps","mean_mag","sd_mag",
                               "cur_len","energy","entropy"]
-        dest_path = output_path1 + "/" + user_list[i] + "_hourly_acc.csv"
+        dest_path = output_path+"/hourly/" + user_list[i] + "_hourly_acc.csv"
         full_stats.to_csv(dest_path,index=False)
     sys.stdout.write( "Done" + '\n')
 
