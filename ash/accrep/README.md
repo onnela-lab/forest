@@ -41,16 +41,15 @@ ___
 
 
 ___
-<a name="version"/>
-## 1. Version Notes
+## 1. Version Notes <a name="version"/>  
+
 
 This is version 0.0.1 of `accrep`.  This package was developed with Python 3.8.1 on PCs running Manjaro Juhraya 18.1.5.
 
 This package requires the `beiwetools` package, which can be found in the `forest/poplar` repository.  Among other package requirements, only `astropy` is not in the Python Standard Library.
 
 ___
-<a name="version"/>
-## 2. Overview
+## 2. Overview <a name="version"/>
 
 Accelerometer data from wearable devices have been used in the study of human behavior and physical activity for over twenty years.  The `accrep` package implements some commonly used strategies for accelerometer data processing, along with methods developed at the Onnela Lab.
 
@@ -68,36 +67,30 @@ During accelerometer-off periods, no observations are recorded.  During accelero
 Accelerometer observations are collected and organized by the Beiwe backend according to standard conventions for raw data.  See `beiwetools/README.md` for more information about Beiwe time formats, file-naming conventions, and directory structure.
 
 ___
-<a name="modules"/>
-## 3. Modules
+## 3. Modules <a name="modules"/>
 
-<a name="headers"/>
-#### `headers`
+#### `headers` <a name="headers"/>
 This module contains headers for `csv` files that are handled by `accrep`, including raw Beiwe accelerometer files.  Each variable is described with a brief comment.
 
 ___
-<a name="functions"/>
-#### `functions`
+#### `functions` <a name="functions"/>
 This module provides functions for loading raw Beiwe accelerometer files, along with implementations of commonly used transformations of triaxial accelerometer data, including Vector Magnitude and ENMO. Overall Dynamic Body Acceleration (Wilson et al. 2006) and the absolute and relative versions of the Activity Index (Bai et al. 2016) are not implemented; these will be provided in a subsequent version of the package.
 
 ___
-<a name="summary"/>
-#### `summary`
+#### `summary` <a name="summary"/>
 
 
 ___
-<a name="calibration"/>
-#### `calibration`
+#### `calibration` <a name="calibration"/>
 
 
 ___
-<a name="proximity"/>
-### `proximity`
+
+### `proximity` <a name="proximity"/>
 
 
 ___
-<a name="spectral"/>
-#### `spectral`
+#### `spectral` <a name="spectral"/>
 
 
 Tudor-Locke et al. 2019 - cutoffs of 100 and 130 steps per minute.
@@ -112,16 +105,13 @@ Verghese et al. 2014
 Neurology - motoric cognitive risk syndrome, slow gait
 
 ___
-<a name="plot"/>
-#### `plot`
+#### `plot` <a name="plot"/>
 
 ___
-<a name="examples"/>
-## 4. Examples
+## 4. Examples <a name="examples"/>
 
 ___
-<a name="cautions"/>
-## 5. Cautions & Notes
+## 5. Cautions & Notes <a name="cautions"/>
 
 #### accuracy
 accuracy variable is not handled

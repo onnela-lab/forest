@@ -36,41 +36,35 @@ ___
 5.  [Cautions & Notes](#cautions)  
 
 ___
-<a name="version"/>
-## 1. Version Notes
+## 1. Version Notes <a name="version"/>
 
 This is version 0.0.1 of `gpsrep`.  This package was developed with Python 3.7.4 on PCs running Manjaro Illyria 18.0.4.
 
 This package requires the `beiwetools` package, which can be found in the `forest/poplar` repository. 
 
 ___
-<a name="overview"/>
-## 2. Overview
+## 2. Overview <a name="overview"/>
 
 
 ___
-<a name="modules"/>
-## 3. Modules
+## 3. Modules <a name="modules"/>
 
-<a name="headers"/>
-#### `headers`
+
+#### `headers` <a name="headers"/>
 This module contains headers for `csv` files that are handled by `gpsrep`, including raw Beiwe GPS files.  Each variable is described with a brief comment.
 
 ___
-<a name="functions"/>
-#### `functions`
+#### `functions` <a name="functions"/>
 This module provides functions for loading raw Beiwe GPS files.
 
 
 
 
 ___
-<a name="examples"/>
-## 4. Examples
+## 4. Examples <a name="examples"/>
 
 ___
-<a name="cautions"/>
-## 5. Cautions & Notes
+## 5. Cautions & Notes <a name="cautions"/>
 
 
 
