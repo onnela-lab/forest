@@ -85,8 +85,7 @@ ___
 
 
 ___
-
-### `proximity` <a name="proximity"/>
+#### `proximity` <a name="proximity"/>
 
 
 ___
