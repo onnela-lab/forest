@@ -31,7 +31,9 @@ def smooth_data(data,hz):
 
 def step_est(t,mag,t_active,q,c):
   if np.mean(mag)>8:
-    mag = mag/9.8
+    g = 9.8
+  else:
+    g = 1
   h = max(np.percentile(mag,q),c*g)
   step = 0
   current = -350
@@ -44,7 +46,7 @@ def step_est(t,mag,t_active,q,c):
 
 def acc_stats(mag,hz):
   if np.mean(mag)>8:
-    g = 9.8
+    mag = mag/9.8
   m_mag = np.mean(mag)
   sd_mag = np.std(mag)
   cur_len = np.mean(abs(mag[1:]-mag[:-1]))
