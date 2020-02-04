@@ -1097,6 +1097,61 @@ def GetStats(traj,option):
                             "radius","diameter","num_sig_places","entropy"]
   return(summary_stats)
 
+def summarize_gps(input_path,output_path,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch):
+  os.mkdir(output_path+"/trajectory")
+  if option == "both":
+    os.mkdir(output_path+"/hourly")
+    os.mkdir(output_path+"/daily")
+  if option == "daily":
+    os.mkdir(output_path+"/daily")
+  if option == "hourly":
+    os.mkdir(output_path+"/hourly")
+  names = os.listdir(input_path)
+  for name in names:
+    gps_path = input_path + "/" + name + "/gps"
+    if os.path.exists(gps_path):
+      sys.stdout.write( "User ID: " + name + '\n')
+      file_list = os.listdir(gps_path)
+      for i in range(len(file_list)):
+        if file_list[i][0]==".":
+          file_list[i]=file_list[i][2:]
+      file_path = [gps_path + "/"+ file_list[j] for j in range(len(file_list))]
+      ## check if there are enough data for the following algorithm
+      quality_yes = 0
+      for i in range(len(file_path)):
+        df = pd.read_csv(file_path[i])
+        if df.shape[0]>60:
+          quality_yes = quality_yes + 1
+      quality_check = quality_yes/len(file_path)
+      if quality_check>0.5:
+        obs = GPS2MobMat(file_path,itrvl=10,accuracylim=51, r=None, w=None,h=None)
+        MobMat = InferMobMat(obs,itrvl=10,r=None)
+        BV_set = BV_select(MobMat,sigma2,tol,d)["BV_set"]
+        imp_table= ImputeGPS(MobMat,BV_set,"GLC",switch)
+        traj = Imp2traj(imp_table,MobMat)
+        full_traj = pd.DataFrame(traj)
+        full_traj.columns = ["status","x0","y0","t0","x1","y1","t1","obs"]
+        dest_path = output_path +"/trajectory/" + name + "_traj.csv"
+        full_traj.to_csv(dest_path,index=False)
+        if option == "daily":
+          summary_stats = GetStats(traj,option)
+          dest_path = output_path + "/daily/" + name + "_daily_gps.csv"
+          summary_stats.to_csv(dest_path,index=False)
+        if option == "hourly":
+          summary_stats = GetStats(traj,option)
+          dest_path = output_path + "/hourly/" + name + "_hourly_gps.csv"
+          summary_stats.to_csv(dest_path,index=False)
+        if option == "both":
+          summary_stats1 = GetStats(traj,"hourly")
+          summary_stats2 = GetStats(traj,"daily")
+          dest_path = output_path + "/hourly/" + name + "_hourly_gps.csv"
+          summary_stats1.to_csv(dest_path,index=False)
+          dest_path = output_path + "/daily/" + name + "_daily_gps.csv"
+          summary_stats2.to_csv(dest_path,index=False)
+        sys.stdout.write( "Done" + '\n')
+      else:
+        sys.stdout.write( "Data quality is too low to impute" + '\n')
+
 ### parameters ###
 l1 = 60*60*24*10
 l2 = 60*60*24*30
@@ -1112,41 +1167,7 @@ sigma2 = 0.01
 tol = 0.05
 num = 10
 switch = 3
-option = "daily"
-
-### run script ###
-input_path = "C:/Users/glius/Downloads/abdominal_data"
-output_path = "C:/Users/glius/Downloads/abdominal_output"
-names = os.listdir(input_path)
-for name in names:
-  gps_path = input_path + "/" + name + "/gps"
-  if os.path.exists(gps_path):
-    sys.stdout.write( "User ID: " + name + '\n')
-    file_list = os.listdir(gps_path)
-    for i in range(len(file_list)):
-      if file_list[i][0]==".":
-        file_list[i]=file_list[i][2:]
-    file_path = [gps_path + "/"+ file_list[j] for j in range(len(file_list))]
-    ## check if there are enough data for the following algorithm
-    quality_yes = 0
-    for i in range(len(file_path)):
-      df = pd.read_csv(file_path[i])
-      if df.shape[0]>60:
-        quality_yes = quality_yes + 1
-    quality_check = quality_yes/len(file_path)
-    if quality_check>0.5:
-      obs = GPS2MobMat(file_path,itrvl=10,accuracylim=51, r=None, w=None,h=None)
-      MobMat = InferMobMat(obs,itrvl=10,r=None)
-      BV_set = BV_select(MobMat,sigma2,tol,d)["BV_set"]
-      imp_table= ImputeGPS(MobMat,BV_set,"GLC",switch)
-      traj = Imp2traj(imp_table,MobMat)
-      full_traj = pd.DataFrame(traj)
-      full_traj.columns = ["status","x0","y0","t0","x1","y1","t1","obs"]
-      dest_path = output_path + "/" + name + "_traj.csv"
-      full_traj.to_csv(dest_path,index=False)
-      summary_stats = GetStats(traj,option)
-      dest_path = output_path + "/" + name + "_stats.csv"
-      summary_stats.to_csv(dest_path,index=False)
-      sys.stdout.write( "Done" + '\n')
-    else:
-      sys.stdout.write( "Data quality is too low to impute" + '\n')
+option = "both"
+input_path = "F:/DATA/hope"
+output_path = "C:/Users/glius/Downloads/hope_gps"
+summarize_gps(input_path,output_path,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch)
