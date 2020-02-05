@@ -121,16 +121,16 @@ def comm_logs(data_filepath,output_path,option):
       full_logs.columns = ["year","month","day","hour","num_in","num_mis","num_out","time_in","time_out","uniq_in",
                      "uniq_mis","uniq_out","mms_r","mms_s","num_r","num_s","char_r","char_s","uniq_r","uniq_s"]
       if option == "hourly":
-        full_logs.to_csv(output_path + "/" + patient_name + ".hourly_logs.csv",index=False)
+        full_logs.to_csv(output_path + "/" + patient_name + ".hourly_log.csv",index=False)
       if option == "daily":
         day_logs = full_logs.groupby(["year","month","day"]).sum().reset_index()
         day_logs = day_logs.drop(columns = ["hour"])
-        day_logs.to_csv(output_path + "/" + patient_name + ".daily_logs.csv",index=False)
+        day_logs.to_csv(output_path + "/" + patient_name + ".daily_log.csv",index=False)
       if option == "both":
-        full_logs.to_csv(output_path + "/hourly/" + patient_name + ".hourly_logs.csv",index=False)
+        full_logs.to_csv(output_path + "/hourly/" + patient_name + ".hourly_log.csv",index=False)
         day_logs = full_logs.groupby(["year","month","day"]).sum().reset_index()
         day_logs = day_logs.drop(columns = ["hour"])
-        day_logs.to_csv(output_path + "/daily/" + patient_name + ".daily_logs.csv",index=False)
+        day_logs.to_csv(output_path + "/daily/" + patient_name + ".daily_log.csv",index=False)
 
 
 ## example:
