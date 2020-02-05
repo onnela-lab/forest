@@ -4,8 +4,10 @@ import numpy as np
 from dateutil import tz
 from datetime import datetime, timedelta
 
-## change from "load in all data then process" to "read data and process data sequentially"
-def comm_logs(data_filepath,output_path):
+def comm_logs(data_filepath,output_path,option):
+  if option == "both":
+    os.mkdir(output_path+"/hourly")
+    os.mkdir(output_path+"/daily")
   patient_names = os.listdir(data_filepath)
   for patient_name in patient_names:
     print(patient_name)
@@ -117,11 +119,22 @@ def comm_logs(data_filepath,output_path):
         full_logs = np.vstack((full_logs,hour_log))
       full_logs = pd.DataFrame(np.delete(full_logs,0,0))
       full_logs.columns = ["year","month","day","hour","num_in","num_mis","num_out","time_in","time_out","uniq_in",
-                     "uniq_mis","uniq_out","mms_r","mms_s","num_r","num_s","words_r","words_s","uniq_r","uniq_s"]
+                     "uniq_mis","uniq_out","mms_r","mms_s","num_r","num_s","char_r","char_s","uniq_r","uniq_s"]
+      if option == "hourly":
+        full_logs.to_csv(output_path + "/" + patient_name + ".hourly_logs.csv",index=False)
+      if option == "daily":
+        day_logs = full_logs.groupby(["year","month","day"]).sum().reset_index()
+        day_logs = day_logs.drop(columns = ["hour"])
+        day_logs.to_csv(output_path + "/" + patient_name + ".daily_logs.csv",index=False)
+      if option == "both":
+        full_logs.to_csv(output_path + "/hourly/" + patient_name + ".hourly_logs.csv",index=False)
+        day_logs = full_logs.groupby(["year","month","day"]).sum().reset_index()
+        day_logs = day_logs.drop(columns = ["hour"])
+        day_logs.to_csv(output_path + "/daily/" + patient_name + ".daily_logs.csv",index=False)
 
-      full_logs.to_csv(output_path + "/" + patient_name + ".csv",index=False)
 
 ## example:
+option = "both"
 data_filepath = "F:/DATA/hope"
-output_path = "C:/Users/glius/Desktop/out"
-comm_logs(data_filepath,output_path)
+output_path = "C:/Users/glius/Downloads/hope_log"
+comm_logs(data_filepath,output_path,option)
