@@ -1012,89 +1012,98 @@ def GetStats(traj,option):
     h = (((end_stamp - start_stamp)/60/60)-1)/24
     window = 60*60*24
 
-  for i in range(int(h)):
-    t0 = start_stamp + i*window
-    t1 = start_stamp + (i+1)*window
-    current_t = datetime.fromtimestamp(t0)
-    year,month,day,hour = current_t.year, current_t.month,current_t.day,current_t.hour
-    ## take a subset, the starting point of the last traj <t1 and the ending point of the first traj >t0
-    index = (traj[:,3]<t1)*(traj[:,6]>t0)
-    temp = traj[index,:]
-    if sum(index)==1:
-      p0 = (t0-temp[0,3])/(temp[0,6]-temp[0,3])
-      p1 = (t1-temp[0,3])/(temp[0,6]-temp[0,3])
-      x0 = temp[0,1]; x1 = temp[0,4]; y0 = temp[0,2]; y1 = temp[0,5]
-      temp[0,1] = (1-p0)*x0+p0*x1
-      temp[0,2] = (1-p0)*y0+p0*y1
-      temp[0,3] = t0
-      temp[0,4] = (1-p1)*x0+p1*x1
-      temp[0,5] = (1-p1)*y0+p1*y1
-      temp[0,6] = t1
-    else:
-      p0 = (temp[0,6]-t0)/(temp[0,6]-temp[0,3])
-      p1 = (t1-temp[-1,3])/(temp[-1,6]-temp[-1,3])
-      temp[0,1] = (1-p0)*temp[0,4]+p0*temp[0,1]
-      temp[0,2] = (1-p0)*temp[0,5]+p0*temp[0,2]
-      temp[0,3] = t0
-      temp[-1,4] = (1-p1)*temp[-1,1] + p1*temp[-1,4]
-      temp[-1,5] = (1-p1)*temp[-1,2] + p1*temp[-1,5]
-      temp[-1,6] = t1
-
-    missing_length = sum((temp[:,6]-temp[:,3])[temp[:,7]==0])
-    d_home_1 = great_circle_dist(home_x,home_y,temp[:,1],temp[:,2])
-    d_home_2 = great_circle_dist(home_x,home_y,temp[:,4],temp[:,5])
-    d_home = (d_home_1+d_home_2)/2
-    max_dist_home = max(np.concatenate((d_home_1,d_home_2)))
-    time_at_home = sum((temp[:,6]-temp[:,3])[d_home<=50])
-    mov_vec = great_circle_dist(temp[:,4],temp[:,5],temp[:,1],temp[:,2])
-    flight_d_vec = mov_vec[temp[:,0]==1]
-    pause_d_vec = mov_vec[temp[:,0]==2]
-    flight_t_vec = (temp[:,6]-temp[:,3])[temp[:,0]==1]
-    pause_t_vec = (temp[:,6]-temp[:,3])[temp[:,0]==2]
-    total_pause_time =  sum(pause_t_vec)
-    total_flight_time =  sum(flight_t_vec)
-    dist_traveled = sum(mov_vec)
-    if len(flight_d_vec)>0:
-      av_f_len = np.mean(flight_d_vec)
-      sd_f_len = np.std(flight_d_vec)
-      av_f_dur = np.mean(flight_t_vec)
-      sd_f_dur = np.std(flight_t_vec)
-    if len(flight_d_vec)==0:
-      av_f_len = 0
-      sd_f_len = 0
-      av_f_dur = 0
-      sd_f_dur = 0
-    if option=="hourly":
-      summary_stats.append([year,month,day,hour,missing_length/60,total_pause_time/60,total_flight_time/60,time_at_home/60,
-                            max_dist_home, dist_traveled,av_f_len,sd_f_len,av_f_dur/60,sd_f_dur/60])
-    if option=="daily":
-      temp_pause = temp[temp[:,0]==2,:]
-      centroid_x = np.dot((temp_pause[:,6]-temp_pause[:,3])/total_pause_time,temp_pause[:,1])
-      centroid_y = np.dot((temp_pause[:,6]-temp_pause[:,3])/total_pause_time,temp_pause[:,2])
-      r_vec = great_circle_dist(centroid_x,centroid_y,temp_pause[:,1],temp_pause[:,2])
-      radius = np.dot((temp_pause[:,6]-temp_pause[:,3])/total_pause_time,r_vec)
-      loc_x,loc_y,num_xy,t_xy = num_sig_places(temp_pause,50)
-      num_sig = sum(np.array(t_xy)/60>15)
-      t_sig = np.array(t_xy)[np.array(t_xy)/60>15]
-      p = t_sig/sum(t_sig)
-      entropy = -sum(p*np.log(p+0.00001))
-      if temp.shape[0]==1:
-        diameter = 0
+  if h>=1:
+    for i in range(int(h)):
+      t0 = start_stamp + i*window
+      t1 = start_stamp + (i+1)*window
+      current_t = datetime.fromtimestamp(t0)
+      year,month,day,hour = current_t.year, current_t.month,current_t.day,current_t.hour
+      ## take a subset, the starting point of the last traj <t1 and the ending point of the first traj >t0
+      index = (traj[:,3]<t1)*(traj[:,6]>t0)
+      temp = traj[index,:]
+      if sum(index)==1:
+        p0 = (t0-temp[0,3])/(temp[0,6]-temp[0,3])
+        p1 = (t1-temp[0,3])/(temp[0,6]-temp[0,3])
+        x0 = temp[0,1]; x1 = temp[0,4]; y0 = temp[0,2]; y1 = temp[0,5]
+        temp[0,1] = (1-p0)*x0+p0*x1
+        temp[0,2] = (1-p0)*y0+p0*y1
+        temp[0,3] = t0
+        temp[0,4] = (1-p1)*x0+p1*x1
+        temp[0,5] = (1-p1)*y0+p1*y1
+        temp[0,6] = t1
       else:
-        D = pairwise_great_circle_dist(temp[:,[1,2]])
-        diameter = max(D)
-      summary_stats.append([year,month,day,missing_length/3600,total_pause_time/3600,total_flight_time/3600,time_at_home/3600,
-                            max_dist_home/1000, dist_traveled/1000,av_f_len/1000,sd_f_len/1000,av_f_dur/3600,sd_f_dur/3600,radius/1000,
-                            diameter/1000, num_sig, entropy])
+        p0 = (temp[0,6]-t0)/(temp[0,6]-temp[0,3])
+        p1 = (t1-temp[-1,3])/(temp[-1,6]-temp[-1,3])
+        temp[0,1] = (1-p0)*temp[0,4]+p0*temp[0,1]
+        temp[0,2] = (1-p0)*temp[0,5]+p0*temp[0,2]
+        temp[0,3] = t0
+        temp[-1,4] = (1-p1)*temp[-1,1] + p1*temp[-1,4]
+        temp[-1,5] = (1-p1)*temp[-1,2] + p1*temp[-1,5]
+        temp[-1,6] = t1
 
-  summary_stats = pd.DataFrame(np.array(summary_stats))
-  if option == "hourly":
-    summary_stats.columns = ["year","month","day","hour","missing_time","pause_time","flight_time","home_time","max_dist_home",
-                          "dist_traveled","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration"]
-  if option == "daily":
-    summary_stats.columns = ["year","month","day","missing_time","pause_time","flight_time","home_time","max_dist_home",
-                            "dist_traveled","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration",
-                            "radius","diameter","num_sig_places","entropy"]
+      missing_length = sum((temp[:,6]-temp[:,3])[temp[:,7]==0])
+      d_home_1 = great_circle_dist(home_x,home_y,temp[:,1],temp[:,2])
+      d_home_2 = great_circle_dist(home_x,home_y,temp[:,4],temp[:,5])
+      d_home = (d_home_1+d_home_2)/2
+      max_dist_home = max(np.concatenate((d_home_1,d_home_2)))
+      time_at_home = sum((temp[:,6]-temp[:,3])[d_home<=50])
+      mov_vec = great_circle_dist(temp[:,4],temp[:,5],temp[:,1],temp[:,2])
+      flight_d_vec = mov_vec[temp[:,0]==1]
+      pause_d_vec = mov_vec[temp[:,0]==2]
+      flight_t_vec = (temp[:,6]-temp[:,3])[temp[:,0]==1]
+      pause_t_vec = (temp[:,6]-temp[:,3])[temp[:,0]==2]
+      total_pause_time =  sum(pause_t_vec)
+      total_flight_time =  sum(flight_t_vec)
+      dist_traveled = sum(mov_vec)
+      if len(flight_d_vec)>0:
+        av_f_len = np.mean(flight_d_vec)
+        sd_f_len = np.std(flight_d_vec)
+        av_f_dur = np.mean(flight_t_vec)
+        sd_f_dur = np.std(flight_t_vec)
+      if len(flight_d_vec)==0:
+        av_f_len = 0
+        sd_f_len = 0
+        av_f_dur = 0
+        sd_f_dur = 0
+      if option=="hourly":
+        summary_stats.append([year,month,day,hour,missing_length/60,total_pause_time/60,total_flight_time/60,time_at_home/60,
+                              max_dist_home, dist_traveled,av_f_len,sd_f_len,av_f_dur/60,sd_f_dur/60])
+      if option=="daily":
+        temp_pause = temp[temp[:,0]==2,:]
+        centroid_x = np.dot((temp_pause[:,6]-temp_pause[:,3])/total_pause_time,temp_pause[:,1])
+        centroid_y = np.dot((temp_pause[:,6]-temp_pause[:,3])/total_pause_time,temp_pause[:,2])
+        r_vec = great_circle_dist(centroid_x,centroid_y,temp_pause[:,1],temp_pause[:,2])
+        radius = np.dot((temp_pause[:,6]-temp_pause[:,3])/total_pause_time,r_vec)
+        loc_x,loc_y,num_xy,t_xy = num_sig_places(temp_pause,50)
+        num_sig = sum(np.array(t_xy)/60>15)
+        t_sig = np.array(t_xy)[np.array(t_xy)/60>15]
+        p = t_sig/sum(t_sig)
+        entropy = -sum(p*np.log(p+0.00001))
+        if temp.shape[0]==1:
+          diameter = 0
+        else:
+          D = pairwise_great_circle_dist(temp[:,[1,2]])
+          diameter = max(D)
+        summary_stats.append([year,month,day,missing_length/3600,total_pause_time/3600,total_flight_time/3600,time_at_home/3600,
+                              max_dist_home/1000, dist_traveled/1000,av_f_len/1000,sd_f_len/1000,av_f_dur/3600,sd_f_dur/3600,radius/1000,
+                              diameter/1000, num_sig, entropy])
+
+    summary_stats = pd.DataFrame(np.array(summary_stats))
+    if option == "hourly":
+      summary_stats.columns = ["year","month","day","hour","missing_time","pause_time","flight_time","home_time","max_dist_home",
+                            "dist_traveled","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration"]
+    if option == "daily":
+      summary_stats.columns = ["year","month","day","missing_time","pause_time","flight_time","home_time","max_dist_home",
+                              "dist_traveled","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration",
+                              "radius","diameter","num_sig_places","entropy"]
+  else:
+    if option == "hourly":
+      summary_stats = pd.DataFrame(columns=["year","month","day","hour","missing_time","pause_time","flight_time","home_time","max_dist_home",
+                            "dist_traveled","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration"])
+    if option == "daily":
+      summary_stats = pd.DataFrame(columns=["year","month","day","missing_time","pause_time","flight_time","home_time","max_dist_home",
+                              "dist_traveled","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration",
+                              "radius","diameter","num_sig_places","entropy"])
   return(summary_stats)
 
 def summarize_gps(input_path,output_path,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch):
