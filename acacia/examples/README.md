@@ -6,7 +6,7 @@ ___
 examples
 ===
 
-This directory contains sample code for the `survrep` package.
+This directory contains sample code for the `logrep` package.
 
-## 1. `survrep_summary_example.ipynb`
+## 1. `logrep_summary_example.ipynb`
 
