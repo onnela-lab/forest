@@ -51,3 +51,6 @@ This repo contains the `accrep` package, which provides tools for processing raw
 
 # ginkgo
 This repo contains the `gpsrep` package, which provides tools for some basic GPS data processing tasks, including time zone extraction.
+
+# pine
+This repo contains the `powrep` package, which provides tools for processing raw Beiwe power state data.
