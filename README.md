@@ -46,8 +46,17 @@ See `beiwetools/README.md` for a summary of conventions used in raw Beiwe data, 
 
 The example notebooks and `beiwetools/README.md` provide an overview of the package, along with some simple use cases.  More details are documented within the various modules.
 
+# acacia
+This repo contains the `logrep` package, which provides tools for processing raw Beiwe app log files from Android devices.
+
 # ash
 This repo contains the `accrep` package, which provides tools for processing raw Beiwe accelerometer data.
 
 # ginkgo
 This repo contains the `gpsrep` package, which provides tools for some basic GPS data processing tasks, including time zone extraction.
+
+# pine
+This repo contains the `powrep` package, which provides tools for processing raw Beiwe power state files.
+
+# sycamore
+This repo contains the `survrep` package, which provides tools for processing raw Beiwe tracking survey data.
