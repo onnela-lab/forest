@@ -4,8 +4,10 @@ Functions for processing Beiwe data.
 import os
 import logging
 import numpy as np
-from pandas import Series, DataFrame
+from pandas import Series, DataFrame, read_csv
+
 from collections import OrderedDict
+
 from .time import filename_time_format, to_timestamp
 
 
@@ -80,6 +82,29 @@ def clean_dataframe(df,
             logger.exception('Unable to sort by timestamp.')
     if update_index:
         df.set_index(np.arange(len(df)), inplace = True)
+
+
+def stack_frames(paths, clean_args = (True, True, True), 
+                 reader = read_csv, **kwargs):
+    '''
+    Read multiple CSVs into DataFrames and stack them into a single DataFrame.
+
+    Args:
+        paths (list): List of paths (strings) to CSVs.
+        clean_args (tuple): Args for final clean_dataframe() before return.
+        reader (func): Function for reading CSVs into DataFrames.
+            Input should include a filepath.
+            Output should be a pandas DataFrame.
+        kwargs: Keyword arguments for reader.
+        
+    Returns:
+        stack (DataFrame):
+    '''    
+    df_list = []
+    for p in paths:
+        pass
+    pass
+
 
 
 def summarize_filepath(filepath = None, ndigits = 3, basename_only = False):
