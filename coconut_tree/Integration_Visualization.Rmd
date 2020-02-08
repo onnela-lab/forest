@@ -12,22 +12,22 @@ library(ggplot2)
 library(ggthemes)
 library(ggrepel)
 library(readxl)
-library(tidyverse)
 library(gridExtra)
 library(ggpubr)
+library(tidyverse)
 library(RColorBrewer)
 ```
 
 ```{r}
 id = "1s5wlcm6"
 path1 = "C:/Users/glius/Google Drive/HOPE/outputs"
-path2 = "C:/Users/glius/Google Drive/HOPE/detailed_clinical_events/HOPETrial_DATA_2020-01-21_1341.csv"
+path2 = "C:/Users/glius/Google Drive/HOPE/detailed_clinical_events/HOPETrial_DATA_2020-01-22_1635.csv"
 ```
 
 ## 1. GPS data quality heatmap
 ```{r}
 gps_quality=function(id,path,option){
-  gps_path =  paste0(path,"/gps_hourly/",id,"_stats.csv")
+  gps_path =  paste0(path,"/hope_gps/hourly/",id,"_hourly_gps.csv")
   if(file.exists(gps_path)){
     gps = read.csv(gps_path,header = T)
     gps = gps[,-ncol(gps)]
@@ -61,43 +61,47 @@ gps_quality=function(id,path,option){
     return("There is no GPS data.")
   }
 }
-
 gps_quality(id,path1,"show")
 ```
 
 ## 2. Integration
 ```{r}
-data_integrate=function(id,path){
-  gps_path =  paste0(path,"/gps_hourly/",id,"_stats.csv")
-  if(file.exists(gps_path)){
-    gps = read.csv(gps_path,header = T)
-    gps = gps[,-ncol(gps)]
-    temp = gps
-    acc_path = paste0(path,"/step_counts_hourly/",id,".csv")
-    if(file.exists(acc_path)){
-      acc = read.csv(acc_path,header = T)
-      temp = merge(temp,acc,by=c("year","month","day","hour"))
+data_integrate=function(id,path,option){
+  gps_path = paste0(path,"/hope_gps/",option,"/",id,"_",option,"_gps.csv")
+  acc_path = paste0(path,"/hope_acc/",option,"/",id,"_",option,"_acc.csv")
+  log_path = paste0(path,"/hope_log/",option,"/",id,"_",option,"_log.csv")
+  temp = NULL
+  if(file.exists(acc_path)){
+    acc = read.csv(acc_path,header = T)
+    colnames(acc)[colnames(acc)=="entropy"]="acc_entropy"
+    temp = acc
+    if(file.exists(gps_path)){
+      gps = read.csv(gps_path,header = T)
+      colnames(gps)[colnames(gps)=="entropy"]="gps_entropy"
+      if(option == "hourly"){
+        temp = merge(temp,gps,by=c("year","month","day","hour"))
+      }
+      if(option == "daily"){
+        temp = merge(acc,gps,by=c("year","month","day"))
+      }
     }
-    else{
-      temp$steps= -1 
+    if(file.exists(log_path)){
+      log = read.csv(log_path,header = T)
+      if(option == "hourly"){
+        temp = merge(temp,log,by=c("year","month","day","hour"))
+      }
+      if(option == "daily"){
+        temp = merge(temp,log,by=c("year","month","day"))
+      }
     }
-    logs_path = paste0(path,"/comm_logs_hourly/",id,".csv")
-    if(file.exists(logs_path)){
-      logs = read.csv(logs_path,header = T)
-      temp = merge(temp,logs,by=c("year","month","day","hour"))
-    }
-    else{
-      empty = data.frame(matrix(-1,nrow=nrow(temp),ncol =16))
-      colnames(empty) = c("num_in","num_out","num_mis","uniq_in","uniq_out","uniq_mis","time_in","time_out","num_s",
-                          "num_r","uniq_s","uniq_r","words_s","words_r","mms_s","mms_r")
-      temp = cbind(temp,empty)
-    }
-  }
-  else{
-    temp = NULL
   }
   if(!is.null(temp)){
-    data = temp[order(temp$year,temp$month,temp$day,temp$hour),]
+    if(option=="hourly"){
+      data = temp[order(temp$year,temp$month,temp$day,temp$hour),]
+    }
+    if(option=="daily"){
+      data = temp[order(temp$year,temp$month,temp$day),]
+    }
     return(data)
   }
   else{
@@ -107,52 +111,7 @@ data_integrate=function(id,path){
 }
 ```
 
-## 3. Convert hourly to daily
-```{r}
-hour2day=function(id,path){
-  data = data_integrate(id,path)
-  if(!is.null(data)){
-    data$key = rep(0,nrow(data))
-    s = 0
-    for(k in 1:nrow(data)){
-      if(data$hour[k]==0){s=s+1}
-      data$key[k]=s
-    }
-    full_data = subset(data,key>0&key<s)
-    daily_summary <- full_data %>% group_by(key)%>%
-    summarize(year = unique(year), 
-              month = unique(month),
-              day = unique(day),
-              obs = sum(60-missing_time)/60,
-              home_time = sum(home_time)/60,
-              pause_time = sum(pause_time)/60,
-              flight_time = sum(flight_time)/60,
-              max_dist_home = max(max_dist_home)/1000,
-              dist_traveled = sum(dist_traveled)/1000,
-              steps = sum(steps),
-              num_in = sum(num_in),
-              num_out = sum(num_out),
-              num_mis = sum(num_mis), 
-              time_in = sum(time_in),
-              time_out = sum(time_out),
-              num_s = sum(num_s),
-              num_r = sum(num_r),
-              words_s = sum(words_s),
-              words_r = sum(words_r),
-              mms_s = sum(mms_s),
-              mms_r = sum(mms_r))
-    daily_summary = daily_summary[,-1]
-    index = as.vector(daily_summary[1,]>-0.5)
-    return(daily_summary[,index])
-  }
-  else{
-    return(NULL)
-  }
-}
-daily_summary = hour2day(id,path1)
-```
-
-## 4. reshape clinical events
+## 3. reshape clinical events
 ```{r}
 wide2long = function(path){
   ce = read.csv(path,header=T)
@@ -266,14 +225,13 @@ wide2long = function(path){
 ```
 
 
-## 5. Heatmap
+## 4. Heatmap
 ```{r}
 heatmap = function(id,path1,path2=NULL,path3=NULL,option){
-  daily_summary = hour2day(id,path1)
+  daily_summary = data_integrate(id,path1,"daily")
   if(!is.null(daily_summary)){
     enroll_date = paste0(daily_summary$year[1],"-",daily_summary$month[1],"-",daily_summary$day[1])
     enroll_day = as.Date(enroll_date,format="%Y-%m-%d")
-    daily_summary = daily_summary[, colnames(daily_summary)!="obs"]
     for(i in 4:ncol(daily_summary)){
        daily_summary[,i] = rank(as.matrix(daily_summary[,i]))/nrow(daily_summary)
     }
@@ -343,8 +301,8 @@ heatmap = function(id,path1,path2=NULL,path3=NULL,option){
 heatmap(id,path1,path2,NULL,"show")
 ```
 
-## 6. linechart for hometime and distance traveled
-## 6.1 moving average
+## 5. linechart for hometime and distance traveled
+## 5.1 moving average
 ```{r}
 mov_mean = function(vec,window){
   n = length(vec)
@@ -356,11 +314,11 @@ mov_mean = function(vec,window){
 }
 ```
 
-## 6.2 Get communication active level score
+## 5.2 Get communication active level score
 ```{r}
 comm_score = function(data){
   comm_cols = data[,c("num_in","num_out","num_mis","time_in","time_out","num_s","num_r",
-                      "words_s","words_r","mms_s","mms_r")]
+                      "char_s","char_r","mms_s","mms_r")]
   for(i in 1:ncol(comm_cols)){
        comm_cols[,i] = rank(as.matrix(comm_cols[,i]))/nrow(comm_cols)
   }
@@ -370,41 +328,52 @@ comm_score = function(data){
 }
 ```
 
-## 6.3 daily and hourly
+## 5.3 define alpha function
+```{r}
+get_alpha = function(vec){
+  temp = vec/quantile(vec,0.95,na.rm = T)
+  temp[temp>1]=1
+  return(temp)
+}
+```
+
+## 5.4 daily and hourly
 ```{r}
 gps_linechart = function(id,path1,path2=NULL,path3=NULL,window,option1,option2){
-  if(option1 == "day"){
-    daily_summary = hour2day(id,path1)
-    num_graph = 2
+  if(option1 == "daily"){
+    daily_summary = data_integrate(id,path1,"daily")
+    num_graph = 1
     if(!is.null(daily_summary)){
       daily_summary$key = 1:nrow(daily_summary)
       enroll_date = paste0(daily_summary$year[1],"-",daily_summary$month[1],"-",daily_summary$day[1])
       enroll_day = as.Date(enroll_date,format="%Y-%m-%d")
-      smooth_ht = mov_mean(daily_summary$home_time,window)
-      smooth_obs = mov_mean(daily_summary$obs,window)
-      smooth_dist = mov_mean(daily_summary$dist_traveled,window)
-      p1 = ggplot(data = daily_summary,aes(x=key, y=home_time,alpha=obs/max(obs))) + geom_point(col="grey") +
-          geom_line(data = daily_summary,aes(x=key, y=smooth_ht,alpha=smooth_obs/(max(smooth_obs))), col="black",size=1.5)+
-          scale_alpha_continuous("Confidence in Estimates") + 
-          xlab("Days since enrollment") + ylab("Hometime (hr)")
-      p2 = ggplot(data= daily_summary,aes(x=key, y=dist_traveled,alpha=obs/max(obs))) + geom_point(col="grey") +
-          geom_line(data = daily_summary, aes(x=key, y=smooth_dist, alpha=smooth_obs/(max(smooth_obs))), col="black",size=1.5)+
-          ylim(0,quantile(daily_summary$dist_traveled,0.95))+
-          scale_alpha_continuous("Confidence in Estimates") + 
-          xlab("Days since enrollment") + ylab("Distance Traveled (km)")
-      if("steps" %in% colnames(daily_summary)){
-        num_graph = num_graph + 1
-        smooth_step = mov_mean(daily_summary$steps,window)
-        p3 = ggplot(data = daily_summary,aes(x=key, y=steps)) + geom_point(col="grey") + 
-             geom_line(data = daily_summary,aes(x=key, y=smooth_step),col="black",size=0.8)+
+      smooth_active = mov_mean(daily_summary$active_min,window)
+      smooth_step = mov_mean(daily_summary$steps,window)
+      p1 = ggplot(data = daily_summary,aes(x=key, y=steps,alpha=get_alpha(active_min))) + geom_point(col="grey") + 
+             geom_line(data = daily_summary,aes(x=key, y=smooth_step,alpha = get_alpha(smooth_active)),col="black",size=0.8)+
+             scale_alpha_continuous("Confidence in Estimates")+
              ylim(min(daily_summary$steps),quantile(daily_summary$steps,0.95))+
              xlab("Days since enrollment") + ylab("Step Count")
+      if("home_time" %in% colnames(daily_summary)){
+        num_graph = num_graph + 2
+        smooth_ht = mov_mean(daily_summary$home_time,window)
+        smooth_obs = mov_mean(24-daily_summary$missing_time,window)
+        smooth_dist = mov_mean(daily_summary$dist_traveled,window)
+        p2 = ggplot(data = daily_summary,aes(x=key, y=home_time,alpha=get_alpha(24-missing_time))) + geom_point(col="grey") +
+          geom_line(data = daily_summary,aes(x=key, y=smooth_ht,alpha=get_alpha(smooth_obs)), col="black",size=1.5)+
+          scale_alpha_continuous("Confidence in Estimates") + 
+          xlab("Days since enrollment") + ylab("Hometime (hr)")
+        p3 = ggplot(data= daily_summary,aes(x=key, y=dist_traveled,alpha=get_alpha(24-missing_time))) + geom_point(col="grey") +
+            geom_line(data = daily_summary, aes(x=key, y=smooth_dist, alpha=get_alpha(smooth_obs)), col="black",size=1.5)+
+            ylim(0,quantile(daily_summary$dist_traveled,0.95))+
+            scale_alpha_continuous("Confidence in Estimates") + 
+            xlab("Days since enrollment") + ylab("Distance Traveled (km)")
       }
       if("num_in" %in% colnames(daily_summary)){
         daily_summary$score = comm_score(daily_summary)
         num_graph = num_graph + 1
         p4 = ggplot(data = daily_summary,aes(x=key, y=score)) + geom_point(col="grey") + geom_line(col="black",size=0.8)+
-        xlab("Days since enrollment") + ylab("Communication Active Level")
+        xlab("Days since enrollment") + ylab("Comm Score")
       }
       if(is.null(path2)==F){
         visit_type=c("ED Visit","Scan","Procedure","Paracentesis","Hospital admission",
@@ -433,30 +402,31 @@ gps_linechart = function(id,path1,path2=NULL,path3=NULL,window,option1,option2){
         events = sort(unique(new_set$event_code))
         p1 = p1 + geom_vline(data = new_set,aes(xintercept = x_day, color= event_color),alpha=0.8)+
                 scale_colour_manual(name ='Events', values=color_type[events], labels=visit_type[events])
-        p2 = p2 + geom_vline(data = new_set,aes(xintercept = x_day, color= event_color),alpha=0.8)+
+      }
+      if(!"home_time" %in% colnames(daily_summary) & !"num_in" %in% colnames(daily_summary)){
+        graph = p1
+      }
+      if("home_time" %in% colnames(daily_summary) & !"num_in" %in% colnames(daily_summary)){
+         p2 = p2 + geom_vline(data = new_set,aes(xintercept = x_day, color= event_color),alpha=0.8)+
                 scale_colour_manual(name ='Events', values=color_type[events], labels=visit_type[events])
-      }
-      if(!"num_in" %in% colnames(daily_summary) & !"steps" %in% colnames(daily_summary)){
-        graph = ggarrange(p1, p2,ncol=1, nrow=2,common.legend = TRUE,legend="right")
-      }
-      if(!"num_in" %in% colnames(daily_summary) & "steps" %in% colnames(daily_summary)){
         p3 = p3 + geom_vline(data = new_set,aes(xintercept = x_day, color= event_color),alpha=0.8)+
                 scale_colour_manual(name ='Events', values=color_type[events], labels=visit_type[events])
         graph = ggarrange(p1, p2, p3,ncol=1, nrow=3,common.legend = TRUE,legend="right")
       }
-      if("num_in" %in% colnames(daily_summary) & !"steps" %in% colnames(daily_summary)){
+      if(!"home_time" %in% colnames(daily_summary) & "num_in" %in% colnames(daily_summary)){
         p4 = p4 + geom_vline(data = new_set,aes(xintercept = x_day, color= event_color),alpha=0.8)+
                 scale_colour_manual(name ='Events', values=color_type[events], labels=visit_type[events])
-        graph = ggarrange(p1, p2, p4,ncol=1, nrow=3,common.legend = TRUE,legend="right")
+        graph = ggarrange(p1,p4,ncol=1, nrow=2,common.legend = TRUE,legend="right")
       }
-      if("num_in" %in% colnames(daily_summary) & "steps" %in% colnames(daily_summary)){
+      if("home_time" %in% colnames(daily_summary) & "num_in" %in% colnames(daily_summary)){
+        p2 = p2 + geom_vline(data = new_set,aes(xintercept = x_day, color= event_color),alpha=0.8)+
+                scale_colour_manual(name ='Events', values=color_type[events], labels=visit_type[events])
         p3 = p3 + geom_vline(data = new_set,aes(xintercept = x_day, color= event_color),alpha=0.8)+
                 scale_colour_manual(name ='Events', values=color_type[events], labels=visit_type[events])
         p4 = p4 + geom_vline(data = new_set,aes(xintercept = x_day, color= event_color),alpha=0.8)+
                 scale_colour_manual(name ='Events', values=color_type[events], labels=visit_type[events])
-        graph = ggarrange(p1, p2, p3,p4, ncol=1, nrow=4,common.legend = TRUE,legend="right")
+        graph = ggarrange(p1,p2,p3,p4, ncol=1, nrow=4,common.legend = TRUE,legend="right")
       }
-      
       if(option2=="show"){
         return(graph)
       }
@@ -475,13 +445,23 @@ gps_linechart = function(id,path1,path2=NULL,path3=NULL,window,option1,option2){
       }
     }
   }
-  if(option1=="hour"){
-    hourly_summary = data_integrate(id,path1)
+  if(option1=="hourly"){
+    hourly_summary = data_integrate(id,path1,"hourly")
     if(!is.null(hourly_summary)){
-      smooth_ht = mov_mean(hourly_summary$home_time,window)
-      smooth_obs = mov_mean(60-hourly_summary$missing_time,window)
-      smooth_dist = mov_mean(hourly_summary$dist_traveled,window)
+      num_graph = 1
+      smooth_active = mov_mean(hourly_summary$active_min,window)
+      smooth_step = mov_mean(hourly_summary$steps,window)
       hourly_summary$key = 1:nrow(hourly_summary)
+      if("home_time" %in% colnames(hourly_summary)){
+        num_graph = num_graph + 2
+        smooth_ht = mov_mean(hourly_summary$home_time,window)
+        smooth_obs = mov_mean(60-hourly_summary$missing_time,window)
+        smooth_dist = mov_mean(hourly_summary$dist_traveled,window)
+      }
+      if("num_in" %in% colnames(hourly_summary)){
+        num_graph = num_graph + 1
+        hourly_summary$score = comm_score(hourly_summary)
+      }
       b = 4*7*24
       k = ceiling(nrow(hourly_summary)/b)
       if(is.null(path2)==F){
@@ -514,37 +494,68 @@ gps_linechart = function(id,path1,path2=NULL,path3=NULL,window,option1,option2){
       for(i in 1:k){
         index = (b*(i-1)+1):min(b*i,nrow(hourly_summary))
         temp = hourly_summary[index,]
-        p1 = ggplot(data = temp, aes(x=key, y=home_time,alpha=(60-missing_time)/max(60-missing_time))) + geom_point(col="grey") +
-          geom_line(data = temp, aes(x=key, y=smooth_ht[index],alpha=smooth_obs[index]/(max(smooth_obs[index]))), col="black",size=1.5)+
+        p1 = ggplot(data = temp,aes(x=key, y=steps,alpha=get_alpha(active_min))) + geom_point(col="grey") + 
+               geom_line(data = temp,aes(x=key, y=smooth_step[index],alpha = get_alpha(smooth_active[index])),col="black",size=0.8)+
+               scale_alpha_continuous("Confidence in Estimates")+
+               ylim(min(temp$steps),quantile(temp$steps,0.95))+
+               xlab("Days since enrollment") + ylab("Step Count")
+        
+        if("home_time" %in% colnames(hourly_summary)){
+          p2 = ggplot(data = temp, aes(x=key, y=home_time,alpha=get_alpha(60-missing_time))) + geom_point(col="grey") +
+          geom_line(data = temp, aes(x=key, y=smooth_ht[index],alpha=get_alpha(smooth_obs[index])), col="black",size=1.5)+
           scale_alpha_continuous("Confidence in Estimates") + 
           xlab("Hours since enrollment") + ylab("Hometime (min)")
-        p2 = ggplot(data = temp, aes(x=key, y=dist_traveled,alpha=(60-missing_time)/max(60-missing_time))) + geom_point(col="grey") + ylim(0,quantile(temp$dist_traveled,0.95))+
-          geom_line(data = temp, aes(x=key, y=smooth_dist[index],alpha=smooth_obs[index]/(max(smooth_obs[index]))), col="black",size=1.5)+
+          p3 = ggplot(data = temp, aes(x=key, y=dist_traveled,alpha=get_alpha(60-missing_time))) + geom_point(col="grey") + ylim(0,quantile(temp$dist_traveled,0.95))+
+          geom_line(data = temp, aes(x=key, y=smooth_dist[index],alpha=get_alpha(smooth_obs[index])), col="black",size=1.5)+
           scale_alpha_continuous("Confidence in Estimates") + 
           xlab("Hours since enrollment") + ylab("Distance Traveled (meter)")
-        if(is.null(path2)==F & nrow(new_set)>0){
+        }
+        if("num_in" %in% colnames(hourly_summary)){
+          p4 = ggplot(data = temp,aes(x=key, y=score)) + geom_point(col="grey") + geom_line(col="black",size=0.8)+
+          xlab("Days since enrollment") + ylab("Comm Score")
+        }
+        if(is.null(path2)==F){
           tempset = subset(new_set,start_hour>=min(index) & end_hour<=max(index)) 
           if(nrow(tempset)>0){
             tempset$low = 0
             tempset$high = Inf
             events = sort(unique(tempset$event_code))
             p1 = p1 + geom_rect(data=tempset,mapping=aes(xmin=start_hour, xmax=end_hour, ymin=low, ymax=high,fill=event_color),alpha=0.4,inherit.aes = FALSE)+
-           scale_fill_manual(name ='Events', values=color_type[events], labels=visit_type[events])
-            p2 = p2 + geom_rect(data=tempset,mapping=aes(xmin=start_hour, xmax=end_hour, ymin=low, ymax=high,fill=event_color),alpha=0.4,inherit.aes = FALSE)+
-           scale_fill_manual(name ='Events', values=color_type[events], labels=visit_type[events])
+         scale_fill_manual(name ='Events', values=color_type[events], labels=visit_type[events])
+            if("steps" %in% colnames(hourly_summary)){
+              p2 = p2 + geom_rect(data=tempset,mapping=aes(xmin=start_hour, xmax=end_hour, ymin=low, ymax=high,fill=event_color),alpha=0.4,inherit.aes = FALSE)+
+         scale_fill_manual(name ='Events', values=color_type[events], labels=visit_type[events])
+              p3 = p3 + geom_rect(data=tempset,mapping=aes(xmin=start_hour, xmax=end_hour, ymin=low, ymax=high,fill=event_color),alpha=0.4,inherit.aes = FALSE)+
+         scale_fill_manual(name ='Events', values=color_type[events], labels=visit_type[events])
+            }
+            if("num_in" %in% colnames(summary)){
+              p4 = p4 + geom_rect(data=tempset,mapping=aes(xmin=start_hour, xmax=end_hour, ymin=low, ymax=high,fill=event_color),alpha=0.4,inherit.aes = FALSE)+
+         scale_fill_manual(name ='Events', values=color_type[events], labels=visit_type[events])
+            }
+          }
+          if((!"num_in" %in% colnames(hourly_summary)) & (!"home_time" %in% colnames(hourly_summary))){
+            graph = p1
+          }
+          if(!"num_in" %in% colnames(hourly_summary) & "home_time" %in% colnames(hourly_summary)){
+            graph = ggarrange(p1, p2, p3,ncol=1, nrow=3,common.legend = TRUE,legend="right")
+          }
+          if("num_in" %in% colnames(hourly_summary) & !"home_time" %in% colnames(hourly_summary)){
+            graph = ggarrange(p1,p4,ncol=1, nrow=2,common.legend = TRUE,legend="right")
+          }
+          if("num_in" %in% colnames(hourly_summary) & "home_time" %in% colnames(hourly_summary)){
+            graph = ggarrange(p1, p2, p3,p4, ncol=1, nrow=4,common.legend = TRUE,legend="right")
           }
         }
-        graph = ggarrange(p1, p2,ncol=1, nrow=2,common.legend = TRUE,legend="right")
         if(option2=="show"){
           return(graph)
         }
         else if(option2=="save"){
           if(is.null(path3)){
-            ggsave(paste0(id,"_linechart_hour_month_",i,".pdf"), plot = graph, device = "pdf", path = NULL,scale = 1, width = 20, height = 5, units = "in",dpi = 300, limitsize = TRUE)
+            ggsave(paste0(id,"_linechart_hour_month_",i,".pdf"), plot = graph, device = "pdf", path = NULL,scale = 1, width = 20, height = 2.5*num_graph, units = "in",dpi = 300, limitsize = TRUE)
             print(paste0(id,": Month ",i," hourly linechart is Done."))
           }
           else{
-            ggsave(paste0(path3,"/",id,"_linechart_hour_month_",i,".pdf"), plot = graph, device = "pdf", path = NULL,scale = 1, width = 20, height = 5, units = "in",dpi = 300, limitsize = TRUE)
+            ggsave(paste0(path3,"/",id,"_linechart_hour_month_",i,".pdf"), plot = graph, device = "pdf", path = NULL,scale = 1, width = 20, height = 2.5*num_graph, units = "in",dpi = 300, limitsize = TRUE)
             print(paste0(id,": Month ",i, " hourly linechart is Done."))
           }
         }
@@ -559,11 +570,11 @@ gps_linechart = function(id,path1,path2=NULL,path3=NULL,window,option1,option2){
 
 
 ```{r}
-gps_linechart(id,path1,path2,NULL,3,"day","show")
+gps_linechart(id,path1,path2,NULL,2,"daily","show")
 ```
 
 ```{r}
-gps_linechart(id,path1,path2,NULL,3,"hour","show")
+gps_linechart(id,path1,path2,NULL,2,"hourly","show")
 ```
 
 
@@ -576,38 +587,57 @@ for(id in uniq_ids){
   path3 = "C:/Users/glius/Google Drive/HOPE/visualization/heatmap"
   heatmap(id,path1,path2,path3,"save")
   path3 = "C:/Users/glius/Google Drive/HOPE/visualization/linechart_day"
-  gps_linechart(id,path1,path2,path3,3,"day","save")
+  gps_linechart(id,path1,path2,path3,2,"daily","save")
   path3 = "C:/Users/glius/Google Drive/HOPE/visualization/linechart_hour"
-  gps_linechart(id,path1,path2,path3,3,"hour","save")
+  gps_linechart(id,path1,path2,path3,2,"hourly","save")
 }
 ```
 
+visit_type=c("ED Visit","Scan","Procedure","Paracentesis","Hospital admission",
+               "ICU admission","Palliative care visit","Hospice care referral",
+               "Change in treatment","Urgent care","Office visit","Death","ED to HA")
 
 ## 7. Prepare data for CNN
 ```{r}
-data4CNN = function(path1,path2,hours_before,priority=c(10,2,3,1,5,6)){
+data4CNN = function(path1,path2,hours_before,priority=c(3,2,1)){
   CNNset = c()
+  features = c("active_min","steps","mean_mag","sd_mag","cur_len","energy","acc_entropy","missing_time","pause_time","flight_time","home_time",          "max_dist_home","dist_traveled","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration","num_in","num_mis","num_out",          "time_in","time_out","uniq_in","uniq_mis","uniq_out","mms_r","mms_s","num_r","num_s","char_r","char_s","uniq_r","uniq_s")
   clinical_events = wide2long(path2)
+  ## Significant events that should be penalized highly if missed: Urgent clinic visit, ED visit, ED to HA, Hospital Admission, ICU Admission.
+  clinical_events$new_event = 0
+  clinical_events$new_event[clinical_events$hcu_event %in% c(1,5,6,10,13)]=1
+  clinical_events$new_event[clinical_events$hcu_event %in% c(3,4)]=2
+  clinical_events$new_event[clinical_events$hcu_event %in% c(8,12)]=3
   uniq_ids = unique(clinical_events$ID)
   for(id in uniq_ids){
-    ## priority:  ICU>HA>ED>paracentesis>procedure>urgent care
-    record = subset(clinical_events, ID==id & hcu_event %in% c(1,3,4,5,6,10))
-    if(nrow(record)>0){
-      temp = data_integrate(id,path1)
-      if(!is.null(temp)){
-        enroll_hour = paste0(temp$year[1],"-",temp$month[1],"-",temp$day[1]," ",temp$hour[1],":00:00")
-        temp = temp[,5:ncol(temp)] ## remove time
-        temp[temp==-1]=NA ## change -1 to NA
-        for (i in 1:ncol(temp)){
-          if(!is.na(temp[1,i])){
-            temp[,i]=rank(temp[,i])/nrow(temp)
-          }
+    print(id)
+    temp = data_integrate(id,path1,"hourly")
+    if(!is.null(temp)){
+      enroll_hour = paste0(temp$year[1],"-",temp$month[1],"-",temp$day[1]," ",temp$hour[1],":00:00")
+      acc = temp[,5:11]
+      record = subset(clinical_events,ID==id & event_num>0 & is.na(stamp0)==F)
+      if("home_time" %in% colnames(temp)){
+        gps = temp[,12:21]
+      }
+      else{gps = matrix(0,nrow = nrow(temp),ncol=10)}
+      if("num_in" %in% colnames(temp)){
+        logs = temp[,which(colnames(temp)=="num_in"):ncol(temp)]
+      }
+      else{logs = matrix(0,nrow = nrow(temp),ncol=16)}
+      temp = cbind(acc,gps,logs)
+      colnames(temp) = features
+      for (i in 1:ncol(temp)){
+        if(!is.na(temp[1,i])){
+          temp[,i]=rank(temp[,i])/nrow(temp)
         }
-        temp$events = 0
-        enroll_stamp = as.numeric(as.POSIXct(enroll_hour))-60*60
-        start_hour = round((record$stamp0-enroll_stamp)/3600,0)
-        events = record$hcu_event[start_hour<=nrow(temp)]
-        start_hour = start_hour[start_hour<=nrow(temp)]
+      }
+      temp$events = 0
+      enroll_stamp = as.numeric(as.POSIXct(enroll_hour))
+      start_hour = round((record$stamp0-enroll_stamp)/3600,0)
+      events = record$new_event[start_hour<=nrow(temp)]
+      start_hour = (start_hour[start_hour<=nrow(temp)])[events!=0]
+      events = events[events!=0]
+      if(!is.null(events)){
         for(j in priority[priority %in% events]){
           for(t in start_hour[events==j]){
             temp$events[max(1,(t-hours_before+1)):t]=j
@@ -623,7 +653,8 @@ data4CNN = function(path1,path2,hours_before,priority=c(10,2,3,1,5,6)){
 ```
 
 ```{r}
-cnndata = data4CNN(path1,path2,36,priority=c(10,2,3,1,5,6))
+## ED and HA or ED and ICU happens within a 24 hour period, I would classify it as hospital or ICU respectively
+cnndata = data4CNN(path1,path2,24,priority=c(3,2,1))
 write.csv(cnndata,"C:/Users/glius/Google Drive/HOPE/detailed_clinical_events/cnndata.csv",row.names = F)
 ```
 
