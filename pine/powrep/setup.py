@@ -17,5 +17,6 @@ setup(
     author_email='onnela.lab@gmail.com',
     license=license,
     packages=find_packages(),
+    package_data = {'': ['*.json']},
     install_requires = requires
 )

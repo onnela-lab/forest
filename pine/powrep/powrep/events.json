@@ -1,0 +1,20 @@
+
+iOS:
+
+
+Android:
+
+"Screen turned off"
+"Screen turned on"
+
+"Power connected"
+"Power disconnected"
+
+"Device shut down signal received"
+"Device reboot signal received"
+
+"Power Save Mode state change signal received; device in power save state."
+"Power Save Mode change signal received; device not in power save state."
+
+"Device Idle (Doze) state change signal received; device in idle state."
+"Device Idle (Doze) state change signal received; device not in idle state."
