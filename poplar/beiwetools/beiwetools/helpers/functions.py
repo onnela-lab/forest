@@ -83,7 +83,8 @@ def setup_directories(dir_list):
     Checks if directories exist; creates them if not.
 
     Args:
-        dir_list (list): List of directory paths (str) to create.  Can also be a single path (str).
+        dir_list (list): List of directory paths (str) to create.  
+            Can also be a single path (str).
 
     Returns:
         None
