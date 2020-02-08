@@ -63,6 +63,8 @@ On Apple devices, the Beiwe `power_state` data stream is handled by:
 `beiwe-ios/Beiwe/Managers/PowerStateManager.swift`
 
 
+
+
 https://developer.apple.com/documentation/uikit/uidevice/1620051-batterystate?language=objc
 https://developer.apple.com/documentation/uikit/uidevice/1620042-batterylevel?language=objc
 
@@ -73,8 +75,10 @@ https://developer.apple.com/documentation/uikit/uiapplicationdelegate/1623044-ap
 ___
 ## 4. Android Events <a name="android"/>
 
-On Android phones, the Beiwe `power_state` data stream reports operating system ["intents"](https://developer.android.com/reference/android/content/Intent) corresponding to transitions in the device's interactive state and power states.  Reporting is handled by an instance of [this class](`beiwe-android/app/src/main/java/org/beiwe/app/listeners/PowerStateListener.java`).  There are , documented below.
+On Android phones, the Beiwe `power_state` data stream reports operating system ["intents"](https://developer.android.com/reference/android/content/Intent) corresponding to transitions in the device's interactive state and power states.  Reporting is handled by an instance of [this class](`beiwe-android/app/src/main/java/org/beiwe/app/listeners/PowerStateListener.java`).  
 
+Transitions between power states are handled by Android's [`DeviceIdleController`](https://github.com/aosp-mirror/platform_frameworks_base/blob/nougat-release/services/core/java/com/android/server/DeviceIdleController.java).
+[This article](https://medium.com/@tsungi/android-doze-tweaks-83dadb5b4a9a) provides an informal overview, with state diagrams.
 ___
 #### Interactive State
 
@@ -114,7 +118,16 @@ ___
 
 
 ___
-#### Device Idle
+#### Doze
+
+Doze was originally introduced in [Android 6.0](https://developer.android.com/about/versions/marshmallow/android-6.0-changes.  This implementation appears in all subsequent versions of Android, and is sometimes referred to as "Deep Doze."  It is a power-saving state initiated when all of the following conditions have been met for some period of time:
+
+1. The device is unplugged,
+2. The device is stationary,
+3. The screen is off.
+
+A second, less restrictive version of Doze was has been implemented since [Android 7.0](https://developer.android.com/about/versions/nougat/android-7.0-changes).  This state is sometimes called "Light Doze," and it may be initiated when only conditions (1) and (3) are met.  For example, a phone may enter Light Doze if it is carried in a pocket while the user is walking.
+
 
 [ACTION\_DEVICE\_IDLE\_MODE\_CHANGED]()
 
