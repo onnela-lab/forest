@@ -3,12 +3,10 @@ Classes for doing online summaries during data processing tasks.
 '''
 import os
 import logging
-import datetime
 import numpy as np
 from collections import OrderedDict
 from .process import to_1Darray
 from .functions import write_json
-from .time_constants import local_time_format
 
 
 logger = logging.getLogger(__name__)
@@ -62,7 +60,7 @@ class SamplingSummary():
         Returns:
             None
         '''        
-        new = to_1Darray(new, 'timestamp')
+        t = to_1Darray(new, 'timestamp')
         if len(new) > 0:
             if self.track_last:
                 if not self.last is None:
@@ -142,7 +140,6 @@ class StatsTracker():
         Returns:
             None
         '''
-        new = to_1Darray(new, self.name)
         pass
 
     def get(self):
@@ -268,3 +265,12 @@ class Welford(StatsTracker):
         if n > 1:
             self.stats['var'] = self.stats['sos']/(n-1)
             self.stats['std'] = np.sqrt(self.stats['var'])
+
+
+trackers = OrderedDict({
+    'intersample' : SamplingSummary,
+    'histogram':    HistogramTracker,
+    'categorical':  CategoryTracker, 
+    'range':        RangeTracker,
+    'welford':      Welford
+    })
