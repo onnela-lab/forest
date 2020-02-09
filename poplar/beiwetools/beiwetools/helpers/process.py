@@ -4,7 +4,7 @@ Functions for processing Beiwe data.
 import os
 import logging
 import numpy as np
-from pandas import Series, DataFrame, read_csv
+from pandas import Series, DataFrame, read_csv, concat
 
 from collections import OrderedDict
 
@@ -91,20 +91,26 @@ def stack_frames(paths, clean_args = (True, True, True),
 
     Args:
         paths (list): List of paths (strings) to CSVs.
+            It's assumed that the paths correspond to chronologically 
+            ordered files.  If not, be sure to set clean_args[1] = True 
+            to return sorted observations.
         clean_args (tuple): Args for final clean_dataframe() before return.
         reader (func): Function for reading CSVs into DataFrames.
             Input should include a filepath.
             Output should be a pandas DataFrame.
-        kwargs: Keyword arguments for reader.
+        kwargs: Keyword arguments for reader.   These might include lists of 
+            columns to keep and how to clean each DataFrame before stacking.  
         
     Returns:
         stack (DataFrame):
     '''    
     df_list = []
     for p in paths:
-        pass
-    pass
-
+        df_list.append(reader(p, **kwargs))
+    df = concat(df_list, ignore_index = True)
+    if True in clean_args:
+        clean_dataframe(df, *clean_args)               
+    return(df)
 
 
 def summarize_filepath(filepath = None, ndigits = 3, basename_only = False):
