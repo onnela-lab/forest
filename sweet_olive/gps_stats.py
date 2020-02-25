@@ -293,6 +293,7 @@ def InferMobMat(mobmat,itrvl=10,r=None):
   mobmat = mobmat[mobmat[:,0]!=5,:]
 
   ## check missing intervals, if starting and ending point are close, make them same
+  new_pauses = []
   for j in np.arange(1,mobmat.shape[0]):
     if mobmat[j,3] > mobmat[j-1,6]:
       d = great_circle_dist(mobmat[j,1],mobmat[j,2],mobmat[j-1,4],mobmat[j-1,5])
@@ -313,6 +314,8 @@ def InferMobMat(mobmat,itrvl=10,r=None):
           mean_y = (mobmat[j,2] + mobmat[j-1,5])/2
           mobmat[j-1,4] = mobmat[j,1] = mean_x
           mobmat[j-1,5] = mobmat[j,2] = mean_y
+        new_pauses.append([2,mobmat[j,1],mobmat[j,2],mobmat[j-1,6],mobmat[j,1],mobmat[j,2],mobmat[j,3],0])
+  new_pauses = np.array(new_pauses)
 
   ## connect flights and pauses
   for j in np.arange(1,mobmat.shape[0]):
@@ -323,6 +326,11 @@ def InferMobMat(mobmat,itrvl=10,r=None):
       if mobmat[j-1,0]==1:
         mobmat[j-1,4] = mobmat[j,1]
         mobmat[j-1,5] = mobmat[j,2]
+
+  mobmat = np.hstack((mobmat,np.ones(mobmat.shape[0]).reshape(mobmat.shape[0],1)))
+  mobmat = np.vstack((mobmat,new_pauses))
+
+  mobmat = mobmat[mobmat[:,3].argsort()].astype(float)
   return mobmat
 
 def K0(x1,x2):
@@ -512,16 +520,29 @@ def SOGP(X,Y,sigma2,tol,d,Q=[],C=[],alpha=[],bv=[]):
   return output
 
 def BV_select(MobMat,sigma2,tol,d):
+  orig_order = np.arange(MobMat.shape[0])
+  flight_index = MobMat[:,0]==1
+  pause_index = MobMat[:,0]==2
   mean_x = (MobMat[:,1]+MobMat[:,4])/2
   mean_y = (MobMat[:,2]+MobMat[:,5])/2
   mean_t = (MobMat[:,3]+MobMat[:,6])/2
-  X = np.transpose(np.vstack((mean_t,mean_x)))
-  Y = mean_y
+  X = np.transpose(np.vstack((mean_t,mean_x)))[flight_index]
+  Y = mean_y[flight_index]
   result1 = SOGP(X,Y,sigma2,tol,d)['bv']
-  X = np.transpose(np.vstack((mean_t,mean_y)))
-  Y = mean_x
+  index = orig_order[flight_index][result1]
+  X = np.transpose(np.vstack((mean_t,mean_x)))[pause_index]
+  Y = mean_y[pause_index]
   result2 = SOGP(X,Y,sigma2,tol,d)['bv']
-  index = np.unique(np.append(result1,result2))
+  index = np.append(index,orig_order[pause_index][result2])
+  X = np.transpose(np.vstack((mean_t,mean_y)))[flight_index]
+  Y = mean_x[flight_index]
+  result3 = SOGP(X,Y,sigma2,tol,d)['bv']
+  index = np.append(index,orig_order[flight_index][result3])
+  X = np.transpose(np.vstack((mean_t,mean_y)))[pause_index]
+  Y = mean_x[pause_index]
+  result4 = SOGP(X,Y,sigma2,tol,d)['bv']
+  index = np.append(index,orig_order[pause_index][result4])
+  index = np.unique(index)
   BV_set = MobMat[index,:]
   return {'BV_set':BV_set,'BV_index':index}
 
@@ -595,11 +616,11 @@ def adjust_direction(delta_x,delta_y,start_x,start_y,end_x,end_y,origin_x,origin
     return norm_x, norm_y
 
 def multiplier(t_diff):
-  if t_diff<=10*60:
+  if t_diff<=30*60:
     return 1
-  elif t_diff<=60*60:
+  elif t_diff<=180*60:
     return 5
-  elif t_diff<=720*60:
+  elif t_diff<=1080*60:
     return 10
   else:
     return 50
@@ -942,7 +963,6 @@ def Imp2traj(imp_table,MobMat,itrvl=10,r=None,w=None,h=None):
             traj.append([1,mat[knots[j],0],mat[knots[j],1],mat[knots[j],2],mat[knots[j+1],0],mat[knots[j+1],1],mat[knots[j+1],2]])
   traj = np.array(traj)
   traj = np.hstack((traj,np.zeros((traj.shape[0],1))))
-  MobMat = np.hstack((MobMat,np.ones((MobMat.shape[0],1))))
   full_traj = np.vstack((traj,MobMat))
   float_traj = full_traj[full_traj[:,3].argsort()].astype(float)
   final_traj = float_traj[float_traj[:,6]-float_traj[:,3]>0,:]
@@ -1171,7 +1191,7 @@ a2 = 1
 b1 = 0.3
 b2 = 0.2
 b3 = 0.5
-d = 200
+d = 100
 sigma2 = 0.01
 tol = 0.05
 num = 10
