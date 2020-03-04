@@ -333,6 +333,17 @@ def InferMobMat(mobmat,itrvl=10,r=None):
   mobmat = mobmat[mobmat[:,3].argsort()].astype(float)
   return mobmat
 
+def locate_home(MobMat):
+  ObsTraj = MobMat[MobMat[:,0]==2,:]
+  hours = [datetime.fromtimestamp((ObsTraj[i,3]+ObsTraj[i,6])/2).hour for i in range(ObsTraj.shape[0])]
+  hours = np.array(hours)
+  home_pauses = ObsTraj[((hours>=19)+(hours<=9))*ObsTraj[:,0]==2,:]
+  loc_x,loc_y,num_xy,t_xy = num_sig_places(home_pauses,20)
+  home_index = num_xy.index(max(num_xy))
+  home_x, home_y = loc_x[home_index],loc_y[home_index]
+  return home_x,home_y
+
+
 def K0(x1,x2):
   k1 = np.exp(-abs(x1[0]-x2[0])/l1)*np.exp(-(np.sin(abs(x1[0]-x2[0])/86400*math.pi))**2/a1)
   k2 = np.exp(-abs(x1[0]-x2[0])/l2)*np.exp(-(np.sin(abs(x1[0]-x2[0])/604800*math.pi))**2/a2)
@@ -636,6 +647,7 @@ def checkbound(current_x,current_y,start_x,start_y,end_x,end_y):
     return 0
 
 def ImputeGPS(MobMat,BV_set,method,switch):
+  home_x,home_y = locate_home(MobMat)
   sys.stdout.write("Imputing missing trajectories..." + '\n')
   flight_table, pause_table, mis_table = create_tables(MobMat, BV_set)
   imp_x0 = np.array([]); imp_x1 = np.array([])
@@ -648,6 +660,8 @@ def ImputeGPS(MobMat,BV_set,method,switch):
     nearby_flight = sum((flight_table[:,6]>mis_t0-12*60*60)*(flight_table[:,3]<mis_t1+12*60*60))
     d_diff = great_circle_dist(mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])
     t_diff = mis_table[i,5] - mis_table[i,2]
+    D1 = great_circle_dist(mis_table[i,0],mis_table[i,1],home_x,home_y)
+    D2 = great_circle_dist(mis_table[i,3],mis_table[i,4],home_x,home_y)
     ## if a person remains at the same place at the begining and end of missing, just assume he satys there all the time
     if mis_table[i,0]==mis_table[i,3] and mis_table[i,1]==mis_table[i,4]:
       imp_s = np.append(imp_s,2)
@@ -680,7 +694,7 @@ def ImputeGPS(MobMat,BV_set,method,switch):
         imp_t0 = np.append(imp_t0, [mis_table[i,2],t_s,t_e])
         imp_t1 = np.append(imp_t1, [t_s,t_e,mis_table[i,5]])
     ## add one more check about how many flights observed in the nearby 24 hours
-    elif nearby_flight<=5 and t_diff>6*60*60:
+    elif nearby_flight<=5 and t_diff>6*60*60 and min(D1,D2)>50:
       if d_diff<3000:
         v_random = np.random.uniform(low=1, high=1.8)
         t_need = min(d_diff/v_random,t_diff)
@@ -715,7 +729,26 @@ def ImputeGPS(MobMat,BV_set,method,switch):
       start_x = mis_table[i,0]; end_x = mis_table[i,3]
       start_y = mis_table[i,1]; end_y = mis_table[i,4]
       start_s = mis_table[i,6]; end_s = mis_table[i,7]
-
+      if t_diff>4*60*60 and min(D1,D2)<=50:
+        t_need = d_diff/0.6
+        if D1<=50:
+          imp_s = np.append(imp_s,2)
+          imp_t0 = np.append(imp_t0,start_t)
+          imp_t1 = np.append(imp_t1,end_t-t_need)
+          imp_x0 = np.append(imp_x0,start_x)
+          imp_x1 = np.append(imp_x1,start_x)
+          imp_y0 = np.append(imp_y0,start_y)
+          imp_y1 = np.append(imp_y1,start_y)
+          start_t = end_t-t_need
+        else:
+          imp_s = np.append(imp_s,2)
+          imp_t0 = np.append(imp_t0,start_t+t_need)
+          imp_t1 = np.append(imp_t1,end_t)
+          imp_x0 = np.append(imp_x0,end_x)
+          imp_x1 = np.append(imp_x1,end_x)
+          imp_y0 = np.append(imp_y0,end_y)
+          imp_y1 = np.append(imp_y1,end_y)
+          end_t = start_t + t_need
       counter = 0
       while start_t < end_t:
         if abs(start_x-end_x)+abs(start_y-end_y)>0 and end_t-start_t<30: ## avoid extreme high speed
@@ -729,7 +762,7 @@ def ImputeGPS(MobMat,BV_set,method,switch):
           imp_y1 = np.append(imp_y1,end_y)
           start_t = end_t
         elif start_x==end_x and start_y==end_y and end_t-start_t<12*60*60:
-          imp_s = np.append(imp_s,0)
+          imp_s = np.append(imp_s,2)
           imp_t0 = np.append(imp_t0,start_t)
           imp_t1 = np.append(imp_t1,end_t)
           imp_x0 = np.append(imp_x0,start_x)
@@ -966,6 +999,7 @@ def Imp2traj(imp_table,MobMat,itrvl=10,r=None,w=None,h=None):
   full_traj = np.vstack((traj,MobMat))
   float_traj = full_traj[full_traj[:,3].argsort()].astype(float)
   final_traj = float_traj[float_traj[:,6]-float_traj[:,3]>0,:]
+
   return(final_traj)
 
 def num_sig_places(data,dist):
@@ -996,13 +1030,7 @@ def num_sig_places(data,dist):
 def GetStats(traj,option):
   sys.stdout.write("Calculating the summary stats..." + '\n')
   ObsTraj = traj[traj[:,7]==1,:]
-  hours = [datetime.fromtimestamp((ObsTraj[i,3]+ObsTraj[i,6])/2).hour for i in range(ObsTraj.shape[0])]
-  hours = np.array(hours)
-  home_pauses = ObsTraj[((hours>=19)+(hours<=9))*ObsTraj[:,0]==2,:]
-  loc_x,loc_y,num_xy,t_xy = num_sig_places(home_pauses,20)
-  home_index = num_xy.index(max(num_xy))
-  home_x, home_y = loc_x[home_index],loc_y[home_index]
-
+  home_x, home_y = locate_home(ObsTraj)
   summary_stats = []
   if option == "hourly":
     ## find starting and ending time
@@ -1067,7 +1095,7 @@ def GetStats(traj,option):
       d_home = (d_home_1+d_home_2)/2
       max_dist_home = max(np.concatenate((d_home_1,d_home_2)))
       time_at_home = sum((temp[:,6]-temp[:,3])[d_home<=50])
-      mov_vec = great_circle_dist(temp[:,4],temp[:,5],temp[:,1],temp[:,2])
+      mov_vec = np.round(great_circle_dist(temp[:,4],temp[:,5],temp[:,1],temp[:,2]),0)
       flight_d_vec = mov_vec[temp[:,0]==1]
       pause_d_vec = mov_vec[temp[:,0]==2]
       flight_t_vec = (temp[:,6]-temp[:,3])[temp[:,0]==1]
@@ -1197,6 +1225,6 @@ tol = 0.05
 num = 10
 switch = 3
 option = "both"
-input_path = "F:/DATA/hope"
-output_path = "C:/Users/glius/Downloads/hope_gps"
+input_path = "C:/Users/glius/Downloads/data"
+output_path = "C:/Users/glius/Downloads/output"
 summarize_gps(input_path,output_path,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch)
