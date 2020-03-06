@@ -730,7 +730,7 @@ def ImputeGPS(MobMat,BV_set,method,switch):
       start_y = mis_table[i,1]; end_y = mis_table[i,4]
       start_s = mis_table[i,6]; end_s = mis_table[i,7]
       if t_diff>4*60*60 and min(D1,D2)<=50:
-        t_need = d_diff/0.6
+        t_need = min(d_diff/0.6,t_diff)
         if D1<=50:
           imp_s = np.append(imp_s,2)
           imp_t0 = np.append(imp_t0,start_t)
@@ -1225,6 +1225,6 @@ tol = 0.05
 num = 10
 switch = 3
 option = "both"
-input_path = "C:/Users/glius/Downloads/data"
+input_path = "F:/DATA/hope"
 output_path = "C:/Users/glius/Downloads/output"
 summarize_gps(input_path,output_path,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch)
