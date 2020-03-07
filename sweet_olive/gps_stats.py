@@ -761,7 +761,9 @@ def ImputeGPS(MobMat,BV_set,method,switch):
           imp_y0 = np.append(imp_y0,start_y)
           imp_y1 = np.append(imp_y1,end_y)
           start_t = end_t
-        elif start_x==end_x and start_y==end_y and end_t-start_t<12*60*60:
+        ## should check the missing legnth first, if it's less than 12 hours, do the following, otherewise,
+        ## insert home location at night most visited places in the interval as known  
+        elif start_x==end_x and start_y==end_y:
           imp_s = np.append(imp_s,2)
           imp_t0 = np.append(imp_t0,start_t)
           imp_t1 = np.append(imp_t1,end_t)
@@ -1225,6 +1227,6 @@ tol = 0.05
 num = 10
 switch = 3
 option = "both"
-input_path = "F:/DATA/hope"
+input_path =  "C:/Users/glius/Downloads/data"
 output_path = "C:/Users/glius/Downloads/output"
 summarize_gps(input_path,output_path,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch)
