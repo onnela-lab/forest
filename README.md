@@ -52,6 +52,9 @@ This repo contains the `logrep` package, which provides tools for processing raw
 # ash
 This repo contains the `accrep` package, which provides tools for processing raw Beiwe accelerometer data.
 
+# fir
+This repo contains the `fitrep` packages, which has some tools for reformatting raw Fitabase data.
+
 # ginkgo
 This repo contains the `gpsrep` package, which provides tools for some basic GPS data processing tasks, including time zone extraction.
 
