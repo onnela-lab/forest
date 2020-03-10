@@ -18,6 +18,8 @@ and provides a method that takes packed kwargs while returning labelled output:
     What the function does:        
         >>> f(a = 1, b = 2)
         (2, 4)
+        >>> f(1, 2)
+        (2, 4)
 
     Here are two dictionaries with keyword arguments:
         >>> d = {'a':1, 'b':2}
@@ -67,9 +69,9 @@ def returns_to_dict(f, returns, ordered = True):
         {'x': 2, 'y': 4}
     '''
     if ordered:
-        ff = lambda **kwargs : OrderedDict(zip(returns, f(**kwargs)))
+        ff = lambda *args, **kwargs : OrderedDict(zip(returns, f(*args, **kwargs)))
     else:
-        ff = lambda **kwargs : dict(zip(returns, f(**kwargs)))
+        ff = lambda *args, **kwargs : dict(zip(returns, f(*args, **kwargs)))
     return(ff)    
 
 
@@ -124,7 +126,7 @@ def easy(r):
         @get_kwargs(f)
         @to_dictionary()
         @returns(r)        
-        def ff(**kwargs): return(f(**kwargs))
+        def ff(*args, **kwargs): return(f(*args, **kwargs))
         def eff(kwargs): 
             d = ff.get_kwargs(kwargs)
             return(ff.to_dict(**d))
