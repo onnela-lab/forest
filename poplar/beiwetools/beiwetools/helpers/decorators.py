@@ -42,6 +42,7 @@ from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
 
+
 def returns_to_dict(f, returns, ordered = True):
     '''
     Get a function that bundles f's output as a dictionary.
