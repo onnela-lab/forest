@@ -1,4 +1,5 @@
 '''Functions for generating visual summaries of Beiwe data.
+
 '''
 import numpy as np
 import matplotlib.pyplot as plt

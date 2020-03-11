@@ -1,5 +1,5 @@
-'''
-Palettes & color maps for plots.
+'''Palettes & color maps for plots.
+
 '''
 from seaborn import color_palette
 

@@ -1,5 +1,5 @@
-'''
-Classes for doing online summaries during data processing tasks.
+'''Classes for doing online summaries during data processing tasks.
+
 '''
 import os
 import logging

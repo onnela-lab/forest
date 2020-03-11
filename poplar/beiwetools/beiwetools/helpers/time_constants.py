@@ -1,5 +1,5 @@
-'''
-Constants for working with Beiwe time formats.
+'''Constants for working with Beiwe time formats.
+
 '''
 from pytz import timezone
 from collections import OrderedDict

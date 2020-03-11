@@ -1,5 +1,5 @@
-'''
-Functions for processing Beiwe data.
+'''Functions for processing Beiwe data.
+
 '''
 import os
 import logging
