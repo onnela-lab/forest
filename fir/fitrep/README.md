@@ -81,7 +81,7 @@ ___
 
 5. Select desired file types with checkboxes.  Note that this package does not handle any data formatted as "Minute (Wide)."
 
-6. **Be sure to check "Sync Events."**
+6. **Be sure to check the box for "Sync Events."**
 
 7. **Make sure that "Individual Files" is highlighted.**
 
