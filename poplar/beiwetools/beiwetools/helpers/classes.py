@@ -1,5 +1,5 @@
-'''
-Miscellaneous classes for working with Beiwe data and study configurations.
+'''Miscellaneous classes for working with Beiwe data and study configurations.
+
 '''
 import os
 import logging

@@ -1,5 +1,5 @@
-'''
-Functions for working with Beiwe time formats.
+'''Functions for working with Beiwe time formats.
+
 '''
 import pytz
 import logging
