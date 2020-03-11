@@ -6,7 +6,7 @@ ___
 fitrep
 ===
 
-The `fitrep` package provides basic tools for working with data from fitbit devices that have been downloaded from [Fitabase](https://www.fitabase.com/).  This document gives a brief description of each module.
+The `fitrep` package provides basic tools for working with data from Fitbit devices that have been downloaded from [Fitabase](https://www.fitabase.com/).  This document gives a brief description of each module.
 
 Note that `fitrep` requires the `beiwetools` package, located in the `forest/poplar` repository.  
 
@@ -58,7 +58,7 @@ described with a brief comment.
 
 Raw Fitabase headers were extracted from files downloaded on xx
 
-These files included data collected from fitbit Charge 2 and Zip devices between xx/xx/xx and xx/xx/xx.
+These files included data collected from Fitbit Charge 2 and Zip devices between xx/xx/xx and xx/xx/xx.
 
 
 ___
@@ -79,7 +79,7 @@ ___
 
 4. Select start/end dates.  Change the download name and select tags if desired.
 
-5. Select desired variables with checkboxes.  Note that this package does not handle any data formatted as "Minute (Wide)."
+5. Select desired file types with checkboxes.  Note that this package does not handle any data formatted as "Minute (Wide)."
 
 6. **Be sure to check "Sync Events."**
 
@@ -100,47 +100,38 @@ ___
 Raw individual fitabase files are named with the following convention:
 
 ```
-<participant identifier>_<file type>_<start date>_<end date>.csv
+<fitabase_id>_<file_type>_<start_date>_<end_date>.csv
 ```
 
-* ```<participant identifier>```:  The alphanumeric string that identifies the fitbit user, as it appears in the "Name" column on the project dashboard.
+* ```<fitabase_id>```:  The unique alphanumeric string that identifies the Fitbit device, as it appears in the "Name" column on the project dashboard.
 
-* ```<file type>```:  A description of data that are reported in the file.  See below for some details.
+* ```<file_type>```:  A description of data that are reported in the file.  See below for some details.
 
-* ```<start date>```:  The start date for the batch download, formatted as `%Y%m%d`
+* ```<start_date>```:  The start date for the batch download, formatted as `%Y%m%d`.
 
-* ```<end date>```: The end date for the batch download, formatted as `%Y%m%d`.
+* ```<end_date>```: The end date for the batch download, formatted as `%Y%m%d`.
 
 ___
 #### File Types
 
-Each file type has a slightly different name according to where it is mentioned.  For example:
+Each file type has a slightly different name according to where it is mentioned.  Some examples:
 
+|Location|1|2|3|
+|-----|-----|-----|-----|
+|File Name | `` | `` | `` |
+|Batch Export Options | `` | `` | `` |
+|Dashboard Export Records | `` | `` | `` |
+|[Data Dictionary](https://www.fitabase.com/media/1748/fitabasedatadictionary.pdf)| `` | `` | `` |
 
-
-This package refers to file types as they appear in file names.
-
-**File Name**
-
-**Batch Export Options**
-
-**Dashboard Export Records**
-
-**[Data Dictionary](https://www.fitabase.com/media/1748/fitabasedatadictionary.pdf)**
-
-See `/fitrep/names.json` for a list of all file types supported by `fitrep`.
-
-
-`fitrep` Convention
-
-
+**Note that this package refers to file types as they appear in file names.**  See `/fitrep/names.json` for a list of all file types supported by `fitrep`.
 
 ___
-#### File Contents
+#### File Contents & Variable Names
 
 headers
 
 
+[activity logs](https://www.fitabase.com/resources/knowledge-base/learn-about-fitbit-data/activity-logs/)
 
 
 
@@ -148,7 +139,7 @@ ___
 ## 5. Examples <a name="examples"/>
 
 
-`fitabase_id`: A participant's unique alphanumeric identifier on the Fitabase platform.
+`fitabase_id`: A unique alphanumeric identifier on the Fitabase platform.
 
 `fitabase_dir`: The directory containing raw fitabase CSV files.
 
