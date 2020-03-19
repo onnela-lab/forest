@@ -611,9 +611,9 @@ def I_flight(method,current_t,current_x,current_y,dest_t,dest_x,dest_y,BV_set,z)
   out = stat.bernoulli.rvs(p1,size=z)
   return out
 
-def adjust_direction(delta_x,delta_y,start_x,start_y,end_x,end_y,origin_x,origin_y,dest_x,dest_y):
+def adjust_direction(linearity,delta_x,delta_y,start_x,start_y,end_x,end_y,origin_x,origin_y,dest_x,dest_y):
   norm1 = np.sqrt((dest_x-origin_x)**2+(dest_y-origin_y)**2)
-  k = np.random.uniform(low=0, high=4) ## this is another parameter which controls the smoothness
+  k = np.random.uniform(low=0, high=linearity) ## this is another parameter which controls the smoothness
   new_x = delta_x + k*(dest_x-origin_x)/norm1
   new_y = delta_y + k*(dest_y-origin_y)/norm1
   norm2 = np.sqrt(delta_x**2 + delta_y**2)
@@ -646,7 +646,7 @@ def checkbound(current_x,current_y,start_x,start_y,end_x,end_y):
   else:
     return 0
 
-def ImputeGPS(MobMat,BV_set,method,switch):
+def ImputeGPS(MobMat,BV_set,method,switch,linearity):
   home_x,home_y = locate_home(MobMat)
   sys.stdout.write("Imputing missing trajectories..." + '\n')
   flight_table, pause_table, mis_table = create_tables(MobMat, BV_set)
@@ -762,7 +762,7 @@ def ImputeGPS(MobMat,BV_set,method,switch):
           imp_y1 = np.append(imp_y1,end_y)
           start_t = end_t
         ## should check the missing legnth first, if it's less than 12 hours, do the following, otherewise,
-        ## insert home location at night most visited places in the interval as known  
+        ## insert home location at night most visited places in the interval as known
         elif start_x==end_x and start_y==end_y:
           imp_s = np.append(imp_s,2)
           imp_t0 = np.append(imp_t0,start_t)
@@ -794,7 +794,7 @@ def ImputeGPS(MobMat,BV_set,method,switch):
                 delta_t = end_t-start_t
                 delta_x = delta_x*delta_t/temp
                 delta_y = delta_y*delta_t/temp
-              delta_x,delta_y = adjust_direction(delta_x,delta_y,start_x,start_y,end_x,end_y,mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])
+              delta_x,delta_y = adjust_direction(linearity,delta_x,delta_y,start_x,start_y,end_x,end_y,mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])
               try_t = start_t + delta_t
               try_x = (end_t-try_t)/(end_t-start_t+1e-5)*(start_x+delta_x)+(try_t-start_t+1e-5)/(end_t-start_t)*end_x
               try_y = (end_t-try_t)/(end_t-start_t+1e-5)*(start_y+delta_y)+(try_t-start_t+1e-5)/(end_t-start_t)*end_y
@@ -872,7 +872,7 @@ def ImputeGPS(MobMat,BV_set,method,switch):
                 delta_t = end_t-start_t
                 delta_x = delta_x*delta_t/temp
                 delta_y = delta_y*delta_t/temp
-              delta_x,delta_y = adjust_direction(delta_x,delta_y,end_x,end_y,start_x,start_y,mis_table[i,3],mis_table[i,4],mis_table[i,0],mis_table[i,1])
+              delta_x,delta_y = adjust_direction(linearity,delta_x,delta_y,end_x,end_y,start_x,start_y,mis_table[i,3],mis_table[i,4],mis_table[i,0],mis_table[i,1])
               try_t = end_t - delta_t
               try_x = (end_t-try_t)/(end_t-start_t+1e-5)*start_x+(try_t-start_t)/(end_t-start_t+1e-5)*(end_x+delta_x)
               try_y = (end_t-try_t)/(end_t-start_t+1e-5)*start_y+(try_t-start_t)/(end_t-start_t+1e-5)*(end_y+delta_y)
@@ -1156,14 +1156,17 @@ def GetStats(traj,option):
                               "radius","diameter","num_sig_places","entropy"])
   return(summary_stats)
 
-def summarize_gps(input_path,output_path,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch):
-  os.mkdir(output_path+"/trajectory")
+def summarize_gps(input_path,output_path,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch,linearity):
+  if os.path.exists(output_path+"/trajectory")==False:
+    os.mkdir(output_path+"/trajectory")
   if option == "both":
-    os.mkdir(output_path+"/hourly")
+    if os.path.exists(output_path+"/hourly")==False:
+      os.mkdir(output_path+"/hourly")
+    if os.path.exists(output_path+"/daily")==False:
+      os.mkdir(output_path+"/daily")
+  if option == "daily" and os.path.exists(output_path+"/daily")==False:
     os.mkdir(output_path+"/daily")
-  if option == "daily":
-    os.mkdir(output_path+"/daily")
-  if option == "hourly":
+  if option == "hourly" and os.path.exists(output_path+"/hourly")==False:
     os.mkdir(output_path+"/hourly")
   names = os.listdir(input_path)
   for name in names:
@@ -1183,31 +1186,34 @@ def summarize_gps(input_path,output_path,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigm
           quality_yes = quality_yes + 1
       quality_check = quality_yes/len(file_path)
       if quality_check>0.5:
-        obs = GPS2MobMat(file_path,itrvl=10,accuracylim=51, r=None, w=None,h=None)
-        MobMat = InferMobMat(obs,itrvl=10,r=None)
-        BV_set = BV_select(MobMat,sigma2,tol,d)["BV_set"]
-        imp_table= ImputeGPS(MobMat,BV_set,"GLC",switch)
-        traj = Imp2traj(imp_table,MobMat)
-        full_traj = pd.DataFrame(traj)
-        full_traj.columns = ["status","x0","y0","t0","x1","y1","t1","obs"]
-        dest_path = output_path +"/trajectory/" + name + "_traj.csv"
-        full_traj.to_csv(dest_path,index=False)
-        if option == "daily":
-          summary_stats = GetStats(traj,option)
-          dest_path = output_path + "/daily/" + name + "_daily_gps.csv"
-          summary_stats.to_csv(dest_path,index=False)
-        if option == "hourly":
-          summary_stats = GetStats(traj,option)
-          dest_path = output_path + "/hourly/" + name + "_hourly_gps.csv"
-          summary_stats.to_csv(dest_path,index=False)
-        if option == "both":
-          summary_stats1 = GetStats(traj,"hourly")
-          summary_stats2 = GetStats(traj,"daily")
-          dest_path = output_path + "/hourly/" + name + "_hourly_gps.csv"
-          summary_stats1.to_csv(dest_path,index=False)
-          dest_path = output_path + "/daily/" + name + "_daily_gps.csv"
-          summary_stats2.to_csv(dest_path,index=False)
-        sys.stdout.write( "Done" + '\n')
+        try:
+          obs = GPS2MobMat(file_path,itrvl=10,accuracylim=51, r=None, w=None,h=None)
+          MobMat = InferMobMat(obs,itrvl=10,r=None)
+          BV_set = BV_select(MobMat,sigma2,tol,d)["BV_set"]
+          imp_table= ImputeGPS(MobMat,BV_set,"GLC",switch,linearity)
+          traj = Imp2traj(imp_table,MobMat)
+          full_traj = pd.DataFrame(traj)
+          full_traj.columns = ["status","x0","y0","t0","x1","y1","t1","obs"]
+          dest_path = output_path +"/trajectory/" + name + "_traj.csv"
+          full_traj.to_csv(dest_path,index=False)
+          if option == "daily":
+            summary_stats = GetStats(traj,option)
+            dest_path = output_path + "/daily/" + name + "_daily_gps.csv"
+            summary_stats.to_csv(dest_path,index=False)
+          if option == "hourly":
+            summary_stats = GetStats(traj,option)
+            dest_path = output_path + "/hourly/" + name + "_hourly_gps.csv"
+            summary_stats.to_csv(dest_path,index=False)
+          if option == "both":
+            summary_stats1 = GetStats(traj,"hourly")
+            summary_stats2 = GetStats(traj,"daily")
+            dest_path = output_path + "/hourly/" + name + "_hourly_gps.csv"
+            summary_stats1.to_csv(dest_path,index=False)
+            dest_path = output_path + "/daily/" + name + "_daily_gps.csv"
+            summary_stats2.to_csv(dest_path,index=False)
+          sys.stdout.write( "Done" + '\n')
+        except:
+          print("There is an error running the algorithm on user " + name + ", please check it.")
       else:
         sys.stdout.write( "Data quality is too low to impute" + '\n')
 
@@ -1221,12 +1227,13 @@ a2 = 1
 b1 = 0.3
 b2 = 0.2
 b3 = 0.5
-d = 100
+d = 100  ## number of nv wanted, 4d at most will be selected
 sigma2 = 0.01
 tol = 0.05
-num = 10
-switch = 3
-option = "both"
+num = 10  # number of bvs being used in determing the transition probability, to adjust for inbalanced pause and flights bvs
+switch = 3 # this controls the difficulty to swith the status (flight to pause, pause to flight, larger means more difficult)
+linearity = 2  #if this goes to infinity, it's connecting starting and ending points with straight line
+option = "daily"
 input_path =  "C:/Users/glius/Downloads/data"
 output_path = "C:/Users/glius/Downloads/output"
-summarize_gps(input_path,output_path,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch)
+summarize_gps(input_path,output_path,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch,linearity)
