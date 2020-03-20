@@ -1178,6 +1178,7 @@ def summarize_gps(input_path,output_path,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigm
         if file_list[i][0]==".":
           file_list[i]=file_list[i][2:]
       file_path = [gps_path + "/"+ file_list[j] for j in range(len(file_list))]
+      file_path = np.sort(np.array(file_path))
       ## check if there are enough data for the following algorithm
       quality_yes = 0
       for i in range(len(file_path)):
