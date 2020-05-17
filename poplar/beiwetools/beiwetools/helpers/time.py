@@ -33,7 +33,6 @@ def is_US_holiday(date, date_format = date_only):
 def local_now(to_format = local_time_format):
     '''
     Get the current local time.
-    Mainly 
     
     Args:
         to_format (str):  Time format, expressed using directives from the datetime package.
