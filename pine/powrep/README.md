@@ -20,7 +20,7 @@ Example imports:
 
 ```python
 import powrep
-import powrep.functions as pf
+import powrep.functions as powf
 from powrep.classes import xx
 ```
 
@@ -120,13 +120,13 @@ ___
 ___
 #### Doze
 
-Doze was originally introduced in [Android 6.0](https://developer.android.com/about/versions/marshmallow/android-6.0-changes.  This implementation appears in all subsequent versions of Android, and is sometimes referred to as "Deep Doze."  It is a power-saving state initiated when all of the following conditions have been met for some period of time:
+Doze was originally introduced in [Android 6.0](https://developer.android.com/about/versions/marshmallow/android-6.0-changes).  This original implementation appears in all subsequent versions of Android, and is sometimes referred to as "Deep Doze."  It is a power-saving state initiated when these three conditions have been met for some period of time:
 
 1. The device is unplugged,
 2. The device is stationary,
 3. The screen is off.
 
-A second, less restrictive version of Doze was has been implemented since [Android 7.0](https://developer.android.com/about/versions/nougat/android-7.0-changes).  This state is sometimes called "Light Doze," and it may be initiated when only conditions (1) and (3) are met.  For example, a phone may enter Light Doze if it is carried in a pocket while the user is walking.
+A second, less restrictive version of Doze has been implemented since [Android 7.0](https://developer.android.com/about/versions/nougat/android-7.0-changes).  This state is sometimes called "Light Doze," and it may be initiated when only conditions (1) and (3) are met.  For example, a phone may enter Light Doze if it is carried in a pocket while the user is walking.
 
 
 [ACTION\_DEVICE\_IDLE\_MODE\_CHANGED]()

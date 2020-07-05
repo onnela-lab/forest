@@ -334,9 +334,10 @@ class BeiweProject():
         Args:
             name (str): Save object files to a folder with this name.
             directory (str): Where to save folder of records.
+            track_time (bool): If True, export to a timestamped sub-directory.
             
         Returns:
-            path
+            directory (str): Path to exported records.
         '''   
         directory = os.path.join(directory, name)
         if track_time:

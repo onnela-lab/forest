@@ -1,6 +1,106 @@
 '''
-Headers for CSVs handled by fitrep.
+Headers for selected fitabase CSVs.
 '''
+
+minute_headers = {}
+
+hour_headers = {}
+
+day_headers = {}
+
+other_headers = {}
+
+
+
+
+raw_header = { # Column names for fitabase files handled by fitrep
+'30secondSleepStages': ['LogId', 'Time', 'Level', 'ShortWakes', 'SleepStage'],
+
+'activitylogs': ['Date', 'StartTime', 'Duration', 'Activity', 'ActivityType', 
+                 'LogType', 'Steps', 'Distance', 'ElevationGain', 'Calories',
+                 'SedentaryMinutes', 'LightlyActiveMinutes', 'FairlyActiveMinutes',
+                 'VeryActiveMinutes', 'AverageHeartRate', 'OutOfRangeHeartRateMinutes',
+                 'FatBurnHeartRateMinutes', 'CardioHeartRateMinutes',
+                 'PeakHeartRateMinutes'],
+
+'battery': ['DateTime', 'DeviceName', 'BatteryLevel', 'LastSync'],
+
+'dailyActivity': ['ActivityDate', 'TotalSteps', 'TotalDistance', 'TrackerDistance',
+                  'LoggedActivitiesDistance', 'VeryActiveDistance',
+                  'ModeratelyActiveDistance', 'LightActiveDistance',
+                  'SedentaryActiveDistance', 'VeryActiveMinutes',
+                  'FairlyActiveMinutes', 'LightlyActiveMinutes',
+                  'SedentaryMinutes', 'Calories', 'Floors', 'CaloriesBMR',
+                  'MarginalCalories', 'RestingHeartRate'],
+
+'dailyCalories': ['ActivityDay', 'Calories'],
+
+'dailyIntensities': ['ActivityDay', 'SedentaryMinutes', 'LightlyActiveMinutes',
+                      'FairlyActiveMinutes', 'VeryActiveMinutes',
+                      'SedentaryActiveDistance', 'LightActiveDistance',
+                      'ModeratelyActiveDistance', 'VeryActiveDistance'],
+
+'dailySteps': ['ActivityDay', 'StepTotal'],
+
+'heartrate_15min': ['Time', 'Value'],
+
+'heartrate_1min': ['Time', 'Value'],
+
+'heartrate_seconds': ['Time', 'Value'],
+
+'hourlyCalories': ['ActivityHour', 'Calories'],
+
+'hourlyIntensities': ['ActivityHour', 'TotalIntensity', 'AverageIntensity'],
+
+'hourlySteps': ['ActivityHour', 'StepTotal'],
+
+'minuteCaloriesNarrow': ['ActivityMinute', 'Calories'],
+
+'minuteIntensitiesNarrow': ['ActivityMinute', 'Intensity'],
+
+'minuteMETsNarrow': ['ActivityMinute', 'METs'],
+
+'minuteSleep': ['date', 'value', 'logId'],
+
+'minuteStepsNarrow': ['ActivityMinute', 'Steps'],
+
+'sleepDay': ['SleepDay', 'TotalSleepRecords', 'TotalMinutesAsleep',
+             'TotalTimeInBed'],
+
+'sleepLogInfo': ['LogId', 'StartTime', 'Duration', 'Efficiency', 'IsMainSleep',
+                 'MinutesAfterWakeup', 'MinutesAsleep', 'MinutesToFallAsleep',
+                 'TimeInBed', 'AwakeCount', 'AwakeDuration', 'RestlessCount',
+                 'RestlessDuration'],
+
+'sleepStageLogInfo': ['LogId', 'StartTime', 'Duration', 'Efficiency',
+                      'IsMainSleep', 'SleepDataType', 'MinutesAfterWakeUp',
+                      'MinutesAsleep', 'MinutesToFallAsleep', 'TimeInBed',
+                      'ClassicAsleepCount', 'ClassicAsleepDuration',
+                      'ClassicAwakeCount', 'ClassicAwakeDuration',
+                      'ClassicRestlessCount', 'ClassicRestlessDuration',
+                      'StagesWakeCount', 'StagesWakeDuration',
+                      'StagesWakeThirtyDayAvg', 'StagesLightCount',
+                      'StagesLightDuration', 'StagesLightThirtyDayAvg',
+                      'StagesDeepCount', 'StagesDeepDuration',
+                      'StagesDeepThirtyDayAvg', 'StagesREMCount',
+                      'StagesREMDuration', 'StagesREMThirtyDayAvg'],
+
+'sleepStagesDay': ['SleepDay', 'TotalSleepRecords', 'TotalMinutesAsleep',
+                   'TotalTimeInBed', 'TotalTimeAwake', 'TotalMinutesLight',
+                   'TotalMinutesDeep', 'TotalMinutesREM'],
+ 
+'syncEvents': ['DateTime', 'SyncDateUTC', 'Provider', 'DeviceName'],
+
+'weightLogInfo': ['Date', 'WeightKg', 'WeightPounds', 'Fat', 'BMI',
+                  'IsManualReport', 'LogId']
+}
+
+
+raw_header_other = { # Column names for fitabase files NOT handled by fitrep
+    
+    
+}
+
 
 raw_header = [ # Column names for raw Beiwe GPS files.
   'timestamp', # Millisecond timestamp.

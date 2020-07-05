@@ -7,6 +7,9 @@ import pandas as pd
 
 from collections import OrderedDict
 
+from beiwetools.helpers.process import clean_dataframe, stack_frames
+from beiwetools.helpers.decorators import easy
+
 from .headers import raw_header, keep_header
 
 
@@ -33,7 +36,23 @@ def read_pow(path, os, keep = raw_header,
     return(df)
 
 
+def proc_pow(paths, os):
+    '''
 
+    Args:        
+        paths (list): List of paths to raw Beiwe power state files.
+        os (str): 'Android' or 'iOS'
+        keep (list): Which columns to keep.
+        clean_args (tuple): Args for final clean_dataframe() before return.
+        
+    Returns:
+        df (DataFrame): Pandas dataframe of power state data.    
+    '''
+
+    # Read and stack the files.
+
+        
+    #
 
 
 
