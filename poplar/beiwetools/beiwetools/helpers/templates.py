@@ -4,13 +4,6 @@ Templates for processing tasks.
 import logging
 
 
-
-from collections import OrderedDict
-from .classes import Timer
-from .trackers import trackers
-from .functions import write_json
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -71,11 +64,15 @@ class ProcessTemplate():
         self.process_records = process_records
         return(self)
         
-    def do(self, user_ids, process_kwargs):
+    def do(self, user_ids, process_kwargs, id_lookup = {}):
         '''
         Args:
             user_ids (list): List of user IDs with data to process.
             process_kwargs (dict): Dictionary of keyword arguments.
+            id_lookup (dict): 
+                Use this dictionary to specify other identifiers.
+                Keys are user ids (str).
+                Values are alternate identifiers (str).
             
         Returns:
             None
@@ -89,7 +86,9 @@ class ProcessTemplate():
         for i in range(n):
             # set up user parameters
             logger.info('%s: Setting up for user %s of %s...' % (self.name, i, n))           
-            user_kwargs = {'user_id': user_ids[i]}
+            uid = user_ids[i]
+            if uid in id_lookup: uid = id_lookup[uid]
+            user_kwargs = {'user_id': uid}
             user_kwargs.update(process_kwargs)
             for f in self.setup_user:
                 user_kwargs.update(f.easy(user_kwargs))
@@ -108,12 +107,10 @@ class ProcessTemplate():
         logger.info('%s: Finished.' %self.name)                                   
 
 
-
 def setup_output(proc_dir, process_name, stream_name):
     '''
     Create files and folders for output.
     
-
     Args:
         proc_dir (str): Path to directory for processed data output.
         process_name (str): Name of the process, e.g. 'summary', 'calibration', etc.

@@ -3,6 +3,7 @@
 import os
 import logging
 from collections import OrderedDict
+from beiwetools.helpers.time import local_now
 from .functions import parse_filename
 
 
@@ -53,7 +54,7 @@ class FitabaseRegistry():
             file_types.append(ft)
             start.append(p['local_start'])
             end.  append(p['local_end'])
-            if not fid in path:
+            if not fid in lookup:
                 lookup[fid] = OrderedDict()
             if not ft in lookup[fid]:
                 lookup[fid][ft] = f
@@ -91,7 +92,7 @@ class FitabaseRegistry():
         '''   
         directory = os.path.join(directory, name)
         if track_time:
-            temp = 'project export from ' + local_now()
+            temp = 'Fitabase registry export from ' + local_now()
             directory = os.path.join(directory, temp.replace(' ', '_'))
         # export(self, directory)
         # return(directory)

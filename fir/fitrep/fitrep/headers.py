@@ -2,18 +2,107 @@
 Headers for selected fitabase CSVs.
 '''
 
-minute_headers = {}
+summary_header = [ # Column names for summary output files
+    'fitabase_id', # Fitabase identifier
+    'first_observation', # datetime of first observation
+    'last_observation',  # datetime of last observation
+    'n_observations', # Number of rows (observations)
+    'n_offset' # Number of observations synced with 30-second offset
+    ]
 
-hour_headers = {}
-
-day_headers = {}
-
-other_headers = {}
-
-
-
+datetime = [ # Names for Fitabase columns that contain datetimes
+    'Time', 'ActivityMinute', 'date']
 
 raw_header = { # Column names for fitabase files handled by fitrep
+# Documentation is from:
+# https://www.fitabase.com/media/1748/fitabasedatadictionary.pdf
+'heartrate_1min': [
+    '''
+    Heart rate values recorded by the Fitbit device. 
+    Note 1: A variable sampling technique controls the frequency at which 
+    heart rate is recorded.Devices will sample heart rate every 5 to 
+    15 seconds on average.
+    Note 2: For all 15min, 5min, and 1min data sets Fitabase uses the seconds 
+    data to generate a mean value and reports the floor of that value for 
+    the specified interval. For example, if the calculated mean for the 
+    interval is 156.79, we report 156.
+    '''
+    'Time', # Date and hour value in mm/dd/yyyy hh:mm:ss format.
+    'Value' # Mean heart rate value.
+    ],
+'minuteCaloriesNarrow': [
+    '''
+    Estimated energy expenditure.
+    Note​: Fitbit uses the ​gender, age, height, and weight ​data entered into 
+    the user profile to calculate basal metabolic rate (BMR). The estimated 
+    energy expenditure that Fitbit provides takes into account the user’s BMR, 
+    the activity recorded by the device, and any manually logged activities.
+    '''
+    'ActivityMinute', # Date and time value in mm/dd/yyyy hh:mm:ss format.
+    'Calories'        # Total number of estimated calories burned.
+    ],
+'minuteIntensitiesNarrow': [
+    '''
+    Time spent in one of four intensity categories.
+    Note​: The cut points for intensity classifications and METs are not 
+    determined by Fitabase, but by proprietary algorithms from Fitbit.
+    '''
+    'ActivityMinute', # Date and time value in mm/dd/yyyy hh:mm:ss format.
+    'Intensity'       # Intensity value.
+                      # 0 = Sedentary
+                      # 1 = Light
+                      # 2 = Moderate
+                      # 3 = Very Active
+    ],
+'minuteMETsNarrow': [
+    'ActivityMinute', # Date and time value in mm/dd/yyyy hh:mm:ss format.
+    'METs'            # MET value for the given minute.
+                      # Important:​ All MET values exported from Fitabase 
+                      # are multiplied by 10. Please divide by 10 to get 
+                      # accurate MET values
+    ],
+'minuteSleep': [
+    '''
+    Data from each tracked sleep event.
+    Notes​: Sleep durations are either specified by Fitbit wearer (interacting 
+    with the device or Fitbit.com profile), or are automatically detected on 
+    supported models (Charge, Alta, Alta HRCharge HR, Flex, Blaze, Charge 2, 
+    Flex 2, Ionic, and Surge). Sleep Stages are supported bythe Alta HR, 
+    Charge 2, Blaze, and Ionic. All other devices support the ​Classic ​sleep algorithm.
+    '''
+    'date', # Date and minute of that day within a defined sleep period 
+            # in ​mm/dd/yy hh:mm:ss​ format
+            # Note​: sleep minute data is commonly exported with :30 sec. 
+            # In this case, the “floor” of the time value can be used to 
+            # convert to whole minutes.
+    'value', # Value indicating the sleep state.
+             # 1 = asleep, 2 = restless, 3 = awake
+    'logId'  # The unique log id in Fitbit’s system for the sleep record.
+    ],
+'minuteStepsNarrow': [
+    '''
+    Steps tracked by the activity tracker or entered by participant 
+    for the given period.
+    '''
+    'ActivityMinute', # Date and time value in mm/dd/yyyy hh:mm:ss format.
+    'Steps'           # Total number of steps taken.
+    ],
+'syncEvents': [
+    '''
+    A record of device sync events as reported by Fitbit.
+    Sync events are recorded by Fitbit when the device syncs with the 
+    Fitbit service through either the Fitbit mobile app or the Fitbit 
+    Connect application.
+    '''
+    'DateTime',    # Date and time value in mm/dd/yyyy hh:mm:ssAM/PM format.
+    'SyncDateUTC', # Date and time value in mm/dd/yyyy hh:mm:ssAM/PM format.
+    'Provider',  # Name of the sync service.
+    'DeviceName' # Name of the device model.
+    ],
+}
+
+
+raw_header_other = { # Column names for fitabase files NOT handled by fitrep
 '30secondSleepStages': ['LogId', 'Time', 'Level', 'ShortWakes', 'SleepStage'],
 
 'activitylogs': ['Date', 'StartTime', 'Duration', 'Activity', 'ActivityType', 
@@ -44,8 +133,6 @@ raw_header = { # Column names for fitabase files handled by fitrep
 
 'heartrate_15min': ['Time', 'Value'],
 
-'heartrate_1min': ['Time', 'Value'],
-
 'heartrate_seconds': ['Time', 'Value'],
 
 'hourlyCalories': ['ActivityHour', 'Calories'],
@@ -53,16 +140,6 @@ raw_header = { # Column names for fitabase files handled by fitrep
 'hourlyIntensities': ['ActivityHour', 'TotalIntensity', 'AverageIntensity'],
 
 'hourlySteps': ['ActivityHour', 'StepTotal'],
-
-'minuteCaloriesNarrow': ['ActivityMinute', 'Calories'],
-
-'minuteIntensitiesNarrow': ['ActivityMinute', 'Intensity'],
-
-'minuteMETsNarrow': ['ActivityMinute', 'METs'],
-
-'minuteSleep': ['date', 'value', 'logId'],
-
-'minuteStepsNarrow': ['ActivityMinute', 'Steps'],
 
 'sleepDay': ['SleepDay', 'TotalSleepRecords', 'TotalMinutesAsleep',
              'TotalTimeInBed'],
@@ -88,63 +165,8 @@ raw_header = { # Column names for fitabase files handled by fitrep
 'sleepStagesDay': ['SleepDay', 'TotalSleepRecords', 'TotalMinutesAsleep',
                    'TotalTimeInBed', 'TotalTimeAwake', 'TotalMinutesLight',
                    'TotalMinutesDeep', 'TotalMinutesREM'],
- 
-'syncEvents': ['DateTime', 'SyncDateUTC', 'Provider', 'DeviceName'],
 
 'weightLogInfo': ['Date', 'WeightKg', 'WeightPounds', 'Fat', 'BMI',
                   'IsManualReport', 'LogId']
 }
 
-
-raw_header_other = { # Column names for fitabase files NOT handled by fitrep
-    
-    
-}
-
-
-raw_header = [ # Column names for raw Beiwe GPS files.
-  'timestamp', # Millisecond timestamp.
-  'UTC time', # Human-readable UTC date-time formatted as '%Y-%m-%dT%H:%M:%S.%f'.
-  'latitude', 'longitude', 
-  'altitude', # Is this relative to mean sea level or to WGS84 reference ellipsoid?
-  'accuracy'  # Probably not standardized across different manufacturers and models.
-  ]
-
-raw_keep_header = [ # Same notes as above.
-  'timestamp', 
-  'accuracy', 
-  'latitude', 'longitude', 
-  'altitude'
-  ]
-
-file_summary = [
-  'user_id', # Beiwe User ID.
-  'n_files', # Number of raw GPS files for this user.
-  'first_file', 'last_file', # Basenames of first and last hourly files.
-  'approximate_frequency_Hz' # An estimate of sampling frequency when GPS is active.
-  ]
-
-process_summary = [
-  'local_start_time', 'local_finish_time', # Local summary start/end times.
-  'total_time_minutes' # Time taken to summarize this user's GPS data.
-  ]
-
-location_ranges = [ # min/max for each GPS coordinate
-  'latitude_min',  'latitude_max',
-  'longitude_min', 'longitude_max',
-  'altitude_min',  'altitude_max'
-  ]
-
-accuracy_summary = [ # accuracy summary statistics
-  'accuracy_min', 'accuracy_max',
-  'accuracy_mean', 'accuracy_std'
-  ]
-
-timezone_summary = [
-  'n_timezones', # Number of distinct timezones.
-  'n_timezone_transitions' # Number of timezone transitions.
-  ]  
-
-# Column names for gpsrep.summary output:
-summary_records_header = file_summary + process_summary + location_ranges + \
-                         accuracy_summary + timezone_summary

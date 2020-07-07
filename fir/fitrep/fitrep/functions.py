@@ -6,14 +6,9 @@ import pandas as pd
 from collections import OrderedDict
 from beiwetools.helpers.time import date_only, date_time_format, reformat_datetime
 from beiwetools.helpers.decorators import easy
-#from beiwetools.helpers.templates import template
 
 
 logger = logging.getLogger(__name__)
-
-
-# Fitabase file headers
-from headers import raw_
 
 
 # Fitabase time formats
@@ -52,47 +47,29 @@ def parse_filename(filename):
     return(fitabase_id, file_type, local_start, local_end)
 
 
-@easy(('summary', 'file_types'))
-def summarize_directory(fitabase_dir):
+def summarize_minute_file(file_path, check_offset = True):
     '''
-    Get available identifiers and filetypes from a directory of raw Fitabase files.
+    Get some info from a raw file of minute-by-minute Fitabase data.
 
     Args:
-        fitabase_dir (str):  Directory containing raw Fitabase data.
-
+        file_path (str): Path to raw Fitabase data file.
+        check_offset (bool): 
+            If true, count how many observations aren't synced to UTC minutes.
+        
     Returns:
-        summary(OrderedDict):
-            Keys are sorted fitabase identifiers.
-            Values are OrderedDicts.
-            summary[fitabase_id]['file_type'] is a list of available file types.
-            summary[fitabase_id]['file_path'] is a corresponding list of paths.            
-        file_types(list):
-            Sorted list of all file types found among all fitabase identifiers.
+        summary (list): List of summary items.
     '''
-    file_names = sorted(os.listdir(fitabase_dir))
-    summary = OrderedDict()
-    file_types = []
-    start = []
-    end = []
-    for f in file_names:
-        p = parse_filename.to_dict(f)
-        fid = p['fitabase_id']
-        ft  = p['file_type']
-        fp  = os.path.join(fitabase_dir, f)
-        file_types.append(ft)
-        start.append(p['local_start'])
-        end.  append(p['local_end'])
-        if not fid in summary:
-            summary[fid] = OrderedDict({
-                                        'file_types': [ft], 
-                                        'file_paths': [fp]
-                                        })
-        else:
-            summary[fid]['file_types'].append(ft)
-            summary[fid]['file_paths'].append(fp)
-    if len(set(start)) > 1:  logger.warning('Multiple start dates.')
-    if len(set(end))   > 1:  logger.warning('Multiple end dates.')
-    file_types = sorted(list(set(file_types)))
-    return(summary, file_types)
+    data = pd.read_csv(file_path)
 
 
+
+    
+    return(summary)
+
+
+def summarize_sync_file(file_path):
+    '''
+    
+    '''
+    pass    
+    
