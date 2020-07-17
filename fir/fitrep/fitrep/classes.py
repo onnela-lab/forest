@@ -15,11 +15,11 @@ class FitabaseRegistry():
     Represent available data in a directory of Fitabase data sets.
     
     Attributes:
-        directory (str): Path to raw Fitabase files.
+        directory (str): Path to folder of raw Fitabase files.
         ids (list): Sorted list of Fitabase ids with available data.
         types (list): Sorted list of available file types.
         lookup (OrderedDict): Keys are Fitabase ids, values are OrderedDicts.        
-            path[<fitabase_id>][<file_type>] is the name of the corresponding file.    
+            lookup[<fitabase_id>][<file_type>] is the name of the corresponding file.    
         flagged_files (list): List of file names with duplicate file types.
             These file names are not included in the registry.
     '''

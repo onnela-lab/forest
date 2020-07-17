@@ -3,15 +3,38 @@ Headers for selected fitabase CSVs.
 '''
 
 summary_header = [ # Column names for summary output files
-    'fitabase_id', # Fitabase identifier
-    'first_observation', # datetime of first observation
-    'last_observation',  # datetime of last observation
-    'n_observations', # Number of rows (observations)
-    'n_offset' # Number of observations synced with 30-second offset
-    ]
+'fitabase_id',       # Fitabase identifier.
+'first_observation', # Datetime of first observation.
+'last_observation',  # Datetime of last observation.
+'n_observations',    # Number of rows (observations).
 
-datetime = [ # Names for Fitabase columns that contain datetimes
-    'Time', 'ActivityMinute', 'date']
+'n_offsets'
+
+
+]
+
+
+extra_summary_header = { # Extra column names for summary output files
+'minuteSleep': [
+    'n_offsets' # Number of observations synced with 30-second offset.
+    ],
+'syncEvents': [
+    'provider', # Name of sync service.
+    'device'    # Name of device model.  
+    ]
+}
+
+
+datetime_header = { # Names for Fitabase columns that contain local datetimes
+'heartrate_1min': 'Time',
+'minuteCaloriesNarrow': 'ActivityMinute',
+'minuteIntensitiesNarrow': 'ActivityMinute',
+'minuteMETsNarrow': 'ActivityMinute',
+'minuteSleep': 'date',
+'minuteStepsNarrow': 'ActivityMinute',
+'syncEvents': 'DateTime'
+}
+
 
 raw_header = { # Column names for fitabase files handled by fitrep
 # Documentation is from:

@@ -3,9 +3,9 @@
 import os
 import logging
 import pandas as pd
-from collections import OrderedDict
 from beiwetools.helpers.time import date_only, date_time_format, reformat_datetime
 from beiwetools.helpers.decorators import easy
+from .headers import datetime_header
 
 
 logger = logging.getLogger(__name__)
@@ -47,29 +47,66 @@ def parse_filename(filename):
     return(fitabase_id, file_type, local_start, local_end)
 
 
-def summarize_minute_file(file_path, check_offset = True):
+def summarize_file(file_path, file_type):
     '''
     Get some info from a raw file of minute-by-minute Fitabase data.
 
     Args:
         file_path (str): Path to raw Fitabase data file.
-        check_offset (bool): 
-            If true, count how many observations aren't synced to UTC minutes.
+        file_type (str): A key from headers.raw_header.
         
     Returns:
         summary (list): List of summary items.
-    '''
-    data = pd.read_csv(file_path)
-
-
-
+    '''    
+    data = pd.read_csv(file_path)    
+    datetimes = list(data[datetime_header[file_type]])
+    first_observation = datetimes[0]
+    last_observation = datetimes[-1]
+    n_observations = len(datetimes)
     
+    #if file_type == 'minuteSleep':
+    #    # get number of offsets        
+    #    pass
+
+    n_offsets = len([d for d in datetimes if ':30 ' in d])
+    summary = [first_observation, last_observation, n_observations, n_offsets]    
+
+
+    if file_type == 'syncEvents':
+        # get service provider
+        p = list(set(data['Provider'])) # should be one unique provider
+        if len(p) == 1:
+            provider = p[0]
+        else:
+            provider == 'Unknown'
+            file_name = os.path.basename(file_path)
+            logger.warning('Unknown service provider, %s' % file_name)
+        # get device
+        d = list(set(data['DeviceName'])) # should be one unique device
+        if len(d) == 1:
+            device = d[0]
+        else:
+            device == 'Unknown'
+            file_name = os.path.basename(file_path)
+            logger.warning('Unknown device, %s' % file_name)
+        summary += [provider, device]                           
+                               
     return(summary)
 
 
-def summarize_sync_file(file_path):
+def to_Beiwe_datetime(fitabase_datetime, utc_offset = 0):
     '''
+    Convert a local fitabase datetime to a Beiwe UTC datetime.
+
+    Args:
+        
+    Returns:
+
     
     '''
-    pass    
     
+    
+    pass
+
+
+
