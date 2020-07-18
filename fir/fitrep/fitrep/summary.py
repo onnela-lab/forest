@@ -3,6 +3,7 @@
 import os
 import logging
 from beiwetools.helpers.time import local_now
+from beiwetools.helpers.log import log_to_csv
 from beiwetools.helpers.functions import setup_directories, setup_csv, write_to_csv
 from beiwetools.helpers.decorators import easy
 from beiwetools.helpers.templates import ProcessTemplate
@@ -35,45 +36,42 @@ def setup_output(proc_dir, file_types, track_time = True):
     data_dir = os.path.join(out_dir, 'data')
     log_dir = os.path.join(out_dir, 'log')   
     setup_directories([out_dir, data_dir, log_dir])
+    # set up logging output
+    log_to_csv(log_dir)
+    # make dictionary of paths
     path_dict = {}
     for ft in file_types:
-        header = summary_header
         if ft in extra_summary_header:
-            header += extra_summary_header[ft]
+            header = summary_header + extra_summary_header[ft]
+        else:
+            header = summary_header
         path_dict[ft] = setup_csv(ft, data_dir, header)
     logger.info('Created output directory and initialized files.')
     status = 'setup_output_finished'
     return(path_dict, status)        
 
 
-@easy(('status'))
-def setup_logging(path_dict):
-    
-    logger.info('Set up logging.')
-    status = 'setup_logging_finished'
-    return(path_dict, status)        
-
-
 @easy(('summary_dict', 'status'))
-def summarize_user(fitabase_id, file_types, registry):
+def summarize_user(user_id, file_types, registry):
     summary_dict = {}
     for ft in file_types:
         if not ft in raw_header:
             logger.warning('The fitrep package does not handle %s files.' % ft)
         else:
-            fp = registry.lookup[fitabase_id][ft] 
-            summary_dict[ft] = summarize_file(fp, ft)
-    logger.info('Summarized data for user %s.' % fitabase_id)
-    status = '%s_summary_finished' % fitabase_id
+            fn = registry.lookup[user_id][ft] 
+            fp = os.path.join(registry.directory, fn)
+            summary_dict[ft] = [user_id] + summarize_file(fp, ft)
+    logger.info('Summarized data for user %s.' % user_id)
+    status = '%s_summary_finished' % user_id
     return(summary_dict, status)
 
 
 @easy(('status'))
-def write_user_records(fitabase_id, summary_dict, path_dict):
+def write_user_records(user_id, summary_dict, path_dict):
     for k in summary_dict:
         write_to_csv(path_dict[k], summary_dict[k])        
-    logger.info('Updated records for user %s.' % fitabase_id)
-    status = '%_records_finished' % fitabase_id
+    logger.info('Updated records for user %s.' % user_id)
+    status = '%s_records_finished' % user_id
     return(status)
 
     
@@ -84,8 +82,8 @@ def write_user_records(fitabase_id, summary_dict, path_dict):
 #       List of supported Fitabase file types (str) to summarize.
 #   'registry' (fitrep.classes.FitabaseRegistry): 
 #       Registry for a folder of Fitabase files.
-FitrepSummary = ProcessTemplate.create('summary',
-                                       [setup_output, setup_logging], [], 
+FitrepSummary = ProcessTemplate.create(__name__,
+                                       [setup_output], [], 
                                        [summarize_user], 
                                        [write_user_records], [])
 

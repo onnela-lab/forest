@@ -60,17 +60,24 @@ def summarize_file(file_path, file_type):
     '''    
     data = pd.read_csv(file_path)    
     datetimes = list(data[datetime_header[file_type]])
-    first_observation = datetimes[0]
-    last_observation = datetimes[-1]
-    n_observations = len(datetimes)
-    
+    if len(datetimes) > 0:
+        first_observation = datetimes[0]
+        last_observation = datetimes[-1]
+        n_observations = len(datetimes)
+    else: 
+        first_observation, last_observation, n_observations = None, None, 0
+        
     #if file_type == 'minuteSleep':
     #    # get number of offsets        
     #    pass
+    if len(datetimes) > 0:
+        n_offsets = len([d for d in datetimes if ':30 ' in d])
+        p_offsets = n_offsets / n_observations
+    else: 
+        n_offsets, p_offsets = None, None
 
-    n_offsets = len([d for d in datetimes if ':30 ' in d])
-    summary = [first_observation, last_observation, n_observations, n_offsets]    
-
+    summary = [first_observation, last_observation, n_observations, 
+               n_offsets, p_offsets]    
 
     if file_type == 'syncEvents':
         # get service provider
@@ -78,17 +85,17 @@ def summarize_file(file_path, file_type):
         if len(p) == 1:
             provider = p[0]
         else:
-            provider == 'Unknown'
+            provider = 'Unknown'
             file_name = os.path.basename(file_path)
-            logger.warning('Unknown service provider, %s' % file_name)
+            logger.warning('Unknown service provider: %s' % file_name)
         # get device
         d = list(set(data['DeviceName'])) # should be one unique device
         if len(d) == 1:
             device = d[0]
         else:
-            device == 'Unknown'
+            device = 'Unknown'
             file_name = os.path.basename(file_path)
-            logger.warning('Unknown device, %s' % file_name)
+            logger.warning('Unknown device: %s' % file_name)
         summary += [provider, device]                           
                                
     return(summary)

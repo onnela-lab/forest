@@ -8,7 +8,8 @@ summary_header = [ # Column names for summary output files
 'last_observation',  # Datetime of last observation.
 'n_observations',    # Number of rows (observations).
 
-'n_offsets'
+'n_offsets',
+'p_offsets'
 
 
 ]
@@ -16,7 +17,8 @@ summary_header = [ # Column names for summary output files
 
 extra_summary_header = { # Extra column names for summary output files
 'minuteSleep': [
-    'n_offsets' # Number of observations synced with 30-second offset.
+    'n_offsets', # Number of observations synced with 30-second offset.
+    'p_offsets'  # Proportion of observations synced with 30-second offset.
     ],
 'syncEvents': [
     'provider', # Name of sync service.

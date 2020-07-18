@@ -4,6 +4,7 @@ import os
 import logging
 from collections import OrderedDict
 from beiwetools.helpers.time import local_now
+from beiwetools.helpers.functions import check_same
 from .functions import parse_filename
 
 
@@ -50,6 +51,7 @@ class FitabaseRegistry():
         for f in file_names:
             p = parse_filename.to_dict(f)
             fid = p['fitabase_id']
+            fitabase_ids.append(fid)
             ft  = p['file_type']
             file_types.append(ft)
             start.append(p['local_start'])
@@ -97,4 +99,6 @@ class FitabaseRegistry():
         # export(self, directory)
         # return(directory)
         pass
-        
+
+    def __eq__(self, other):
+        return(check_same(self, other, to_check = 'all'))
