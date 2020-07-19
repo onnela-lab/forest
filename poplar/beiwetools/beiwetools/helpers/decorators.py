@@ -2,13 +2,13 @@
 
 These decorators add some extra attributes and methods to a function.
 These are intended to simplify defining functions that may be used in 
-sequences of procedures, such as post-processing tasks.  
+sequences of procedures, such as data processing tasks.  
 
 The main decorator is @easy.  This decorator adds some extra features,
 and provides a method that takes packed kwargs while returning labelled output:
             
     Example:
-        >>> f_returns = ('x', 'y')
+        >>> f_returns = ['x', 'y']
         >>> @easy(f_returns)
         >>> def f(a, b):
         >>>     x = a+1
@@ -45,6 +45,35 @@ from collections import OrderedDict
 logger = logging.getLogger(__name__)
 
 
+def coerce_to_list(x):
+    '''
+    If x is a list, returns x.
+    If x is a tuple, returns list(x).
+    If x is anything else, returns [x].
+    '''
+    if type(x) is list: return(x)
+    elif type(x) is tuple: return(list(x))
+    else: return([x])    
+
+
+def dummy_dict(k, v, ordered = True):    
+    '''
+    Zips k, v into a dictionary.
+    Returns an empty dictionary if k is an empty list.
+    Coerces v into a list.
+    '''
+    if ordered: d = OrderedDict({})
+    else: d = {}
+    v = coerce_to_list(v)
+    if type(k) is list:
+        if len(k) > 0: 
+            if ordered: d = OrderedDict(zip(k, v))
+            else: d = dict(zip(k, v))                                       
+    else:
+        logger.warning('Keys must be given as a list.')                                       
+    return(d)    
+
+
 def returns_to_dict(f, returns, ordered = True):
     '''
     Get a function that bundles f's output as a dictionary.
@@ -58,6 +87,7 @@ def returns_to_dict(f, returns, ordered = True):
         ff (func): 
             Takes f's input as a dictionary.
             Returns f's output as a dictionary.
+            If returns is an empty list, returns an empty dictionary.
         
     Example:
         >>> def f(a, b): return(a+1, 2*b)
@@ -68,10 +98,8 @@ def returns_to_dict(f, returns, ordered = True):
         >>> ff({'a':1, 'b':2})
         {'x': 2, 'y': 4}
     '''
-    if ordered:
-        ff = lambda *args, **kwargs : OrderedDict(zip(returns, f(*args, **kwargs)))
-    else:
-        ff = lambda *args, **kwargs : dict(zip(returns, f(*args, **kwargs)))
+    ff = lambda *args, **kwargs : dummy_dict(returns, f(*args, **kwargs), 
+                                             ordered = ordered)
     return(ff)    
 
 
@@ -80,7 +108,10 @@ def returns(r):
     Attach r, a list of names for f's output.
     '''
     def wrapper(f):
-        f.returns = r
+        if type(r) is list:
+            f.returns = r
+        else:
+            logger.warning('Output must be given as a list.')
         return(f)
     return(wrapper)        
 

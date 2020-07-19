@@ -76,13 +76,13 @@ def summarize_file(file_path, file_type):
             n_offsets, p_offsets = None, None
         summary += [n_offsets, p_offsets]    
     if file_type == 'syncEvents':
+        file_name = os.path.basename(file_path)
         # get service provider
         p = list(set(data['Provider'])) # should be one unique provider
         if len(p) == 1:
             provider = p[0]
         else:
             provider = 'Unknown'
-            file_name = os.path.basename(file_path)
             logger.warning('Unknown service provider: %s' % file_name)
         # get device
         d = list(set(data['DeviceName'])) # should be one unique device
@@ -92,7 +92,6 @@ def summarize_file(file_path, file_type):
             device = d[0]
         else:
             device = 'Unknown'
-            file_name = os.path.basename(file_path)
             logger.warning('Unknown device: %s' % file_name)
         summary += [provider, device]                                                          
     return(summary)
@@ -113,4 +112,10 @@ def to_Beiwe_datetime(fitabase_datetime, utc_offset = 0):
     pass
 
 
+def process_sync(file_path):
+    '''
+    
+    '''
 
+    #file_path = 
+    pass
