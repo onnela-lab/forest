@@ -137,6 +137,20 @@ ___
 #### `functions` <a name="functions"/>
 This module provides functions for xx.
 
+___
+#### `classes` <a name="classes"/>
+
+___
+#### `summary` <a name="summary"/>
+
+___
+#### `process` <a name="process"/>
+
+___
+#### `sync` <a name="sync"/>
+
+___
+#### `plot` <a name="plot"/>
 
 
 ___

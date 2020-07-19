@@ -111,46 +111,6 @@ class ProcessTemplate():
         logger.info('%s: Finished.' %self.name)                                   
 
 
-def setup_output(proc_dir, process_name, stream_name):
-    '''
-    Create files and folders for output.
-    
-    Args:
-        proc_dir (str): Path to directory for processed data output.
-        process_name (str): Name of the process, e.g. 'summary', 'calibration', etc.
-        stream_name (str): Name of a Beiwe data stream, e.g. 'accelerometer', 'gps', etc.
-        
-    Returns:
-        output_dict (dict): Dictionary of paths to files and directories for summary output.
-    '''
-    # set up directories
-    
-    
-    # stream_dir = os.path.join(proc_dir, stream_name)
-    
-
-
-    # acc_dir = os.path.join(proc_dir, 'accelerometer')
-    
-    # summary_dir = os.path.join(acc_dir, 'summary')
-    # dt_dir = os.path.join(summary_dir, local_now().replace(' ', '_'))
-    # records_dir = os.path.join(dt_dir, 'records')
-    # out_dir = os.path.join(dt_dir, 'users')
-    # setup_directories([acc_dir, summary_dir, dt_dir, records_dir, out_dir])
-    # # set up files    
-    # summary_records = setup_csv('summary_records', records_dir, 
-    #                            header = summary_records_header)        
-    # # return paths
-    # output_dict = dict(zip(['records_dir', 'out_dir', 'summary_records'], 
-    #                      [records_dir, out_dir, summary_records]))
-    # return(output_dict)
-    pass
-
-
-def setup_trackers():
-	pass
-
-
 
 
 

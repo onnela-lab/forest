@@ -119,3 +119,16 @@ def process_sync(file_path):
 
     #file_path = 
     pass
+
+
+def process_data(file_path, offset_dict):
+    pass
+
+
+def process_sleep(file_path, offset_dict):
+    pass    
+    
+    
+    
+    
+    
