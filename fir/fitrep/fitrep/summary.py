@@ -14,7 +14,7 @@ from .functions import summarize_file
 logger = logging.getLogger(__name__)
 
 
-@easy(('path_dict', 'status'))
+@easy(['path_dict', 'status'])
 def setup_output(proc_dir, file_types, track_time = True):
     '''
     Set up summary output.
@@ -51,7 +51,7 @@ def setup_output(proc_dir, file_types, track_time = True):
     return(path_dict, status)        
 
 
-@easy(('summary_dict', 'status'))
+@easy(['summary_dict', 'status'])
 def summarize_user(user_id, file_types, registry):
     summary_dict = {}
     for ft in file_types:
@@ -66,7 +66,7 @@ def summarize_user(user_id, file_types, registry):
     return(summary_dict, status)
 
 
-@easy(('status'))
+@easy(['status'])
 def write_user_records(user_id, summary_dict, path_dict):
     for k in summary_dict:
         write_to_csv(path_dict[k], summary_dict[k])        

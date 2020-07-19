@@ -18,7 +18,7 @@ fitabase_time_format = ''
 fitabase_datetime_format = ''
 
 
-@easy(('fitabase_id', 'file_type', 'local_start', 'local_end'))
+@easy(['fitabase_id', 'file_type', 'local_start', 'local_end'])
 def parse_filename(filename):
     '''
     Get info from a fitabase file name.
