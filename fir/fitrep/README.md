@@ -142,16 +142,15 @@ This module provides functions for xx.
 ___
 ## 5. Examples <a name="examples"/>
 
-
-`fitabase_id`: A unique alphanumeric identifier on the Fitabase platform.
-
-`fitabase_dir`: The directory containing raw fitabase CSV files.
-
+The script `fitrep.examples.fitrep_example.py` provides a sample workflow for using this package.
 
 ___
 ## 6. Cautions & Notes <a name="cautions"/>
 
+* Fitabase records the originating device model at sync time.  These logs are found in the `DeviceName` column of `syncEvents` files.  Prior to January 2018, device models may not have been logged, and this column will be incomplete.
 
-* This package was developed with a limited sample of Fitabase data collected from Fitbit Zip and Charge 2 devices during the time period xxx - xxx
+* Fitabase data sets may include mingled information from both a Fitbit device and the Fitbit smartphone app.  Synchronization with an app instance is logged in the `syncEvents` file with `MobileTrack` as the `DeviceName`.  **This package does not provide tools for identifying whether a particular observation originated from a device or an app instance.**
+
+* This package was developed with a limited sample of Fitabase data collected from fifty-three Fitbit Charge 2 devices between April 2017 and March 2020.
 
 * This package does not handle Fitabase data obtained from multiple downloads, e.g. that cover different or overlapping follow-up windows.  For such situations, it may be best to download a new data set that includes the entire time period of interest.  Alternatively, CSVs for corresponding variables can be merged, with care taken to drop duplicate records, before using `fitrep`.

@@ -38,7 +38,7 @@ def log_to_csv(log_dir, level = logging.DEBUG,
                log_header = basic_log_header):
     '''
     Configure the logging system to write messages to a csv.
-    Overwrites previous logging configuration
+    Overwrites any existing logging handlers and configurations.
     
     Args:
         log_dir (str): Path to a directory where log messages should be written.

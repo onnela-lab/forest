@@ -66,19 +66,15 @@ def summarize_file(file_path, file_type):
         n_observations = len(datetimes)
     else: 
         first_observation, last_observation, n_observations = None, None, 0
-        
-    #if file_type == 'minuteSleep':
-    #    # get number of offsets        
-    #    pass
-    if len(datetimes) > 0:
-        n_offsets = len([d for d in datetimes if ':30 ' in d])
-        p_offsets = n_offsets / n_observations
-    else: 
-        n_offsets, p_offsets = None, None
-
-    summary = [first_observation, last_observation, n_observations, 
-               n_offsets, p_offsets]    
-
+    summary = [first_observation, last_observation, n_observations]
+    if file_type == 'minuteSleep':
+        # get number of offsets        
+        if len(datetimes) > 0:
+            n_offsets = len([d for d in datetimes if ':30 ' in d])
+            p_offsets = n_offsets / n_observations
+        else: 
+            n_offsets, p_offsets = None, None
+        summary += [n_offsets, p_offsets]    
     if file_type == 'syncEvents':
         # get service provider
         p = list(set(data['Provider'])) # should be one unique provider
@@ -90,14 +86,15 @@ def summarize_file(file_path, file_type):
             logger.warning('Unknown service provider: %s' % file_name)
         # get device
         d = list(set(data['DeviceName'])) # should be one unique device
+        if 'MobileTrack' in d:
+            logger.warning('Contains smartphone app data: %s' % file_name)            
         if len(d) == 1:
             device = d[0]
         else:
             device = 'Unknown'
             file_name = os.path.basename(file_path)
             logger.warning('Unknown device: %s' % file_name)
-        summary += [provider, device]                           
-                               
+        summary += [provider, device]                                                          
     return(summary)
 
 
