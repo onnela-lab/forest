@@ -6,6 +6,7 @@ from beiwetools.helpers.time import local_now
 from beiwetools.helpers.log import log_to_csv
 from beiwetools.helpers.functions import setup_directories, setup_csv, write_to_csv
 from beiwetools.helpers.decorators import easy
+from beiwetools.helpers.trackers import SamplingSummary
 from beiwetools.helpers.templates import ProcessTemplate
 
 
@@ -19,7 +20,7 @@ from .functions import summarize_file
 logger = logging.getLogger(__name__)
 
 
-@easy(['records_path', 'offsets_dir'])
+@easy(['records_path', 'intersync_tracker_s', 'offsets_dir'])
 def setup_output(proc_dir, track_time):
     '''
     Set up summary output.
@@ -44,17 +45,29 @@ def setup_output(proc_dir, track_time):
     log_to_csv(log_dir)
     # initialize records file
     records_path = setup_csv(ft, records_dir, header)
+    # initialize global intersync time tracker
+    cutoff =     
+    intersync_tracker_s = SamplingSummary(cutoff, start_with = None, track_last = False)
     # success message
     logger.info('Created output directory and initialized files.')
-    return(records_path, offsets_dir)        
+    return(records_path, intersync_tracker_s, offsets_dir)        
 
 
 @easy([])
-def setup_user()
+def setup_user():
+    
+    data = 
+
+    
+    
+    pass
 
 
 
 
+def write_process_records(intersample_tracker):
+    
+    pass
 
 
 def setup_kwargs(user_ids, proc_dir, registry, 

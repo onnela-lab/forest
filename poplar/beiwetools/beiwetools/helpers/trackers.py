@@ -14,20 +14,23 @@ logger = logging.getLogger(__name__)
 
 class SamplingSummary():
     '''
-    Track intersample times from time series data that may be distributed over multiple locations.
-    Used to summarize sampling frequency for Beiwe passive data streams.
+    Track intersample times from time series data that may be distributed 
+    over multiple locations.  Used to summarize sampling frequency for Beiwe 
+    passive data streams.
 
     Args:
-        cutoff (int): A maximum intersample duration in the time units of the data, e.g. milliseconds.
-            Intersample times above this cutoff are ignored.
-            Typically, this would be set to a value near the sensor's off-duration.
+        cutoff (int): A maximum intersample duration in the time units of 
+            the data, e.g. milliseconds.  Intersample times above this cutoff 
+            are ignored.  Typically, this would be set to a value near the 
+            sensor's off-duration.
         start_with (numpy.ndarray): Optional.  
             Use this argument to intialize the counts array.
         
     Attributes:
         cutoff (int): Intersample times above this cutoff are ignored.
         counts (numpy.ndarray): A 1-D array of counts of intersample times.
-            For example, counts[1] is the number of intersample times of length 1 unit.
+            For example, counts[1] is the number of intersample times of 
+            length 1 unit.
         n (int): Total number of intersample times.  (Sum of counts.)
         track_last (bool): See SamplingSummary.update() for details.
         last (int): Last time from previous update. Used only if track_last is True.

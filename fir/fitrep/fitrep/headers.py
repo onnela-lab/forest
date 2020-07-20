@@ -7,6 +7,7 @@ summary_header = [ # Column names for summary output files
 'first_observation', # Datetime of first observation.
 'last_observation',  # Datetime of last observation.
 'n_observations',    # Number of rows (observations).
+'followup_days',    # Elapsed days between first and last observations.
 ]
 
 
@@ -21,29 +22,34 @@ extra_summary_header = { # Extra column names for summary output files
     ]
 }
 
-
-sync_records_header = [
+sync_summary_header = [
 'fitabase_id', # Fitabase identifier.
-'first_sync',  # Datetime of first sync, formatted as 
-
-
-'%Y-%m-%dT%H:%M:%S.%f'.
-
-
-'last_sync',   # Datetime of last sync,  formatted as 
-
-
-'%Y-%m-%dT%H:%M:%S.%f'.
-
-
-
-'n_syncs',     # Number of rows (syncs).
-'app_syncs',   # Number of syncs with the Fitbit smartphone apps.
-'provider',    # Name of sync service.
+'provider',    # One of:
+               #    - the name of the sync service if unique (e.g. 'Fitbit'),
+               #    - 'multiple' if several providers are logged,
+               #    - 'missing' if there are no provider records.
 'device',      # One of: 
-               #    - the name of the device model (e.g. 'Charge 2') 
-               #    - 'multiple'
-               #    - 'missing'
+               #    - the name of the device model if unique (e.g. 'Charge 2'),
+               #    - 'multiple' if several devices are logged,
+               #    - 'missing' if there are no device records.
+'n_syncs',     # Number of rows (syncs).
+'n_app_syncs', # Number of syncs with the Fitbit smartphone apps.
+]
+
+
+intersync_summary_header = [
+'first_sync',  # UTC datetime of first sync, formatted as '%Y-%m-%dT%H:%M:%S.%f'.
+'last_sync',   # UTC datetime of last sync,  formatted as '%Y-%m-%dT%H:%M:%S.%f'.
+'min_intersync_s',   # Minimum number of seconds between syncs.
+'max_intersync_s',   # Maximum number of seconds between syncs.
+'mean_intersync_s',  # Mean number of seconds between syncs.
+'median_intersync_s' # Meduab number of seconds between syncs.
+]
+
+
+offset_summary_header = [
+'n_transitions', # Number of UTC offset transitions.
+'n_offsets',     # Number of different UTC offsets logged.
 ]
 
 
