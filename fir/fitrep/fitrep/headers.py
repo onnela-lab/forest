@@ -22,6 +22,31 @@ extra_summary_header = { # Extra column names for summary output files
 }
 
 
+sync_records_header = [
+'fitabase_id', # Fitabase identifier.
+'first_sync',  # Datetime of first sync, formatted as 
+
+
+'%Y-%m-%dT%H:%M:%S.%f'.
+
+
+'last_sync',   # Datetime of last sync,  formatted as 
+
+
+'%Y-%m-%dT%H:%M:%S.%f'.
+
+
+
+'n_syncs',     # Number of rows (syncs).
+'app_syncs',   # Number of syncs with the Fitbit smartphone apps.
+'provider',    # Name of sync service.
+'device',      # One of: 
+               #    - the name of the device model (e.g. 'Charge 2') 
+               #    - 'multiple'
+               #    - 'missing'
+]
+
+
 datetime_header = { # Names for Fitabase columns that contain local datetimes
 'heartrate_1min': 'Time',
 'minuteCaloriesNarrow': 'ActivityMinute',

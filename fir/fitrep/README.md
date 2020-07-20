@@ -37,6 +37,11 @@ ___
 4.  [Modules](#modules)
     * [`headers`](#headers)  
 	* [`functions`](#functions)  
+	* [`classes`](#classes)  
+	* [`summary`](#summary)
+	* [`sync`](#sync)
+	* [`format`](#format)
+	* [`plot`](#plot)
 5.  [Examples](#examples)  
 6.  [Cautions & Notes](#cautions)  
 
@@ -142,12 +147,15 @@ ___
 
 ___
 #### `summary` <a name="summary"/>
-
-___
-#### `process` <a name="process"/>
+Wrappers for functions that summarize Fitabase file contents.
 
 ___
 #### `sync` <a name="sync"/>
+Wrappers for functions that process Fitabase `syncEvents` files, including capture of UTC offsets.
+
+___
+#### `format` <a name="format"/>
+Wrappers for functions that reformat Fitabase data by (1) converting local datetimes to UTC timestamps and (2) re-synchronizing minute-by-minute Fitbit sleep classifications.
 
 ___
 #### `plot` <a name="plot"/>

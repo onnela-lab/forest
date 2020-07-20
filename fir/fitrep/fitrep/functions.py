@@ -115,10 +115,15 @@ def to_Beiwe_datetime(fitabase_datetime, utc_offset = 0):
 def process_sync(file_path):
     '''
     
+    Args:
+        file_path (str): Path to a syncEvents file.
+    
     '''
+    data = pd.read_csv(file_path)    
 
-    #file_path = 
-    pass
+
+file_path = 
+
 
 
 def process_data(file_path, offset_dict):

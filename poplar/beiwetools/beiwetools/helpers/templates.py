@@ -83,9 +83,10 @@ class ProcessTemplate():
         '''
         n = len(user_ids)
         # set up process parameters
-        logger.info('%s: Setting up...' % self.name)
-        for f in self.setup_process:
-            process_kwargs.update(f.easy(process_kwargs))
+        if len(self.setup_process) > 0:
+            logger.info('%s: Setting up...' % self.name)
+            for f in self.setup_process:
+                process_kwargs.update(f.easy(process_kwargs))
         # loop through list of users
         for i in range(n):
             # set up user parameters
@@ -96,15 +97,30 @@ class ProcessTemplate():
             user_kwargs.update(process_kwargs)
             for f in self.setup_user:
                 user_kwargs.update(f.easy(user_kwargs))
+                
+                
+                
             # process user data
+            
+            
             logger.info('%s: Processing data for user %s of %s...' % (self.name, i+1, n))                                   
             for f in self.process_user:
                 user_kwargs.update(f.easy(user_kwargs))                
+
+
+
             # update user records
+            
+            
             logger.info('%s: Writing records for user %s of %s...' % (self.name, i+1, n))                                   
             for f in self.user_records:
                 user_kwargs.update(f.easy(user_kwargs))                                
+
+
+
         # update process records
+
+
         logger.info('%s: Writing process records...' %self.name)                                   
         for f in self.process_records:
             process_kwargs.update(f.easy(process_kwargs))

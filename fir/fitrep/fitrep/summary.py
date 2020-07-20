@@ -15,14 +15,14 @@ logger = logging.getLogger(__name__)
 
 
 @easy(['path_dict'])
-def setup_output(proc_dir, file_types, track_time = True):
+def setup_output(proc_dir, file_types, track_time):
     '''
     Set up summary output.
 
     Args:
         proc_dir (str): 
         file_types (list): List of Fitabase file types.
-        track_time (bool): If true, output to a timestamped folder.
+        track_time (bool): If True, output to a timestamped folder.
         
     Returns:
         path_dict (dict): 
@@ -76,9 +76,10 @@ def write_user_records(user_id, summary_dict, path_dict):
     logger.info('Updated records for user %s.' % user_id)
 
     
-def setup_kwargs(user_ids, proc_dir, file_types, registry, id_lookup = {}):
+def setup_kwargs(user_ids, proc_dir, file_types, registry, 
+                 track_time = True, id_lookup = {}):
     '''
-    Packs kwargs for FitrepSummary.do().
+    Packs kwargs for fitrep.Summary.do().
     
     Args:
         user_ids (list): List of identifiers (str).
@@ -87,6 +88,7 @@ def setup_kwargs(user_ids, proc_dir, file_types, registry, id_lookup = {}):
             List of supported Fitabase file types (str) to summarize.
         registry (fitrep.classes.FitabaseRegistry): 
             Registry for a folder of Fitabase files.
+        track_time (bool): If True, output to a timestamped folder.    
         id_lookup (dict): Optional.
             If identifiers in user_ids aren't Fitabase identifiers,
             then this should be a dictionary in which:
@@ -108,9 +110,10 @@ def setup_kwargs(user_ids, proc_dir, file_types, registry, id_lookup = {}):
     kwargs['id_lookup'] = id_lookup
     return(kwargs)
 
-FitrepSummary = ProcessTemplate.create(__name__,
-                                       [setup_output], [], 
-                                       [summarize_user], 
-                                       [write_user_records], [])
+
+Summary = ProcessTemplate.create(__name__,
+                                 [setup_output], [], 
+                                 [summarize_user], 
+                                 [write_user_records], [])
 
 
