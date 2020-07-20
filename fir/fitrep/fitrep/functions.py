@@ -174,10 +174,6 @@ def read_sync(file_path):
     return(sync_summary, local_dts, utc_dts)
 
 
-#file_path = '/home/josh/Desktop/_Winter_2019_research/HOPE_other_data/fitabase/individual/Export-3-9-2020_11_05_am/2031_syncEvents_20170201_20200309.csv'
-#file_path = '/home/josh/Desktop/_Winter_2019_research/HOPE_other_data/fitabase/individual/Export-3-9-2020_11_05_am/2034_syncEvents_20170201_20200309.csv'
-#sync_summary, local_dts, utc_dts = read_sync(file_path)
-
 def process_intersync(utc_dts, intersync_tracker_s):
     first_sync = utc_dts[0].strftime(data_time_format)
     last_sync = utc_dts[-1].strftime(data_time_format)
@@ -190,7 +186,7 @@ def process_intersync(utc_dts, intersync_tracker_s):
     mean_intersync_s = np.mean(is_s)
     median_intersync_s = np.median(is_s)
     # update global tracker
-    intersync_tracker_s.update()
+    intersync_tracker_s.update(is_s)
     # return summary
     intersync_summary = [first_sync, last_sync, 
                          min_intersync_s, max_intersync_s, 
@@ -211,9 +207,9 @@ def process_offsets(local_dts, utc_dts):
     for i in range(len(offsets)):
         if last_offset is None or last_offset != offsets[i]:
             offset_dict[local_dts[i]] = offsets[i]            
-        last_transition_to = offsets[i]
-    
-
+        last_offset = offsets[i]
+    n_transitions = len(offset_dict) - 1
+    n_offsets = len(set(offset_dict.values()))
     # return summary
     offset_summary = [n_transitions, n_offsets]
     return(offset_summary, offset_dict)

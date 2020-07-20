@@ -1,5 +1,5 @@
-'''
-Headers for selected fitabase CSVs.
+''' Headers for CSVs that the fitrep package reads and writes.
+
 '''
 
 summary_header = [ # Column names for summary output files
@@ -22,7 +22,9 @@ extra_summary_header = { # Extra column names for summary output files
     ]
 }
 
-sync_summary_header = [
+
+sync_records_header = [ # Column names for sync output files
+# sync summary
 'fitabase_id', # Fitabase identifier.
 'provider',    # One of:
                #    - the name of the sync service if unique (e.g. 'Fitbit'),
@@ -34,20 +36,14 @@ sync_summary_header = [
                #    - 'missing' if there are no device records.
 'n_syncs',     # Number of rows (syncs).
 'n_app_syncs', # Number of syncs with the Fitbit smartphone apps.
-]
-
-
-intersync_summary_header = [
+# intersync summary
 'first_sync',  # UTC datetime of first sync, formatted as '%Y-%m-%dT%H:%M:%S.%f'.
 'last_sync',   # UTC datetime of last sync,  formatted as '%Y-%m-%dT%H:%M:%S.%f'.
-'min_intersync_s',   # Minimum number of seconds between syncs.
-'max_intersync_s',   # Maximum number of seconds between syncs.
-'mean_intersync_s',  # Mean number of seconds between syncs.
-'median_intersync_s' # Meduab number of seconds between syncs.
-]
-
-
-offset_summary_header = [
+'min_intersync_s',    # Minimum seconds between syncs.
+'max_intersync_s',    # Maximum seconds between syncs.
+'mean_intersync_s',   # Mean    seconds between syncs.
+'median_intersync_s', # Median  seconds between syncs.
+# offset summary
 'n_transitions', # Number of UTC offset transitions.
 'n_offsets',     # Number of different UTC offsets logged.
 ]

@@ -8,12 +8,8 @@ from beiwetools.helpers.functions import setup_directories, setup_csv, write_to_
 from beiwetools.helpers.decorators import easy
 from beiwetools.helpers.trackers import SamplingSummary
 from beiwetools.helpers.templates import ProcessTemplate
-
-
-
-
-from .headers import summary_header, extra_summary_header, raw_header
-from .functions import summarize_file
+from .headers import sync_records_header
+from .functions import read_sync, process_intersync, process_offsets
 
 
 
@@ -44,9 +40,9 @@ def setup_output(proc_dir, track_time):
     # set up logging output
     log_to_csv(log_dir)
     # initialize records file
-    records_path = setup_csv(ft, records_dir, header)
+    records_path = setup_csv('records', records_dir, sync_records_header)
     # initialize global intersync time tracker
-    cutoff =     
+    cutoff =  []   
     intersync_tracker_s = SamplingSummary(cutoff, start_with = None, track_last = False)
     # success message
     logger.info('Created output directory and initialized files.')
@@ -56,17 +52,28 @@ def setup_output(proc_dir, track_time):
 @easy([])
 def setup_user():
     
-    data = 
+    data = []
 
     
-    
+    logger.info('')    
     pass
 
 
-
-
-def write_process_records(intersample_tracker):
+def sync_user():
     
+    logger.info('')    
+    pass
+
+
+def write_user_records():
+    
+    logger.info('')        
+    pass
+    
+
+def write_sync_records(intersample_tracker):
+ 
+    logger.info('')        
     pass
 
 
@@ -114,8 +121,10 @@ def setup_kwargs(user_ids, proc_dir, registry,
 
 
 Sync = ProcessTemplate.create(__name__,
-                              [setup_output], [], 
-                              [summarize_user], 
-                              [write_user_records], [])
+                              [setup_output], 
+                              [setup_user], 
+                              [sync_user], 
+                              [write_user_records], 
+                              [write_sync_records])
 
 
