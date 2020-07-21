@@ -174,7 +174,7 @@ def read_sync(file_path):
     return(sync_summary, local_dts, utc_dts)
 
 
-def process_intersync(utc_dts, intersync_tracker_s):
+def process_intersync(utc_dts, IntersyncTracker):
     first_sync = utc_dts[0].strftime(data_time_format)
     last_sync = utc_dts[-1].strftime(data_time_format)
     # convert to Unix timestamps
@@ -186,7 +186,7 @@ def process_intersync(utc_dts, intersync_tracker_s):
     mean_intersync_s = np.mean(is_s)
     median_intersync_s = np.median(is_s)
     # update global tracker
-    intersync_tracker_s.update(is_s)
+    IntersyncTracker.update(is_s)
     # return summary
     intersync_summary = [first_sync, last_sync, 
                          min_intersync_s, max_intersync_s, 

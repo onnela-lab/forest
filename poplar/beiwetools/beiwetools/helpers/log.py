@@ -8,34 +8,72 @@ from .functions import setup_csv
 logger = logging.getLogger(__name__)
 
 
-# Simple format for logging messages:
-basic_log_attributes = ['%(created)f',
-                        '%(levelname)s',
-                        '%(name)s',
-                        '%(funcName)s',
-                        '%(lineno)d',                        
-                        '%(message)s',
-                        '%(pathname)s'
-                        ]
-basic_log_format = ','.join(basic_log_attributes)
-
-# Header for csv containing messages formatted as basic_log_format:
+# Dictionary of log record attributes:
 # (For details:  https://docs.python.org/3.8/library/logging.html?highlight=logging#logrecord-attributes)
-basic_log_header = [
-    'created',   # Unix timestamp (seconds since epoch).
-    'levelname', # Message level, one of 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'.
-    'name',      # Name of originating logger.
-    'funcName',  # Originating function.
-    'lineno',    # Source line number, if available.
-    'message',   # Logged message.
-    'pathname',  # Path to originating file.
-    ]
+log_attributes = {
+'asctime': '%(asctime)s',     # Human-readable time.
+'created': '%(created)f',     # Unix timestamp (seconds since epoch).
+'filename': '%(filename)s',   # Filename portion of pathname.
+'funcName': '%(funcName)s',   # Originating function.
+'levelname': '%(levelname)s', # Message level: 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'.  
+'levelno': '%(levelno)s',     # Numeric message level.
+'lineno': '%(lineno)d',       # Source line number, if available.
+'message': '%(message)s',     # Logged message.
+'module': '%(module)s',       # Module name.
+'msecs': '%(msecs)d',         # Millisecond portion of timestamp.
+'name': '%(name)s',              # Name of originating logger.
+'pathname': '%(pathname)s',      # Path to originating file.
+'process': '%(process)d',        # Process id, if available.
+'processName': '%(processName)s',# Process name, if available.
+'relativeCreated': '%(relativeCreated)d', # Milliseconds since logging was loaded.
+'thread': '%(thread)d',          # Thread id, if available.
+'threadName': '%(threadName)s',  # Thread name, if available.
+ }
 
 
+def attributes_to_csv(attribute_list):
+    '''
+    Given a list of attributes (keys of log_attributes), returns a logging 
+    format with header for writing records to CSV.
+    '''
+    try:
+        log_format = type('logging_format', (), {})()
+        attributes = [log_attributes[a] for a in attribute_list]
+        log_format.attributes = ','.join(attributes)
+        log_format.header = attribute_list        
+    except:
+        logger.warning('Unable to assemble logging format.')        
+    return(log_format)
+
+
+# Simple format for logging messages:
+basic_format = attributes_to_csv([
+    'created',   
+    'asctime',
+    'levelname', 
+    'module',
+    'funcName',  
+    'message',   
+    ])
+
+
+# More comprehensive format for logging messages, including traceback info:
+traceback_format = attributes_to_csv([
+    'created',   
+    'asctime',
+    'levelname', 
+    'module',
+    'funcName',  
+    'message',       
+    'lineno',
+    'pathname'    
+    ])
+
+    
 def log_to_csv(log_dir, level = logging.DEBUG, 
                log_name = 'log', 
-               log_format = basic_log_format,
-               log_header = basic_log_header):
+               log_format = basic_format.attributes,
+               log_header = basic_format.header):
     '''
     Configure the logging system to write messages to a csv.
     Overwrites any existing logging handlers and configurations.

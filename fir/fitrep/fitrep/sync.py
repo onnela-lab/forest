@@ -12,7 +12,6 @@ from .headers import sync_records_header
 from .functions import read_sync, process_intersync, process_offsets
 
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -43,10 +42,10 @@ def setup_output(proc_dir, track_time):
     records_path = setup_csv('records', records_dir, sync_records_header)
     # initialize global intersync time tracker
     cutoff =  []   
-    intersync_tracker_s = SamplingSummary(cutoff, start_with = None, track_last = False)
+    IntersyncTracker = SamplingSummary(cutoff, start_with = None, track_last = False)
     # success message
     logger.info('Created output directory and initialized files.')
-    return(records_path, intersync_tracker_s, offsets_dir)        
+    return(records_path, IntersyncTracker, offsets_dir)        
 
 
 @easy([])
@@ -77,7 +76,7 @@ def write_sync_records(intersample_tracker):
     pass
 
 
-def setup_kwargs(user_ids, proc_dir, registry, 
+def pack_sync_kwargs(user_ids, proc_dir, registry, 
 
 
                  track_time = True, id_lookup = {}):

@@ -76,8 +76,8 @@ def write_user_records(user_id, summary_dict, path_dict):
     logger.info('Updated records for user %s.' % user_id)
 
     
-def setup_kwargs(user_ids, proc_dir, file_types, registry, 
-                 track_time = True, id_lookup = {}):
+def pack_summary_kwargs(user_ids, proc_dir, file_types, registry, 
+                         track_time = True, id_lookup = {}):
     '''
     Packs kwargs for fitrep.Summary.do().
     
@@ -105,7 +105,8 @@ def setup_kwargs(user_ids, proc_dir, file_types, registry,
     kwargs['process_kwargs'] = {
         'proc_dir': proc_dir,
         'file_types': file_types,
-        'registry': registry
+        'registry': registry,
+        'track_time': track_time
         }
     kwargs['id_lookup'] = id_lookup
     return(kwargs)

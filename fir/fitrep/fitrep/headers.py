@@ -7,7 +7,7 @@ summary_header = [ # Column names for summary output files
 'first_observation', # Datetime of first observation.
 'last_observation',  # Datetime of last observation.
 'n_observations',    # Number of rows (observations).
-'followup_days',    # Elapsed days between first and last observations.
+'followup_days',     # Elapsed days between first and last observations.
 ]
 
 
