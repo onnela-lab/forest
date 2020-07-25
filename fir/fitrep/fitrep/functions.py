@@ -24,18 +24,23 @@ fitabase_time_format = '%I:%M:%S %p' # without zero padding for %I
 fitabase_datetime_format = fitabase_date_format + ' ' + fitabase_time_format
 
 
-def fbdt_to_dt(fitabase_datetime):
+def fbdt_to_dt(fitabase_datetime, timezone = None):
     '''
     Convert a Fitabase datetime string to a datetime object.
 
     Args:
         fitabase_datetime (str): A datetime string in fitabase_datetime_format,
             without leading zeros.
-        
+        timezone (timezone from pytz.tzfile or Nonetype):
+            Optionally, return a timezone-aware datetime object.
+            
     Returns:
-        dt (datetime.datetime): The corresponding unaware datetime object.
+        dt (datetime.datetime): 
+            The corresponding datetime object.
     '''
     dt = datetime.datetime.strptime(fitabase_datetime, fitabase_datetime_format)
+    if not timezone is None:
+        dt = timezone.localize(dt)
     return(dt)
 
 

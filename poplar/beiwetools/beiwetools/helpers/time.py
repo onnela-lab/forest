@@ -60,6 +60,21 @@ def convert_seconds(s):
 	return(time)
 
 
+def datatime_to_dt(time):
+    '''
+    Convert a UTC datetime string in data_time_format to a datetime.datetime object.
+
+    Args:
+        time (str): UTC datetime string in data_time_format.
+    
+    Returns:
+        dt (datetime.datetime): A timezone-aware datetime.datetime object.
+    '''
+    dt = datetime.datetime.strptime(time, data_time_format)
+    dt = UTC.localize(dt)
+    return(dt)
+
+
 def reformat_datetime(time, from_format, to_format, from_tz = None):
     '''
     Change the format of a data/time string.    
