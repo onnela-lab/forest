@@ -2,7 +2,6 @@
 
 - This readme file can function as our current TODO list and a place for sharing info
 - We'll want to look into https://readthedocs.org/ for documenting the library
-- Let's make sure to loop in Josh B as soon as possible
 - We should also look into continous integration; this look's especially promising: https://travis-ci.org/
 - And for much later, more on Apache Spark here: https://spark.apache.org/
 
@@ -53,10 +52,10 @@ This repo contains the `logrep` package, which provides tools for processing raw
 This repo contains the `accrep` package, which provides tools for processing raw Beiwe accelerometer data.
 
 # fir
-This repo contains the `fitrep` packages, which has some tools for reformatting raw Fitabase data.
+This repo contains the `fitrep` package.  Use these tools to reformat Fitbit data delivered by the Fitabase platform.
 
 # ginkgo
-This repo contains the `gpsrep` package, which provides tools for some basic GPS data processing tasks, including time zone extraction.
+This repo contains the `gpsrep` package, which includes tools for some basic GPS data processing tasks such as time zone extraction.
 
 # pine
 This repo contains the `powrep` package, which provides tools for processing raw Beiwe power state files.

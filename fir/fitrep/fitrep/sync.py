@@ -78,8 +78,9 @@ def write_sync_records(intersample_tracker):
 
 def pack_sync_kwargs(user_ids, proc_dir, registry, 
 
+                     followup_ranges = {},
 
-                 track_time = True, id_lookup = {}):
+                     track_time = True, id_lookup = {}):
     '''
     Packs kwargs for fitrep.Sync.do().
     
@@ -88,7 +89,14 @@ def pack_sync_kwargs(user_ids, proc_dir, registry,
         proc_dir (str): Path to folder where processed data can be written.
         registry (fitrep.classes.FitabaseRegistry): 
             Registry for a folder of Fitabase files.
- 
+            
+            
+        followup_ranges (dict):
+            Keys are identifiers from user_ids.
+            Values are tuples (start, end), the UTC datetime strings in 
+            data_time_format for the beginning and ending of followup for 
+            the corresponding user id.
+            If empty, all observations are included.
         
  
     
@@ -110,7 +118,7 @@ def pack_sync_kwargs(user_ids, proc_dir, registry,
     kwargs['process_kwargs'] = {
         'proc_dir': proc_dir,
         'registry': registry,
-        
+        'followup_ranges': followup_ranges,
         
         
         'track_time': track_time

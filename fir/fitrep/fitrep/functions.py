@@ -68,19 +68,48 @@ def parse_filename(filename):
     return(fitabase_id, file_type, local_start, local_end)
 
 
-def summarize_file(file_path, file_type):
+def apply_range(file_path, file_type, followup_range):    
+    '''
+    Load a raw Fitabase file and drop observations that are outside of 
+    the followup period.
+
+    Args:
+        file_path (str): Path to raw Fitabase data file.
+        file_type (str): A key from headers.raw_header.
+        followup_range (tuple or Nonetype): A pair of UTC datetime strings in 
+            data_time_format for the beginning and ending of followup.
+            If None, no observations are dropped.
+
+    Returns:
+        data (pd.DataFrame): The contents of the raw Fitabase file, excluding
+            observations that are out of range.
+    '''
+    data = pd.read_csv(file_path)
+    if not followup_range is None:
+        
+        
+        
+        
+
+    return(data)
+
+
+def summarize_file(file_path, file_type, followup_range):
     '''
     Get some info from a raw file of minute-by-minute Fitabase data.
 
     Args:
         file_path (str): Path to raw Fitabase data file.
         file_type (str): A key from headers.raw_header.
+        followup_range (tuple or Nonetype): A pair of UTC datetime strings in 
+            data_time_format for the beginning and ending of followup.
+            If None, no observations are dropped.
         
     Returns:
         summary (list): List of summary items.
     '''    
     file_name = os.path.basename(file_path)
-    data = pd.read_csv(file_path)    
+    data = apply_range(pd.read_csv(file_path), file_type, followup_range)    
     datetimes = list(data[datetime_header[file_type]])
     if len(datetimes) > 0:
         first_observation = datetimes[0]
@@ -125,12 +154,15 @@ def summarize_file(file_path, file_type):
     return(summary)
 
 
-def read_sync(file_path):
+def read_sync(file_path, followup_range):
     '''
     Load a syncEvents file and get some information.
     
     Args:
         file_path (str): Path to a syncEvents file.
+        followup_range (tuple or Nonetype): A pair of UTC datetime strings in 
+            data_time_format for the beginning and ending of followup.
+            If None, no observations are dropped.
 
     Returns:
         sync_summary (list): List of summary items (str).
@@ -139,8 +171,8 @@ def read_sync(file_path):
         utc_dts (list): 
             List of UTC sync times as datetime.datetime objects.
     '''
-    data = pd.read_csv(file_path)    
-    file_name = os.path.basename(file_path)
+    data = apply_range(pd.read_csv(file_path), 'syncEvents', followup_range)    
+    file_name = os.path.basename(file_path)    
     # get provider
     p = list(set(data.Provider)) # should be one unique provider 
     if len(p) == 0:

@@ -44,3 +44,6 @@ In addition to creating registries, these tasks demonstrate how to:
 * Manage user names and object names,
 * Review numerical summaries of raw user data,
 * Save and reload a raw data registry.
+
+## 4. `logging_guidelines_developer.py`
+Functions in `beiwetools.helpers.log` also appear in  
