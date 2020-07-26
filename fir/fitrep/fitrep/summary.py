@@ -98,7 +98,7 @@ def pack_summary_kwargs(user_ids, proc_dir, file_types, registry,
     Returns:
         kwargs (dict):
             Packed keyword arguments.
-            To run a summary: FitrepSummary.do(**kwargs)
+            To run a summary: Summary.do(**kwargs)
     '''
     kwargs = {}
     kwargs['user_ids'] = user_ids    

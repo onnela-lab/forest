@@ -49,13 +49,12 @@ class FitabaseRegistry():
         start = []
         end = []
         for f in file_names:
-            p = parse_filename.to_dict(f)
-            fid = p['fitabase_id']
+            print(f)
+            fid, ft, ls, le = parse_filename(f)
             fitabase_ids.append(fid)
-            ft  = p['file_type']
             file_types.append(ft)
-            start.append(p['local_start'])
-            end.  append(p['local_end'])
+            start.append(ls)
+            end.  append(le)
             if not fid in lookup:
                 lookup[fid] = OrderedDict()
             if not ft in lookup[fid]:

@@ -2,11 +2,12 @@
 '''
 import os
 import logging
+import numpy as np
 from beiwetools.helpers.time import local_now
 from beiwetools.helpers.log import log_to_csv
-from beiwetools.helpers.functions import setup_directories, setup_csv, write_to_csv
+from beiwetools.helpers.functions import (setup_directories, setup_csv, 
+                                          write_to_csv)
 from beiwetools.helpers.decorators import easy
-from beiwetools.helpers.trackers import SamplingSummary
 from beiwetools.helpers.templates import ProcessTemplate
 from .headers import sync_records_header
 from .functions import read_sync, process_intersync, process_offsets
@@ -15,7 +16,7 @@ from .functions import read_sync, process_intersync, process_offsets
 logger = logging.getLogger(__name__)
 
 
-@easy(['records_path', 'intersync_tracker_s', 'offsets_dir'])
+@easy(['records_path', 'offsets_dir', 'global_intersync_s'])
 def setup_output(proc_dir, track_time):
     '''
     Set up summary output.
@@ -25,8 +26,9 @@ def setup_output(proc_dir, track_time):
         track_time (bool): If True, output to a timestamped folder.
         
     Returns:
-        path_dict (dict): 
-            Keys are file types, values are paths.
+        records_path (str): Path to sync records CSV file.
+        offsets_dir (str): Directory for saving offset dictionaries.
+        global_intersync_s (list): Empty list to contain
     '''
     out_dir = os.path.join(proc_dir, 'fitrep', 'sync')
     if track_time:
@@ -40,40 +42,55 @@ def setup_output(proc_dir, track_time):
     log_to_csv(log_dir)
     # initialize records file
     records_path = setup_csv('records', records_dir, sync_records_header)
-    # initialize global intersync time tracker
-    cutoff =  []   
-    IntersyncTracker = SamplingSummary(cutoff, start_with = None, track_last = False)
+    # initialize global intersync tracker
+    global_intersync_s =  []   
     # success message
     logger.info('Created output directory and initialized files.')
-    return(records_path, IntersyncTracker, offsets_dir)        
+    return(records_path, offsets_dir, global_intersync_s)        
+
+
+@easy(['file_path', 'followup_range', 'user_record'])
+def setup_user(registry, user_id, followup_ranges):
+    file_name = registry.lookup[user_id]['syncEvents'] 
+    file_path= os.path.join(registry.directory, file_name)
+    if user_id in followup_ranges:
+        followup_range = followup_ranges[user_id]
+    else:
+        followup_range = None    
+    logger.info('Finished setup for user %s' % user_id)    
+    return(file_path, followup_range)
+
+
+@easy(['user_record'])
+def sync_user(user_id, file_path, followup_range, 
+              user_record, global_intersync_s):
+    sync_summary, local_dts, utc_dts = read_sync(file_path, 
+                                                 followup_range)
+    user_record = [user_id] + sync_summary
+    user_record += process_intersync(utc_dts, global_intersync_s)
+    user_record += process_offsets(local_dts, utc_dts)
+    logger.info('Processed sync data for user %s.' % user_id)    
+    return(user_record)
 
 
 @easy([])
-def setup_user():
-    
-    data = []
+def write_user_records(user_id, records_path, user_record):
+    write_to_csv(records_path, user_record)    
+    logger.info('Updated sync records for user %s.' % user_id)        
 
     
-    logger.info('')    
-    pass
-
-
-def sync_user():
-    
-    logger.info('')    
-    pass
-
-
-def write_user_records():
-    
-    logger.info('')        
-    pass
-    
-
-def write_sync_records(intersample_tracker):
- 
-    logger.info('')        
-    pass
+@easy([])
+def write_sync_records(global_intersync_s, records_path):
+    is_s = np.diff(np.hstack(global_intersync_s))
+    min_intersync_s = np.min(is_s)
+    max_intersync_s = np.max(is_s)
+    mean_intersync_s = np.mean(is_s)
+    median_intersync_s = np.median(is_s)    
+    global_summary = [min_intersync_s, max_intersync_s, 
+                      mean_intersync_s, median_intersync_s]
+    to_write = ['global'] + ['']*7 + global_summary + ['']*3
+    write_to_csv(records_path, to_write)
+    logger.info('Updated global sync records.')        
 
 
 def pack_sync_kwargs(user_ids, proc_dir, registry, 
@@ -89,18 +106,12 @@ def pack_sync_kwargs(user_ids, proc_dir, registry,
         proc_dir (str): Path to folder where processed data can be written.
         registry (fitrep.classes.FitabaseRegistry): 
             Registry for a folder of Fitabase files.
-            
-            
         followup_ranges (dict):
             Keys are identifiers from user_ids.
-            Values are tuples (start, end), the UTC datetime strings in 
-            data_time_format for the beginning and ending of followup for 
+            Values are tuples (start, end), the local datetime strings in 
+            date_time_format for the beginning and ending of followup for 
             the corresponding user id.
             If empty, all observations are included.
-        
- 
-    
- 
         track_time (bool): If True, output to a timestamped folder.    
         id_lookup (dict): Optional.
             If identifiers in user_ids aren't Fitabase identifiers,
@@ -111,7 +122,7 @@ def pack_sync_kwargs(user_ids, proc_dir, registry,
     Returns:
         kwargs (dict):
             Packed keyword arguments.
-            To run a summary: FitrepSummary.do(**kwargs)
+            To process syncEvents files: Sync.do(**kwargs)
     '''
     kwargs = {}
     kwargs['user_ids'] = user_ids    

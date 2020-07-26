@@ -7,10 +7,9 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 from beiwetools.helpers.time import (UTC, day_s, hour_s, 
-                                     date_only, data_time_format, 
-                                     reformat_datetime)
+                                     date_only, date_time_format, 
+                                     datatime_to_dt, reformat_datetime)
 from beiwetools.helpers.process import to_1Darray
-from beiwetools.helpers.decorators import easy
 from .headers import datetime_header
 
 
@@ -44,7 +43,6 @@ def fbdt_to_dt(fitabase_datetime, timezone = None):
     return(dt)
 
 
-@easy(['fitabase_id', 'file_type', 'local_start', 'local_end'])
 def parse_filename(filename):
     '''
     Get info from a fitabase file name.
@@ -73,48 +71,19 @@ def parse_filename(filename):
     return(fitabase_id, file_type, local_start, local_end)
 
 
-def apply_range(file_path, file_type, followup_range):    
-    '''
-    Load a raw Fitabase file and drop observations that are outside of 
-    the followup period.
-
-    Args:
-        file_path (str): Path to raw Fitabase data file.
-        file_type (str): A key from headers.raw_header.
-        followup_range (tuple or Nonetype): A pair of UTC datetime strings in 
-            data_time_format for the beginning and ending of followup.
-            If None, no observations are dropped.
-
-    Returns:
-        data (pd.DataFrame): The contents of the raw Fitabase file, excluding
-            observations that are out of range.
-    '''
-    data = pd.read_csv(file_path)
-    if not followup_range is None:
-        
-        
-        
-        
-
-    return(data)
-
-
-def summarize_file(file_path, file_type, followup_range):
+def summarize_file(file_path, file_type):
     '''
     Get some info from a raw file of minute-by-minute Fitabase data.
 
     Args:
         file_path (str): Path to raw Fitabase data file.
         file_type (str): A key from headers.raw_header.
-        followup_range (tuple or Nonetype): A pair of UTC datetime strings in 
-            data_time_format for the beginning and ending of followup.
-            If None, no observations are dropped.
         
     Returns:
         summary (list): List of summary items.
     '''    
     file_name = os.path.basename(file_path)
-    data = apply_range(pd.read_csv(file_path), file_type, followup_range)    
+    data = pd.read_csv(file_path)    
     datetimes = list(data[datetime_header[file_type]])
     if len(datetimes) > 0:
         first_observation = datetimes[0]
@@ -165,8 +134,8 @@ def read_sync(file_path, followup_range):
     
     Args:
         file_path (str): Path to a syncEvents file.
-        followup_range (tuple or Nonetype): A pair of UTC datetime strings in 
-            data_time_format for the beginning and ending of followup.
+        followup_range (tuple or Nonetype): A pair of local datetime strings in 
+            date_time_format for the beginning and ending of followup.
             If None, no observations are dropped.
 
     Returns:
@@ -176,8 +145,19 @@ def read_sync(file_path, followup_range):
         utc_dts (list): 
             List of UTC sync times as datetime.datetime objects.
     '''
-    data = apply_range(pd.read_csv(file_path), 'syncEvents', followup_range)    
+    data = pd.read_csv(file_path) 
     file_name = os.path.basename(file_path)    
+    # drop duplicate sync times
+    # may occur rarely when timezone changes, look in SyncDateUTC
+    data.drop_duplicates(subset = 'SyncDateUTC',
+                         inplace = True)
+    # drop observations outside of followup range
+    if not followup_range is None:
+        t0 = datatime_to_dt(followup_range[0])
+        t1 = datatime_to_dt(followup_range[1])
+    dts = [fbdt_to_dt(fbdt, UTC) for fbdt in data.SyncDateUTC]
+    i_to_keep = [i for i in range(len(dts)) if dts[i] >= t0 and dts[i] < t1]
+    data = data.iloc[i_to_keep]
     # get provider
     p = list(set(data.Provider)) # should be one unique provider 
     if len(p) == 0:
@@ -211,9 +191,9 @@ def read_sync(file_path, followup_range):
     return(sync_summary, local_dts, utc_dts)
 
 
-def process_intersync(utc_dts, IntersyncTracker):
-    first_sync = utc_dts[0].strftime(data_time_format)
-    last_sync = utc_dts[-1].strftime(data_time_format)
+def process_intersync(utc_dts, global_intersync_s):
+    first_sync = utc_dts[0].strftime(date_time_format)
+    last_sync = utc_dts[-1].strftime(date_time_format)
     # convert to Unix timestamps
     utc_ts = to_1Darray([UTC.localize(dt).timestamp() for dt in utc_dts])
     # process intersync times
@@ -223,7 +203,7 @@ def process_intersync(utc_dts, IntersyncTracker):
     mean_intersync_s = np.mean(is_s)
     median_intersync_s = np.median(is_s)
     # update global tracker
-    IntersyncTracker.update(is_s)
+    global_intersync_s.append(is_s)
     # return summary
     intersync_summary = [first_sync, last_sync, 
                          min_intersync_s, max_intersync_s, 
@@ -232,6 +212,9 @@ def process_intersync(utc_dts, IntersyncTracker):
     
 
 def get_offset(local_dt, utc_dt):
+    '''
+    Get UTC offset in hours.
+    '''
     s = (local_dt-utc_dt).total_seconds()
     offset = round(s/hour_s)
     return(offset)
@@ -240,16 +223,61 @@ def get_offset(local_dt, utc_dt):
 def process_offsets(local_dts, utc_dts):
     offsets = [get_offset(local_dts[i], utc_dts[i]) for i in range(len(local_dts))]
     offset_dict = OrderedDict()
-    last_offset = None
+    offset_dict[local_dts[0]] = offsets[0]
+    last_offset = offsets[0]
     for i in range(len(offsets)):
-        if last_offset is None or last_offset != offsets[i]:
+        if last_offset != offsets[i]:
             offset_dict[local_dts[i]] = offsets[i]            
         last_offset = offsets[i]
     n_transitions = len(offset_dict) - 1
     n_offsets = len(set(offset_dict.values()))
     # return summary
     offset_summary = [n_transitions, n_offsets]
-    return(offset_summary, offset_dict)
+    # don't return the offset dictionary
+    return(offset_summary)
+
+
+
+
+#file_path = '/home/josh/Desktop/_Winter_2019_research/HOPE_other_data/fitabase/individual/Export-3-9-2020_11_05_am/2034_syncEvents_20170201_20200309.csv'
+# followup_range = ['9/25/2018 2:33:36 PM', '9/25/2018 2:44:59 PM']
+# '%Y-%m-%dT%H:%M:%S.%f'
+#followup_range = ['2018-09-25T14:33:36.000', 
+#                  '2018-09-25T14:44:59.000']
+
+
+
+def smart_load(file_path, file_type, offsets, followup_range):    
+    '''
+    Load a raw Fitabase file and drop observations that are outside of 
+    the followup period.
+
+    Args:
+        file_path (str): Path to raw Fitabase data file.
+        file_type (str): A key from headers.raw_header.
+        
+        
+        offsets (OrderedDict): 
+
+            
+        followup_range (tuple or Nonetype): A pair of local datetime strings in 
+            date_time_format for the beginning and ending of followup.
+            If None, no observations are dropped.
+
+    Returns:
+        data (pd.DataFrame): The contents of the raw Fitabase file, excluding
+            observations that are out of range.
+            
+            new columns?
+            
+            
+    '''
+    data = pd.read_csv(file_path)
+    if not followup_range is None:
+        t0 = datatime_to_dt(followup_range[0])
+        t1 = datatime_to_dt(followup_range[1])
+    pass
+
 
 
 def process_data(file_path, offset_dict):
