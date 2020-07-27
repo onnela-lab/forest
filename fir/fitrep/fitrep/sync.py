@@ -16,7 +16,7 @@ from .functions import read_sync, process_intersync, process_offsets
 logger = logging.getLogger(__name__)
 
 
-@easy(['records_path', 'offsets_dir', 'global_intersync_s'])
+@easy(['records_path', 'global_intersync_s'])
 def setup_output(proc_dir, track_time):
     '''
     Set up summary output.
@@ -35,9 +35,9 @@ def setup_output(proc_dir, track_time):
         temp = local_now().replace(' ', '_')
         out_dir = os.path.join(out_dir, temp)    
     records_dir = os.path.join(out_dir, 'records')
-    offsets_dir = os.path.join(out_dir, 'offsets')
+    #offsets_dir = os.path.join(out_dir, 'offsets')
     log_dir = os.path.join(out_dir, 'log')       
-    setup_directories([out_dir, records_dir, offsets_dir, log_dir])
+    setup_directories([out_dir, records_dir, log_dir])
     # set up logging output
     log_to_csv(log_dir)
     # initialize records file
@@ -46,10 +46,10 @@ def setup_output(proc_dir, track_time):
     global_intersync_s =  []   
     # success message
     logger.info('Created output directory and initialized files.')
-    return(records_path, offsets_dir, global_intersync_s)        
+    return(records_path, global_intersync_s)        
 
 
-@easy(['file_path', 'followup_range', 'user_record'])
+@easy(['file_path', 'followup_range'])
 def setup_user(registry, user_id, followup_ranges):
     file_name = registry.lookup[user_id]['syncEvents'] 
     file_path= os.path.join(registry.directory, file_name)
@@ -62,13 +62,12 @@ def setup_user(registry, user_id, followup_ranges):
 
 
 @easy(['user_record'])
-def sync_user(user_id, file_path, followup_range, 
-              user_record, global_intersync_s):
+def sync_user(user_id, file_path, followup_range, global_intersync_s):
     sync_summary, local_dts, utc_dts = read_sync(file_path, 
                                                  followup_range)
     user_record = [user_id] + sync_summary
     user_record += process_intersync(utc_dts, global_intersync_s)
-    user_record += process_offsets(local_dts, utc_dts)
+    user_record += process_offsets(user_id, local_dts, utc_dts)
     logger.info('Processed sync data for user %s.' % user_id)    
     return(user_record)
 
@@ -94,9 +93,7 @@ def write_sync_records(global_intersync_s, records_path):
 
 
 def pack_sync_kwargs(user_ids, proc_dir, registry, 
-
                      followup_ranges = {},
-
                      track_time = True, id_lookup = {}):
     '''
     Packs kwargs for fitrep.Sync.do().
@@ -130,8 +127,6 @@ def pack_sync_kwargs(user_ids, proc_dir, registry,
         'proc_dir': proc_dir,
         'registry': registry,
         'followup_ranges': followup_ranges,
-        
-        
         'track_time': track_time
         }
     kwargs['id_lookup'] = id_lookup

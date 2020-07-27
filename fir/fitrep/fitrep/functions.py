@@ -155,9 +155,9 @@ def read_sync(file_path, followup_range):
     if not followup_range is None:
         t0 = datatime_to_dt(followup_range[0])
         t1 = datatime_to_dt(followup_range[1])
-    dts = [fbdt_to_dt(fbdt, UTC) for fbdt in data.SyncDateUTC]
-    i_to_keep = [i for i in range(len(dts)) if dts[i] >= t0 and dts[i] < t1]
-    data = data.iloc[i_to_keep]
+        dts = [fbdt_to_dt(fbdt, UTC) for fbdt in data.SyncDateUTC]
+        i_to_keep = [i for i in range(len(dts)) if dts[i] >= t0 and dts[i] < t1]
+        data = data.iloc[i_to_keep]
     # get provider
     p = list(set(data.Provider)) # should be one unique provider 
     if len(p) == 0:
@@ -196,18 +196,21 @@ def process_intersync(utc_dts, global_intersync_s):
     last_sync = utc_dts[-1].strftime(date_time_format)
     # convert to Unix timestamps
     utc_ts = to_1Darray([UTC.localize(dt).timestamp() for dt in utc_dts])
-    # process intersync times
+    # get intersync times
     is_s = np.diff(utc_ts)
-    min_intersync_s = np.min(is_s)
-    max_intersync_s = np.max(is_s)
-    mean_intersync_s = np.mean(is_s)
-    median_intersync_s = np.median(is_s)
-    # update global tracker
-    global_intersync_s.append(is_s)
+    if len(is_s) > 0:    
+        # update global tracker
+        global_intersync_s.append(is_s)
+        # get stats
+        min_intersync_s = np.min(is_s)
+        max_intersync_s = np.max(is_s)
+        mean_intersync_s = np.mean(is_s)
+        median_intersync_s = np.median(is_s)
+        is_stats = [min_intersync_s, max_intersync_s, 
+                    mean_intersync_s, median_intersync_s]
+    else: is_stats = ['']*4
     # return summary
-    intersync_summary = [first_sync, last_sync, 
-                         min_intersync_s, max_intersync_s, 
-                         mean_intersync_s, median_intersync_s]
+    intersync_summary = [first_sync, last_sync] + is_stats
     return(intersync_summary)
     
 
@@ -220,19 +223,22 @@ def get_offset(local_dt, utc_dt):
     return(offset)
 
 
-def process_offsets(local_dts, utc_dts):
-    offsets = [get_offset(local_dts[i], utc_dts[i]) for i in range(len(local_dts))]
-    offset_dict = OrderedDict()
-    offset_dict[local_dts[0]] = offsets[0]
-    last_offset = offsets[0]
-    for i in range(len(offsets)):
-        if last_offset != offsets[i]:
-            offset_dict[local_dts[i]] = offsets[i]            
-        last_offset = offsets[i]
-    n_transitions = len(offset_dict) - 1
-    n_offsets = len(set(offset_dict.values()))
-    # return summary
-    offset_summary = [n_transitions, n_offsets]
+def process_offsets(user_id, local_dts, utc_dts):
+    if len(utc_dts) > 0:
+        offsets = [get_offset(local_dts[i], utc_dts[i]) for i in range(len(local_dts))]
+        offset_dict = OrderedDict()
+        offset_dict[local_dts[0]] = offsets[0]
+        last_offset = offsets[0]
+        for i in range(len(offsets)):
+            if last_offset != offsets[i]:
+                offset_dict[local_dts[i]] = offsets[i]            
+            last_offset = offsets[i]
+        n_transitions = len(offset_dict) - 1
+        n_offsets = len(set(offset_dict.values()))
+        # return summary
+        offset_summary = [n_transitions, n_offsets]
+    else:
+        logger.warning('No sync information for user %s.' % user_id )
     # don't return the offset dictionary
     return(offset_summary)
 

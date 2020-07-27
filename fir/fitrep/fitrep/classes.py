@@ -49,7 +49,6 @@ class FitabaseRegistry():
         start = []
         end = []
         for f in file_names:
-            print(f)
             fid, ft, ls, le = parse_filename(f)
             fitabase_ids.append(fid)
             file_types.append(ft)
