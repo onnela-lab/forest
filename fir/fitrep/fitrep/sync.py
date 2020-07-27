@@ -81,14 +81,14 @@ def write_user_records(user_id, records_path, user_record):
     
 @easy([])
 def write_sync_records(global_intersync_s, records_path):
-    is_s = np.diff(np.hstack(global_intersync_s))
+    is_s = np.hstack(global_intersync_s)
     min_intersync_s = np.min(is_s)
     max_intersync_s = np.max(is_s)
     mean_intersync_s = np.mean(is_s)
     median_intersync_s = np.median(is_s)    
     global_summary = [min_intersync_s, max_intersync_s, 
                       mean_intersync_s, median_intersync_s]
-    to_write = ['global'] + ['']*7 + global_summary + ['']*3
+    to_write = ['global'] + ['']*6 + global_summary + ['']*2
     write_to_csv(records_path, to_write)
     logger.info('Updated global sync records.')        
 

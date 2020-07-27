@@ -33,7 +33,7 @@ def setup_output(proc_dir, file_types, track_time):
     if track_time:
         temp = local_now().replace(' ', '_')
         out_dir = os.path.join(out_dir, temp)    
-    data_dir = os.path.join(out_dir, 'data')
+    data_dir = os.path.join(out_dir, 'records')
     log_dir = os.path.join(out_dir, 'log')   
     setup_directories([out_dir, data_dir, log_dir])
     # set up logging output

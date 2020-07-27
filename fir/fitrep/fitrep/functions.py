@@ -170,7 +170,10 @@ def read_sync(file_path, followup_range):
         logger.warning('Multiple service providers logged: %s' % file_name)
     # get device
     d = list(set(data.DeviceName)) # should be one unique device
-    d = [dn for dn in d if type(dn) is str] # drop nan
+    dd = [dn for dn in d if type(dn) is str] # drop nan
+    if d != dd:
+        d = dd
+        logger.warning('Incomplete device log: %s' % file_name)    
     if len(d) == 0:
         device = 'missing'
         logger.warning('Missing device log: %s' % file_name)
@@ -181,7 +184,11 @@ def read_sync(file_path, followup_range):
         logger.warning('Multiple devices logged: %s' % file_name)
     # count syncs
     n_syncs = len(data)
-    n_app_syncs = len(data[data.DeviceName == 'MobileTrack'])
+    try:
+        n_app_syncs = len(data[data.DeviceName == 'MobileTrack'])
+    except:
+        n_app_syncs = ''
+        logger.warning('Unable to subset dataframe: %s' % file_name)        
     # process datetimes
     local = list(data.DateTime)
     local_dts = [fbdt_to_dt(fbdt) for fbdt in local]
@@ -244,6 +251,7 @@ def process_offsets(user_id, local_dts, utc_dts):
         # return summary
         offset_summary = [n_transitions, n_offsets]
     else:
+        offset_summary = ['', '']
         logger.warning('No intersync times for user %s.' % user_id )
     # don't return the offset dictionary
     return(offset_summary)
