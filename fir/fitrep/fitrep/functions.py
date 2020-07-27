@@ -191,13 +191,18 @@ def read_sync(file_path, followup_range):
     return(sync_summary, local_dts, utc_dts)
 
 
-def process_intersync(utc_dts, global_intersync_s):
-    first_sync = utc_dts[0].strftime(date_time_format)
-    last_sync = utc_dts[-1].strftime(date_time_format)
-    # convert to Unix timestamps
-    utc_ts = to_1Darray([UTC.localize(dt).timestamp() for dt in utc_dts])
-    # get intersync times
-    is_s = np.diff(utc_ts)
+def process_intersync(user_id, utc_dts, global_intersync_s):
+    if len(utc_dts) > 0:
+        first_sync = utc_dts[0].strftime(date_time_format)
+        last_sync = utc_dts[-1].strftime(date_time_format)
+        # convert to Unix timestamps
+        utc_ts = to_1Darray([UTC.localize(dt).timestamp() for dt in utc_dts])
+        # get intersync times
+        is_s = np.diff(utc_ts)
+    else:
+        first_sync, last_sync = '', ''
+        is_s = []
+        logger.warning('No sync events for user %s.' % user_id )
     if len(is_s) > 0:    
         # update global tracker
         global_intersync_s.append(is_s)
@@ -238,7 +243,7 @@ def process_offsets(user_id, local_dts, utc_dts):
         # return summary
         offset_summary = [n_transitions, n_offsets]
     else:
-        logger.warning('No sync information for user %s.' % user_id )
+        logger.warning('No intersync times for user %s.' % user_id )
     # don't return the offset dictionary
     return(offset_summary)
 

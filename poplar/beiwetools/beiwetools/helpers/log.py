@@ -11,10 +11,10 @@ logger = logging.getLogger(__name__)
 # Dictionary of log record attributes:
 # (For details:  https://docs.python.org/3.8/library/logging.html?highlight=logging#logrecord-attributes)
 log_attributes = {
-'asctime': '%(asctime)s',     # Human-readable time.
-'created': '%(created)f',     # Unix timestamp (seconds since epoch).
-'filename': '%(filename)s',   # Filename portion of pathname.
-'funcName': '%(funcName)s',   # Originating function.
+'asctime,msecs': '%(asctime)s', # Human-readable time with milliseconds.
+'created': '%(created)f',       # Unix timestamp (seconds since epoch).
+'filename': '%(filename)s',     # Filename portion of pathname.
+'funcName': '%(funcName)s',     # Originating function.
 'levelname': '%(levelname)s', # Message level: 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'.  
 'levelno': '%(levelno)s',     # Numeric message level.
 'lineno': '%(lineno)d',       # Source line number, if available.
@@ -40,7 +40,10 @@ def attributes_to_csv(attribute_list):
         log_format = type('logging_format', (), {})()
         attributes = [log_attributes[a] for a in attribute_list]
         log_format.attributes = ','.join(attributes)
-        log_format.header = attribute_list        
+        log_format.header = []
+        for a in attribute_list:
+            if ',' in a: log_format.header += a.split(',') # hack for asctime
+            else: log_format.header.append(a)                
     except:
         logger.warning('Unable to assemble logging format.')        
     return(log_format)
@@ -49,7 +52,7 @@ def attributes_to_csv(attribute_list):
 # Simple format for logging messages:
 basic_format = attributes_to_csv([
     'created',   
-    'asctime',
+    'asctime,msecs',
     'levelname', 
     'module',
     'funcName',  
@@ -60,7 +63,7 @@ basic_format = attributes_to_csv([
 # More comprehensive format for logging messages, including traceback info:
 traceback_format = attributes_to_csv([
     'created',   
-    'asctime',
+    'asctime,msecs',
     'levelname', 
     'module',
     'funcName',  
@@ -69,7 +72,7 @@ traceback_format = attributes_to_csv([
     'pathname'    
     ])
 
-    
+
 def log_to_csv(log_dir, level = logging.DEBUG, 
                log_name = 'log', 
                log_format = basic_format.attributes,
