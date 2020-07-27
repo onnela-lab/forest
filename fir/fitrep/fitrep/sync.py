@@ -49,7 +49,7 @@ def setup_output(proc_dir, track_time):
     return(records_path, global_intersync_s)        
 
 
-@easy(['file_path', 'followup_range'])
+@easy(['file_path', 'followup_range', 'user_record'])
 def setup_user(registry, user_id, followup_ranges):
     file_name = registry.lookup[user_id]['syncEvents'] 
     file_path= os.path.join(registry.directory, file_name)
@@ -57,29 +57,23 @@ def setup_user(registry, user_id, followup_ranges):
         followup_range = followup_ranges[user_id]
     else:
         followup_range = None    
+    user_record = [user_id]
     logger.info('Finished setup for user %s' % user_id)    
-    return(file_path, followup_range)
+    return(file_path, followup_range, user_record)
 
 
-@easy(['user_record'])
-def sync_user(user_id, file_path, followup_range, global_intersync_s):
+@easy([])
+def sync_user(user_id, file_path, followup_range, 
+              user_record, global_intersync_s):
     sync_summary, local_dts, utc_dts = read_sync(file_path, 
                                                  followup_range)
-    user_record = [user_id] + sync_summary
     user_record += process_intersync(user_id, utc_dts, global_intersync_s)
     user_record += process_offsets(user_id, local_dts, utc_dts)
     logger.info('Processed sync data for user %s.' % user_id)        
-    return(user_record)
 
 
 @easy([])
 def write_user_records(user_id, records_path, user_record):
-
-    print(user_record)
-    
-    
-    
-
     write_to_csv(records_path, user_record)    
     logger.info('Updated sync records for user %s.' % user_id)        
 
