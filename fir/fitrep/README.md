@@ -41,7 +41,6 @@ ___
 	* [`summary`](#summary)
 	* [`sync`](#sync)
 	* [`format`](#format)
-	* [`plot`](#plot)
 5.  [Examples](#examples)  
 6.  [Cautions & Notes](#cautions)  
 
@@ -140,10 +139,12 @@ ___
 This module contains headers for `csv` files that are handled by `fitrep`.  Documentation for Fitabase file contents and variables is taken from the [Fitabase Data Dictionary](https://www.fitabase.com/media/1748/fitabasedatadictionary.pdf).
 ___
 #### `functions` <a name="functions"/>
-This module provides functions for xx.
-
+This module provides functions for various tasks, such as handling Fitabase time formats, parsing Fitabase file names, and summarizing raw Fitabase files.
 ___
 #### `classes` <a name="classes"/>
+
+
+
 
 ___
 #### `summary` <a name="summary"/>
@@ -155,16 +156,12 @@ Wrappers for functions that process Fitabase `syncEvents` files, including captu
 
 ___
 #### `format` <a name="format"/>
-Wrappers for functions that reformat Fitabase data by (1) converting local datetimes to UTC timestamps and (2) re-synchronizing minute-by-minute Fitbit sleep classifications.
-
-___
-#### `plot` <a name="plot"/>
-
+Wrappers for functions that reformat Fitabase data by (1) converting datetimes to Beiwe format and (2) re-synchronizing minute-by-minute Fitbit sleep classifications.
 
 ___
 ## 5. Examples <a name="examples"/>
 
-The script `fitrep.examples.fitrep_example.py` provides a sample workflow for using this package.
+The script `fitrep/examples/fitrep_example.py` provides a sample workflow for using this package.
 
 ___
 ## 6. Cautions & Notes <a name="cautions"/>
