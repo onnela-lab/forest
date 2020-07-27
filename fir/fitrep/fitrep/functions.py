@@ -170,6 +170,7 @@ def read_sync(file_path, followup_range):
         logger.warning('Multiple service providers logged: %s' % file_name)
     # get device
     d = list(set(data.DeviceName)) # should be one unique device
+    d = [dn for dn in d if type(dn) is str] # drop nan
     if len(d) == 0:
         device = 'missing'
         logger.warning('Missing device log: %s' % file_name)

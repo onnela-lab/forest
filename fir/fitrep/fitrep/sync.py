@@ -67,6 +67,7 @@ def sync_user(user_id, file_path, followup_range,
               user_record, global_intersync_s):
     sync_summary, local_dts, utc_dts = read_sync(file_path, 
                                                  followup_range)
+    user_record += sync_summary
     user_record += process_intersync(user_id, utc_dts, global_intersync_s)
     user_record += process_offsets(user_id, local_dts, utc_dts)
     logger.info('Processed sync data for user %s.' % user_id)        
