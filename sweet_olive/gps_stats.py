@@ -9,6 +9,7 @@ from datetime import  timedelta,datetime
 import matplotlib.pyplot as plt
 import pytz
 from pytz import timezone
+import calendar
 R = 6.371*10**6
 
 def stamp2datetime(stamp,tz_str):
@@ -371,9 +372,12 @@ def InferMobMat(mobmat,itrvl=10,r=None):
   mobmat = mobmat[mobmat[:,3].argsort()].astype(float)
   return mobmat
 
-def locate_home(MobMat):
+def locate_home(MobMat,tz_str):
   ObsTraj = MobMat[MobMat[:,0]==2,:]
-  hours = [datetime.fromtimestamp((ObsTraj[i,3]+ObsTraj[i,6])/2).hour for i in range(ObsTraj.shape[0])]
+  hours = []
+  for i in range(ObsTraj.shape[0]):
+    (temp_year, temp_month, temp_day, temp_hour, temp_min,temp_sec) = stamp2datetime((ObsTraj[i,3]+ObsTraj[i,6])/2,tz_str)
+    hours.append(temp_hour)
   hours = np.array(hours)
   home_pauses = ObsTraj[((hours>=19)+(hours<=9))*ObsTraj[:,0]==2,:]
   loc_x,loc_y,num_xy,t_xy = num_sig_places(home_pauses,20)
@@ -684,8 +688,8 @@ def checkbound(current_x,current_y,start_x,start_y,end_x,end_y):
   else:
     return 0
 
-def ImputeGPS(MobMat,BV_set,method,switch,linearity):
-  home_x,home_y = locate_home(MobMat)
+def ImputeGPS(MobMat,BV_set,method,switch,linearity,tz_str):
+  home_x,home_y = locate_home(MobMat,tz_str)
   sys.stdout.write("Imputing missing trajectories..." + '\n')
   flight_table, pause_table, mis_table = create_tables(MobMat, BV_set)
   imp_x0 = np.array([]); imp_x1 = np.array([])
@@ -1070,7 +1074,7 @@ def num_sig_places(data,dist):
 def GetStats(traj,tz_str,option):
   sys.stdout.write("Calculating the summary stats..." + '\n')
   ObsTraj = traj[traj[:,7]==1,:]
-  home_x, home_y = locate_home(ObsTraj)
+  home_x, home_y = locate_home(ObsTraj,tz_str)
   summary_stats = []
   if option == "hourly":
     ## find starting and ending time
@@ -1220,7 +1224,7 @@ def summarize_gps(input_path,output_path,tz_str,option,l1,l2,l3,g,a1,a2,b1,b2,b3
           obs = GPS2MobMat(file_path,itrvl=10,accuracylim=51, r=None, w=None,h=None)
           MobMat = InferMobMat(obs,itrvl=10,r=None)
           BV_set = BV_select(MobMat,sigma2,tol,d)["BV_set"]
-          imp_table= ImputeGPS(MobMat,BV_set,"GLC",switch,linearity)
+          imp_table= ImputeGPS(MobMat,BV_set,"GLC",switch,linearity,tz_str)
           traj = Imp2traj(imp_table,MobMat)
           full_traj = pd.DataFrame(traj)
           full_traj.columns = ["status","x0","y0","t0","x1","y1","t1","obs"]
@@ -1263,8 +1267,8 @@ tol = 0.05
 num = 10  # number of bvs being used in determing the transition probability, to adjust for inbalanced pause and flights bvs
 switch = 3 # this controls the difficulty to swith the status (flight to pause, pause to flight, larger means more difficult)
 linearity = 2  #if this goes to infinity, it's connecting starting and ending points with straight line
-option = "daily"
+option = "both"
 tz_str = "America/New_York"
-input_path =  "C:/Users/glius/Downloads/data"
-output_path = "C:/Users/glius/Downloads/output"
+input_path =  "C:/Users/glius/Downloads/spine_data"
+output_path = "C:/Users/glius/Downloads/gps_out"
 summarize_gps(input_path,output_path,tz_str,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch,linearity)
