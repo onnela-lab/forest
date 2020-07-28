@@ -7,7 +7,45 @@ import scipy.stats as stat
 from itertools import groupby
 from datetime import  timedelta,datetime
 import matplotlib.pyplot as plt
+import pytz
+from pytz import timezone
 R = 6.371*10**6
+
+def stamp2datetime(stamp,tz_str):
+    """
+    Docstring
+    Args: stamp: Unix time, integer, the timestamp in Beiwe
+          tz_str: timezone (str), where the study is conducted
+    please use
+    ## from pytz import all_timezones
+    ## all_timezones
+    to check all timezones
+    Return: a tuple of integers (year, month, day, hour (0-23), min) in specified tz
+    """
+    loc_tz =  timezone(tz_str)
+    utc = timezone("UTC")
+    utc_dt = utc.localize(datetime.utcfromtimestamp(stamp))
+    loc_dt = utc_dt.astimezone(loc_tz)
+    return (loc_dt.year, loc_dt.month,loc_dt.day,loc_dt.hour,loc_dt.minute,loc_dt.second)
+
+def datetime2stamp(time_tuple,tz_str):
+    """
+    Docstring
+    Args: time_tupe: a tuple of integers (year, month, day, hour (0-23), min, sec),
+          tz_str: timezone (str), where the study is conducted
+    please use
+    ## from pytz import all_timezones
+    ## all_timezones
+    to check all timezones
+    Return: Unix time, which is what Beiwe uses
+    """
+    loc_tz =  timezone(tz_str)
+    loc_dt = loc_tz.localize(datetime(time_tuple[0], time_tuple[1], time_tuple[2], time_tuple[3], time_tuple[4], time_tuple[5]))
+    utc = timezone("UTC")
+    utc_dt = loc_dt.astimezone(utc)
+    timestamp = calendar.timegm(utc_dt.timetuple())
+    return timestamp
+
 
 def unique(list1):
   # intilize a null list
@@ -1029,45 +1067,36 @@ def num_sig_places(data,dist):
         t_xy[index] = t_xy[index]+data[i,6]-data[i,3]
   return loc_x,loc_y,num_xy,t_xy
 
-def GetStats(traj,option):
+def GetStats(traj,tz_str,option):
   sys.stdout.write("Calculating the summary stats..." + '\n')
   ObsTraj = traj[traj[:,7]==1,:]
   home_x, home_y = locate_home(ObsTraj)
   summary_stats = []
   if option == "hourly":
     ## find starting and ending time
-    start_time = datetime.fromtimestamp(traj[0,3])
-    start_time = start_time + timedelta(hours=1) - timedelta(minutes=start_time.minute,
-                        seconds=start_time.second, microseconds=start_time.microsecond)
-    start_stamp = datetime.timestamp(start_time)
-    end_time = datetime.fromtimestamp(traj[-1,3])
-    end_time = end_time - timedelta(minutes=end_time.minute,
-                        seconds=end_time.second, microseconds=end_time.microsecond)
-    end_stamp = datetime.timestamp(end_time)
+    (start_year, start_month,start_day,start_hour,start_min,start_sec) = stamp2datetime(traj[0,3],tz_str)
+    start_stamp = datetime2stamp((start_year, start_month,start_day,start_hour,0,0),tz_str) + 3600
+    (end_year, end_month,end_day,end_hour,end_min,end_sec) = stamp2datetime(traj[-1,3],tz_str)
+    end_stamp = datetime2stamp((end_year, end_month,end_day,end_hour,0,0),tz_str)
     ## start_time, end_time are exact points (if it is 2019-3-8 11hr, then 11 shouldn't be included)
     h = (end_stamp - start_stamp)/60/60
     window = 60*60
 
   if option == "daily":
     ## find starting and ending time
-    start_time = datetime.fromtimestamp(traj[0,3])
-    start_time = start_time + timedelta(days=1) - timedelta(hours=start_time.hour, minutes=start_time.minute,
-                        seconds=start_time.second, microseconds=start_time.microsecond)
-    start_stamp = datetime.timestamp(start_time)
-    end_time = datetime.fromtimestamp(traj[-1,3])
-    end_time = end_time - timedelta(hours= end_time.hour, minutes=end_time.minute,
-                        seconds=end_time.second, microseconds=end_time.microsecond)
-    end_stamp = datetime.timestamp(end_time)
+    (start_year, start_month,start_day,start_hour,start_min,start_sec) = stamp2datetime(traj[0,3],tz_str)
+    start_stamp = datetime2stamp((start_year, start_month,start_day,0,0,0),tz_str) + 3600*24
+    (end_year, end_month,end_day,end_hour,end_min,end_sec) = stamp2datetime(traj[-1,3],tz_str)
+    end_stamp = datetime2stamp((end_year, end_month,end_day,0,0,0),tz_str)
     ## start_time, end_time are exact points (if it is 2019-3-8 11hr, then start from 2019-3-9)
-    h = (((end_stamp - start_stamp)/60/60)-1)/24
+    h = (end_stamp - start_stamp)/60/60/24
     window = 60*60*24
 
   if h>=1:
     for i in range(int(h)):
       t0 = start_stamp + i*window
       t1 = start_stamp + (i+1)*window
-      current_t = datetime.fromtimestamp(t0)
-      year,month,day,hour = current_t.year, current_t.month,current_t.day,current_t.hour
+      year,month,day,hour,minute,second = stamp2datetime(t0,tz_str)
       ## take a subset, the starting point of the last traj <t1 and the ending point of the first traj >t0
       index = (traj[:,3]<t1)*(traj[:,6]>t0)
       temp = traj[index,:]
@@ -1156,7 +1185,7 @@ def GetStats(traj,option):
                               "radius","diameter","num_sig_places","entropy"])
   return(summary_stats)
 
-def summarize_gps(input_path,output_path,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch,linearity):
+def summarize_gps(input_path,output_path,tz_str,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch,linearity):
   if os.path.exists(output_path+"/trajectory")==False:
     os.mkdir(output_path+"/trajectory")
   if option == "both":
@@ -1198,16 +1227,16 @@ def summarize_gps(input_path,output_path,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigm
           dest_path = output_path +"/trajectory/" + name + "_traj.csv"
           full_traj.to_csv(dest_path,index=False)
           if option == "daily":
-            summary_stats = GetStats(traj,option)
+            summary_stats = GetStats(traj,tz_str,option)
             dest_path = output_path + "/daily/" + name + "_daily_gps.csv"
             summary_stats.to_csv(dest_path,index=False)
           if option == "hourly":
-            summary_stats = GetStats(traj,option)
+            summary_stats = GetStats(traj,tz_str,option)
             dest_path = output_path + "/hourly/" + name + "_hourly_gps.csv"
             summary_stats.to_csv(dest_path,index=False)
           if option == "both":
-            summary_stats1 = GetStats(traj,"hourly")
-            summary_stats2 = GetStats(traj,"daily")
+            summary_stats1 = GetStats(traj,tz_str,"hourly")
+            summary_stats2 = GetStats(traj,tz_str,"daily")
             dest_path = output_path + "/hourly/" + name + "_hourly_gps.csv"
             summary_stats1.to_csv(dest_path,index=False)
             dest_path = output_path + "/daily/" + name + "_daily_gps.csv"
@@ -1235,6 +1264,7 @@ num = 10  # number of bvs being used in determing the transition probability, to
 switch = 3 # this controls the difficulty to swith the status (flight to pause, pause to flight, larger means more difficult)
 linearity = 2  #if this goes to infinity, it's connecting starting and ending points with straight line
 option = "daily"
+tz_str = "America/New_York"
 input_path =  "C:/Users/glius/Downloads/data"
 output_path = "C:/Users/glius/Downloads/output"
-summarize_gps(input_path,output_path,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch,linearity)
+summarize_gps(input_path,output_path,tz_str,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch,linearity)
