@@ -56,7 +56,7 @@ ___
 
 Participants in some Beiwe studies may also use Fitbit activity monitors.  The [Fitabase platform](https://www.fitabase.com/) may be used to handle delivery of Fitbit data, such as step counts and sleep classifications.
 
-This package converts Fitabase data (which are reported in local time) to a format that can be integrated with Beiwe data streams (which are reported in UTC time).
+This package converts Fitabase data (which are reported in local time) to a format that can be integrated with Beiwe data streams (which are reported in UTC time).  This package also handles re-synchronization of Fitbit sleep classifications, which may be offset from UTC time by 30 seconds.
 
 ___
 ## 3.  Fitabase Data <a name="data"/>
@@ -144,10 +144,7 @@ ___
 This module provides functions for various tasks, such as handling Fitabase time formats, parsing Fitabase file names, and summarizing raw Fitabase files.
 ___
 #### `classes` <a name="classes"/>
-
-
-
-
+This module contains the `FitabaseRegistry` class, for representing directories of raw Fitabase data.
 ___
 #### `summary` <a name="summary"/>
 Wrappers for functions that summarize Fitabase file contents.
@@ -175,3 +172,5 @@ ___
 * This package was developed with a limited sample of Fitabase data collected from fifty-three Fitbit Charge 2 devices between April 2017 and March 2020.
 
 * This package does not handle Fitabase data obtained from multiple downloads, e.g. that cover different or overlapping follow-up windows.  For such situations, it may be best to download a new data set that includes the entire time period of interest.  Alternatively, CSVs for corresponding variables can be merged, with care taken to drop duplicate records, before using `fitrep`.
+
+* Fitabase data sets are relatively small, around 100KB per day of data.  Therefore, this package does not implement any optimization strategies.

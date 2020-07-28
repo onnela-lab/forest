@@ -77,7 +77,8 @@ def format_user(user_dict, followup_range):
             else:
                 records = format_data(file_path, data_path, followup_range, 
                                       file_type)
-            write_to_csv(records_path, records)            
+            write_to_csv(records_path, records)    
+            logger.info('Formatted data for %s.' % file_type)
         except:
             logger.warning('Unable to format data for %s.' % file_type)    
 
