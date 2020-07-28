@@ -1,4 +1,5 @@
 ''' Functions for working with raw Fitabase data.
+
 '''
 import os
 import datetime
@@ -290,58 +291,83 @@ def smart_read(file_path, followup_range):
 
 
 def format_data(file_path, data_path, followup_range, file_type):
-    data = smart_read(file_path, followup_range)
-    time_name = datetime_header[file_type]
-    var_name = content_header[file_type]    
-    local_dts = [fbdt_to_dt(fbdt) for fbdt in data[time_name]]
-    var = list(data[var_name])
-    for i in range(len(local_dts)):
-        line = [local_dts[i].strftime(date_time_format), var[i]]
-        write_to_csv(file_path, line)
-    followup_s = (local_dts[-1] - local_dts[0]).total_seconds()
-    followup_days = followup_s / day_s
-    first_observation = local_dts[0].strftime(date_time_format)
-    last_observation = local_dts[-1].strftime(date_time_format)
-    records = [file_type, first_observation, last_observation,
-               len(data), followup_days]
+    file_name = os.path.basename(file_path)
+    try:
+        data = smart_read(file_path, followup_range)
+        time_name = datetime_header[file_type]
+        var_name = content_header[file_type]    
+        local_dts = [fbdt_to_dt(fbdt) for fbdt in data[time_name]]
+        var = list(data[var_name])
+    except:
+        logger.warning('Unable to read data: %s' % file_name)
+    try:
+        for i in range(len(local_dts)):
+            line = [local_dts[i].strftime(date_time_format), var[i]]
+            write_to_csv(data_path, line)
+    except:
+        logger.warning('Unable to write data: %s' % file_name)
+    try:
+        followup_s = (local_dts[-1] - local_dts[0]).total_seconds()
+        followup_days = followup_s / day_s
+        first_observation = local_dts[0].strftime(date_time_format)
+        last_observation = local_dts[-1].strftime(date_time_format)
+        records = [file_type, first_observation, last_observation,
+                   len(data), followup_days]
+    except:
+        records = [file_type] + ['']*4
+        logger.warning('Unable to generate records: %s' % file_name)
     return(records)
 
 
 def format_sleep(file_path, data_path, followup_range):
-    data = smart_read(file_path, followup_range)
-    async_dts = [fbdt_to_dt(fbdt) for fbdt in data['date']]
-    async_var = list(data['value'])
+    file_name = os.path.basename(file_path)
+    try:
+        data = smart_read(file_path, followup_range)
+        async_dts = [fbdt_to_dt(fbdt) for fbdt in data['date']]
+        async_var = list(data['value'])
+    except:
+        logger.warning('Unable to read data: %s' % file_name)
     # resync
-    already_synced = []
-    first  = OrderedDict({}) #  first 30 seconds of every minute
-    second = OrderedDict({}) # second 30 seconds of every minute
-    for i in range(len(async_dts)):
-        if async_dts[i].second == 0:
-            t = async_dts[i].strftime(date_time_format)
-            first[t]  = async_var[i]
-            second[t] = async_var[i]
-            already_synced.append(t)
-        if async_dts[i].second == 30:
-            delta = datetime.timedelta(seconds = 30)
-            before = (async_dts[i] - delta).strftime(date_time_format)
-            after  = (async_dts[i] + delta).strftime(date_time_format)
-            first[after]   = async_var[i]
-            second[before] = async_var[i]
-    first_observation = None
-    last_observation = None
-    n_observations = 0
-    for t in first:
-        # only write minutes in which first & second agree        
-        if first[t] == second[t]:
-            line = [t, first[t], t in already_synced]
-            write_to_csv(file_path, line)            
-            if first_observation is None: first_observation = t
-            last_observation = t
-            n_observations += 1
-    first_dt = datetime.datetime.strptime(first_observation, date_time_format)
-    last_dt =  datetime.datetime.strptime(last_observation, date_time_format)
-    followup_s = (last_dt - first_dt).total_seconds()
-    followup_days = followup_s / day_s
-    records = ['minuteSleep', first_observation, last_observation,
-               followup_days]
+    try:
+        already_synced = []
+        first  = OrderedDict({}) #  first 30 seconds of every minute
+        second = OrderedDict({}) # second 30 seconds of every minute
+        for i in range(len(async_dts)):
+            if async_dts[i].second == 0:
+                t = async_dts[i].strftime(date_time_format)
+                first[t]  = async_var[i]
+                second[t] = async_var[i]
+                already_synced.append(t)
+            if async_dts[i].second == 30:
+                delta = datetime.timedelta(seconds = 30)
+                before = (async_dts[i] - delta).strftime(date_time_format)
+                after  = (async_dts[i] + delta).strftime(date_time_format)
+                first[after]   = async_var[i]
+                second[before] = async_var[i]
+    except:
+        logger.warning('Unable to resync data: %s' % file_name)
+    try:
+        first_observation = None
+        last_observation = None
+        n_observations = 0
+        for t in first:
+            # only write minutes in which first & second agree        
+            if t in second and first[t] == second[t]:
+                line = [t, first[t], not t in already_synced]
+                write_to_csv(data_path, line)            
+                if first_observation is None: first_observation = t
+                last_observation = t
+                n_observations += 1
+    except:
+        logger.warning('Unable to write data: %s' % file_name)
+    try:
+        first_dt = datetime.datetime.strptime(first_observation, date_time_format)
+        last_dt =  datetime.datetime.strptime(last_observation, date_time_format)
+        followup_s = (last_dt - first_dt).total_seconds()
+        followup_days = followup_s / day_s
+        records = ['minuteSleep', first_observation, last_observation,
+                   n_observations, followup_days]
+    except:
+        records = ['minuteSleep'] + ['']*4
+        logger.warning('Unable to generate records: %s' % file_name)
     return(records)

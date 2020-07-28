@@ -1,4 +1,5 @@
 ''' Functions for summarizing a directory of raw Fitabase data.
+
 '''
 import os
 import logging

@@ -1,4 +1,5 @@
 ''' Functions for processing raw Fitabase syncEvents files.
+
 '''
 import os
 import logging

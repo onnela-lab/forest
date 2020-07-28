@@ -14,5 +14,5 @@ setup(
     author='Josh Barback',
     author_email='onnela.lab@gmail.com',
     license=license,
-    packages=find_packages(),
+    packages=find_packages()
 )

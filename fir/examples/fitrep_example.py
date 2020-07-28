@@ -103,12 +103,17 @@ Sync.do(**kwargs)
 ###############################################################################
 from fitrep import pack_format_kwargs, Format
 # pack arguments for Format.do():
-kwargs = pack_format_kwargs()
+kwargs = pack_format_kwargs(user_ids = r.ids,
+                            proc_dir = proc_dir,
+                            file_types = file_types, 
+                            registry = r, 
+                            track_time = True)
     
 # reformat files:
 Format.do(**kwargs)    
     
 # Review proc_dir/format/log/log.csv:
-#   - 
+#   - Check for log records with "WARNING" in the levelname column.
+
 
 # Reformatted files are in proc_dir/format/data/.    

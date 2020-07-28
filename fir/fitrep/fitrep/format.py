@@ -1,4 +1,5 @@
 ''' Functions for reformatting raw Fitabase files.
+
 '''
 import os
 import logging
@@ -43,7 +44,7 @@ def setup_output(proc_dir, track_time):
     return(records_dir, data_dir)        
 
 
-@easy(['user_dict', 'followup_range'])
+@easy(['user_dict', 'user_records', 'followup_range'])
 def setup_user(registry, user_id, followup_ranges, file_types,
                records_dir, data_dir):
     # get followup dates
@@ -52,39 +53,41 @@ def setup_user(registry, user_id, followup_ranges, file_types,
     else:
         followup_range = None    
     # set up input/output paths
+    user_records = setup_csv(user_id, records_dir, format_records_header)
     ud = os.path.join(data_dir, user_id)
     setup_directories(ud)
     user_dict = {}
     for ft in file_types:
         if not ft == 'syncEvents':
-            fp = registry.lookup[user_id][ft]
-            fr = setup_csv(user_id, records_dir, format_records_header)
-            dh = format_data_header
-            if ft == 'minuteSleep': dh += ['resync']
+            fn = registry.lookup[user_id][ft] 
+            fp = os.path.join(registry.directory, fn)
+            if ft == 'minuteSleep': dh = format_data_header + ['resync']
+            else: dh = format_data_header
             fd = setup_csv(ft, ud, dh)
-            user_dict[ft] = (fp, fr, fd)
+            user_dict[ft] = (fp, fd)
     logger.info('Finished setup for user %s' % user_id)    
-    return(user_dict, followup_range)
+    return(user_dict, user_records, followup_range)
 
 
 @easy([])
-def format_user(user_dict, followup_range):
+def format_user(user_dict, user_records, followup_range):
     for file_type in user_dict:
-        file_path, records_path, data_path = user_dict[file_type]
+        file_path, data_path = user_dict[file_type]
         try:
             if file_type == 'minuteSleep':
                 records = format_sleep(file_path, data_path, followup_range)
             else:
                 records = format_data(file_path, data_path, followup_range, 
                                       file_type)
-            write_to_csv(records_path, records)    
+            write_to_csv(user_records, records)    
             logger.info('Formatted data for %s.' % file_type)
         except:
             logger.warning('Unable to format data for %s.' % file_type)    
 
 
 def pack_format_kwargs(user_ids, proc_dir, file_types, registry, 
-                       track_time = True, id_lookup = {}):
+                       followup_ranges = {}, track_time = True, 
+                       id_lookup = {}):
     '''
     Packs kwargs for fitrep.Format.do().
     
@@ -95,6 +98,12 @@ def pack_format_kwargs(user_ids, proc_dir, file_types, registry,
             List of supported Fitabase file types (str) to format.
         registry (fitrep.classes.FitabaseRegistry): 
             Registry for a folder of Fitabase files.
+        followup_ranges (dict):
+            Keys are identifiers from user_ids.
+            Values are tuples (start, end), the local datetime strings in 
+            date_time_format for the beginning and ending of followup for 
+            the corresponding user id.
+            If empty, all observations are included.        
         track_time (bool): If True, output to a timestamped folder.    
         id_lookup (dict): Optional.
             If identifiers in user_ids aren't Fitabase identifiers,
@@ -113,6 +122,7 @@ def pack_format_kwargs(user_ids, proc_dir, file_types, registry,
         'proc_dir': proc_dir,
         'file_types': file_types,
         'registry': registry,
+        'followup_ranges': followup_ranges,
         'track_time': track_time
         }
     kwargs['id_lookup'] = id_lookup
