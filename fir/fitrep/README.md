@@ -111,6 +111,7 @@ Each file type has a slightly different name according to where it is mentioned.
 |Location|1|2|3|
 |-----|-----|-----|-----|
 |*File Name* | `heartrate_1min` | `minuteCaloriesNarrow` | `minuteIntensitiesNarrow` |
+|*Variable Name*| `Value` | `Calories` | `Intensity` |
 |[*Batch Export Options (Row / Column)*](https://www.fitabase.com/resources/knowledge-base/exporting-data/the-batch-export-tool/) | Heart Rate / Minute | Calories / Minute | Intensities /			 Minute |
 |*Dashboard Export Details* | Heart Rate 1 Min Avg | Calories Minutes | Intensity Minutes |
 |[*Data Dictionary  (Category / Subcategory)*](https://www.fitabase.com/media/1748/fitabasedatadictionary.pdf)| Heart Rate / 1 Minute | Calories / Minute (narrow) | Intensity / Minute (narrow) |
@@ -118,6 +119,7 @@ Each file type has a slightly different name according to where it is mentioned.
 |Location|4|5|6|7|
 |-----|-----|-----|-----|-----|
 |*File Name* | `minuteMETsNarrow` | `minuteSleep` | `minuteStepsNarrow` | `syncEvents` |
+|*Variable Name*| `METs` | `value` | `Steps` |  |
 |[*Batch Export Options (Row / Column)*](https://www.fitabase.com/resources/knowledge-base/exporting-data/the-batch-export-tool/) | METs / Minute | Sleep / Minute | Steps / Minute | Sync Events / Other |
 |*Dashboard Export Details* | METs Minutes | Sleep Minutes | Steps Minutes | Sync Events |
 |[*Data Dictionary  (Category / Subcategory)*](https://www.fitabase.com/media/1748/fitabasedatadictionary.pdf)| Intensity / METs - Minute (narrow) | Sleep / Classic Sleep Log (1 minute) | Steps / Minute (narrow) |  Sync Data / Sync Events |

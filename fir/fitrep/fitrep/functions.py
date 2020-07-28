@@ -10,7 +10,7 @@ from beiwetools.helpers.time import (UTC, day_s, hour_s,
                                      date_only, date_time_format, 
                                      datatime_to_dt, reformat_datetime)
 from beiwetools.helpers.process import to_1Darray
-from .headers import datetime_header
+from .headers import datetime_header, content_header
 
 
 logger = logging.getLogger(__name__)
@@ -152,12 +152,14 @@ def read_sync(file_path, followup_range):
     data.drop_duplicates(subset = 'SyncDateUTC',
                          inplace = True)
     # drop observations outside of followup range
+    # replace this with smart_read()
     if not followup_range is None:
         t0 = datatime_to_dt(followup_range[0])
         t1 = datatime_to_dt(followup_range[1])
         dts = [fbdt_to_dt(fbdt, UTC) for fbdt in data.SyncDateUTC]
         i_to_keep = [i for i in range(len(dts)) if dts[i] >= t0 and dts[i] < t1]
         data = data.iloc[i_to_keep]
+        data.set_index(np.arange(len(data)), inplace = True)
     # get provider
     p = list(set(data.Provider)) # should be one unique provider 
     if len(p) == 0:
@@ -257,29 +259,13 @@ def process_offsets(user_id, local_dts, utc_dts):
     return(offset_summary)
 
 
-
-
-#file_path = '/home/josh/Desktop/_Winter_2019_research/HOPE_other_data/fitabase/individual/Export-3-9-2020_11_05_am/2034_syncEvents_20170201_20200309.csv'
-# followup_range = ['9/25/2018 2:33:36 PM', '9/25/2018 2:44:59 PM']
-# '%Y-%m-%dT%H:%M:%S.%f'
-#followup_range = ['2018-09-25T14:33:36.000', 
-#                  '2018-09-25T14:44:59.000']
-
-
-
-def smart_load(file_path, file_type, offsets, followup_range):    
+def smart_read(file_path, followup_range):    
     '''
     Load a raw Fitabase file and drop observations that are outside of 
     the followup period.
 
     Args:
         file_path (str): Path to raw Fitabase data file.
-        file_type (str): A key from headers.raw_header.
-        
-        
-        offsets (OrderedDict): 
-
-            
         followup_range (tuple or Nonetype): A pair of local datetime strings in 
             date_time_format for the beginning and ending of followup.
             If None, no observations are dropped.
@@ -287,27 +273,44 @@ def smart_load(file_path, file_type, offsets, followup_range):
     Returns:
         data (pd.DataFrame): The contents of the raw Fitabase file, excluding
             observations that are out of range.
-            
-            new columns?
-            
-            
     '''
     data = pd.read_csv(file_path)
-    if not followup_range is None:
-        t0 = datatime_to_dt(followup_range[0])
-        t1 = datatime_to_dt(followup_range[1])
-    pass
+    try:
+        if not followup_range is None:
+            t0 = datatime_to_dt(followup_range[0])
+            t1 = datatime_to_dt(followup_range[1])
+            dts = [fbdt_to_dt(fbdt, UTC) for fbdt in data.SyncDateUTC]
+            i_to_keep = [i for i in range(len(dts)) if dts[i] >= t0 and dts[i] < t1]
+            data = data.iloc[i_to_keep]
+            data.set_index(np.arange(len(data)), inplace = True)
+    except:
+        file_name = os.path.basename(file_path)
+        logger.warning('Unable to apply followup range: %s' % file_path)
+    return(data)
 
 
-
-def process_data(file_path, offset_dict):
-    pass
-
-
-def process_sleep(file_path, offset_dict):
-    pass    
+def format_data(file_path, data_path, followup_range, file_type):
+    data = smart_read(file_path, followup_range)
+    time_name = datetime_header[file_type]
+    var_name = content_header[file_type]
     
+    local_dts = [fbdt_to_dt(fbdt) for fbdt in data[time_name]]
+    var = list(data[var_name])
+    for i in range(len(local_dts)):
+        write_to_csv()
+
+    line = [dt.str, var]
+followup_range = None
     
+    return(records)
+
+
+def format_sleep(file_path, data_path, followup_range):
+    data = smart_read(file_path)
+
+
+    
+    return(records)
     
     
     

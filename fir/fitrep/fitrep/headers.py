@@ -49,6 +49,24 @@ sync_records_header = [ # Column names for sync output files
 ]
 
 
+format_records_header = [ # Column names for format records.
+'file_type',         # A key from raw_header.
+'first_observation', # Datetime of first observation.
+'last_observation',  # Datetime of last observation.
+'n_observations',    # Number of observations.
+'followup_days'      # Elapsed days between first and last observations.
+]
+    
+    
+format_data_header = [ # Column names for format data output.
+'local_datetime', # The minute corresponding to the value, '%Y-%m-%d %H:%M:00'.
+'value', # The value reported by Fitbit.
+# Note that minuteSleep files have an extra column.  The 'resync' value is 
+# a boolean indicating whether or not the value is aggregated from 
+# neighboring values that were offset by 30 seconds.
+]    
+
+
 datetime_header = { # Names for Fitabase columns that contain local datetimes
 'heartrate_1min': 'Time',
 'minuteCaloriesNarrow': 'ActivityMinute',
@@ -57,6 +75,16 @@ datetime_header = { # Names for Fitabase columns that contain local datetimes
 'minuteSleep': 'date',
 'minuteStepsNarrow': 'ActivityMinute',
 'syncEvents': 'DateTime'
+}
+
+
+content_header = { # Names for Fitabase columns that contain observations.
+'heartrate_1min': 'Value',
+'minuteCaloriesNarrow': 'Calories',
+'minuteIntensitiesNarrow': 'Intensity',
+'minuteMETsNarrow': 'METs',
+'minuteSleep': 'value',
+'minuteStepsNarrow': 'Steps',
 }
 
 
