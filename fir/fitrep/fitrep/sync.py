@@ -22,13 +22,13 @@ def setup_output(proc_dir, track_time):
     Set up summary output.
 
     Args:
-        proc_dir (str): 
+        proc_dir (str):  Location for fitrep output.
         track_time (bool): If True, output to a timestamped folder.
         
     Returns:
         records_path (str): Path to sync records CSV file.
-        offsets_dir (str): Directory for saving offset dictionaries.
-        global_intersync_s (list): Empty list to contain
+        global_intersync_s (list): Empty list to contain intersync times
+            from individual devices.
     '''
     out_dir = os.path.join(proc_dir, 'fitrep', 'sync')
     if track_time:

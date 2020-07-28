@@ -20,7 +20,7 @@ def setup_output(proc_dir, file_types, track_time):
     Set up summary output.
 
     Args:
-        proc_dir (str): 
+        proc_dir (str): Location for fitrep output.
         file_types (list): List of Fitabase file types.
         track_time (bool): If True, output to a timestamped folder.
         
