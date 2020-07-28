@@ -53,8 +53,10 @@ Summary.do(**kwargs)
 #       - Note p_offsets, the proportion of sleep observations with a 30-second
 #         synchronization offset.
 
-# At this point, it may be desirable to define a restricted set of user ids,
+# At this point, it may be desirable to define a restricted set of Fitabase ids,
 # file types, or followup periods.  
+#   - A Fitabase ID with data mingled from multiple sources (devices or apps)
+#     may need to be excluded.
 #   - See documentation on format for followup_ranges, which can be passed 
 #     to fitrep.Sync.do() and fitrep.Format.do().
 #   - Also see documentation on format for id_lookup, an optional argument
@@ -114,6 +116,15 @@ Format.do(**kwargs)
     
 # Review proc_dir/format/log/log.csv:
 #   - Check for log records with "WARNING" in the levelname column.
+#   - Warning messages may correspond to specific files that could not be 
+#     processed.
 
+# Review individual records in proc_dir/format/records/.
+#   - Check follow up periods for each combination of user & file type.
 
-# Reformatted files are in proc_dir/format/data/.    
+# Reformatted files are in proc_dir/format/data/.
+#   - Column headers are "local_datetime" and "value".
+#   - minuteSleep files have another column, "resync".  If resync = False, the
+#     observation is an original Fitbit sleep classification.  An observation 
+#     is tagged resync = True if it was assembled from two neighboring 
+#     observations that agreed on sleep classification.
