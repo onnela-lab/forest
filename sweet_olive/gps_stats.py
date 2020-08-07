@@ -21,18 +21,18 @@ def stamp2datetime(stamp,tz_str):
     ## from pytz import all_timezones
     ## all_timezones
     to check all timezones
-    Return: a tuple of integers (year, month, day, hour (0-23), min) in specified tz
+    Return: a list of integers (year, month, day, hour (0-23), min) in specified tz
     """
     loc_tz =  timezone(tz_str)
     utc = timezone("UTC")
     utc_dt = utc.localize(datetime.utcfromtimestamp(stamp))
     loc_dt = utc_dt.astimezone(loc_tz)
-    return (loc_dt.year, loc_dt.month,loc_dt.day,loc_dt.hour,loc_dt.minute,loc_dt.second)
+    return [loc_dt.year, loc_dt.month,loc_dt.day,loc_dt.hour,loc_dt.minute,loc_dt.second]
 
-def datetime2stamp(time_tuple,tz_str):
+def datetime2stamp(time_list,tz_str):
     """
     Docstring
-    Args: time_tupe: a tuple of integers (year, month, day, hour (0-23), min, sec),
+    Args: time_list: a list of integers (year, month, day, hour (0-23), min, sec),
           tz_str: timezone (str), where the study is conducted
     please use
     ## from pytz import all_timezones
@@ -41,12 +41,12 @@ def datetime2stamp(time_tuple,tz_str):
     Return: Unix time, which is what Beiwe uses
     """
     loc_tz =  timezone(tz_str)
-    loc_dt = loc_tz.localize(datetime(time_tuple[0], time_tuple[1], time_tuple[2], time_tuple[3], time_tuple[4], time_tuple[5]))
+    loc_dt = loc_tz.localize(datetime(int(time_list[0]), int(time_list[1]), int(time_list[2]),
+                           int(time_list[3]), int(time_list[4]), int(time_list[5])))
     utc = timezone("UTC")
     utc_dt = loc_dt.astimezone(utc)
     timestamp = calendar.timegm(utc_dt.timetuple())
     return timestamp
-
 
 def unique(list1):
   # intilize a null list
@@ -376,8 +376,8 @@ def locate_home(MobMat,tz_str):
   ObsTraj = MobMat[MobMat[:,0]==2,:]
   hours = []
   for i in range(ObsTraj.shape[0]):
-    (temp_year, temp_month, temp_day, temp_hour, temp_min,temp_sec) = stamp2datetime((ObsTraj[i,3]+ObsTraj[i,6])/2,tz_str)
-    hours.append(temp_hour)
+    time_list = stamp2datetime((ObsTraj[i,3]+ObsTraj[i,6])/2,tz_str)
+    hours.append(time_list[3])
   hours = np.array(hours)
   home_pauses = ObsTraj[((hours>=19)+(hours<=9))*ObsTraj[:,0]==2,:]
   loc_x,loc_y,num_xy,t_xy = num_sig_places(home_pauses,20)
@@ -1078,20 +1078,24 @@ def GetStats(traj,tz_str,option):
   summary_stats = []
   if option == "hourly":
     ## find starting and ending time
-    (start_year, start_month,start_day,start_hour,start_min,start_sec) = stamp2datetime(traj[0,3],tz_str)
-    start_stamp = datetime2stamp((start_year, start_month,start_day,start_hour,0,0),tz_str) + 3600
-    (end_year, end_month,end_day,end_hour,end_min,end_sec) = stamp2datetime(traj[-1,3],tz_str)
-    end_stamp = datetime2stamp((end_year, end_month,end_day,end_hour,0,0),tz_str)
+    time_list = stamp2datetime(traj[0,3],tz_str)
+    time_list[4]=0; time_list[5]=0
+    start_stamp = datetime2stamp(time_list,tz_str) + 3600
+    time_list = stamp2datetime(traj[-1,3],tz_str)
+    time_list[4]=0; time_list[5]=0
+    end_stamp = datetime2stamp(time_list,tz_str)
     ## start_time, end_time are exact points (if it is 2019-3-8 11hr, then 11 shouldn't be included)
     h = (end_stamp - start_stamp)/60/60
     window = 60*60
 
   if option == "daily":
     ## find starting and ending time
-    (start_year, start_month,start_day,start_hour,start_min,start_sec) = stamp2datetime(traj[0,3],tz_str)
-    start_stamp = datetime2stamp((start_year, start_month,start_day,0,0,0),tz_str) + 3600*24
-    (end_year, end_month,end_day,end_hour,end_min,end_sec) = stamp2datetime(traj[-1,3],tz_str)
-    end_stamp = datetime2stamp((end_year, end_month,end_day,0,0,0),tz_str)
+    time_list = stamp2datetime(traj[0,3],tz_str)
+    time_list[3]=0; time_list[4]=0; time_list[5]=0
+    start_stamp = datetime2stamp(time_list,tz_str) + 3600*24
+    time_list = stamp2datetime(traj[-1,3],tz_str)
+    time_list[3]=0; time_list[4]=0; time_list[5]=0
+    end_stamp = datetime2stamp(time_list,tz_str)
     ## start_time, end_time are exact points (if it is 2019-3-8 11hr, then start from 2019-3-9)
     h = (end_stamp - start_stamp)/60/60/24
     window = 60*60*24
@@ -1100,7 +1104,11 @@ def GetStats(traj,tz_str,option):
     for i in range(int(h)):
       t0 = start_stamp + i*window
       t1 = start_stamp + (i+1)*window
-      year,month,day,hour,minute,second = stamp2datetime(t0,tz_str)
+      current_time_list = stamp2datetime(t0,tz_str)
+      year = current_time_list[0]
+      month = current_time_list[1]
+      day = current_time_list[2]
+      hour = current_time_list[3]
       ## take a subset, the starting point of the last traj <t1 and the ending point of the first traj >t0
       index = (traj[:,3]<t1)*(traj[:,6]>t0)
       temp = traj[index,:]
@@ -1269,6 +1277,6 @@ switch = 3 # this controls the difficulty to swith the status (flight to pause, 
 linearity = 2  #if this goes to infinity, it's connecting starting and ending points with straight line
 option = "both"
 tz_str = "America/New_York"
-input_path =  "C:/Users/glius/Downloads/spine_data"
+input_path =  "F:/DATA/hope"
 output_path = "C:/Users/glius/Downloads/gps_out"
 summarize_gps(input_path,output_path,tz_str,option,l1,l2,l3,g,a1,a2,b1,b2,b3,d,sigma2,tol,num,switch,linearity)
