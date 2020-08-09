@@ -1,20 +1,29 @@
 
-iOS:
+
+'iOS':
+
+"Unlocked": ['protected_data_available': True]
+"Locked": ['protected_data_available': False]
+
+"Unknown": ['external_power': 'unknown']
+"Unplugged": ['external_power': 'unplugged']
+"Charging": ['external_power': 'charging']
+"Full": ['external_power': 'full']
 
 
-Android:
+'Android':
 
-"Screen turned off"
-"Screen turned on"
+"Screen turned on": ['interactive', True]
+"Screen turned off": ['interactive', False]
 
-"Power connected"
-"Power disconnected"
+"Power connected": ['external_power', True]
+"Power disconnected": ['external_power', False]
 
-"Device shut down signal received"
-"Device reboot signal received"
+"Device shut down signal received": ['power_off', 'shutdown']
+"Device reboot signal received": ['power_off', 'reboot']
 
-"Power Save Mode state change signal received; device in power save state."
-"Power Save Mode change signal received; device not in power save state."
+"Power Save Mode state change signal received; device in power save state.": ['power_save', True]
+"Power Save Mode change signal received; device not in power save state.": ['power_save', False]
 
-"Device Idle (Doze) state change signal received; device in idle state."
-"Device Idle (Doze) state change signal received; device not in idle state."
+"Device Idle (Doze) state change signal received; device in idle state.": ['doze', True]
+"Device Idle (Doze) state change signal received; device not in idle state.": ['doze', False]

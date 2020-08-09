@@ -6,7 +6,7 @@ ___
 powrep
 ===
 
-The `powrep` package provides tools for processing raw Beiwe power state data.  This document gives an overview of power state data collection on the Beiwe platform, followed by a brief description of each module.
+The `powrep` package provides some limited tools for processing raw Beiwe power state data.  This document gives an overview of power state data collection on the Beiwe platform, links to Apple and Android documentation, and a brief description of each module in the package.
 
 Note that `powrep` requires the `beiwetools` package, located in the `forest/poplar` repository.  
 
@@ -64,9 +64,7 @@ In addition to a timestamp, date-time, and event description, each observation a
 ___
 #### Availability of Encrypted Data
 
-Encrypted iPhone data 
-
-The `Unlocked` and `Locked` power state events correspond to transitions between these two states; see Apple's UIKit documentation for details.
+Encrypted iPhone files may be available or unavailable according to whether the device is unlocked or locked.  The `Unlocked` and `Locked` power state events correspond to transitions between these two states; see Apple's UIKit documentation for details.
 		
 
 | **Beiwe Event** | **UIKit Notification**|
@@ -94,13 +92,12 @@ ___
 
 On Android phones, the Beiwe `power_state` data stream reports operating system ["intents"](https://developer.android.com/reference/android/content/Intent) corresponding to transitions in the device's interactive state and power states.  Reporting is handled by an instance of [this class](`https://github.com/onnela-lab/beiwe-android/blob/master/app/src/main/java/org/beiwe/app/listeners/PowerStateListener.java`).  
 
-Transitions between power states are handled by Android's [`DeviceIdleController`](https://github.com/aosp-mirror/platform_frameworks_base/blob/nougat-release/services/core/java/com/android/server/DeviceIdleController.java).
-[This article](https://medium.com/@tsungi/android-doze-tweaks-83dadb5b4a9a) provides an informal overview, with state diagrams.
+Below are brief descriptions of the ten Android power state events; refer to Android documentation for details.
 
 ___
 #### Interactive State
 
-**Note:  The names of these events and intents are misleading.  These events actually refer to whether the phone is in an "interactive" state.  Earlier in the history of Android, this was the same as the screen power state.  However, as of Android xx, the screen may be powered on or off regardless of whether the phone is interactive.**
+**Important note:  The names of these events and intents are misleading.  These events actually refer to whether the phone is transitioning to or from an ["interactive"](https://developer.android.com/reference/android/os/PowerManager#isInteractive\(\)) state.  Earlier in the history of Android, this was the same as the screen power state.  However, for recent Android versions, the screen may be powered on or off regardless of whether the phone is interactive.**
 
 
 | **Beiwe Event** | **Android Intent**|
@@ -108,37 +105,43 @@ ___
 |`Screen turned off` | [ACTION\_SCREEN\_OFF](https://developer.android.com/reference/android/content/Intent.html#ACTION\_SCREEN\_OFF)|
 |`Screen turned on` | [ACTION\_SCREEN\_ON](https://developer.android.com/reference/android/content/Intent.html#ACTION\_SCREEN\_ON)|
 
-https://developer.android.com/reference/android/os/PowerManager.html#isInteractive()
-
-
 
 ___
 #### External Power
 
+These events are logged when the device is connected or disconnected from an external power source.
+
 | **Beiwe Event** | **Android Intent**|
 |-----------|-----------|
-|`Power connected` | [ACTION\_POWER\_CONNECTED]()|
-|`Power disconnected` | [ACTION\_POWER\_DISCONNECTED]()|
+|`Power connected` | [ACTION\_POWER\_CONNECTED](https://developer.android.com/reference/android/content/Intent.html#ACTION_POWER_CONNECTED)|
+|`Power disconnected` | [ACTION\_POWER\_DISCONNECTED](https://developer.android.com/reference/android/content/Intent.html#ACTION_POWER_DISCONNECTED)|
 
 ___
-#### Power Save
+#### Shut Down & Reboot
 
-[ACTION\_POWER\_SAVE\_MODE\_CHANGED]()
-
-[isPowerSaveMode()]()
+These events are logged when the device prepares to shut down or reboot.
 
 
-
-| **Beiwe Event** | ****|
+| **Beiwe Event** | **Android Intent**|
 |-----------|-----------|
-|`Power Save Mode state change signal received; device in power save state.`||
-|`Power Save Mode change signal received; device not in power save state.`||
-
+|`Device shut down signal received`| [ACTION\_SHUTDOWN](https://developer.android.com/reference/android/content/Intent.html#ACTION_SHUTDOWN)|
+|`Device reboot signal received`| [ACTION\_REBOOT](https://developer.android.com/reference/android/content/Intent.html#ACTION_REBOOT)|
 
 ___
-#### Doze
+#### Power Save Mode
 
-Doze was originally introduced in [Android 6.0](https://developer.android.com/about/versions/marshmallow/android-6.0-changes).  This original implementation appears in all subsequent versions of Android, and is sometimes referred to as "Deep Doze."  It is a power-saving state initiated when these three conditions have been met for some period of time:
+Android's [PowerManager](https://developer.android.com/reference/android/os/PowerManager) was introduced in version 5.0; this enables the device to enter a low-power, battery-conserving state.  Transitions to and from Android's ["power save mode"](https://developer.android.com/reference/android/os/PowerManager#isPowerSaveMode\(\)) are signaled by the same intent: [ACTION\_POWER\_SAVE\_MODE\_CHANGED](https://developer.android.com/reference/android/os/PowerManager#ACTION_POWER_SAVE_MODE_CHANGED).
+
+
+| **Beiwe Event** |
+|-----------|
+|`Power Save Mode state change signal received; device in power save state.`|
+|`Power Save Mode change signal received; device not in power save state.`|
+
+___
+#### Doze (Idle Mode)
+
+The [Doze feature](https://developer.android.com/reference/android/os/PowerManager#isDeviceIdleMode\(\)) was originally introduced in [Android 6.0](https://developer.android.com/about/versions/marshmallow/android-6.0-changes).  The original implementation appears in all subsequent versions of Android, and is sometimes referred to as "Deep Doze."  It is a power-saving state initiated when three conditions have been met for some period of time:
 
 1. The device is unplugged,
 2. The device is stationary,
@@ -147,25 +150,19 @@ Doze was originally introduced in [Android 6.0](https://developer.android.com/ab
 A second, less restrictive version of Doze has been implemented since [Android 7.0](https://developer.android.com/about/versions/nougat/android-7.0-changes).  This state is sometimes called "Light Doze," and it may be initiated when only conditions (1) and (3) are met.  For example, a phone may enter Light Doze if it is carried in a pocket while the user is walking.
 
 
-[ACTION\_DEVICE\_IDLE\_MODE\_CHANGED]()
+Transitions among these power states are handled by Android's [`DeviceIdleController`](https://github.com/aosp-mirror/platform_frameworks_base/blob/nougat-release/services/core/java/com/android/server/DeviceIdleController.java).
+[This article](https://medium.com/@tsungi/android-doze-tweaks-83dadb5b4a9a) provides an informal overview, with state diagrams.  
 
-[isDeviceIdleMode()]()
-
-| **Beiwe Event** | ****|
-|-----------|-----------|
-|`Device Idle (Doze) state change signal received; device in idle state.`||
-|`Device Idle (Doze) state change signal received; device not in idle state.`||
+Transitions in and out of Doze are signaled by the same intent: [ACTION\_DEVICE\_IDLE\_MODE\_CHANGED](https://developer.android.com/reference/android/os/PowerManager#ACTION_DEVICE_IDLE_MODE_CHANGED).  Beiwe power state events do not distinguish between Deep Doze and Light Doze; however, it may be possible to infer the correct level of Doze based on recent sensor observations.
 
 
+| **Beiwe Event** |
+|-----------|
+|`Device Idle (Doze) state change signal received; device in idle state.`|
+|`Device Idle (Doze) state change signal received; device not in idle state.`|
 
 
-___
-#### Device Turned Off
 
-| **Beiwe Event** | **Android Intent**|
-|-----------|-----------|
-|`Device shut down signal received`| [ACTION\_SHUTDOWN]()|
-|`Device reboot signal received`| [ACTION\_REBOOT]()|
 
 
 

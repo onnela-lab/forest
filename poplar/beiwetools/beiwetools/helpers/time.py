@@ -204,3 +204,21 @@ def between_days(start_date, end_date):
         dt_list.append(dt_list[-1] + datetime.timedelta(days = 1))
     date_list = [dt.strftime(date_only) for dt in dt_list]
     return(date_list)
+
+
+def round_timestamp(timestamp):
+    '''
+    Given an arbitrary timestamp, get timestamps for the nearest previous and 
+    following UTC minutes.
+
+	Args:
+		timestamp (int):  Timestamp in milliseconds.
+
+    Returns:
+        rounded(tuple):  A pair of millisecond timestamps:
+            (<previous minute timestamp>, <following minute timestamp>)    
+    '''
+    previous = timestamp - timestamp%min_ms
+    following = previous + min_ms    
+    rounded = (previous, following)
+    return(rounded)
