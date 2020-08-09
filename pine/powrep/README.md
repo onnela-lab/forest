@@ -28,14 +28,13 @@ ___
 ## Table of Contents
 1.  [Version Notes](#version)  
 2.  [Overview](#overview)  
-3.  [iOS Events](#ios)      
-4.  [Android Events](#android)  
+3.  [iOS Power State Events](#ios)      
+4.  [Android Power State Events](#android)  
 5.  [Modules](#modules)
     * [`headers`](#headers)      
 	* [`functions`](#functions)  
 	* [`classes`](#classes)  
 	* [`summary`](#summary)  
-	* [`plot`](#plot)  	
 6.  [Examples](#examples)  
 7.  [Cautions & Notes](#cautions)  
 
@@ -50,35 +49,54 @@ This package requires the `beiwetools` package, which can be found in the `fores
 ___
 ## 2. Overview <a name="version"/>
 
-The iOS and Android versions of the Beiwe app can be configured to collect various operating system messages related to a phone's power state.  These are collected and organized by the Beiwe backend according to standard conventions for raw data.  However, note that the raw file format and contents differ between iOS and Android.  The following two sections provide details.
+The iOS and Android versions of the Beiwe app can be configured to collect various operating system messages related to a phone's power state.  These are collected and organized by the Beiwe backend according to the usual conventions for raw Beiwe data.  However, note that the raw file format and contents differ between iOS and Android.  The following two sections provide details.
 
 See `beiwetools/README.md` for more information about Beiwe time formats, file-naming conventions, and directory structure.
 
 ___
-## 3. iOS Events <a name="ios"/>
+## 3. iOS Power State Events <a name="ios"/>
 
 
-On Apple devices, the Beiwe `power_state` data stream is handled by:
+On Apple devices, the Beiwe `power_state` data stream is handled by an instance of [this class](https://github.com/onnela-lab/beiwe-ios/blob/master/Beiwe/Managers/PowerStateManager.swift).  There are six iOS power state events, documented below.  These events correspond to object properties and notifications from Apple's [UIKit](https://developer.apple.com/documentation/uikit).
 
-`beiwe-ios/Beiwe/Managers/PowerStateManager.swift`
-
-
-
-
-https://developer.apple.com/documentation/uikit/uidevice/1620051-batterystate?language=objc
-https://developer.apple.com/documentation/uikit/uidevice/1620042-batterylevel?language=objc
-
-iPhone lock/unlock logs 
-https://developer.apple.com/documentation/uikit/uiapplicationdelegate/1623019-applicationprotecteddatawillbeco
-https://developer.apple.com/documentation/uikit/uiapplicationdelegate/1623044-applicationprotecteddatadidbecom
+In addition to a timestamp, date-time, and event description, each observation also includes a measure of the device's [battery level](https://developer.apple.com/documentation/uikit/uidevice/1620042-batterylevel?language=objc), which is between  0.0 (empty) and 1.0 (fully charged).
 
 ___
-## 4. Android Events <a name="android"/>
+#### Availability of Encrypted Data
 
-On Android phones, the Beiwe `power_state` data stream reports operating system ["intents"](https://developer.android.com/reference/android/content/Intent) corresponding to transitions in the device's interactive state and power states.  Reporting is handled by an instance of [this class](`beiwe-android/app/src/main/java/org/beiwe/app/listeners/PowerStateListener.java`).  
+Encrypted iPhone data 
+
+The `Unlocked` and `Locked` power state events correspond to transitions between these two states; see Apple's UIKit documentation for details.
+		
+
+| **Beiwe Event** | **UIKit Notification**|
+|-----------|-----------|
+|`Unlocked` | [applicationProtectedDataDidBecomeAvailable(_:)](https://developer.apple.com/documentation/uikit/uiapplicationdelegate/1623044-applicationprotecteddatadidbecom)|
+|`Locked` | [applicationProtectedDataWillBecomeUnavailable(_:)](https://developer.apple.com/documentation/uikit/uiapplicationdelegate/1623019-applicationprotecteddatawillbeco)|
+
+
+___
+#### Battery State
+
+Battery state events correspond to values of the [`batteryState`](https://developer.apple.com/documentation/uikit/uidevice/1620051-batterystate?language=objc) property of a [`UIDevice`](https://developer.apple.com/documentation/uikit/uidevice?language=objc) object.  There are four possible events; see Apple's UIKit documentation for details.
+
+| **Beiwe Event** | **UIDevice Property**|
+|-----------|-----------|
+|`Unknown` | [UIDeviceBatteryStateUnknown](https://developer.apple.com/documentation/uikit/uidevicebatterystate/uidevicebatterystateunknown?language=objc)|
+|`Unplugged` | [UIDeviceBatteryStateUnplugged](https://developer.apple.com/documentation/uikit/uidevicebatterystate/uidevicebatterystateunplugged?language=objc	)|
+|`Charging` | [UIDeviceBatteryStateCharging](https://developer.apple.com/documentation/uikit/uidevicebatterystate/uidevicebatterystatecharging?language=objc)|
+|`Full` | [UIDeviceBatteryStateFull](https://developer.apple.com/documentation/uikit/uidevicebatterystate/uidevicebatterystatefull?language=objc)|
+
+
+
+___
+## 4. Android Power State Events <a name="android"/>
+
+On Android phones, the Beiwe `power_state` data stream reports operating system ["intents"](https://developer.android.com/reference/android/content/Intent) corresponding to transitions in the device's interactive state and power states.  Reporting is handled by an instance of [this class](`https://github.com/onnela-lab/beiwe-android/blob/master/app/src/main/java/org/beiwe/app/listeners/PowerStateListener.java`).  
 
 Transitions between power states are handled by Android's [`DeviceIdleController`](https://github.com/aosp-mirror/platform_frameworks_base/blob/nougat-release/services/core/java/com/android/server/DeviceIdleController.java).
 [This article](https://medium.com/@tsungi/android-doze-tweaks-83dadb5b4a9a) provides an informal overview, with state diagrams.
+
 ___
 #### Interactive State
 
@@ -171,9 +189,6 @@ ___
 
 ___
 #### `summary` <a name="summary"/>
-
-___
-#### `plot` <a name="plot"/>
 
 ___
 ## 6. Examples <a name="examples"/>
