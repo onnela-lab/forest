@@ -5,8 +5,8 @@ import os
 import logging
 from beiwetools.helpers.time import local_now
 from beiwetools.helpers.log import log_to_csv
-from beiwetools.helpers.functions import (read_json, setup_directories, 
-                                          setup_csv, write_to_csv)
+from beiwetools.helpers.functions import setup_directories, setup_csv, write_to_csv
+from beiwetools.helpers.trackers import CategoryTracker
 from beiwetools.helpers.decorators import easy
 from beiwetools.helpers.templates import ProcessTemplate
 from .headers import summary_header
@@ -47,36 +47,65 @@ def setup_output(proc_dir, track_time):
     return(records_path)        
 
 
-@easy(['file_paths', 'opsys'])
-def setup_user(user_id, userdata, deviceinfo, ):
+@easy(['file_paths', 'opsys', 'event_tracker', 
+       'n_events', 'unknown_headers', 'unknown_events'])
+def setup_user(user_id, project):
+    file_paths = project.data[user_id].passive['power_state']['files']
+    opsys = project.lookup['os'][user_id]
+    event_tracker = CategoryTracker()
+    n_events = 0
+    unknown_headers = 0
+    unknown_events = []
+    logger.info('Finished setting up for user %s.' % user_id)
+    return(file_paths, opsys, event_tracker, 
+           n_events, unknown_headers, unknown_events)
 
-    pass
+
+@easy(['to_write'])
+def summarize_user(user_id, opsys, file_paths,
+                   event_tracker, n_events, 
+                   unknown_headers, unknown_events):
+    for path in file_paths:
+        try:
+            summarize_pow(path, opsys, event_tracker = event_tracker, 
+                          n_events = n_events, 
+                          unknown_headers = unknown_headers, 
+                          unknown_events = unknown_events)
+        except:
+            logger.warning('Unable to summarize: %s' % os.path.basename(path))    
+    summary = [user_id, opsys, n_events, len(file_paths),
+               os.path.basename(file_paths[0]),
+               os.path.basename(file_paths[-1]),
+               unknown_headers, len(set(unknown_events))]
+    iOS_events = list(events['iOS'].keys())
+    Android_events = list(events['Android'].keys())
+    event_keys = iOS_events + Android_events
+    event_summary = []
+    for k in event_keys:
+        if k in event_tracker.stats['counts']:        
+            event_summary.append(event_tracker.stats['counts'][k])
+        else: event_summary.append('')
+    to_write = summary + event_summary
+    logger.info('Summarized data for user %s.' % user_id)
+    return(to_write)
 
 
 @easy([])
-def summarize_user(records_path):
-
-    
-    pass
-
-
-def write_user_records():
-    
-    pass
+def write_user_records(user_id, to_write, records_path):
+    write_to_csv(records_path, to_write)    
+    logger.info('Updated records for user %s.' % user_id)
 
 
-def pack_summary_kwargs(user_ids, proc_dir, file_types, registry, 
+def pack_summary_kwargs(user_ids, proc_dir, project, 
                          track_time = True, id_lookup = {}):
     '''
-    Packs kwargs for fitrep.Summary.do().
+    Packs kwargs for powrep.Summary.do().
     
     Args:
         user_ids (list): List of identifiers (str).
         proc_dir (str): Path to folder where processed data can be written.
-        file_types (list): 
-            List of supported Fitabase file types (str) to summarize.
-        registry (fitrep.classes.FitabaseRegistry): 
-            Registry for a folder of Fitabase files.
+        project (beiwetools.manage.classes.BeiweProject):
+            Representation of raw study data locations.
         track_time (bool): If True, output to a timestamped folder.    
         id_lookup (dict): Optional.
             If identifiers in user_ids aren't Fitabase identifiers,
@@ -93,8 +122,7 @@ def pack_summary_kwargs(user_ids, proc_dir, file_types, registry,
     kwargs['user_ids'] = user_ids    
     kwargs['process_kwargs'] = {
         'proc_dir': proc_dir,
-        'file_types': file_types,
-        'registry': registry,
+        'project': project,
         'track_time': track_time
         }
     kwargs['id_lookup'] = id_lookup
@@ -102,7 +130,6 @@ def pack_summary_kwargs(user_ids, proc_dir, file_types, registry,
 
 
 Summary = ProcessTemplate.create(__name__,
-                                 [setup_output], [], 
+                                 [setup_output], [setup_user], 
                                  [summarize_user], 
                                  [write_user_records], [])
-

@@ -33,10 +33,11 @@ keep_header = {
 summary_header = [ # Column names for powrep.summary output.
   'user_id', # Beiwe User ID.
   'os',      # 'Android' or 'iOS'.
-  'n_files', # Number of raw power state files for this user.
+  'n_observations',          # Number of events observed for this user.
+  'n_files',                 # Number of raw power state files for this user.
   'first_file', 'last_file', # Basenames of first and last hourly files.
   'unknown_headers', # Number of files with unrecognized headers.
-  'unknown_events'   # Number of unknown event categories.
+  'unknown_events'   # Number of unique unknown event categories.
    ]
 
 
