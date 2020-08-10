@@ -27,6 +27,10 @@ def summarize_pow(path, opsys):
     Args:
         path (str): Path to a raw Beiwe power state file.
         opsys (str): Either 'iOS' or 'Android'.
+        
+    Returns:
+        
+        
     '''
     data = pd.read_csv(path)
     opsys_events = events[opsys]    
@@ -42,15 +46,15 @@ def read_pow(path, opsys, keep = raw_header,
     
     Args:
         path (str): Path to the file.
-        os (str): 'Android' or 'iOS'
+        opsys (str): 'Android' or 'iOS'
         keep (list): Which columns to keep.
         clean_args (tuple): Args for clean_dataframe().
         
     Returns:
         df (DataFrame): Pandas dataframe of power state data.
     '''
-    if isinstance(keep, dict): keep = keep[os]
-    df = pd.read_csv(path, usecols = keep)
+    if isinstance(keep, dict): opsys_keep = keep[opsys]
+    df = pd.read_csv(path, usecols = opsys_keep)
     clean_dataframe(df, *clean_args)
     return(df)
 
@@ -60,12 +64,12 @@ def read_pow(path, opsys, keep = raw_header,
 
 
 
-def proc_pow(paths, os):
+def proc_pow(paths, opsys):
     '''
 
     Args:        
         paths (list): List of paths to raw Beiwe power state files.
-        os (str): 'Android' or 'iOS'
+        opsys (str): 'Android' or 'iOS'
         keep (list): Which columns to keep.
         clean_args (tuple): Args for final clean_dataframe() before return.
         

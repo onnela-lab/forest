@@ -35,8 +35,8 @@ summary_header = [ # Column names for powrep.summary output.
   'os',      # 'Android' or 'iOS'.
   'n_files', # Number of raw power state files for this user.
   'first_file', 'last_file', # Basenames of first and last hourly files.
-  'unknown_headers',
-  'unknown_events'
+  'unknown_headers', # Number of files with unrecognized headers.
+  'unknown_events'   # Number of unknown event categories.
    ]
 
 
