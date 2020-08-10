@@ -1,13 +1,14 @@
 '''Functions for working with raw Beiwe power state data
 
 '''
+import os
 import logging
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
 from beiwetools.helpers.functions import read_json
 from beiwetools.helpers.process import clean_dataframe, stack_frames
-from beiwetools.helpers.decorators import easy
+from beiwetools.helpers.trackers import CategoryTracker
 from .headers import raw_header, keep_header
 
 
@@ -19,19 +20,22 @@ this_dir = os.path.dirname(__file__)
 events = read_json(os.path.join(this_dir, 'events.json'))
 
 
-def summarize_pow(path, os):
+def summarize_pow(path, opsys):
     '''
     Summarize a raw Beiwe power state file.
-    
+
+    Args:
+        path (str): Path to a raw Beiwe power state file.
+        opsys (str): Either 'iOS' or 'Android'.
     '''
-    
-    
+    data = pd.read_csv(path)
+    opsys_events = events[opsys]    
+        
     
     pass
 
 
-
-def read_pow(path, os, keep = raw_header,
+def read_pow(path, opsys, keep = raw_header,
              clean_args = (True, True, True)):
     '''
     Open a raw Beiwe power state file.
@@ -49,6 +53,11 @@ def read_pow(path, os, keep = raw_header,
     df = pd.read_csv(path, usecols = keep)
     clean_dataframe(df, *clean_args)
     return(df)
+
+
+
+
+
 
 
 def proc_pow(paths, os):

@@ -165,13 +165,12 @@ ___
 
 #### `headers` <a name="headers"/>
 This module contains headers for `csv` files that are handled by `powrep`, including raw Beiwe power state files.  Each variable is described with a brief comment.
-
 ___
 #### `functions` <a name="functions"/>
-
+Functions for reading and summarizing raw Beiwe power state files.
 ___
 #### `summary` <a name="summary"/>
-
+Tools for summarizing directories of raw Beiwe power state files.
 ___
 #### `extract` <a name="extract"/>
 
