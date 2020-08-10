@@ -19,7 +19,7 @@ events = read_json(os.path.join(this_dir, 'events.json'))
 
 
 def summarize_pow(path, opsys, event_tracker = CategoryTracker(), 
-                  n_events = 0, unknown_headers = 0, unknown_events = []):
+                  n_events = [], unknown_headers = [], unknown_events = []):
     '''
     Summarize a raw Beiwe power state file.
 
@@ -28,8 +28,8 @@ def summarize_pow(path, opsys, event_tracker = CategoryTracker(),
         opsys (str): Either 'iOS' or 'Android'.
         event_tracker (beiwetools.helpers.trackers.CategoryTracker):
             Online tracker for a categorical variable.
-        n_events (int): Running count of events.
-        unknown_headers (int): Running count of unrecognized headers.
+        n_events (int): Running list of event counts.
+        unknown_headers (int): Running list of files with unrecognized headers.
         unknown_events (list): Running list of unrecognized events.
             
     Returns:
@@ -40,7 +40,7 @@ def summarize_pow(path, opsys, event_tracker = CategoryTracker(),
     # check header
     opsys_header = raw_header[opsys]
     if not list(data.columns) == opsys_header:
-        unknown_headers += 1
+        unknown_headers.append(filename)
         logger.warning('Header is not recognized: %s' % filename)
     # check events
     opsys_events = list(events[opsys].keys())
@@ -51,7 +51,7 @@ def summarize_pow(path, opsys, event_tracker = CategoryTracker(),
             logger.warning('Unrecognized event \"%s\" in %s' % (e, filename))
     # update running stats
     event_tracker.update(temp_events)
-    n_events += len(temp_events)
+    n_events.append(len(temp_events))
 
 
 def read_pow(path, opsys, keep = raw_header,

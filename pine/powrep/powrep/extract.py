@@ -20,13 +20,14 @@ this_dir = os.path.dirname(__file__)
 events = read_json(os.path.join(this_dir, 'events.json'))
 
 # organize events into powrep categories
-categories = {}
-for opsys in events.keys():
-    categories[opsys] = {}
-    for k in events[opsys].keys():
-        cat, value = events[opsys][k]
-        if not cat in categories[opsys]:    
-            categories[opsys][cat] = {}
-        categories[opsys][cat][value] = k
-            
-print(categories['iOS'].keys())
+def organize_events():
+    categories = {}
+    for opsys in events.keys():
+        categories[opsys] = {}
+        for k in events[opsys].keys():
+            cat, value = events[opsys][k]
+            if not cat in categories[opsys]:    
+                categories[opsys][cat] = {}
+            categories[opsys][cat][value] = k
+    return(categories)
+categories = organize_events()            

@@ -53,8 +53,8 @@ def setup_user(user_id, project):
     file_paths = project.data[user_id].passive['power_state']['files']
     opsys = project.lookup['os'][user_id]
     event_tracker = CategoryTracker()
-    n_events = 0
-    unknown_headers = 0
+    n_events = []
+    unknown_headers = []
     unknown_events = []
     logger.info('Finished setting up for user %s.' % user_id)
     return(file_paths, opsys, event_tracker, 
@@ -73,10 +73,10 @@ def summarize_user(user_id, opsys, file_paths,
                           unknown_events = unknown_events)
         except:
             logger.warning('Unable to summarize: %s' % os.path.basename(path))    
-    summary = [user_id, opsys, n_events, len(file_paths),
+    summary = [user_id, opsys, sum(n_events), len(file_paths),
                os.path.basename(file_paths[0]),
                os.path.basename(file_paths[-1]),
-               unknown_headers, len(set(unknown_events))]
+               len(unknown_headers), len(set(unknown_events))]
     iOS_events = list(events['iOS'].keys())
     Android_events = list(events['Android'].keys())
     event_keys = iOS_events + Android_events
@@ -85,7 +85,7 @@ def summarize_user(user_id, opsys, file_paths,
         if k in event_tracker.stats['counts']:        
             event_summary.append(event_tracker.stats['counts'][k])
         else: event_summary.append('')
-    to_write = summary + event_summary
+    to_write = [summary + event_summary]
     logger.info('Summarized data for user %s.' % user_id)
     return(to_write)
 
