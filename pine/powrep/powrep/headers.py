@@ -45,11 +45,3 @@ extract_header = [ # Column names for extracted event variables.
     'timestamp', # Millisecond timestamp.
     'value',     # Value of the event variable.    
     ]
-
-
-extract_records_header = [ # Column names for extraction records.
-    'variable',        # Name of event variable.
-    'first_timestamp', # Timestamp of first observation.
-    'last_timestamp',  # Timestamp of last observation.
-    'n_observations'   # Number of observations for this variable.
-    ]

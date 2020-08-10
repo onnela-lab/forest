@@ -5,7 +5,7 @@ import os
 import logging
 import pandas as pd
 from beiwetools.helpers.functions import read_json
-from beiwetools.helpers.process import clean_dataframe, stack_frames
+from beiwetools.helpers.process import clean_dataframe
 from beiwetools.helpers.trackers import CategoryTracker
 from .headers import raw_header, keep_header
 
@@ -74,21 +74,27 @@ def read_pow(path, opsys, keep = raw_header,
     return(df)
 
 
-def extract_pow(paths, opsys):
+def extract_pow(path, opsys):
     '''
     Read a raw Beiwe power state file and extract variables.
 
     Args:        
-        path (list): Path to a raw Beiwe power state files.
+        path (list): Path to a raw Beiwe power state file.
         opsys (str): 'Android' or 'iOS'
         
     Returns:
-
+        line_dict (dict):
+            Keys are names of event variables.
+            Values are lists of observations to write to CSV.
     '''
-
-
-        
-    #
-    pass
-
-
+    data = read_pow(path, opsys, keep = keep_header)
+    line_dict = {}
+    for i in range(len(data)):    
+        var, value = events[opsys][data.event[i]]
+        line = [data.timestamp[i], value]
+        if opsys == 'iOS': line.append(data.level[i])
+        if var in line_dict:
+            line_dict[var].append(line)
+        else:
+            line_dict[var] = [line]
+    return(line_dict)
