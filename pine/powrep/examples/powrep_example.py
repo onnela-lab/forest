@@ -44,11 +44,16 @@ Summary.do(**kwargs)
 #   - The last ten columns contain Android-specific event counts.
 
 ###############################################################################
-# 3. Extract events by category
-# - 
+# 3. Extract event variables
+#   - This module organizes power state events into variables.
+#   - For example, iOS Unlocked/Locked events are converted to a boolean
+#     variable called "protected_data_available".
+#   - Each event variable can be extracted to a CSV.
 ###############################################################################
-from powrep import pack_extract_kwargs, Extract
-
+from powrep import variables, pack_extract_kwargs, Extract
+# review available variables:
+for opsys in ['iOS', 'Android']:
+    print(variables[opsys].keys())
 
 # pack arguments for Extract.do():
 kwargs = pack_extract_kwargs(user_ids = r.ids, 

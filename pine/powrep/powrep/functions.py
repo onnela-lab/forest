@@ -74,23 +74,18 @@ def read_pow(path, opsys, keep = raw_header,
     return(df)
 
 
-
-
-
-
-
 def extract_pow(paths, opsys):
     '''
+    Read a raw Beiwe power state file and extract variables.
 
     Args:        
-        paths (list): List of paths to raw Beiwe power state files.
+        path (list): Path to a raw Beiwe power state files.
         opsys (str): 'Android' or 'iOS'
         
     Returns:
 
     '''
 
-    # Read and stack the files.
 
         
     #

@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 this_dir = os.path.dirname(__file__)
 events = read_json(os.path.join(this_dir, 'events.json'))
 
-# organize events into powrep categories
+
+# organize events into powrep variables
 def organize_events():
     categories = {}
     for opsys in events.keys():
@@ -30,4 +31,4 @@ def organize_events():
                 categories[opsys][cat] = {}
             categories[opsys][cat][value] = k
     return(categories)
-categories = organize_events()            
+variables = organize_events()            
