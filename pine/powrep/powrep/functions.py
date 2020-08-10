@@ -4,16 +4,31 @@
 import logging
 import numpy as np
 import pandas as pd
-
 from collections import OrderedDict
-
+from beiwetools.helpers.functions import read_json
 from beiwetools.helpers.process import clean_dataframe, stack_frames
 from beiwetools.helpers.decorators import easy
-
 from .headers import raw_header, keep_header
 
 
 logger = logging.getLogger(__name__)
+
+
+# load events
+this_dir = os.path.dirname(__file__)
+events = read_json(os.path.join(this_dir, 'events.json'))
+
+
+def summarize_pow(path, os):
+    '''
+    Summarize a raw Beiwe power state file.
+    
+    '''
+    
+    
+    
+    pass
+
 
 
 def read_pow(path, os, keep = raw_header,
@@ -53,7 +68,7 @@ def proc_pow(paths, os):
 
         
     #
-
+    pass
 
 
 def split_events():

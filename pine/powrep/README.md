@@ -33,11 +33,10 @@ ___
 5.  [Modules](#modules)
     * [`headers`](#headers)      
 	* [`functions`](#functions)  
-	* [`classes`](#classes)  
 	* [`summary`](#summary)  
+	* [`extract`](#extract)  
 6.  [Examples](#examples)  
 7.  [Cautions & Notes](#cautions)  
-
 
 ___
 ## 1. Version Notes <a name="version"/>  
@@ -161,17 +160,6 @@ Transitions in and out of Doze are signaled by the same intent: [ACTION\_DEVICE\
 |`Device Idle (Doze) state change signal received; device in idle state.`|
 |`Device Idle (Doze) state change signal received; device not in idle state.`|
 
-
-
-
-
-
-
-
-
-
-
-
 ___
 ## 5. Modules <a name="modules"/>
 
@@ -182,16 +170,18 @@ ___
 #### `functions` <a name="functions"/>
 
 ___
-#### `classes` <a name="classes"/>
+#### `summary` <a name="summary"/>
 
 ___
-#### `summary` <a name="summary"/>
+#### `extract` <a name="extract"/>
+
 
 ___
 ## 6. Examples <a name="examples"/>
 
+The script powrep/examples/powrep_example.py provides a sample workflow for summarizing `power_state` data and extracting iOS events.
 ___
 ## 7. Cautions & Notes <a name="cautions"/>
 
-For both iPhone and Android, `power_state` data are relatively sparse (xx approx MB per month).  Storage and processing is comparably cheap.  Therefore, the code in this package does not implement any special strategies for optimization or memory management.
+For both iPhone and Android, `power_state` data are relatively sparse.  Storage and processing is comparably cheap.  Therefore, the code in this package does not implement any special strategies for optimization or memory management.
 

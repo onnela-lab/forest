@@ -2,35 +2,32 @@
 
 '''
 
-from collections import OrderedDict
-
-
-raw_header = OrderedDict({
-    'iOS': [
+raw_header = {
+    'iOS': [ # Column names for raw Beiwe power state files from iPhones.
         'timestamp', # Millisecond timestamp.
         'UTC time',  # Human-readable UTC date-time formatted as '%Y-%m-%dT%H:%M:%S.%f'.        
         'event', # Name of the event.  See README.md for documentation.
-        'level' # Battery level.
+        'level'  # Battery level.
         ],
-    'Android': [ # column names for raw Beiwe power state files from Android phones
+    'Android': [ # Column names for raw Beiwe power state files from Android phones.
         'timestamp', # Millisecond timestamp.
         'UTC time',  # Human-readable UTC date-time formatted as '%Y-%m-%dT%H:%M:%S.%f'.
         'event' # Name of the event.  See README.md for documentation.
         ]
-    })
+    }
 
 
-keep_header = OrderedDict({ # same notes as above
+keep_header = {
     'iOS': [
         'timestamp', # Millisecond timestamp.
         'event', # Name of the event.  See README.md for documentation.
-        'level' # Battery level.
+        'level'  # Battery level.
         ],
     'Android': [ # column names for raw Beiwe power state files from Android phones
         'timestamp', # Millisecond timestamp.
         'event' # Name of the event.  See README.md for documentation.
         ]
-    })
+    }
 
 
     
