@@ -5,41 +5,18 @@ import os
 import logging
 from beiwetools.helpers.time import local_now
 from beiwetools.helpers.log import log_to_csv
-from beiwetools.helpers.functions import (read_json, setup_directories, 
-                                          setup_csv, write_to_csv)
+from beiwetools.helpers.functions import setup_directories, setup_csv, write_to_csv
 from beiwetools.helpers.decorators import easy
 from beiwetools.helpers.templates import ProcessTemplate
 from .headers import extract_header
-from .functions import extract_pow
+from .functions import extract_pow, var_names
 
 
 logger = logging.getLogger(__name__)
 
 
-# load events
-this_dir = os.path.dirname(__file__)
-events = read_json(os.path.join(this_dir, 'events.json'))
-
-
-# organize events into powrep variables
-def organize_events():
-    categories = {}
-    names = {}
-    for opsys in events.keys():
-        categories[opsys] = {}
-        names[opsys] = []
-        for k in events[opsys].keys():
-            cat, value = events[opsys][k]
-            if not cat in categories[opsys]:    
-                categories[opsys][cat] = {}
-                names[opsys].append(cat)
-            categories[opsys][cat][value] = k
-    return(categories, names)
-variables, var_names = organize_events()            
-
-
 @easy(['data_dir'])
-def setup_output(proc_dir, user_ids, track_time):
+def setup_output(proc_dir, track_time):
     # setup directories
     out_dir = os.path.join(proc_dir, 'powrep', 'extract')
     if track_time:
@@ -48,10 +25,6 @@ def setup_output(proc_dir, user_ids, track_time):
     data_dir = os.path.join(out_dir, 'data')
     log_dir = os.path.join(out_dir, 'log')   
     setup_directories([out_dir, data_dir, log_dir])
-    user_dirs = []
-    for u in user_ids:
-        user_dirs.append(os.path.join(data_dir, u))
-    setup_directories(user_dirs)
     # set up logging output
     log_to_csv(log_dir)
     logger.info('Created output directories.')
@@ -65,11 +38,11 @@ def setup_user(user_id, get_variables, data_dir, project):
     opsys = project.lookup['os'][user_id]
     # initialize user data files
     user_dir = os.path.join(data_dir, user_id)    
-    if opsys == 'iOS': header = extract_header + ['level']
-    else: header = extract_header
+    setup_directories(user_dir)
     data_paths = {}
     for v in get_variables:
-        data_paths[v] = setup_csv(v, user_dir, header)        
+        if v in var_names[opsys]:
+            data_paths[v] = setup_csv(v, user_dir, extract_header[opsys])        
     logger.info('Finished setting up for user %s.' % user_id)
     return(file_paths, opsys, data_paths)
 

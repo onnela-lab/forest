@@ -18,6 +18,23 @@ this_dir = os.path.dirname(__file__)
 events = read_json(os.path.join(this_dir, 'events.json'))
 
 
+# organize events into powrep variables
+def organize_events():
+    categories = {}
+    names = {}
+    for opsys in events.keys():
+        categories[opsys] = {}
+        names[opsys] = []
+        for k in events[opsys].keys():
+            cat, value = events[opsys][k]
+            if not cat in categories[opsys]:    
+                categories[opsys][cat] = {}
+                names[opsys].append(cat)
+            categories[opsys][cat][value] = k
+    return(categories, names)
+variables, var_names = organize_events()            
+
+
 def summarize_pow(path, opsys, event_tracker = CategoryTracker(), 
                   n_events = [], unknown_headers = [], unknown_events = []):
     '''

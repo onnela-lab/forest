@@ -20,8 +20,8 @@ Example imports:
 
 ```python
 import powrep
-import powrep.functions as powf
-from powrep.classes import xx
+import powrep.functions as pf
+from powrep import read_pow
 ```
 
 ___
@@ -173,14 +173,15 @@ ___
 Tools for summarizing directories of raw Beiwe power state files.
 ___
 #### `extract` <a name="extract"/>
-
+The purpose of this module is to convert Beiwe power state events into boolean or categorical variables.  For example, iOS `Unlocked`/`Locked` events are delivered as boolean values for a variable named `protected_data_available`.  Similarly, the Android events `Screen turned off`/`Screen turned on` are delivered as boolean values of the variable `interactive`.   Concordance of events and variables can be found in `powrep/events.json`.
 
 ___
 ## 6. Examples <a name="examples"/>
 
-The script powrep/examples/powrep_example.py provides a sample workflow for summarizing `power_state` data and extracting iOS events.
+The script powrep/examples/powrep_example.py provides a sample workflow for summarizing `power_state` data and extracting events.
 ___
-## 7. Cautions & Notes <a name="cautions"/>
+## 7. Notes <a name="cautions"/>
 
-For both iPhone and Android, `power_state` data are relatively sparse.  Storage and processing is comparably cheap.  Therefore, the code in this package does not implement any special strategies for optimization or memory management.
+* For both iPhone and Android, `power_state` data are relatively sparse.  Storage and processing is comparably cheap.  Therefore, the code in this package does not implement any special strategies for optimization or memory management.
 
+* **To do:**  Use event records to build a partial history of a device's state transitions.  Ideally, given an arbitrary UTC time, we'd like to be able to look up whether a phone is unlocked, unplugged, dozing, etc.

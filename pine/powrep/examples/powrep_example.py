@@ -50,13 +50,22 @@ Summary.do(**kwargs)
 #     variable called "protected_data_available".
 #   - Each event variable can be extracted to a CSV.
 ###############################################################################
-from powrep import variables, pack_extract_kwargs, Extract
+from powrep import var_names, pack_extract_kwargs, Extract
 # review available variables:
 for opsys in ['iOS', 'Android']:
-    print(variables[opsys].keys())
-
+    print(var_names[opsys])
 # pack arguments for Extract.do():
 kwargs = pack_extract_kwargs(user_ids = r.ids, 
                              proc_dir = proc_dir, 
                              project = p, 
+                             get_variables = [], # This will extract all variables.
                              track_time = True)
+# run the variable extraction:
+Extract.do(**kwargs)
+
+# Now review proc_dir/extract/log/log.csv:
+#   - Check for log records with "WARNING" in the levelname column.
+#   - The main warning to watch for is "Unable to extract."
+
+# Extracted variables are found in proc_dir/extract/data/<user_id>:
+#   - 

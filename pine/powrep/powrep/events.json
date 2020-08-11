@@ -35,11 +35,11 @@
             false
         ],
         "Power connected": [
-            "external_power",
+            "power_connected",
             true
         ],
         "Power disconnected": [
-            "external_power",
+            "power_connected",
             false
         ],
         "Device shut down signal received": [

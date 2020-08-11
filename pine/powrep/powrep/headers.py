@@ -41,7 +41,15 @@ summary_header = [ # Column names for powrep.summary output.
    ]
 
 
-extract_header = [ # Column names for extracted event variables.
-    'timestamp', # Millisecond timestamp.
-    'value',     # Value of the event variable.    
-    ]
+extract_header = {
+'iOS': [ # Column names for extracted event variables for iPhones.
+        'timestamp', # Millisecond timestamp.
+        'value',     # Value of the event variable.    
+        'battery_level', # Battery level, from 0.0 (drained) to 1.0 (fully charged).
+        ],
+'Android': [ # Column names for extracted event variables for Android phones.
+            'timestamp', # Millisecond timestamp.
+            'value',     # Value of the event variable.    
+            ]
+}
+    
