@@ -55,10 +55,11 @@ from powrep import var_names, pack_extract_kwargs, Extract
 for opsys in ['iOS', 'Android']:
     print(var_names[opsys])
 # pack arguments for Extract.do():
-kwargs = pack_extract_kwargs(user_ids = r.ids, 
+kwargs = pack_extract_kwargs(user_ids = p.ids, 
                              proc_dir = proc_dir, 
                              project = p, 
-                             get_variables = [], # This will extract all variables.
+                             get_variables = [], # This will extract all 
+                                                 # variables.
                              track_time = True)
 # run the variable extraction:
 Extract.do(**kwargs)
@@ -68,4 +69,6 @@ Extract.do(**kwargs)
 #   - The main warning to watch for is "Unable to extract."
 
 # Extracted variables are found in proc_dir/extract/data/<user_id>:
-#   - 
+#   - Observations of each variable are in <variable name>.csv.
+#   - CSV headers are 'timestamp' and 'value'; iOS files have an additional
+#     'battery_level' column.
