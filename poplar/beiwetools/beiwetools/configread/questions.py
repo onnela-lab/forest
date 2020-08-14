@@ -1,4 +1,4 @@
-'''Classes for representing Beiwe tracking survey questions.
+''' Classes for representing Beiwe tracking survey questions.
 
 '''
 import logging

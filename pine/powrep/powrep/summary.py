@@ -108,10 +108,10 @@ def pack_summary_kwargs(user_ids, proc_dir, project,
             Representation of raw study data locations.
         track_time (bool): If True, output to a timestamped folder.    
         id_lookup (dict): Optional.
-            If identifiers in user_ids aren't Fitabase identifiers,
+            If identifiers in user_ids aren't Beiwe identifiers,
             then this should be a dictionary in which:
                 - keys are identifiers,
-                - values are the corresponding Fitabase identifers.
+                - values are the corresponding Beiwe identifers.
 
     Returns:
         kwargs (dict):

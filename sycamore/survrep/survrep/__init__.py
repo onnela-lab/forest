@@ -1,4 +1,4 @@
 from .functions import *
 from .headers import *
-from .plot import *
+from .meta import *
 from .summary import *
