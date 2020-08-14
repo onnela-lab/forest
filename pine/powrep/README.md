@@ -48,9 +48,11 @@ This package requires the `beiwetools` package, which can be found in the `fores
 ___
 ## 2. Overview <a name="version"/>
 
-The iOS and Android versions of the Beiwe app can be configured to collect various operating system messages related to a phone's power state.  These are collected and organized by the Beiwe backend according to the usual conventions for raw Beiwe data.  However, note that the raw file format and contents differ between iOS and Android.  The following two sections provide details.
+The iOS and Android versions of the Beiwe app can be configured to collect various operating system messages related to a phone's power state.  **In general, power state events may be best understood as indicators of transitions among various device states.**
 
-See `beiwetools/README.md` for more information about Beiwe time formats, file-naming conventions, and directory structure.
+These event records are collected and organized by the Beiwe backend according to the usual conventions for raw Beiwe data.  See `beiwetools/README.md` for more information about Beiwe time formats, file-naming conventions, and directory structure.
+
+**Note that the raw file format and content differ between iOS and Android.**  The following two sections provide details.
 
 ___
 ## 3. iOS Power State Events <a name="ios"/>

@@ -1,5 +1,7 @@
 from setuptools import setup, find_packages
 
+requires = ['numpy', 'pandas']
+
 with open('README.md') as f:
     readme = f.read()
 
@@ -14,5 +16,6 @@ setup(
     author='Josh Barback',
     author_email='onnela.lab@gmail.com',
     license=license,
-    packages=find_packages()
+    packages=find_packages(),
+    install_requires = requires
 )

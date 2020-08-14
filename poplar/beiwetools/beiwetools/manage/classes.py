@@ -571,12 +571,13 @@ class UserData():
 
     def assemble(self, streams):
         '''
-        Get a dictionary with paths to user's files for given streams.
-        An item in streams can be a: 
-            passive data stream (str), 
-            ordered pair(survey type, survey identifier) (tuple).
+        Get a dictionary with paths to user's files for given list of data streams.
+        An item in streams can be: 
+            a passive data stream (str), 
+            an ordered pair(survey type, survey identifier) (tuple).
         '''
         if isinstance(streams, str): streams = [streams]
+		if isinstance(streams, tuple): streams = [streams]
         a = OrderedDict()
         for s in streams:
             if isinstance(s, str):

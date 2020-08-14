@@ -1,12 +1,10 @@
-'''Classes for representing surveys found in Beiwe studies.
+''' Classes for representing surveys found in Beiwe studies.
 
 '''
 import logging
 from collections import OrderedDict
-
 from beiwetools.helpers.classes import Summary
 from beiwetools.helpers.functions import check_same
-
 from .functions import load_settings, load_timings, survey_settings
 from .questions import tracking_questions, TrackingQuestion
 

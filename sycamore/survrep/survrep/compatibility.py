@@ -1,4 +1,4 @@
-''' Summarize raw Beiwe survey timings files.
+''' Check configuration files against raw Beiwe survey timings files.
 
 '''
 import os
@@ -8,7 +8,7 @@ from beiwetools.helpers.log import log_to_csv
 from beiwetools.helpers.functions import setup_directories, setup_csv, write_to_csv
 from beiwetools.helpers.decorators import easy
 from beiwetools.helpers.templates import ProcessTemplate
-from .headers import summary_header 
+from .headers import compatibility_header 
 from .functions import events, summarize_timings
 
 
@@ -30,50 +30,37 @@ def setup_output(proc_dir, dir_names, config_dict, track_time):
     records_dict = {}
     for sid in dir_names:    
         records_dict[sid] = setup_csv(sid, data_dir, summary_header)
+    # set up compatibility CSV
+
+
     logger.info('Created output directory and initialized files.')
-    return(records_dict)        
+    return(records_path, compatibility_path)        
 
 
-@easy(['opsys', 'file_paths_dict'])
-def setup_user(user_id, project, dir_names):
-    
-    # get operating system
-    opsys = 
+    iOS_events = list(events['iOS'].keys())
+    Android_events = list(events['Android'].keys())
+    header = summary_header + iOS_events + Android_events
+    records_path = setup_csv('records', data_dir, header)
+
+
+
+
+def setup_user(user_id, project, dir_names, config):
     
     # assemble dictionary of file paths        
-    udata = project.data[user_id]
-    key_list = [('survey_timings', sid) for sid in dir_names]
-    file_paths_dict = udata.assemble(key_list)
-        
+    for 
     
-    return(opsys, file_paths_dict)
+    # get study configuration
+    
+    
+    pass
 
 
-@easy(['counts'])
-def summarize_user(opsys, dir_names, file_paths_dict):
-    summary = {}
-    for sid in dir_names:
-        n_events = []
-        unknown_header = []
-        unknown_events = []
-        foreign_survey = []
-        file_paths = file_paths_dict[('survey_timings', sid)]
-        for file_path in file_paths:
-            summarize_timings(opsys, file_path, n_events, 
-                              unknown_header, unknown_events, foreign_survey)            
-        summary[sid] = [
-            
-                        user_id, etc.
-            
-                        sum(n_events), 
-                        len(set(unknown_header)),
-                        len(set(unknown_events)), 
-                        len(set(foreign_survey))]
-    return(summary)
+def summarize_user():
+    pass
 
 
-@easy([])
-def write_user_records(summary):
+def write_user_records():
     pass
 
 
@@ -81,7 +68,7 @@ def pack_summary_kwargs(user_ids, proc_dir,
                         dir_names, project, config_dict = {},
                         track_time = True, id_lookup = {}):
     '''
-    Packs kwargs for survrep.Summary.do().
+    Packs kwargs for survrep.Compatibility.do().
     
     Args:
         user_ids (list): List of identifiers (str).
@@ -90,6 +77,10 @@ def pack_summary_kwargs(user_ids, proc_dir,
             Note that directory names are survey identifiers.        
         project (beiwetools.manage.classes.BeiweProject):
             Representation of raw study data locations.
+        config_dict (dict): Optional.
+            If id_lookup = {}, keys are from user_ids.
+            Otherwise, keys are id_lookup{user_ids}
+            Values are beiwetools.configread.classes.BeiweConfig objects.
         track_time (bool): If True, output to a timestamped folder.    
         id_lookup (dict): Optional.
             If identifiers in user_ids aren't Beiwe identifiers,
@@ -100,7 +91,7 @@ def pack_summary_kwargs(user_ids, proc_dir,
     Returns:
         kwargs (dict):
             Packed keyword arguments.
-            To run a summary: Summary.do(**kwargs)
+            To run a compatibility check: Compatibility.do(**kwargs)
     '''
     kwargs = {}
     kwargs['user_ids'] = user_ids    
@@ -108,13 +99,14 @@ def pack_summary_kwargs(user_ids, proc_dir,
         'proc_dir': proc_dir,
         'dir_names': dir_names, 
         'project': project,
+        'config': config,
         'track_time': track_time
         }
     kwargs['id_lookup'] = id_lookup
     return(kwargs)
 
 
-Summary = ProcessTemplate.create(__name__,
-                                 [setup_output], [setup_user], 
-                                 [summarize_user], 
-                                 [write_user_records], [])
+Compatibility = ProcessTemplate.create(__name__,
+                                       [setup_output], [setup_user], 
+                                       [summarize_user], 
+                                       [write_user_records], [])
