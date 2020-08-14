@@ -34,6 +34,7 @@ ___
     * [`headers`](#headers)      
 	* [`functions`](#functions)  
 	* [`summary`](#summary)  
+	* [`compatibility`](#compatibility)  	
 	* [`meta`](#meta)  	
 6.  [Examples](#examples)  
 7.  [Cautions & Notes](#cautions)  
@@ -70,7 +71,7 @@ On the Beiwe iOS app, tracking survey metadata is handled by a [TrackingSurveyPr
 | **Event** | **Interpretation** |
 |-----------|-----------|
 | `notified` | |
-| `expireds` | |
+| `expired` | |
 | `present` | |
 | `changed` | |
 | `unpresent` | |
@@ -78,10 +79,6 @@ On the Beiwe iOS app, tracking survey metadata is handled by a [TrackingSurveyPr
 
 
 
-
-___
-#### iOS Metadata Conventions
-Event records are generated whenever a survey
 
 
 
@@ -105,11 +102,17 @@ ___
 
 #### `headers` <a name="headers"/>
 This module contains headers for `csv` files that are handled by `survrep`, including raw Beiwe survey timings files.  Each variable is described with a brief comment.
+
+
 ___
 #### `functions` <a name="functions"/>
 
 ___
 #### `summary` <a name="summary"/>
+
+
+___
+#### `compatibility` <a name="compatibility"/>
 
 ___
 #### `meta` <a name="meta"/>

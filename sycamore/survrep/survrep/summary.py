@@ -3,13 +3,13 @@
 '''
 import os
 import logging
-from beiwetools.helpers.time import local_now
 from beiwetools.helpers.log import log_to_csv
+from beiwetools.helpers.time import local_now
 from beiwetools.helpers.functions import setup_directories, setup_csv, write_to_csv
 from beiwetools.helpers.decorators import easy
 from beiwetools.helpers.templates import ProcessTemplate
 from .headers import summary_header 
-from .functions import events, summarize_timings
+from .functions import summarize_timings
 
 
 logger = logging.getLogger(__name__)
@@ -35,22 +35,19 @@ def setup_output(proc_dir, dir_names, config_dict, track_time):
 
 
 @easy(['opsys', 'file_paths_dict'])
-def setup_user(user_id, project, dir_names):
-    
+def setup_user(user_id, project, dir_names):    
     # get operating system
-    opsys = 
-    
+    opsys = project.lookup['os'][user_id]    
     # assemble dictionary of file paths        
     udata = project.data[user_id]
     key_list = [('survey_timings', sid) for sid in dir_names]
     file_paths_dict = udata.assemble(key_list)
-        
-    
+    logger.info('Set up parameters for user %s.' % user_id)
     return(opsys, file_paths_dict)
 
 
-@easy(['counts'])
-def summarize_user(opsys, dir_names, file_paths_dict):
+@easy(['summary'])
+def summarize_user(user_id, opsys, dir_names, file_paths_dict):
     summary = {}
     for sid in dir_names:
         n_events = []
@@ -59,26 +56,32 @@ def summarize_user(opsys, dir_names, file_paths_dict):
         foreign_survey = []
         file_paths = file_paths_dict[('survey_timings', sid)]
         for file_path in file_paths:
-            summarize_timings(opsys, file_path, n_events, 
-                              unknown_header, unknown_events, foreign_survey)            
-        summary[sid] = [
-            
-                        user_id, etc.
-            
+            try:
+                summarize_timings(opsys, file_path, n_events, 
+                                  unknown_header, unknown_events, foreign_survey)            
+            except:
+                logger.warning('Unable to summarize file %s for user %s.' % (file_path, user_id))
+        summary[sid] = [user_id, opsys,
+                        os.path.basename(file_paths[0]),
+                        os.path.basename(file_paths[-1]),
+                        len(file_paths),            
                         sum(n_events), 
                         len(set(unknown_header)),
                         len(set(unknown_events)), 
                         len(set(foreign_survey))]
+    logger.info('Finished summarizing data for user %s.' % user_id)
     return(summary)
 
 
 @easy([])
-def write_user_records(summary):
-    pass
+def write_user_records(user_id, summary, records_dict):
+    for sid in summary:
+        to_write = summary[sid]
+        write_to_csv(records_dict[sid], to_write)
+    logger.info('Finished writing records for user %s.' % user_id)                
 
 
-def pack_summary_kwargs(user_ids, proc_dir, 
-                        dir_names, project, config_dict = {},
+def pack_summary_kwargs(user_ids, proc_dir, dir_names, project,
                         track_time = True, id_lookup = {}):
     '''
     Packs kwargs for survrep.Summary.do().

@@ -26,8 +26,6 @@ def summarize_timings(opsys, file_path,
 
     Args:
         opsys (str): 'iOS' or 'Android'.
-        dir_name (str): The name of the folder containing file_path.
-            Note that this name will be a survey identifier.
         file_path (str): Path to a survey timings file.       
         n_events (list): Running list of counts of events.   
         unknown_header (list): 
@@ -74,20 +72,16 @@ def summarize_timings(opsys, file_path,
             logger.warning('Unrecognized survey: %s in %s' % (sid, filename))                
 
 
-def check_compatibility(opsys, file_path,
-                        n_events = [],
+def check_compatibility(opsys, file_path, config,
                         absent_survey = [],
                         absent_question = [],
-                        disagree_text_question = [],
-                        disagree_answer_options = []
-                        ):
+                        disagree_question_text = [],
+                        disagree_answer_options = []):
     '''
-    Summarize a survey timings file.
+    Check compatibility of a survey timings file with a study configuration.
 
     Args:
         opsys (str): 'iOS' or 'Android'.
-        dir_name (str): The name of the folder containing file_path.
-            Note that this name will be a survey identifier.
         file_path (str): Path to a survey timings file.       
         config (beiwetools.configread.classes.BeiweConfig):
             Representation of a Beiwe configuration file.

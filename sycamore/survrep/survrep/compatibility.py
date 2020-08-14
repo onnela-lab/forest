@@ -3,19 +3,19 @@
 '''
 import os
 import logging
-from beiwetools.helpers.time import local_now
 from beiwetools.helpers.log import log_to_csv
+from beiwetools.helpers.time import local_now
 from beiwetools.helpers.functions import setup_directories, setup_csv, write_to_csv
 from beiwetools.helpers.decorators import easy
 from beiwetools.helpers.templates import ProcessTemplate
 from .headers import compatibility_header 
-from .functions import events, summarize_timings
+from .functions import check_compatibility
 
 
 logger = logging.getLogger(__name__)
 
 
-@easy(['records_dict'])
+@easy(['compatibility_path'])
 def setup_output(proc_dir, dir_names, config_dict, track_time):
     out_dir = os.path.join(proc_dir, 'survrep', 'summary')
     if track_time:
@@ -26,29 +26,18 @@ def setup_output(proc_dir, dir_names, config_dict, track_time):
     setup_directories([out_dir, data_dir, log_dir])
     # set up logging output
     log_to_csv(log_dir)
-    # set up records CSVs
-    records_dict = {}
-    for sid in dir_names:    
-        records_dict[sid] = setup_csv(sid, data_dir, summary_header)
     # set up compatibility CSV
-
-
+    compatibility_path = setup_csv('configuration_compatibility',
+                                   data_dir, compatibility_header)
     logger.info('Created output directory and initialized files.')
-    return(records_path, compatibility_path)        
+    return(compatibility_path)        
 
 
-    iOS_events = list(events['iOS'].keys())
-    Android_events = list(events['Android'].keys())
-    header = summary_header + iOS_events + Android_events
-    records_path = setup_csv('records', data_dir, header)
-
-
-
-
+@easy([])
 def setup_user(user_id, project, dir_names, config):
     
     # assemble dictionary of file paths        
-    for 
+    
     
     # get study configuration
     
@@ -56,10 +45,12 @@ def setup_user(user_id, project, dir_names, config):
     pass
 
 
+@easy([])
 def summarize_user():
     pass
 
 
+@easy([])
 def write_user_records():
     pass
 
@@ -99,7 +90,7 @@ def pack_summary_kwargs(user_ids, proc_dir,
         'proc_dir': proc_dir,
         'dir_names': dir_names, 
         'project': project,
-        'config': config,
+        'config_dict': config_dict,
         'track_time': track_time
         }
     kwargs['id_lookup'] = id_lookup

@@ -28,10 +28,6 @@ raw_header = {
 }
 
 
-keep_header = [ # same notes as above
-  'timestamp', 
-  ]
-
 summary_header = [ # Column names for summary output.
   'user_id', # Beiwe User ID.
   'opsys',   # 'Android' or 'iOS'.
@@ -42,6 +38,7 @@ summary_header = [ # Column names for summary output.
   'unknown_events', # Number of unrecognized events.
   'foreign_survey'  # Number of events from other surveys.
   ]
+
 
 compatibility_header = [ # Column names for configuration compatibility output.
   'user_id', # Beiwe User ID.
