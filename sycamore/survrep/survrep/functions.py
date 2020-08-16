@@ -4,23 +4,33 @@
 import os
 import logging
 import pandas as pd
-from beiwetools.helpers.functions import read_json
+from beiwetools.helpers.functions import read_json, write_json
 from .headers import raw_header
 
 
 logger = logging.getLogger(__name__)
 
 
-# load events
+# load events & question types dictionary
 this_dir = os.path.dirname(__file__)
 events = read_json(os.path.join(this_dir, 'events.json'))
-        
+question_type_names = read_json(os.path.join(this_dir, 'question_types.json'))
+def make_lookup():
+    lookup = {'iOS':{}, 'Android':{}}
+    for k in question_type_names:    
+        for opsys in ['iOS', 'Android']:
+            opsys_name = question_type_names[k][opsys]
+            lookup[opsys][opsys_name] = k
+    return(lookup)
+question_types_lookup = make_lookup()
+
 
 def summarize_timings(opsys, file_path,
                       n_events = [],
-                      unknown_header = [],
+                      unknown_headers = [],
                       unknown_events = [],
-                      foreign_survey = []):
+                      unknown_question_types = [],
+                      foreign_surveys = []):
     '''
     Summarize a survey timings file.
 
@@ -28,10 +38,12 @@ def summarize_timings(opsys, file_path,
         opsys (str): 'iOS' or 'Android'.
         file_path (str): Path to a survey timings file.       
         n_events (list): Running list of counts of events.   
-        unknown_header (list): 
+        unknown_headers (list): 
             Running list of filenames with unrecognized headers.
         unknown_events (list): Running list of unrecognized events.
-        foreign_survey (list): 
+        unknown_question_types (list):
+            Running list of unrecognized question types.
+        foreign_surveys (list): 
             Running list of survey identifiers that don't match dir_name.
             
     Returns:
@@ -46,7 +58,7 @@ def summarize_timings(opsys, file_path,
     n_events.append(len(data))
     # check header
     if not list(data.columns) == raw_header[opsys]:
-        unknown_header.append(filename)
+        unknown_headers.append(filename)
         logger.warning('Unrecognized header: %s' % filename)
     # check events
     if opsys == 'iOS': # events are in the 'event' column
@@ -61,10 +73,16 @@ def summarize_timings(opsys, file_path,
         if not e in events[opsys]:
             unknown_events.append(e)
             logger.warning('Unrecognized event: %s in %s' % (e, filename))                
+    # check question types
+    temp_types = [t for t in data['question type'] if not pd.isnull(t)]
+    for t in temp_types:
+        if not t in question_types_lookup[opsys]:
+            unknown_question_types.append(t)
+            logger.warning('Unrecognized question type: %s in %s' % (t, filename))
     # check if the file contains events from other surveys
     for sid in data['survey id']:
         if not sid == dir_name:
-            foreign_survey.append(sid)
+            foreign_surveys.append(sid)
             logger.warning('Unrecognized survey: %s in %s' % (sid, filename))                
 
 
@@ -99,28 +117,27 @@ def check_compatibility(opsys, file_path, config,
     data = pd.read_csv(file_path)
     # filename will look like <survey_id>/<datetime>.csv
     filename = os.path.join(dir_name, os.path.basename(file_path))
+    # check compatibility of each line with configuration file 
+    for i in range(len(data)):
+        sid   = data['survey id'][i]
+        qid   = data['question id'][i]
+        qtype = data['question type'][i]
+        qtext = data['question text'][i]
+        qao   = data['question answer options'][i]             
+        # check survey id in configuration
+        if not sid in config.survey_ids['tracking']:
+            absent_survey.append(sid)
+        else:            
+            
+            # check question id in survey:
+        
 
-    # check compatibility with configuration file 
-    if not config is None:
-         for i in range(len(data)):
+            # check question id
+            
+            # check question text
+            
+            # check answer options text
 
 
-
-             sid, qid, qt, ao = None
-
-
-             
-         # check survey id
-         for sid in data['survey_id']:
-             if not sid in config.survey_ids['tracking']:
-                 pass
-         # check question id
-         
-         # check question text
-
-         # check answer options text
-
-
-    
 
 

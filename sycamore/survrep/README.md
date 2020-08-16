@@ -78,7 +78,7 @@ On the Beiwe iOS app, tracking survey metadata is handled by a [TrackingSurveyPr
 | `submitted` | |
 
 
-
+Names of question types appear to follow the conventions used in Beiwe study configuration files.
 
 
 
@@ -88,9 +88,20 @@ On the Beiwe iOS app, tracking survey metadata is handled by a [TrackingSurveyPr
 ___
 ## 4. Android Survey Timings <a name="android"/>
 
-**Important notes:**
+**Important notes about Android tracking survey metadata:**
 
-* **Additional survey metadata may be found in `app_log` files.  This package does not handle metadata from these files.**
+* **Additional survey metadata form may be found in `app_log` files.  This package does not handle metadata from these files.**
+
+
+* **Since 
+
+* **[Names of question types](
+
+app/src/main/java/org/beiwe/app/survey/QuestionType.java
+
+) do not follow conventions used in Beiwe study configuration files.  See `survrep/question_type_names.json` for concordance.**
+
+
 
 `Survey first rendered and displayed to user`
 

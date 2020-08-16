@@ -51,14 +51,16 @@ def summarize_user(user_id, opsys, dir_names, file_paths_dict):
     summary = {}
     for sid in dir_names:
         n_events = []
-        unknown_header = []
+        unknown_headers = []
         unknown_events = []
-        foreign_survey = []
+        unknown_question_types = []
+        foreign_surveys = []
         file_paths = file_paths_dict[('survey_timings', sid)]
         for file_path in file_paths:
             try:
                 summarize_timings(opsys, file_path, n_events, 
-                                  unknown_header, unknown_events, foreign_survey)            
+                                  unknown_headers, unknown_events, 
+                                  unknown_question_types, foreign_surveys)            
             except:
                 logger.warning('Unable to summarize file %s for user %s.' % (file_path, user_id))
         try: first = os.path.basename(file_paths[0])
@@ -70,9 +72,10 @@ def summarize_user(user_id, opsys, dir_names, file_paths_dict):
                         last,
                         len(file_paths),            
                         sum(n_events), 
-                        len(set(unknown_header)),
+                        len(set(unknown_headers)),
                         len(set(unknown_events)), 
-                        len(set(foreign_survey))]
+                        len(set(unknown_question_types)),                         
+                        len(set(foreign_surveys))]
     logger.info('Finished summarizing data for user %s.' % user_id)
     return(summary)
 

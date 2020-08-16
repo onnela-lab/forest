@@ -23,31 +23,43 @@ user_ids = p.ids # summarize metadata for all available Beiwe IDs
 dir_names = p.surveys['survey_timings'] # summarize metadata for all available
                                         # survey timings directories-- highly 
                                         # recommended, because many directories 
-                                        # will contain metadata for other 
-                                        # surveys
+                                        # may contain metadata for other surveys
 project = p
 track_time = True # isolate output in a timestamped directory
-kwargs = pack_summary_kwargs(user_ids, proc_dir, dir_names, project,
-                             track_time)    
+kwargs = pack_summary_kwargs(user_ids, proc_dir, dir_names, 
+                             project, track_time)    
 # run the summary:
 Summary.do(**kwargs)
 
 # Now review proc_dir/survrep/summary/<timestamp>/log/log.csv:
 #   - Check for log records with "WARNING" in the levelname column.
-#   - Important warning messages include:
-#       - "Header is not recognized"
-#       - "Unrecognized event"
-#       - "Unable to summarize"
+#     The most common warning message may be "Unrecognized survey."
+#       - This means that an event was found from a survey that doesn't match
+#         the directory name in which it was logged.
+#       - This isn't too much of a concern, as this package's Extract module
+#         ignores directory names when it organizes event records.
 
-# Data summaries are found in proc_dir/summary/records/records.csv:
-#   - The first eight columns contain summaries that are common across 
-#     platforms, e.g. file counts and observation counts.
-#   - The next six columns contain iOS-specific event counts, and should 
-#     not contain records for Android devices.
-#   - The last ten columns contain Android-specific event counts.
+# Summaries for each survey identifer in dir_names are found in 
+# proc_dir/survrep/summary/<timestamp>/records/records.csv:
+#   - Check for survey identifiers and Beiwe identifiers with unknown headers
+#     or unknown events.
+#       - If necessary, review log.csv for details regarding these issues.
+#       - New events should be documented and added to powrep/events.json.
+#       - Update powrep/header.py with new header information if necessary.
 
 ###############################################################################
-# 3. Extract event variables
+# 3. Check compatibility with a configuration file
+#   - This is an optional step.
+###############################################################################
+
+
+
+
+
+
+
+###############################################################################
+# 4. Extract event variables
 #   - This module organizes power state events into variables.
 #   - For example, iOS Unlocked/Locked events are converted to a boolean
 #     variable called "protected_data_available".
