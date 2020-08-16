@@ -38,18 +38,18 @@ kwargs = pack_summary_kwargs(user_ids = r.ids, # summarize data for all
 # run the summary:
 Summary.do(**kwargs)
 
-# Now review proc_dir/summary/log/log.csv:
+# Now review proc_dir/fitrep/summary/<timestamp>/log/log.csv:
 #   - Check for log records with "WARNING" in the levelname column.
 #   - Important warning messages include:
 #       - "Contains smartphone app data"
 #       - "Unknown device"
 #       - "Unknown service provider"
 
-# Data summaries are found in proc_dir/summary/records/<file_type>.csv.
-#   - Review proc_dir/summary/records/syncEvents.csv:
+# Data summaries are found in proc_dir/fitrep/summary/<timestamp>/records/<file_type>.csv.
+#   - Review /records/syncEvents.csv:
 #       - Identify any unexpected entries, such as unknown devices, short 
 #         followup periods, or absence of sync events. 
-#   - Review proc_dir/summary/records/minuteSleep.csv:
+#   - Review /records/minuteSleep.csv:
 #       - Note p_offsets, the proportion of sleep observations with a 30-second
 #         synchronization offset.
 
@@ -82,7 +82,7 @@ Sync.do(**kwargs)
 #   - Probably not something to be concerned about, as long as no additional
 #     warnings are emitted.
 
-# Review proc_dir/sync/log/log.csv:
+# Review proc_dir/fitrep/sync/<timestamp>/log/log.csv:
 #   - Check for log records with "WARNING" in the levelname column.
 #   - Important warning messages include references to incomplete/missing
 #     device logs, or multiple device logs.  
@@ -90,7 +90,7 @@ Sync.do(**kwargs)
 #     devices AND the Fitbit smartphone app.  This package can't separate 
 #     out mingled data from both sources.
 
-# Sync summaries are in proc_dir/sync/records/records.csv.
+# Sync summaries are in proc_dir/fitrep/sync/<timestamp>/records/records.csv.
 #   - Users with low values in the n_syncs column may have poor data quality.
 #   - Check for any non-zero values in the n_app_syncs column.
 #   - User-level intersync times (in seconds) are summarized with min/max, 
@@ -114,15 +114,15 @@ kwargs = pack_format_kwargs(user_ids = r.ids,
 # reformat files:
 Format.do(**kwargs)    
     
-# Review proc_dir/format/log/log.csv:
+# Review proc_dir/fitrep/format/<timestamp>/log/log.csv:
 #   - Check for log records with "WARNING" in the levelname column.
 #   - Warning messages may correspond to specific files that could not be 
 #     processed.
 
-# Review individual records in proc_dir/format/records/.
+# Review individual records in proc_dir/fitrep/format/<timestamp>/records/.
 #   - Check follow up periods for each combination of user & file type.
 
-# Reformatted files are in proc_dir/format/data/.
+# Reformatted files are in proc_dir/fitrep/format/<timestamp>/data/.
 #   - Column headers are "local_datetime" and "value".
 #   - minuteSleep files have another column, "resync".  If resync = False, the
 #     observation is an original Fitbit sleep classification.  An observation 

@@ -29,14 +29,14 @@ kwargs = pack_summary_kwargs(user_ids = p.ids, # summarize data for all
 # run the summary:
 Summary.do(**kwargs)
 
-# Now review proc_dir/summary/log/log.csv:
+# Now review proc_dir/powrep/summary/<timestamp>/log/log.csv:
 #   - Check for log records with "WARNING" in the levelname column.
 #   - Important warning messages include:
 #       - "Header is not recognized"
 #       - "Unrecognized event"
 #       - "Unable to summarize"
 
-# Data summaries are found in proc_dir/summary/records/records.csv:
+# Data summaries are found in proc_dir/powrep/summary/<timestamp>/records/records.csv:
 #   - The first eight columns contain summaries that are common across 
 #     platforms, e.g. file counts and observation counts.
 #   - The next six columns contain iOS-specific event counts, and should 
@@ -64,11 +64,11 @@ kwargs = pack_extract_kwargs(user_ids = p.ids,
 # run the variable extraction:
 Extract.do(**kwargs)
 
-# Now review proc_dir/extract/log/log.csv:
+# Now review proc_dir/powrep/extract/<timestamp>/log/log.csv:
 #   - Check for log records with "WARNING" in the levelname column.
 #   - The main warning to watch for is "Unable to extract."
 
-# Extracted variables are found in proc_dir/extract/data/<user_id>:
+# Extracted variables are found in proc_dir/powrep/extract/<timestamp>/data/<user_id>:
 #   - Observations of each variable are in <variable name>.csv.
 #   - CSV headers are 'timestamp' and 'value'; iOS files have an additional
 #     'battery_level' column.

@@ -8,5 +8,5 @@ examples
 
 This directory contains sample code for the `powrep` package.
 
-## 1. `powrep_summary_example.ipynb`
-
+## 1. `powrep_example.py`
+A basic workflow for summarizing power state files and extracting event variables.
