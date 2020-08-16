@@ -137,7 +137,4 @@ def check_compatibility(opsys, file_path, config,
             # check question text
             
             # check answer options text
-
-
-
-
+            pass
