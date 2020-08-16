@@ -577,7 +577,7 @@ class UserData():
             an ordered pair(survey type, survey identifier) (tuple).
         '''
         if isinstance(streams, str): streams = [streams]
-		if isinstance(streams, tuple): streams = [streams]
+        if isinstance(streams, tuple): streams = [streams]
         a = OrderedDict()
         for s in streams:
             if isinstance(s, str):

@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @easy(['records_dict'])
-def setup_output(proc_dir, dir_names, config_dict, track_time):
+def setup_output(proc_dir, dir_names, track_time):
     out_dir = os.path.join(proc_dir, 'survrep', 'summary')
     if track_time:
         temp = local_now().replace(' ', '_')
@@ -61,9 +61,13 @@ def summarize_user(user_id, opsys, dir_names, file_paths_dict):
                                   unknown_header, unknown_events, foreign_survey)            
             except:
                 logger.warning('Unable to summarize file %s for user %s.' % (file_path, user_id))
+        try: first = os.path.basename(file_paths[0])
+        except: first = None
+        try: last = os.path.basename(file_paths[-1])
+        except: last = None
         summary[sid] = [user_id, opsys,
-                        os.path.basename(file_paths[0]),
-                        os.path.basename(file_paths[-1]),
+                        first,
+                        last,
                         len(file_paths),            
                         sum(n_events), 
                         len(set(unknown_header)),
