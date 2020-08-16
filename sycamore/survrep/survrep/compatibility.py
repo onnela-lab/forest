@@ -55,9 +55,9 @@ def write_user_records():
     pass
 
 
-def pack_summary_kwargs(user_ids, proc_dir, 
-                        dir_names, project, config_dict = {},
-                        track_time = True, id_lookup = {}):
+def pack_compatibility_kwargs(user_ids, proc_dir, 
+                              dir_names, project, config_dict = {},
+                              track_time = True, id_lookup = {}):
     '''
     Packs kwargs for survrep.Compatibility.do().
     

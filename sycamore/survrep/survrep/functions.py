@@ -52,15 +52,11 @@ def summarize_timings(opsys, file_path,
     if opsys == 'iOS': # events are in the 'event' column
         temp_events = list(data.event)        
     if opsys == 'Android': # events are in the 'question id' column
-
-
-
-
-        temp_events = data.iloc[data['question type'] == None]['question id']
-
-
-
-
+        temp = data[pd.isnull(data['question type']) & \
+                    pd.isnull(data['question text']) & \
+                    pd.isnull(data['question answer options']) & \
+                    pd.isnull(data['answer'])]
+        temp_events = list(temp['question id'])
     for e in temp_events:
         if not e in events[opsys]:
             unknown_events.append(e)
@@ -75,6 +71,7 @@ def summarize_timings(opsys, file_path,
 def check_compatibility(opsys, file_path, config,
                         absent_survey = [],
                         absent_question = [],
+                        disagree_question_type = [],
                         disagree_question_text = [],
                         disagree_answer_options = []):
     '''
@@ -106,12 +103,17 @@ def check_compatibility(opsys, file_path, config,
     # check compatibility with configuration file 
     if not config is None:
          for i in range(len(data)):
-             sid, qid, qt, ao = 
+
+
+
+             sid, qid, qt, ao = None
+
+
              
          # check survey id
          for sid in data['survey_id']:
              if not sid in config.survey_ids['tracking']:
-                 
+                 pass
          # check question id
          
          # check question text
