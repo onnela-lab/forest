@@ -37,30 +37,44 @@ def setup_output(proc_dir, config, track_time):
     return(compatibility_dict)        
 
 
-@easy(['opsys', 'file_paths'])
+@easy(['opsys', 'records_dict'])
 def setup_user(user_id, project):    
     # get operating system
     opsys = project.lookup['os'][user_id]    
-    # assemble dictionary of file paths        
+
+
+    # get file paths        
     udata = project.data[user_id]
     sids = udata.surveys['survey_timings']['ids'].keys()
     key_list = [('survey_timings', sid) for sid in sids]
     file_paths = udata.assemble(key_list)
     list_of_lists = [file_paths[k] for k in file_paths]
     file_paths = join_lists(list_of_lists)
+    all_events = stack_frames(file_paths)
+    # split file paths 
+    sids = list(set(all_events['survey id'])
+
     logger.info('Finished setting up parameters for user %s.' % user_id)
-    return(opsys, file_paths)
+    return(opsys, file_paths_dict)
  
     
 @easy([])
-def compatibility_user(opsys, file_paths, config):
+def compatibility_user(opsys, file_paths_dict, config):
+    for 
+
+
+    absent_survey = []
+    absent_question = []
+    disagree_question_type = []
+    disagree_question_text = []
+    disagree_answer_options = []
     for file_path in file_paths:
         check_compatibility(opsys, file_path, config,
-                            absent_survey = [],
-                            absent_question = [],
-                            disagree_question_type = [],
-                            disagree_question_text = [],
-                            disagree_answer_options = [])
+                            absent_survey,
+                            absent_question,
+                            disagree_question_type,
+                            disagree_question_text,
+                            disagree_answer_options)
     
 
 

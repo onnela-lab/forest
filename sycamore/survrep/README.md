@@ -21,7 +21,7 @@ Example imports:
 ```python
 import survrep
 import survrep.functions as sf
-from survrep import xx
+from survrep import summarize_timings
 ```
 
 ___
@@ -35,7 +35,7 @@ ___
 	* [`functions`](#functions)  
 	* [`summary`](#summary)  
 	* [`compatibility`](#compatibility)  	
-	* [`meta`](#meta)  	
+	* [`extract`](#extract)  	
 6.  [Examples](#examples)  
 7.  [Cautions & Notes](#cautions)  
 
@@ -66,21 +66,24 @@ The format and content of metadata files differ for the iPhone and Android versi
 ___
 ## 3. iOS Survey Timings <a name="ios"/>
 
-On the Beiwe iOS app, tracking survey metadata is handled by a [TrackingSurveyPresenter]() object.  Event records for survey notifications and expirations originate from a [StudyManager]() object.  The following events are logged in the `events` column of an iOS survey timings file:
+In the Beiwe iOS app, tracking survey metadata is handled by a [TrackingSurveyPresenter](https://github.com/onnela-lab/beiwe-ios/blob/master/Beiwe/Controllers/TrackingSurveyPresenter.swift) object.  Event records for survey notifications and expirations originate from a [StudyManager](https://github.com/onnela-lab/beiwe-ios/blob/master/Beiwe/Managers/StudyManager.swift) object.  The following events are logged in the `events` column of an iOS survey timings file:
 
 | **Event** | **Interpretation** |
 |-----------|-----------|
-| `notified` | |
-| `expired` | |
-| `present` | |
-| `changed` | |
-| `unpresent` | |
-| `submitted` | |
+| `notified` | The Beiwe app has delivered a message: "A new survey has arrived and is awaiting completion." |
+| `expired` | The survey is no longer active and the notification has been cancelled. |
+| `present` | A survey question has been displayed to the user.|
+| `changed` | The user's response to the question changed.|
+| `unpresent` | The survey question is no longer displayed because the user submitted an answer, or possibly for other reasons. |
+| `submitted` | The user has finished the survey and submitted responses. |
 
+Additional notes about iOS tracking survey metadata:
 
-Names of question types appear to follow the conventions used in Beiwe study configuration files.
+* Typically, a user's response to a single survey question may generate several event records: First a `present` event when it is initially displayed, one or more `changed` events as the user selects a response, and finally an `unpresent` event when the user submits an answer.
 
+* Capture of `changed` events is delayed for slider questions.
 
+* [Names of question types](https://github.com/onnela-lab/beiwe-ios/blob/master/Beiwe/Models/GenericSurveyQuestion.swift) follow the conventions used in Beiwe study configuration files.
 
 
 
@@ -88,24 +91,22 @@ Names of question types appear to follow the conventions used in Beiwe study con
 ___
 ## 4. Android Survey Timings <a name="android"/>
 
+In the Beiwe Android app, tracking survey metadata is handled by a [SurveyTimingsRecorder](https://github.com/onnela-lab/beiwe-android/blob/master/app/src/main/java/org/beiwe/app/survey/SurveyTimingsRecorder.java) object.  The following events are logged in the `question id` column of an Android survey timings file:
+
+| **Event** | **Notes** |
+|-----------|-----------|
+|`Survey first rendered and displayed to user`| This does not appear to be analogous to any iOS survey timings event. |
+|`User hit submit`| This may be comparable to the iOS `submitted` event. |
+|`<question id>`| A response was submitted for the corresponding question.  Probably comparable to the iOS `unpresent` event. |
+
+
 **Important notes about Android tracking survey metadata:**
 
-* **Additional survey metadata form may be found in `app_log` files.  This package does not handle metadata from these files.**
+* **Additional survey metadata may be found in `app_log` files.  This package does not handle metadata from these files.**
 
+* **[Names of question types](https://github.com/onnela-lab/beiwe-android/blob/master/app/src/main/java/org/beiwe/app/survey/QuestionType.java) do not follow conventions used in Beiwe study configuration files.  See `survrep/question_type_names.json` for concordance.**
 
-* **Since 
-
-* **[Names of question types](
-
-app/src/main/java/org/beiwe/app/survey/QuestionType.java
-
-) do not follow conventions used in Beiwe study configuration files.  See `survrep/question_type_names.json` for concordance.**
-
-
-
-`Survey first rendered and displayed to user`
-
-`User hit submit`
+* **A question-related event is only logged when a response is submitted.  Therefore, no event is recorded for an `info_text_box` item.**
 
 
 ___
@@ -126,7 +127,7 @@ ___
 #### `compatibility` <a name="compatibility"/>
 
 ___
-#### `meta` <a name="meta"/>
+#### `extract` <a name="extract"/>
 
 ___
 ## 6. Examples <a name="examples"/>

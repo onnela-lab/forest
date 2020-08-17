@@ -4,7 +4,8 @@
 import os
 import logging
 import pandas as pd
-from beiwetools.helpers.functions import read_json, write_json
+from beiwetools.helpers.functions import read_json
+from beiwetools.helpers.process import stack_frames
 from .headers import raw_header
 
 
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 # load events & question types dictionary
 this_dir = os.path.dirname(__file__)
 events = read_json(os.path.join(this_dir, 'events.json'))
-question_type_names = read_json(os.path.join(this_dir, 'question_types.json'))
+question_type_names = read_json(os.path.join(this_dir, 'question_type_names.json'))
 def make_lookup():
     lookup = {'iOS':{}, 'Android':{}}
     for k in question_type_names:    
@@ -86,6 +87,21 @@ def summarize_timings(opsys, file_path,
             logger.warning('Unrecognized survey: %s in %s' % (sid, filename))                
 
 
+def organize_metadata(reader):
+    '''
+    Split split events from a list of metadata files into a dictionary 
+    according to survey identifiers.
+    
+    Args:
+        
+    Returns:
+        
+        
+    '''
+
+
+
+
 def check_compatibility(opsys, file_path, config,
                         absent_survey = [],
                         absent_question = [],
@@ -127,14 +143,22 @@ def check_compatibility(opsys, file_path, config,
         # check survey id in configuration
         if not sid in config.survey_ids['tracking']:
             absent_survey.append(sid)
+            logger.warning('Configuration doesn\'t include survey ID %s from filename %s' % (sid, filename))
         else:            
-            
             # check question id in survey:
-        
+            if not sid in :
+                absent_question.append(sid)
+                logger.warning('Configuration doesn\'t include survey ID %s from filename %s' % (sid, filename))
+            else:
+                # check question type
 
-            # check question id
+                        disagree_question_type.append()
+                # check question text
+
+                        disagree_question_text.append()
+                # check answer options text
+
+                        disagree_answer_options.append()
+
+
             
-            # check question text
-            
-            # check answer options text
-            pass
