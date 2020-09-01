@@ -1,0 +1,1 @@
+Function calculates active time minutes from raw accelerometer measurements collected using smartphones. The time is assumed as active if summed variance from 3 orthogonal axes is above 0.15g (1g ~= 9.80665 m/s^2).
