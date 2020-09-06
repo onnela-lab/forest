@@ -1,13 +1,15 @@
 '''Template for a generic class that can be exported and loaded.
 
-    - Export/load methods use JSON format for human-readable representations.
-    - Attributes should be serializable Python types.
+    - Export/load class using JSON format for human-readable representations.
     - Equivalence of instances (==) is based on equality of attributes. 
-'''
+    - Attributes should be JSON-serializable Python objects, e.g. lists, 
+      strings, booleans, etc.
+    - Export/load functions can be specified according to file system.
 
+'''
 import os
-import json
 from logging import getLogger
+from beiwetools.helpers.functions import write_json, read_json
 
 
 logger = getLogger(__name__)
@@ -18,10 +20,11 @@ class SerializableClass():
     Attributes:
         do_not_serialize (list): List of attributes (str) that should not be 
             serialized.
+                
     '''
     def __init__(self):
         '''
-        This method can be left empty.
+        Leave empty.  Use create() or load() to initialize an instance.
         '''
         pass 
 
@@ -36,7 +39,8 @@ class SerializableClass():
         self.do_not_serialize = []
         return(self)
         
-    def export(self, name, out_dir):
+    def export(self, name, out_dir, 
+               export_function = write_json, **export_kwargs):
         '''
         Serialize object attributes and write to a JSON file.
         
@@ -44,28 +48,50 @@ class SerializableClass():
             name (str): Name for the JSON file, without extension.
             out_dir (str): Full path to directory where JSON file will be 
                 written.
-
+            export_function (function): A function that writes dictionaries to
+                JSON files.  Specifications:
+                - Args:
+                    dictionary (dict): Dictionary to write to JSON file.
+                    name (str):  Name for the file to create, without extension.
+                    dirpath (str):  Path to location for the JSON file.
+                    export_kwargs (dict): Other keyword arguments.                       
+                - Returns:
+                    filepath (str): Path to the JSON file.
+            **export_kwargs: Keyword arguments for export_function.
+                
         Returns:
-            class_file (str): Path to JSON with serialized attributes.
+            filepath (str): Path to JSON with serialized attributes.
         '''
         try:
             all_attributes = self.__dict__.keys()
             select_attributes = [k for k in all_attributes if not k in self.do_not_serialize]
-            to_write = {k:self.__dict__[k] for k in select_attributes}
-            filepath = os.path.join(out_dir, name + '.json')
-            json.dump(to_write, filepath, indent = 4)
+            dict_to_write = {k:self.__dict__[k] for k in select_attributes}
+            filepath = 
+
+            class_file = os.path.join(out_dir, name + '.json')
+            with open(class_file, 'w') as f:
+                json.dump(dict_to_write, f, indent = indent)
+
+
+            return(filepath)
         except:
-        		logger.warning('Unable to write JSON file.')
+                logger.warning('Unable to write JSON file.')
     
     @classmethod
-    def load(cls, attributes_filepath):
+    def load(cls, filepath, 
+             loader = read_json, **load_kwargs):
         '''
         Given a file with serialized object attributes, initialize a new class
         instance with those attributes.
 
         Args:
-            class_file (str): Full path to a file with serialized object
-                attributes.
+            filepath (str): Full path to a file with serialized 
+                object attributes.
+            loader (function):
+                
+                
+                
+            **load_kwargs: Keyword arguments for loader.
             
         Returns:
             class_instance (SerializableClass): An instance of the class with
@@ -74,14 +100,20 @@ class SerializableClass():
         try:
             # initialize object
             self = cls.__new__(cls)
+
+
+
             self.__dict__ = json.load(attributes_filepath)
+
+
+
             return(self)
         except:
-        		logger.warning('Unable to load JSON file.')
+            logger.warning('Unable to load JSON file.')
                     
     def __eq__(self, other):
         '''
-        Define equivalence (==).
+        Define equivalence.
         '''
         same = False
         if type(other) == type(self):        

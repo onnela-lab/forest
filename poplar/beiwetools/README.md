@@ -75,7 +75,7 @@ A **Beiwe study** corresponds to a collection of surveys and device settings.  T
 * How often data are uploaded,
 * Which sensors are sampled for passive data collection.
 
-Each Beiwe user is assigned an alphanumeric string (**user ID**), when he or she is registered in a study.  Each Beiwe study is assigned both a hex-string identifier (**study ID**) and a human-readable name.  
+	Each Beiwe user is assigned an alphanumeric string (**user ID**), when he or she is registered in a study.  Each Beiwe study is assigned both a hex-string identifier (**study ID**) and a human-readable name.  
 
 Using the above identifiers, researchers can download raw user data from the Beiwe backend.  This can be done manually (e.g. from `studies.beiwe.org`) or with tools from the `mano` package.
 
