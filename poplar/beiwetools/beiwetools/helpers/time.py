@@ -206,6 +206,15 @@ def between_days(start_date, end_date):
     return(date_list)
 
 
+def next_day(date):
+    '''
+    Given a date, get the next date.
+    '''
+    d = datetime.datetime.strptime(date, date_only)
+    next_d = d + datetime.timedelta(days = 1)
+    return(next_d.strftime(date_only))
+
+
 def round_timestamp(timestamp):
     '''
     Given an arbitrary timestamp, get timestamps for the nearest previous and 
