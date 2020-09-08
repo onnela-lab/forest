@@ -9,12 +9,9 @@ For tracking windows of different sizes, use multiple LocalFollowup instances.
 method.
 - Interact with stored summaries using a LocalFollowup class.  Summary files 
 are only opened to update contents or to assemble data sets.
-- By default, summaries are stored in pickled pandas.Series objects
-with dtype = 'category'.  This is a safe dtype for floats, ints, bools, and
-missing values (np.NaN or None).  
-- If storage is an issue, use dtype = 'float' for greater efficiency (~35%
-reduction).  Note that 'float' will coerce integers to floats, and booleans to
-float values (0.0 / 0.1).
+- Summaries are stored in pickled pandas.Series objects with dtype = 'float'.  
+- Note that integers will be coerced to floats, booleans to 0.0 / 0.1, and 
+None to np.nan.
 
 '''
 import os
@@ -39,8 +36,8 @@ class LocalFollowup():
         window (int): Duration of tracked windows in milliseconds.
         window_times (list): Starting times (str) for each window in 
             '%H:%M:%S' format.
-        variables (dict): Keys are names of variables that are tracked.
-            Values are dtypes for pandas.Series, e.g. 'float' or 'category'.
+        variables (list): Names of variables that are tracked.
+
     '''
     def __init__():
         pass
@@ -77,18 +74,14 @@ class LocalFollowup():
             self.window_times = [to_readable(t, time_only, to_tz = UTC) \
                                  for t in window_ms]            
             # initialize empty variable dictionary
-            self.variables = {}
+            self.variables = []
             # initialize directories
             records_dir = os.path.join(self.path, 'records')
             day_dir = os.path.join(self.path, 'days')
             date_dirs = [os.path.join(day_dir, d) for d in self.days]            
             setup_directories([records_dir, day_dir] + date_dirs)                 
             # save attributes
-            parameters = dict(zip(['path', 'days', 'window', 
-                                   'window_times', 'variables'],
-                                  [self.path, self.days, self.window,
-                                   self.window_times, self.variables]))
-            write_json(parameters, 'parameters', records_dir)
+            self.save_attributes()
             return(self)
         
     @classmethod
@@ -111,51 +104,30 @@ class LocalFollowup():
         except:
             logger.warning('Unable to load followup data.')
 
+    def save_attributes(self):
+        '''
+        Update attribute records.
+        '''
+        parameters = dict(zip(['path', 'days', 'window', 
+                               'window_times', 'variables'],
+                              [self.path, self.days, self.window,
+                               self.window_times, self.variables]))
+        records_dir = os.path.join(self.path, 'records')
+        write_json(parameters, 'parameters', records_dir)
 
-
-
-        
-        # a = pd.Series([1, 2, 3, None], 
-        #               dtype = 'category')
-
-        # b = pd.Series([1, 2, 3, None], 
-        #               dtype = 'float')
-
-        # a.to_pickle(os.path.join(output_dir, 'a4'))
-        # b.to_pickle(os.path.join(output_dir, 'b4'))
-
-        # a_pickle = pd.read_pickle(os.path.join(output_dir, 'a'))
-
-        
-        # output_dir = '/home/josh/Desktop/test/'
-        # name = 'test_followup'
-        # start_date = '2020-09-01'
-        # end_date = '2020-10-07'
-        # window = 60000
-        
-    
-    
-        
     def add_variables(self, new_variables):
         '''
         Create placeholders for variables to track.
         
         Args:
-            new_variables (list): List of tuples describing new variables.
-                Tuples are pairs of strings, (<variable name>,<variable type>).
-                Can also just be a <variable name> (str), in which case the 
-                <variable_type> will be 'category'.
+            new_variables (list): List of variable names.
 
         Returns:
             None
         '''
-        for v in new_variables:
-            if isinstance(v, str):
-                v = (v, 'category')
-            variable_name = v[0]
-            variable_type = v[1]
+        for variable_name in new_variables:
             # update records
-            self.variables[variable_name] = variable_type
+            self.variables.append(variable_name)
             # create placeholders for values
             for date in self.days:
                 series_filepath = os.path.join(self.path, 'days', 
@@ -165,8 +137,10 @@ class LocalFollowup():
                     index = zip([date]*len(self.window_times), 
                                 self.window_times)
                     date_series = pd.Series(data = values, index = index,
-                                            dtype = variable_type)
+                                            dtype = 'float')
                     date_series.to_pickle(series_filepath)
+        # update attributes
+        self.save_attributes()
                             
     def extend_followup(self, new_end_date):
         '''
@@ -183,25 +157,124 @@ class LocalFollowup():
         self.add_variables(list(self.variables.keys()))        
         # update records
         self.days += new_dates
+        # update attributes
+        self.save_attributes()
         
-    def get_long(self, variable, start_date, end_date):
-        pass
+    def get_long(self, variable, return_as,
+                 start_date = None, end_date = None):
+        '''
+        Get a single 1D-array or Series with one variable's values 
+        for a time range.
         
-    def get_wide(self, variable, start_date, end_date):
-        pass
+        Args:
+            variable (str): An item from self.variables.
+            return_as (str): Either 'array' or 'series'.
+            start_date (str or Nonetype): Start date for variable.  If None,
+                then start date will be self.days[0].
+            end_date (str or Nonetype): End date for variable.  If None,
+                then end date will be self.days[-1].
+            
+        Returns:
+            long (numpy.ndarray or pandas.Series): Vertically stacked values 
+                for the variable.
+        '''
+        if start_date is None: start_date = self.days[0]
+        if end_date is None: end_date = self.days[-1]
+        # get date range
+        dates_to_return = between_days(start_date, end_date)
+        # get values for each day
+        paths_to_unpickle = [os.path.join(self.path, 'days', d, variable)\
+                             for d in dates_to_return]
+        data_list = [pd.read_pickle(p) for p in paths_to_unpickle]
+        # assemble values
+        long = pd.concat(data_list)
+        if return_as == 'array': long = long.to_numpy()
+        return(long)
+
+    def get_wide(self, variable, return_as,
+                 start_date = None, end_date = None):
+        '''
+        Get a 2D-array or DataFrame with one variable's values for a 
+        time range.  Columns are days; rows are windows.
+        
+        Args:
+            variable (str): An item from self.variables.
+            return_as (str): Either 'array' or 'dataframe'.
+            start_date (str or Nonetype): Start date for variable.  If None,
+                then start date will be self.days[0].
+            end_date (str or Nonetype): End date for variable.  If None,
+                then end date will be self.days[-1].
+            
+        Returns:
+            wide (numpy.ndarray or pandas.DataFrame): Horizontally stacked 
+                values for the variable.
+        '''
+        if start_date is None: start_date = self.days[0]
+        if end_date is None: end_date = self.days[-1]
+        # get date range
+        dates_to_return = between_days(start_date, end_date)
+        # get values for each day
+        paths_to_unpickle = [os.path.join(self.path, 'days', d, variable)\
+                             for d in dates_to_return]
+        data_list = [pd.read_pickle(p) for p in paths_to_unpickle]
+        data_dict = dict(zip(dates_to_return, data_list))
+        for s in data_list: s.index = self.window_times
+        # assemble values
+        wide = pd.DataFrame(data_dict)
+        if return_as == 'array': wide = wide.to_numpy()
+        return(wide)
+
+
+
+
+
+
+        
+        # output_dir = '/home/josh/Desktop/test/'
+        # name = 'test_followup'
+        # start_date = '2020-09-01'
+        # end_date = '2020-10-07'
+        # window = 60000
         
 
-def csv_to_followup(filepath, followup, column_label, variable):
+
+        
+        
+
+def csv_to_followup(filepath, followup, offset_history,
+                    column_label, variable,
+                    f = None, **f_kwargs):
     '''
-    
+    Read values from a CSV file into a LocalFollowup object.
+    The CSV file must contain a 'timestamp' column containing millisecond
+    timestamps.    
     
     Args:
-        filepath (str): Path to a csv file with a timestamp header.        
+        filepath (str): Path to a CSV file with a timestamp header.        
+        followup (LocalFollowup): A LocalFollowup instance.
+
+        offset_history (
+
+
+        column_label (str): A column label from the CSV file containing values
+            to read.
+        variable (str): A variable name in followup.variables to store values.
+        f (function): An optional function for transforming data after 
+            opening with pd.read_csv().  Should take a pandas DataFrame as 
+            input and return a pandas DataFrame.
+        f_kwargs (dict): Keyword arguments for f.
         
     Returns:
         None
     
     '''    
+    data = pd.read_csv(filepath)
+    if not f is None:
+        data = f(data)    
+    timestamps = data['timestamps']
+    values = data[column_label]
+    date_time_tuples = [('','') for t in timestamps]
     
-    pass
+    to_readable('', to_tz = UTC)
+    pass    
     
