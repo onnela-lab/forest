@@ -116,7 +116,7 @@ def to_timestamp(time, from_format, from_tz = UTC):
 	return(ts)
 
 
-def to_readable(timestamp, to_format, to_tz):    
+def to_readable(timestamp, to_format, to_tz = UTC):    
 	'''
 	Convert a timestamp to a human-readable string localized to a particular timezone.
 
