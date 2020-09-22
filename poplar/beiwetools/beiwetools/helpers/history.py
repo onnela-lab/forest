@@ -60,7 +60,7 @@ class HistoryRecord(SerializableClass):
         '''
         Return epochs, time ranges when the variable does not change.                                         
         '''
-
+        
 
 
         pass

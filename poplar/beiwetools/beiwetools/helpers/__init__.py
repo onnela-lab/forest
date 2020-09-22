@@ -1,3 +1,4 @@
+from .class_templates import *
 from .classes import *
 from .colors import *
 from .decorators import *

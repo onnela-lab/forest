@@ -1,5 +1,5 @@
-'''
-Functions for working with raw Beiwe GPS data.
+'''Functions for working with raw Beiwe GPS data.
+
 '''
 import logging
 import pandas as pd
@@ -15,44 +15,34 @@ logger = logging.getLogger(__name__)
 R = 6.371*10**6
 
 
-def read_gps(path, keep = raw_header,
+def gps_reader(filepath, keep = raw_header,
              accuracy_cutoff = None,
-             location_ranges = None,
              clean_args = (True, True, True)):
     '''
     Read a raw Beiwe GPS file.  
-    Optionally, drop inaccurate observations and project to 2D plane.
+    Optionally, drop inaccurate observations.
     
     Args:
-        path (str): Path to the file.
+        filepath (str): Path to the file.
         keep (list): Which columns to keep.
-            Note that projections will replace lat/long/alt with x/y/z.
         accuracy_cutoff (float or Nonetype):
             Observations with accuracy >= cutoff are dropped.
             If None, then no observations are dropped.
-        location_ranges (Nonetype or dict):
-            If None, returns dataframe with latitude, longitude, altitude.
-            Otherwise, performs projection and returns dataframe with x, y, z.
-            Keys are 'latitude', 'longitude', 'altitude'.
-            Values are pairs [min, max].
         clean_args (tuple): Args for clean_dataframe().
 
     Returns:
         df (DataFrame): Pandas dataframe of GPS data.    
     '''    
-    df = pd.read_csv(path, usecols = keep)
+    df = pd.read_csv(filepath, usecols = keep)
     clean_dataframe(df, *clean_args)
     # drop high accuracy obsevations
     if not accuracy_cutoff is None:
         df = df.loc[df.accuracy < accuracy_cutoff]
         clean_dataframe(df, *clean_args)
-    # project to 2D plane
-    if not location_ranges is None:
-        project_gps(df, location_ranges, action = 'replace')
     return(df)
 
 
-def project_gps(df, location_ranges, action = 'replace',
+def gps_project(df, location_ranges, action = 'replace',
                 coordinates = ['latitude', 'longitude', 'altitude']):
     '''
     Project latitude and longitude to a 2-D surface.
@@ -103,7 +93,6 @@ def project_gps(df, location_ranges, action = 'replace',
         new_df = pd.DataFrame({'timestamp': df.timestamp, 'x':x, 'y':y, 'z':z})
         return(new_df)
     
-
 
 
 
