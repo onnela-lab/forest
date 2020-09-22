@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 R = 6.371*10**6
 
 
-def gps_reader(filepath, keep = raw_header,
+def read_gps(filepath, keep = raw_header,
              accuracy_cutoff = None,
              clean_args = (True, True, True)):
     '''
