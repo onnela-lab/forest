@@ -17,34 +17,29 @@ raw_keep_header = [ # Same notes as above.
   'altitude'
   ]
 
-file_summary = [
+user_summary = [
   'user_id', # Beiwe User ID.
   'n_files', # Number of raw GPS files for this user.
+  'n_observations', # Number of GPS observations for this user.
   'first_file', 'last_file', # Basenames of first and last hourly files.
   'approximate_frequency_Hz' # An estimate of sampling frequency when GPS is active.
   ]
 
-process_summary = [
-  'local_start_time', 'local_finish_time', # Local summary start/end times.
-  'total_time_minutes' # Time taken to summarize this user's GPS data.
-  ]
-
-location_ranges = [ # min/max for each GPS coordinate
+variable_ranges = [ # min/max for each variable
   'latitude_min',  'latitude_max',
   'longitude_min', 'longitude_max',
   'altitude_min',  'altitude_max'
+  'accuracy_min', 'accuracy_max'
   ]
 
-accuracy_summary = [ # accuracy summary statistics
-  'accuracy_min', 'accuracy_max',
-  'accuracy_mean', 'accuracy_std'
-  ]
+# Column names for gpsrep.Summary output:
+summary_records_header = user_summary + variable_ranges
+
+
+
 
 timezone_summary = [
   'n_timezones', # Number of distinct timezones.
   'n_timezone_transitions' # Number of timezone transitions.
   ]  
 
-# Column names for gpsrep.summary output:
-summary_records_header = file_summary + process_summary + location_ranges + \
-                         accuracy_summary + timezone_summary

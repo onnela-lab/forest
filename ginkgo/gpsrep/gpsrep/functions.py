@@ -1,14 +1,14 @@
 '''Functions for working with raw Beiwe GPS data.
 
 '''
-import logging
+from logging import getLogger
 import pandas as pd
 from math import pi, sin, acos
 from .headers import raw_header
 from beiwetools.helpers.process import clean_dataframe
 
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 # mean radius of the Earth
