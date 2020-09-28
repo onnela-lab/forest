@@ -5,81 +5,119 @@ import os
 import logging
 from beiwetools.helpers.time import local_now
 from beiwetools.helpers.log import log_to_csv
-from beiwetools.helpers.functions import setup_directories, setup_csv, write_to_csv
+from beiwetools.helpers.functions import (setup_directories, setup_csv, 
+                                          write_to_csv)
 from beiwetools.helpers.decorators import easy
-from beiwetools.helpers.trackers import (Histogram, SamplingSummary, 
+from beiwetools.helpers.trackers import (HistogramTracker, SamplingSummary, 
                                          RangeTracker)
 from beiwetools.helpers.templates import ProcessTemplate
-from .headers import variable_ranges
+from .headers import raw_header, user_summary, variable_ranges
 from .functions import read_gps
 
 
 logger = logging.getLogger(__name__)
 
 
-@easy(['out_file'])
-def setup_output(proc_dir, track_time):
+@easy(['out_file', 'accuracy_dir', 'sampling_dir'])
+def setup_output(proc_dir, track_time, accuracy_percentiles):
     # setup directories
-    out_dir = os.path.join(proc_dir, 'gps', 'range')
+    out_dir = os.path.join(proc_dir, 'gps', 'summary')
     if track_time:
         temp = local_now().replace(' ', '_')
         out_dir = os.path.join(out_dir, temp)    
     data_dir = os.path.join(out_dir, 'data')
     log_dir = os.path.join(out_dir, 'log')   
-    setup_directories([out_dir, data_dir, log_dir])
+    accuracy_dir = os.path.join(out_dir, 'accuracy')
+    sampling_dir = os.path.join(out_dir, 'sampling')
+    setup_directories([out_dir, data_dir, log_dir, accuracy_dir, sampling_dir])
     # setup output file
-    header = ['user_id'] + variable_ranges
+    prefixes = ['accuracy_approx_', 'accuracy_closest_']
+    percentiles_header = [s+str(p) for p in accuracy_percentiles 
+                          for s in prefixes]
+    header = user_summary + variable_ranges + percentiles_header
     out_file = setup_csv('records', data_dir, header)    
     # set up logging output
     log_to_csv(log_dir)
     logger.info('Created output directories.')
-    return(out_file)        
+    return(out_file, accuracy_dir, sampling_dir)        
 
 
-@easy(['file_paths', 'trackers'])
-def setup_user(user_id, project):
+@easy(['file_paths', 'range_trackers', 'accuracy_histogram', 
+       'sampling_summary'])
+def setup_user(user_id, project, intersample_cutoff_ms):
     # get file paths
     file_paths = project.data[user_id].passive['gps']['files']
     # setup trackers
-    trackers = {}
-    for v in ['latitude', 'longitude', 'altitude', 'accuracy']:
-        trackers[v] = RangeTracker()
-    return(file_paths, trackers)
+    range_trackers = {}
+    for v in raw_header[2:]:
+        range_trackers[v] = RangeTracker()
+    accuracy_histogram = HistogramTracker(list(range(0, 100, 5)))
+    sampling_summary = SamplingSummary(intersample_cutoff_ms)
+    logger.info('Finished setting up for user %s.' % user_id)
+    return(file_paths, range_trackers, accuracy_histogram, sampling_summary)
 
 
-@easy([])
-def range_user(user_id, file_paths, trackers):
+@easy(['file_summary'])
+def summarize_user(user_id, file_paths, range_trackers,
+                   accuracy_histogram, sampling_summary):
+    n = 0
     for f in file_paths:
         try:
             data = read_gps(f)
-            for v in trackers:
-                trackers[v].update(data[v])
+            n += len(data)
+            for v in range_trackers:
+                range_trackers[v].update(data[v])
+            accuracy_histogram.update(data.accuracy)
+            sampling_summary.update(data.timestamp)
         except:
-            logger.warning('Unable to get variable ranges: %s' \
+            logger.warning('Unable to summarize variables: %s' \
                            % os.path.basename(f))    
-    logger.info('Finished getting variable ranges for user %s.' % user_id)
+    file_summary = [len(file_paths),
+                    os.path.basename(file_paths[0]), 
+                    os.path.basename(file_paths[-1]), n]
+    logger.info('Finished summarizing variables for user %s.' % user_id)
+    return(file_summary)
 
 
 @easy([])
-def write_user(user_id, trackers, out_file):
-    
+def write_user(user_id, range_trackers, accuracy_histogram, sampling_summary,
+               accuracy_percentiles, file_summary, 
+               out_file, accuracy_dir, sampling_dir):    
+    # assemble summary
+    summary_1 = [user_id] + file_summary + [sampling_summary.frequency()]
+    summary_2 = [None] * 2 * len(range_trackers)
+    summary_2[::2] = [range_trackers[v].min for v in raw_header[2:]]
+    summary_2[1::2] = [range_trackers[v].max for v in raw_header[2:]]
+    summary_3 = []
+    for p in accuracy_percentiles:
+        approx, closest = accuracy_histogram.approx_percentile(p/100)
+        summary_3 += [approx, closest]
+    # write summary
+    write_to_csv(out_file, summary_1 + summary_2 + summary_3)
+    # save objects
+    sampling_summary.save(sampling_dir, user_id)
+    accuracy_histogram.export(user_id, accuracy_dir)
+    logger.info('Finished writing summaries for user %s.' % user_id)
 
 
-
-def pack_range_kwargs(user_ids, proc_dir, project,
-                        get_variables = [],
+def pack_summary_kwargs(user_ids, proc_dir, project,
+                        accuracy_percentiles,
+                        intersample_cutoff_ms,
                         track_time = True, id_lookup = {}):
     '''
-    Packs kwargs for powrep.Extract.do().
+    Packs kwargs for gpsrep.Summary.do().
     
     Args:
         user_ids (list): List of identifiers (str).
         proc_dir (str): Path to folder where processed data can be written.
         project (beiwetools.manage.classes.BeiweProject):
             Representation of raw study data locations.
-        get_variables (list): List of event variables to extract.
-            Default is an empty list, in which case all event variables 
-            will be extracted.
+        accuracy_percentiles (list): List of percentiles.  Enter each
+            percentile as a number between 0 and 100, e.g. 95 for the 95th
+            percentile.            
+        intersample_cutoff_ms (int): Intersample times (milliseconds) above 
+            this cutoff are ignored when summarizing the sampling rate.
+            Something like 90% of gps_off_duration may be reasonable.
         track_time (bool): If True, output to a timestamped folder.    
         id_lookup (dict): Optional.
             If identifiers in user_ids aren't Fitabase identifiers,
@@ -90,59 +128,23 @@ def pack_range_kwargs(user_ids, proc_dir, project,
     Returns:
         kwargs (dict):
             Packed keyword arguments.
-            To run an extraction: Extract.do(**kwargs)
+            To run a summary: Summary.do(**kwargs)
     '''
-    if len(get_variables) == 0:
-        get_variables = var_names['iOS'] + var_names['Android']
     kwargs = {}
     kwargs['user_ids'] = user_ids    
     kwargs['process_kwargs'] = {
         'proc_dir': proc_dir,
         'project': project,
-        'get_variables': get_variables,
+        'accuracy_percentiles': accuracy_percentiles,
+        'intersample_cutoff_ms': intersample_cutoff_ms,
         'track_time': track_time
         }
     kwargs['id_lookup'] = id_lookup
     return(kwargs)
 
 
-Extract = ProcessTemplate.create(__name__,
-                                 [setup_output], [setup_user], 
-                                 [range_user], [], [])
+Summary = ProcessTemplate.create(__name__,
+                                [setup_output], [setup_user], 
+                                [summarize_user], [write_user], [])
 
 
-
-def range_gps(filepath, 
-              sampling_summary = SamplingSummary(hour_ms),
-              latitude_range = RangeTracker(),
-              longitude_range = RangeTracker(), 
-              altitude_range = RangeTracker(),                  
-              accuracy_range = RangeTracker()):
-    '''
-    Get variable ranges from one file of raw GPS data.
-
-    Args:
-        filepath (str): Path to the file.
-        samplingsum ():
-        latrange ():
-        longrange (): 
-        altrange (): 
-        accyrange ():
-            
-    Returns:
-        None
-    '''
-    try:
-        # read data
-        data = read_gps(filepath)
-        # update trackers
-        sampling_summary.update(data.timestamp)
-        latitude_range.update(data.latitude)
-        longitude_range.update(data.longitude)
-        altitude_range.update(data.altitude)
-        accuracy_range.update(data.accuracy)    
-    except:
-        basename = os.path.basename(filepath)
-        logger.warning('Unable to get variable ranges: %s' % basename)
-
-    

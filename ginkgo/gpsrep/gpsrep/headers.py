@@ -20,8 +20,8 @@ raw_keep_header = [ # Same notes as above.
 user_summary = [
   'user_id', # Beiwe User ID.
   'n_files', # Number of raw GPS files for this user.
-  'n_observations', # Number of GPS observations for this user.
   'first_file', 'last_file', # Basenames of first and last hourly files.
+  'n_observations', # Number of GPS observations for this user.
   'approximate_frequency_Hz' # An estimate of sampling frequency when GPS is active.
   ]
 
@@ -32,8 +32,6 @@ variable_ranges = [ # min/max for each variable
   'accuracy_min', 'accuracy_max'
   ]
 
-# Column names for gpsrep.Summary output:
-summary_records_header = user_summary + variable_ranges
 
 
 
