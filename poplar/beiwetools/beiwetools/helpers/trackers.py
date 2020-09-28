@@ -6,11 +6,103 @@ import logging
 import numpy as np
 from collections import OrderedDict
 from .process import to_1Darray
-from .functions import write_json
+from .functions import write_json, read_json
+from .class_template import SerializableClass
 
 
 logger = logging.getLogger(__name__)
 
+
+class HistogramTracker(SerializableClass):
+    '''
+    Track a histogram for a float or integer variable.
+
+    Attributes:
+        n (int): Total number of observations.
+        left_edges (list): Sorted list of left bin edges.
+        bins (list): Sorted list of bins.  Each bin is a tuple,
+            (<left_edge>, <right_edge>).  The first bin's left edge is -inf,
+            the last bin's right edge is inf.  Bins are interpreted as closed
+            on the left, open on the right.  Note: 
+                len(bins) = len(left_edges) + 1
+        counts (list): One integer for each bin.  Each value is the number 
+            of observations in the corresponding bin.
+        prop_below (list): One float for each bin.  The proportion of 
+            observations below the left edge of the corresponding bin.
+    '''
+    @classmethod
+    def create(cls, left_edges):
+        '''
+        Initialize a new HistogramTracker.
+        
+        Args:
+            left_edges (list or ndarray): A list or ndarray of left endpoints
+                for use in creating bins.  Must be finite.  Will be sorted.
+            
+        Returns:
+            class_instance (HistogramTracker)
+        '''
+        self = cls.__new__(cls)
+        self.n = 0
+        self.left_edges = np.unique(np.sort(left_edges, 
+                                            kind = 'heapsort')).tolist()
+        self.bins = self.make_bins(self.left_edges)                
+        self.counts = [0]*len(self.bins)
+        self.prop_below = [None]*len(self.bins)
+        self.do_not_serialize = ['bins', 'prop_below'] # contains inf and tuples
+        return(self)
+    
+    @classmethod
+    def load(cls, filepath, reader = read_json, **reader_kwargs):
+        self = cls.__new__(cls)
+        self.__dict__ = reader(filepath, **reader_kwargs)
+        self.bins = self.make_bins(self.left_edges)
+        self.prop_below = [None]*len(self.bins)
+        self.get_props()
+        return(self)
+
+    def make_bins(self, left_edges):
+        bins = [(-np.inf, left_edges[0])] + \
+               [i for i in zip(left_edges, left_edges[1:])] + \
+               [(left_edges[-1], np.inf)]
+        return(bins)
+
+    def get_props(self):
+        if self.n > 0:
+            for i in range(len(self.bins)):
+                count_sum = np.sum(self.counts[0:i])
+                self.prop_below[i] = count_sum/self.n            
+
+    def update(self, new_observations):
+        '''
+        Args:
+            new_observations (list or ndarray): New observations to add to the
+                histogram.
+        
+        Returns:
+            None       
+        '''
+        try:
+            # update counts
+            new_counts = np.digitize(new_observations, self.left_edges)
+            for i in new_counts:
+                self.counts[i] += 1
+            # update n
+            self.n += len(new_observations)        
+            # update proportions
+            self.get_props()
+        except:
+            logger.warning('Unable to update histogram.')
+
+    def approx_percentile(self, p):
+        '''
+        Given a proportion p, find the closest left edge corresponding to 
+        the p-th percentile.  Also return the true percentile.
+        '''        
+        abs_diff = [np.abs(p - pb) for pb in self.prop_below]
+        index = np.argmin(abs_diff)
+        return(self.bins[index][0], self.prop_below[index])
+        
 
 class SamplingSummary():
     '''
@@ -181,14 +273,7 @@ class StatsTracker():
             elif isinstance(to_write, np.ndarray):
                 np.savetxt(os.path.join(directory, filename + '.txt'), to_write)
             else: logger.warning('Unable to save this type.')
-            
-
-class HistogramTracker(StatsTracker):
-    '''
-    Given bins, track the histogram of a continuous variable.
-    '''
-    pass            
-
+                   
 
 class CategoryTracker(StatsTracker):
     '''

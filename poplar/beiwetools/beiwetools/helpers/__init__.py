@@ -1,4 +1,4 @@
-from .class_template import *
+#from .class_template import *
 from .classes import *
 from .colors import *
 from .decorators import *
