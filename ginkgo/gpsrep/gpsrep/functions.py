@@ -114,8 +114,8 @@ def get_displacement(first, last):
     delta_y = last.y - first.y
     delta_z = last.z - first.z
     seconds = (last.timestamp - first.timestamp)/1000
-    xy_distance = sqrt(delta_x**2 + delta_y**2 + delta_z**2)
-    xyz_distance = sqrt(delta_x**2 + delta_y**2)
+    xy_distance  = sqrt(delta_x**2 + delta_y**2)
+    xyz_distance = sqrt(delta_x**2 + delta_y**2 + delta_z**2)
     return([delta_x, delta_y, delta_z, seconds, xy_distance, xyz_distance])
 
 
