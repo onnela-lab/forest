@@ -16,7 +16,7 @@ from .functions import read_gps
 logger = logging.getLogger(__name__)
 
 
-@easy(['data_dir'])
+@easy(['tz_dir', 'offset_dir', 'records_path'])
 def setup_output(proc_dir, track_time):
     # set up directories
     out_dir = os.path.join(proc_dir, 'gps', 'timezone')
@@ -64,15 +64,17 @@ def timezone_user(user_id, file_paths, accuracy_cutoff,
                 # what to do with the first file
                 if last_tz is None:
                     last_tz = tz
-                    tz_dict[best.timestamp] = tz
+                    tz_dict[int(best.timestamp)] = tz
                 if last_offset is None:
                     last_offset = offset
-                    offset_dict[best.timestamp] = offset
+                    offset_dict[int(best.timestamp)] = offset
                 # check if dictionaries need to be updated
                 if tz != last_tz:
-                    tz_dict[best.timestamp] = tz
+                    tz_dict[int(best.timestamp)] = tz
+                    last_tz = tz
                 if offset != last_offset:
-                    offset_dict[best.timestamp] = offset
+                    offset_dict[int(best.timestamp)] = offset
+                    last_offset = offset
         except:
             logger.warning('Unable to get timezone info: %s' \
                            % os.path.basename(f))    
@@ -90,11 +92,6 @@ def timezone_user(user_id, file_paths, accuracy_cutoff,
                   n_tz, n_tz_transitions, 
                   n_os, n_os_transitions])
     logger.info('Finished extracting timezones for user %s.' % user_id)
-
-
-test = '/mnt/veracrypt1/HOPE-1_2019-03-17_download/raw/52td8unr/gps/2017-04-24 15_00_00.csv'
-data = read_gps(test, accuracy_cutoff = 40)
-
 
 
 def pack_timezone_kwargs(user_ids, proc_dir, project,
