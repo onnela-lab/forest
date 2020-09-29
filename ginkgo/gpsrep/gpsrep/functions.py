@@ -3,7 +3,7 @@
 '''
 from logging import getLogger
 import pandas as pd
-from math import pi, sin, acos
+from math import pi, sin, acos, sqrt
 from .headers import raw_header
 from beiwetools.helpers.process import clean_dataframe
 
@@ -92,8 +92,31 @@ def gps_project(df, location_ranges, action = 'replace',
     elif action == 'new':
         new_df = pd.DataFrame({'timestamp': df.timestamp, 'x':x, 'y':y, 'z':z})
         return(new_df)
+   
     
-
+def get_displacement(first, last):
+    '''
+    Get displacements from projected GPS data.
+    
+    Args:
+        first, last:  Rows from a pandas dataframe that has columns 'timestamp', 
+            'x', 'y', 'z'.
+    
+    Returns:
+        delta_x (float): North/South displacement (meters).
+        delta_y (float): East/West displacement (meters).
+        delta_z (float): Up/Down displacement (meters).
+        seconds (float): Elapsed seconds. 
+        xy_distance (float): Norm of (delta_x, delta_y).
+        xyz_distance (float): Norm of (delta_x, delta_y, delta_z).
+    '''
+    delta_x = last.x - first.x
+    delta_y = last.y - first.y
+    delta_z = last.z - first.z
+    seconds = (last.timestamp - first.timestamp)/1000
+    xy_distance = sqrt(delta_x**2 + delta_y**2 + delta_z**2)
+    xyz_distance = sqrt(delta_x**2 + delta_y**2)
+    return([delta_x, delta_y, delta_z, seconds, xy_distance, xyz_distance])
 
 
 

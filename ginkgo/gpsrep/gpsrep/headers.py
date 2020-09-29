@@ -40,3 +40,13 @@ timezone_summary_header = [
   'n_offset_transitions'    # Number of offset transitions.
   ]  
 
+displacement_header = [
+  'timestamp',   # Millisecond timestamp for the beginning of the window.
+  'delta_x',     # North/South displacement (meters).
+  'delta_y',     # East/West displacement (meters).
+  'delta_z',     # Up/Down displacement (meters).
+  'seconds',     # Elapsed seconds. 
+  'xy_distance'  # Norm of (delta_x, delta_y).
+  'xyz_distance' # Norm of (delta_x, delta_y, delta_z).
+  ]  
+

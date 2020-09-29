@@ -152,7 +152,7 @@ def get_timezone(latitude, longitude, try_closest = True):
     tf = TimezoneFinder()
     tz = tf.timezone_at(lng = longitude, lat = latitude)
     if tz is None and try_closest:
-        logger.warning('No timezone found for %s, %s.  Looking for closest timezone.' % (str(latitude), str(longitude)))
+        logger.warning('No timezone found for %s\, %s.  Looking for closest timezone.' % (str(latitude), str(longitude)))
         tz = tf.closest_timezone_at(lat=latitude, lng=longitude)    
     return(tz)
 
