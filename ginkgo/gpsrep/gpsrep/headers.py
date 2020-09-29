@@ -32,12 +32,11 @@ variable_ranges = [ # min/max for each variable
   'accuracy_min',  'accuracy_max'
   ]
 
-
-
-
-
-timezone_summary = [
+timezone_summary_header = [
+  'user_id', # Beiwe User ID.
   'n_timezones', # Number of distinct timezones.
   'n_timezone_transitions' # Number of timezone transitions.
+  'n_offsets', # Number of distinct offsets.
+  'n_offset_transitions' # Number of offset transitions.
   ]  
 

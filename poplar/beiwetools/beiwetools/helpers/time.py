@@ -157,6 +157,17 @@ def get_timezone(latitude, longitude, try_closest = True):
     return(tz)
 
 
+def get_offset(timestamp, timezone):
+    '''
+    Get UTC offset, given timestamp and timezone.
+    '''
+    if type(timezone) is str:
+        timezone = pytz.timezone(timezone)
+    d = datetime.datetime.fromtimestamp(timestamp/1000, timezone)
+    offset_s = d.utcoffset().total_seconds()
+    return(offset_s/hour_s)
+
+
 def summarize_UTC_range(UTC_range, 
                         from_format = filename_time_format, 
                         to_format   = local_time_format, 
