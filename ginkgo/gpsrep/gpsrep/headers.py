@@ -46,7 +46,7 @@ displacement_header = [
   'delta_y',     # East/West displacement (meters).
   'delta_z',     # Up/Down displacement (meters).
   'seconds',     # Elapsed seconds. 
-  'xy_distance'  # Norm of (delta_x, delta_y).
+  'xy_distance', # Norm of (delta_x, delta_y).
   'xyz_distance' # Norm of (delta_x, delta_y, delta_z).
   ]  
 

@@ -59,7 +59,7 @@ def displacement_user(user_id, file_paths, accuracy_cutoff,
     for f in file_paths:
         try:
             data = read_gps(f, accuracy_cutoff = accuracy_cutoff)
-            if len(data) > 0:
+            if len(data) > 1: # need at least two observations
                 mean_lat  = np.mean(data.latitude)
                 mean_long = np.mean(data.longitude)
                 h = project_with/2
@@ -92,29 +92,13 @@ def displacement_user(user_id, file_paths, accuracy_cutoff,
     logger.info('Finished extracting displacements for user %s.' % user_id)
 
 
-
-# w = 1493850240000
-
-# data.loc[0]
-# data.iloc[-1]
-# window_length_ms = 60*1000
-
-# 1317.594/60
-
-# f = '/mnt/veracrypt1/HOPE-1_2019-03-17_download/raw/4458ann3/gps/2017-05-03 22_00_00.csv'
-# accuracy_cutoff = 50
-# project_with = 2
-
-
-
-
-def pack_timezone_kwargs(user_ids, proc_dir, project,
-                        accuracy_cutoff_dict,
-                        project_with = 2,
-                        window_length_ms = min_ms,
-                        track_time = True, id_lookup = {}):
+def pack_displacement_kwargs(user_ids, proc_dir, project,
+                             accuracy_cutoff_dict,
+                             project_with = 2,
+                             window_length_ms = min_ms,
+                             track_time = True, id_lookup = {}):
     '''
-    Packs kwargs for gpsrep.Timezone.do().
+    Packs kwargs for Displacement.do().
     
     Args:
         user_ids (list): List of identifiers (str).
@@ -137,7 +121,7 @@ def pack_timezone_kwargs(user_ids, proc_dir, project,
     Returns:
         kwargs (dict):
             Packed keyword arguments.
-            To run a summary: Timezone.do(**kwargs)
+            To extract displacements: Displacement.do(**kwargs)
     '''
     kwargs = {}
     kwargs['user_ids'] = user_ids    
@@ -153,8 +137,8 @@ def pack_timezone_kwargs(user_ids, proc_dir, project,
     return(kwargs)
 
 
-Timezone = ProcessTemplate.create(__name__,
-                                  [setup_output], [setup_user], 
-                                  [displacement_user], [], [])
+Displacement = ProcessTemplate.create(__name__,
+                                      [setup_output], [setup_user], 
+                                      [displacement_user], [], [])
 
 
