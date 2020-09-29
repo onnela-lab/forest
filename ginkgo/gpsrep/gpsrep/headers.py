@@ -28,8 +28,8 @@ user_summary = [
 variable_ranges = [ # min/max for each variable
   'latitude_min',  'latitude_max',
   'longitude_min', 'longitude_max',
-  'altitude_min',  'altitude_max'
-  'accuracy_min', 'accuracy_max'
+  'altitude_min',  'altitude_max',
+  'accuracy_min',  'accuracy_max'
   ]
 
 

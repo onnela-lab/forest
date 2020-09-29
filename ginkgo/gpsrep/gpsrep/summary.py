@@ -51,20 +51,20 @@ def setup_user(user_id, project, intersample_cutoff_ms):
     range_trackers = {}
     for v in raw_header[2:]:
         range_trackers[v] = RangeTracker()
-    accuracy_histogram = HistogramTracker(list(range(0, 100, 5)))
+    accuracy_histogram = HistogramTracker.create(list(range(0, 100, 5)))
     sampling_summary = SamplingSummary(intersample_cutoff_ms)
     logger.info('Finished setting up for user %s.' % user_id)
     return(file_paths, range_trackers, accuracy_histogram, sampling_summary)
 
 
-@easy(['file_summary'])
+@easy(['n_files', 'first_file', 'last_file', 'n_observations'])
 def summarize_user(user_id, file_paths, range_trackers,
                    accuracy_histogram, sampling_summary):
-    n = 0
+    n_observations = 0
     for f in file_paths:
         try:
             data = read_gps(f)
-            n += len(data)
+            n_observations += len(data)
             for v in range_trackers:
                 range_trackers[v].update(data[v])
             accuracy_histogram.update(data.accuracy)
@@ -72,22 +72,23 @@ def summarize_user(user_id, file_paths, range_trackers,
         except:
             logger.warning('Unable to summarize variables: %s' \
                            % os.path.basename(f))    
-    file_summary = [len(file_paths),
-                    os.path.basename(file_paths[0]), 
-                    os.path.basename(file_paths[-1]), n]
+    n_files = len(file_paths)
+    first_file = os.path.basename(file_paths[0])
+    last_file = os.path.basename(file_paths[-1])
     logger.info('Finished summarizing variables for user %s.' % user_id)
-    return(file_summary)
+    return(n_files, first_file, last_file, n_observations)
 
 
 @easy([])
 def write_user(user_id, range_trackers, accuracy_histogram, sampling_summary,
-               accuracy_percentiles, file_summary, 
-               out_file, accuracy_dir, sampling_dir):    
+               accuracy_percentiles, n_files, first_file, last_file, 
+               n_observations, out_file, accuracy_dir, sampling_dir):    
     # assemble summary
-    summary_1 = [user_id] + file_summary + [sampling_summary.frequency()]
+    summary_1 = [user_id, n_files, first_file, last_file, n_observations,
+                 sampling_summary.frequency()]
     summary_2 = [None] * 2 * len(range_trackers)
-    summary_2[::2] = [range_trackers[v].min for v in raw_header[2:]]
-    summary_2[1::2] = [range_trackers[v].max for v in raw_header[2:]]
+    summary_2[::2] = [range_trackers[v].stats['min'] for v in raw_header[2:]]
+    summary_2[1::2] = [range_trackers[v].stats['max'] for v in raw_header[2:]]
     summary_3 = []
     for p in accuracy_percentiles:
         approx, closest = accuracy_histogram.approx_percentile(p/100)
