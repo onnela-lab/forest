@@ -38,9 +38,11 @@ def setup_output(proc_dir, track_time):
     return(records_file, sampling_dir, data_dir)        
 
 
-@easy(['file_paths', 'trackers', 'user_file'])
+@easy(['device_os', 'file_paths', 'trackers', 'user_file'])
 def setup_user(user_id, project, intersample_cutoff_ms, data_dir,
                get_summaries, get_metrics):
+    # get os
+    device_os = project.lookup['os'][user_id]   
     # get file paths
     file_paths = project.data[user_id].passive['accelerometer']['files']
     # set up trackers
@@ -54,21 +56,21 @@ def setup_user(user_id, project, intersample_cutoff_ms, data_dir,
              get_metrics
     user_file = setup_csv(user_id, data_dir, header)
     logger.info('Finished setting up for user %s.' % user_id)
-    return(file_paths, trackers, user_file)
+    return(device_os, file_paths, trackers, user_file)
 
 
 @easy(['n_files', 'first_file', 'last_file', 'n_observations'])
-def summarize_user(user_id, file_paths, trackers, do_transformations,
-                   get_summaries, get_metrics, user_file, records_file,
-                   sampling_dir):
+def summarize_user(user_id, device_os, file_paths, trackers, 
+                   do_transformations, get_summaries, get_metrics, 
+                   user_file, records_file, sampling_dir):
     n_observations = 0
     for f in file_paths:
         try:
             # read file
-            data = read_acc(f)
+            data = read_acc(f, device_os)
             n = len(data)
             n_observations += n
-            timestamp = to_timestamp(os.path.basename(f).split['.'][0], 
+            timestamp = to_timestamp(os.path.basename(f).split('.')[0], 
                                      filename_time_format)
             elapsed_s = (data.timestamp[n-1] - data.timestamp[0])/1000
             to_write = [f, timestamp, n, elapsed_s]
@@ -76,8 +78,9 @@ def summarize_user(user_id, file_paths, trackers, do_transformations,
             for v in trackers:
                 trackers[v].update(data[v])
             # do transformations
-            for t in transformations:
-                t.apply(data)
+            for t in do_transformations:
+                tt = transformations[t]
+                tt.apply(data)
             # get summaries
             for s in get_summaries:
                 function_name, variable = s                        
@@ -127,6 +130,7 @@ def summarize_user(user_id, file_paths, trackers, do_transformations,
 
 all_transformations = ['vecmag', 'enmo', 'ampdev', 'sumamp', 'ppz', 'zmo']
 all_summaries = [('mean', 'ppz'),   ('mean', 'zmo'), 
+                 ('std', 'vecmag'), ('range', 'vecmag'), 
                  ('std', 'enmo'),   ('range', 'enmo'), 
                  ('std', 'ampdev'), ('range', 'ampdev'),
                  ('std', 'x'), ('range', 'x'), 
@@ -140,9 +144,6 @@ def pack_summary_kwargs(user_ids, proc_dir, project,
                         do_transformations = all_transformations,
                         get_summaries = all_summaries,
                         get_metrics = [],
-
-
-
                         track_time = True, id_lookup = {}):
     '''
     Packs kwargs for gpsrep.Summary.do().

@@ -60,7 +60,7 @@ def read_acc(path, device_os, keep = raw_header,
 # Some data frame functions:
 def overall_dynamic_body_acceleration(df, win_width_s): pass
 def vector_magnitude(df): return((df.x**2 + df.y**2 + df.z**2)**(0.5))
-def euclidean_norm_minus_one(df): return(np.max(df.vecmag - G, 0))
+def euclidean_norm_minus_one(df): return(np.maximum(df.vecmag - G, 0))
 def amplitude_deviation(df): 
     r_bar = np.mean(df.vecmag)
     return(np.abs(df.vecmag - r_bar))
