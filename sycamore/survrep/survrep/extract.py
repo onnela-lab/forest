@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 @easy(['data_dir'])
 def setup_output(proc_dir, dir_names, track_time):
-    out_dir = os.path.join(proc_dir, 'survrep', 'summary')
+    out_dir = os.path.join(proc_dir, 'survrep', 'extract')
     if track_time:
         temp = local_now().replace(' ', '_')
         out_dir = os.path.join(out_dir, temp)    
