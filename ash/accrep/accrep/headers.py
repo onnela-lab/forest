@@ -18,24 +18,26 @@ keep_header = [ # same notes as above
 
 summary_records_header = [ # column names for accrep.summary output
   'user_id', # Beiwe User ID.
-  'os',   # 'Android' or 'iOS'.
   'n_files', # Number of raw accelerometer files for this user.
-  'first_file', 'last_file', # Basenames of first and last hourly files.
-  'unique_accuracy_values', # Number of unique accuracy entries.
-                            # Probably only 1 for iPhone, unknown for Android.
-  'approximate_frequency_Hz', # An estimate of sampling frequency when the accelerometer is active.
-  'local_start_time', 'local_finish_time', # When the summary process began/ended.
-  'total_time_minutes' # Time taken to summarize this user's accelerometer data.
-   ]
+  'n_observations', # Total number of observations for this user.
+  'approximate_frequency_Hz', # An estimate of sampling frequency when the 
+                              # accelerometer is active.
+  'min_x', 'max_x',
+  'min_y', 'max_y',
+  'min_z', 'max_z',  
+    ]
+
+user_summary_header = [
+    'filepath',       # Path to the raw file.
+    'timestamp',      # Timestamp corresponding to the file's basename.
+    'n_observations', # Number of rows in the file.
+    'elapsed_s',      # Elapsed time between first and last observation in the file.
+    ]
 
 spectral_records_header = [
   'user_id',
   'os',   # 'Android' or 'iOS'.
   'n_windows', # Number of processed windows.
-
-
-  'local_start_time', 'local_finish_time', # Local summary start/end times.
-  'total_time_minutes' # Time taken to summarize this user's accelerometer data.
    ]
 
 spectral_analysis_header = [

@@ -12,11 +12,16 @@ logger = logging.getLogger(__name__)
 
 
 # Dictionary of some summary statistics:
-def sample_std(a): np.std(a, ddof = 1)
+def range_(a):     return(np.max(a) - np.min(a))
+def iqr(a):        return(np.percentile(a, 75) - np.percentile(a, 25))
+def sample_std(a): return(np.std(a, ddof = 1))
+def sample_var(a): return(np.var(a, ddof = 1))
 summary_statistics = OrderedDict([('mean',   np.mean),
                                   ('median', np.median),
-                                  ('range',  np.ptp),
-                                  ('std',    sample_std)
+                                  ('range',  range_),
+                                  ('iqr',    iqr),
+                                  ('std',    sample_std),
+                                  ('var',    sample_var)
                                   ])
 
 
