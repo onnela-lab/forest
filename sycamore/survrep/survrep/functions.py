@@ -5,7 +5,6 @@ import os
 import logging
 import pandas as pd
 from beiwetools.helpers.functions import read_json
-from beiwetools.helpers.process import stack_frames
 from .headers import raw_header
 
 
@@ -89,17 +88,15 @@ def summarize_timings(opsys, file_path,
 
 def organize_metadata(reader):
     '''
-    Split split events from a list of metadata files into a dictionary 
+    Split events from a list of metadata files into a dictionary 
     according to survey identifiers.
     
     Args:
         
     Returns:
         
-        
     '''
-
-
+    pass
 
 
 def check_compatibility(opsys, file_path, config,
@@ -146,19 +143,15 @@ def check_compatibility(opsys, file_path, config,
             logger.warning('Configuration doesn\'t include survey ID %s from filename %s' % (sid, filename))
         else:            
             # check question id in survey:
-            if not sid in :
-                absent_question.append(sid)
-                logger.warning('Configuration doesn\'t include survey ID %s from filename %s' % (sid, filename))
-            else:
-                # check question type
-
-                        disagree_question_type.append()
-                # check question text
-
-                        disagree_question_text.append()
-                # check answer options text
-
-                        disagree_answer_options.append()
-
-
+            #if not sid in :
+            #    absent_question.append(sid)
+            #    logger.warning('Configuration doesn\'t include survey ID %s from filename %s' % (sid, filename))
+            #else:
+            #    # check question type
+            #
+            #    # check question text
+            #
+            #    # check answer options text
+            pass
+    pass
             
