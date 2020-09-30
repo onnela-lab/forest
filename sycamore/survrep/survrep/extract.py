@@ -68,7 +68,7 @@ def extract_user(user_id, user_dir, file_paths, get_events):
     logger.info('Finished summarizing data for user %s.' % user_id)
 
 
-def pack_summary_kwargs(user_ids, proc_dir, dir_names, project,
+def pack_extract_kwargs(user_ids, proc_dir, dir_names, project,
                         get_events = None, track_time = True, id_lookup = {}):
     '''
     Packs kwargs for survrep.Summary.do().

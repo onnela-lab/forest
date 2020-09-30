@@ -1,5 +1,7 @@
 ''' Check a configuration file against raw Beiwe survey timings files.
 
+    - This module is a work in progress.
+
 '''
 import os
 import logging
