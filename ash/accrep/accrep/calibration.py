@@ -46,8 +46,8 @@ def user_calibration(user_id, data_path, timestamp_range = None,
     data = data.loc[(data.elapsed_s >= minimum_s) & 
                     (data.n_observations >= minimum_obs)]
     data.set_index(np.arange(len(data)), inplace = True)
-    breaks = list(np.arange(timestamp_range[0], timestamp_range[1], 
-                            epoch_ms))[:-1]
+    breaks = np.arange(timestamp_range[0], timestamp_range[1], 
+                       epoch_ms).tolist()[:-1]
     breaks.append(timestamp_range[1]+hour_ms)
     [(breaks[i+1] - breaks[i])/day_ms for i in range(len(breaks)-1)]
     reference_periods = dict(zip(minimize, [{} for m in minimize]))
@@ -62,6 +62,7 @@ def user_calibration(user_id, data_path, timestamp_range = None,
             except:
                 logger.warning('Unable to find reference period for epoch: ' +\
                                '%s - %s' % (breaks[i], breaks[i+1]))
+    return(reference_periods)
 
 
 # def setup_calibration():
