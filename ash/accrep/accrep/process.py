@@ -3,29 +3,79 @@
     - Do this AFTER accrep.calibration.Calibration.do().
 
 '''
-'''Process data from raw Beiwe GPS files.
-
-'''
 import os
 import logging
 import numpy as np
+from scipy.stats import percentileofscore
 from beiwetools.helpers.time import (local_now, to_timestamp, 
-                                     filename_time_format, hour_ms, min_ms)
+                                     filename_time_format, hour_ms)
 from beiwetools.helpers.log import log_to_csv
-from beiwetools.helpers.functions import (setup_directories, setup_csv, 
-                                          write_to_csv)
+from beiwetools.helpers.functions import (setup_directories, read_json, 
+                                          summary_statistics)
 from beiwetools.helpers.process import get_windows
 from beiwetools.helpers.classes import WriteQueue
 from beiwetools.helpers.decorators import easy
 from beiwetools.helpers.templates import ProcessTemplate
-from .headers import process_header
-from .functions import read_acc
+from .functions import read_acc, transformations, metrics
 
 
 logger = logging.getLogger(__name__)
 
 
-@easy(['data_dir'])
+def most_recent(timestamp, dictionary):
+    try:
+        keys = [int(k) for k in dictionary.keys()]
+        before = [k for k in keys if k <= timestamp]
+        return(before[-1])
+    except:
+        logger.warning('Unable to find most recent reference file for %s.'
+                       % timestamp)
+
+
+def update_reference(calpath, device_os, minimum_obs, do_transformations,
+                     get_summaries, get_metrics, n_resamples):
+    refdata = read_acc(calpath, device_os)    
+    refsum = {}
+    # do transformations
+    for t in do_transformations:
+        tt = transformations[t]
+        tt.apply(refdata)
+    # estimate reference distributions for summaries
+    for s in get_summaries:
+        try:
+            function_name, variable = s                        
+            function = summary_statistics[function_name]
+            refsum[s] = np.full(n_resamples, np.nan)
+            for i in range(n_resamples):
+                sample = refdata.sample(n = minimum_obs, replace = True)
+                refsum[s][i] = function(sample[variable])
+        except:
+            logger.warning('Unable to process reference data for %s, %s.' %s)
+    # get reference values for metrics
+    for m in get_metrics:
+        try:
+            if m in ['ai', 'ai0']:
+                refsum[m] = np.sum([np.var(refdata[a], ddof=1) 
+                                    for a in ['x', 'y', 'z']])
+            if m in ['ari', 'ari0']:
+                refsum[m] = np.sum([summary_statistics['iqr'](refdata[a]) 
+                                    for a in ['x', 'y', 'z']])    
+        except:
+            logger.warning('Unable to process reference data for %s.' %m)
+    # estimate reference distributions for metrics
+    for m in get_metrics:
+        try:
+            function = metrics[m]
+            refsum[m+'_'+'samples'] = np.full(n_resamples, np.nan)
+            for i in range(n_resamples):
+                sample = refdata.sample(n = minimum_obs, replace = True)
+                refsum[m+'_'+'samples'][i] = function(sample, refsum[m])
+        except:
+            logger.warning('Unable to process reference data for %s.' %m)
+    return(refsum)
+
+
+@easy(['windows_dir'])
 def setup_output(proc_dir, track_time):
     # set up directories
     out_dir = os.path.join(proc_dir, 'accrep', 'process')
@@ -41,101 +91,87 @@ def setup_output(proc_dir, track_time):
     return(windows_dir)        
 
 
-@easy(['file_paths', 'cal_dict'])
-def setup_user(user_id, project, calibration_dict, windows_dir,
-               get_summaries, get_metrics):
+@easy(['device_os', 'file_paths', 'calibration_dict', 'writer'])
+def setup_user(user_id, project, calibration_dir, calibration_metric,
+               windows_dir, get_summaries, get_metrics, n_resamples):
     # get os
     device_os = project.lookup['os'][user_id]   
     # get file paths
     file_paths = project.data[user_id].passive['accelerometer']['files']
     # get calibration dictionary
-    cal_dict = calibration_dict[user_id]
-    # set up user file
+    calibration_dict = read_json(os.path.join(calibration_dir, 
+                                 user_id + '.json'))[calibration_metric]
+    # set up writer
     header = ['timestamp'] + \
              [s[1]+'_'+s[0] for s in get_summaries] + \
-             get_metrics
-    user_file = setup_csv(user_id, windows_dir, header)
-    # set up writers
-    #windows_writer = WriteQueue(user_id, windows_dir, process_header,
-    #                            lines_per_csv = 1000)    
+             get_metrics + \
+             [s[1]+'_'+s[0]+'_'+'percentile' for s in get_summaries] + \
+             [m+'_'+'percentile' for m in get_metrics]
+    writer = WriteQueue(user_id, windows_dir, header, lines_per_csv = 10000)    
     logger.info('Finished setting up for user %s.' % user_id)
-    return(device_os, file_paths, cal_dict, user_file)
+    return(device_os, file_paths, calibration_dict, writer)
 
 
 @easy([])
-def process_user(user_id, device_os, file_paths, cal_dict, 
-                 user_file, window_length_ms):
-    for f in file_paths:
-        refpath = None
-        refsum  = None
+def process_user(user_id, device_os, file_paths, calibration_dict, 
+                 writer, window_length_ms, minimum_s, minimum_obs,
+                 do_transformations, get_summaries, get_metrics,
+                 n_resamples):
+    refkey = None
+    refsum  = None
+    for f in file_paths: 
         try:
-            data = read_gps(f, device_os)
+            data = read_acc(f, device_os)
+            # check if calibration needs to be updated
             t = to_timestamp(os.path.basename(f).split('.')[0],
                              filename_time_format)
-            #last_refpath = [k for k in cal_dict if t - int(k) > 0][-1]
-            #if refpath != last_refpath:
-            #    refpath = last_refpath
-            #    refsum  = get_ref(refpath, do_transformations,
-            #                      get_summaries, get_metrics)
-            windows = get_windows(new, t, t + hour_ms, window_length_ms)
+            this_refkey = most_recent(t, calibration_dict)
+            if this_refkey != refkey:
+                refkey = this_refkey
+                refsum = update_reference(calibration_dict[str(refkey)],
+                                          device_os, minimum_obs, 
+                                          do_transformations,
+                                          get_summaries, get_metrics, 
+                                          n_resamples)
+                logger.info('Updated reference data.')
+            # split file into windows and get summaries
+            windows = get_windows(data, t, t+hour_ms, window_length_ms)
             for w in windows:
                 if not windows[w] is None:
-                    first, last = windows[w][0], windows[w][-1]
-                    
-                    
-                    f = 
-                    
-                    
-                    d = get_displacement(new.loc[first], 
-                                         new.loc[last])
-                    windows_writer.write([w] + d)
+                    if len(windows[w]) >= minimum_obs:                        
+                        temp = data.iloc[windows[w]]
+                        t0 = temp.timestamp.iloc[0]
+                        t1 = temp.timestamp.iloc[-1]
+                        if (t1-t0)/1000 >= minimum_s:
+                            sample = temp.sample(n = minimum_obs, 
+                                                 replace = True)
+                            to_write = [w]
+                            percentiles = []
+                            # do transformations
+                            for t in do_transformations:
+                                tt = transformations[t]
+                                tt.apply(sample)
+                            # get summaries
+                            for s in get_summaries:
+                                function_name, variable = s                        
+                                function = summary_statistics[function_name]
+                                value = function(sample[variable])
+                                to_write.append(value)
+                                percentiles.append(percentileofscore(refsum[s], 
+                                                                     value))
+                            # get metrics
+                            for m in get_metrics:
+                                function = metrics[m]
+                                value = function(sample, refsum[m])
+                                to_write.append(value)
+                                percentiles.append(percentileofscore(
+                                        refsum[m+'_'+'samples'], value))
+                            writer.write(to_write + percentiles)
         except:
             logger.warning('Unable to process: %s' \
                            % os.path.basename(f))    
-    logger.info('Finished processing user %s.' % user_id)
-
-
-
-
-
-            # update trackers
-            for v in trackers:
-                trackers[v].update(data[v])
-            # do transformations
-            for t in do_transformations:
-                tt = transformations[t]
-                tt.apply(data)
-            # get summaries
-            for s in get_summaries:
-                function_name, variable = s                        
-                function = summary_statistics[function_name]
-                to_write.append(function(data[variable]))
-            # get metrics
-            for m in get_metrics:
-                function = metrics[m]
-                to_write.append(function(data))
-            # write results
-            write_to_csv(user_file, to_write)
-        except:
-            logger.warning('Unable to process file: %s' \
-                           % os.path.basename(f))       
-    # save intersample times
-    trackers['timestamp'].save(sampling_dir, user_id)
-    # write summary
-    to_write = [user_id, len(file_paths), n_observations,
-                trackers['timestamp'].frequency(),
-                trackers['x'].stats['min'], trackers['x'].stats['max'],
-                trackers['y'].stats['min'], trackers['y'].stats['max'],
-                trackers['z'].stats['min'], trackers['z'].stats['max']]
-    write_to_csv(records_file, to_write)
     logger.info('Finished processing accelerometer data for user %s.' % user_id)
     return()
-
-
-
-
-
-
 
 
 
@@ -152,17 +188,14 @@ all_metrics = ['ai', 'ai0', 'ari', 'ari0']
 
 
 def pack_process_kwargs(user_ids, proc_dir, project,
-
-                        window_length_ms = min_ms,
+                        window_length_ms,
                         minimum_s, minimum_obs,
-
-                        
+                        n_resamples,
+                        calibration_dir, 
+                        calibration_metric = 'total_variance',                        
                         do_transformations = all_transformations,
                         get_summaries = all_summaries,
                         get_metrics = all_metrics,
-
-
-
                         track_time = True, id_lookup = {}):
     '''
     Packs kwargs for Process.do().
@@ -179,7 +212,11 @@ def pack_process_kwargs(user_ids, proc_dir, project,
         
         minimum_obs (int):
 
-        calibration_dict (dict):
+        n_resamples (int):            
+
+        calibration_dir (str):
+
+        calibration_metric (str):
 
         do_transformations (list):
 
@@ -187,7 +224,6 @@ def pack_process_kwargs(user_ids, proc_dir, project,
             (<variable>, <summary statistic>)
 
         get_metrics (list):
-
 
         track_time (bool): If True, output to a timestamped folder.    
         id_lookup (dict): Optional.
@@ -209,7 +245,9 @@ def pack_process_kwargs(user_ids, proc_dir, project,
         'window_length_ms': window_length_ms,        
         'minimum_s': minimum_s,
         'minimum_obs': minimum_obs,
-        'calibration_dict': calibration_dict,
+        'n_resamples': n_resamples,
+        'calibration_dir': calibration_dir,
+        'calibration_metric': calibration_metric,
         'do_transformations': do_transformations,
         'get_summaries': get_summaries,
         'get_metrics': get_metrics,
@@ -222,9 +260,3 @@ def pack_process_kwargs(user_ids, proc_dir, project,
 Process = ProcessTemplate.create(__name__,
                                  [setup_output], [setup_user], 
                                  [process_user], [], [])
-
-
-
-
-
-

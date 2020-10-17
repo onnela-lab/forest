@@ -99,7 +99,10 @@ transformations = OrderedDict(
      'y': y,
      'z': z
      })
-    
+
+
+# add total variance
+
 
 def absolute_activity_index(df, ref): 
     '''
@@ -134,7 +137,7 @@ def absolute_activity_range_index(df, ref):
     Args:
         df (dataframe): Dataframe of accelerometer data.
         ref (float): Sum of interquartile ranges calculated from a reference 
-            period: iqr(x) + range(y) + range(z)
+            period: iqr(x) + iqr(y) + iqr(z)
                 
     '''
     temp = np.sum([np.max(df[a])-np.min(df[a]) for a in ['x', 'y', 'z']])
@@ -147,7 +150,7 @@ def relative_activity_range_index(df, ref):
     Args:
         df (dataframe): Dataframe of accelerometer data.
         ref (float): Sum of interquartile ranges calculated from a reference 
-            period: iqr(x) + range(y) + range(z)
+            period: iqr(x) + iqr(y) + iqr(z)
                 
     '''
     temp = np.sum([np.max(df[a])-np.min(df[a]) for a in ['x', 'y', 'z']])
