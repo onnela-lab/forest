@@ -146,3 +146,20 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
     except:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         logger.debug(str(ID) + ': ' + str(exc_value).replace(",", ""))
+        
+
+def write_all_summaries(ID, stats_pdframe, output_folder):
+    """
+    Docstring
+    Args: ID: str, stats_pdframe is pd dataframe (summary stats)
+          output_path should be the folder path where you want to save the output
+    Return: write out as csv files named by user ID
+    """
+    try:
+        if os.path.exists(output_folder)==False:
+            os.mkdir(output_folder)
+        stats_pdframe.to_csv(output_folder + "/" + str(ID) +  ".csv",index=False)
+        print('Done.')
+    except:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        logger.debug(str(ID) + ': ' + str(exc_value).replace(",", ""))
