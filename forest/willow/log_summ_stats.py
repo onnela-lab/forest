@@ -13,61 +13,21 @@ This is version 1.6 (last modified 2020-07-01: unification with forest)
 
 """
 
+# import os
+# import pandas as pd
+# import numpy as np
+# from dateutil import tz
+# from datetime import datetime
+# import pytz
+# from pytz import timezone
+# import calendar
+
 import os
 import pandas as pd
 import numpy as np
-from dateutil import tz
-from datetime import datetime
-import pytz
-from pytz import timezone
-import calendar
+from ..poplar.legacy.common_funcs import (filename2stamp, stamp2datetime, 
+                                          datetime2stamp, write_all_summaries)
 
-def datetime2stamp(time_tuple, tz):
-    """
-    Docstring
-    Args: time_tupe: a tuple of integers (year, month, day, hour (0-23), min),
-          tz: timezone (str), where the study is conducted
-    please use
-    ## from pytz import all_timezones
-    ## all_timezones
-    to check all timezones
-    Return: Unix time, which is what Beiwe uses
-    """
-    loc_tz =  timezone(tz)
-    loc_dt = loc_tz.localize(datetime(time_tuple[0], time_tuple[1], time_tuple[2], time_tuple[3], time_tuple[4], time_tuple[5]))
-    utc = timezone("UTC")
-    utc_dt = loc_dt.astimezone(utc)
-    timestamp = calendar.timegm(utc_dt.timetuple())
-    return timestamp
-
-def stamp2datetime(stamp,tz):
-    """
-    Docstring
-    Args: stamp: Unix time, integer, the timestamp in Beiwe
-          tz: timezone (str), where the study is conducted
-    please use
-    ## from pytz import all_timezones
-    ## all_timezones
-    to check all timezones
-    Return: a tuple of integers (year, month, day, hour (0-23), min) in specified tz
-    """
-    loc_tz =  timezone(tz)
-    utc = timezone("UTC")
-    utc_dt = utc.localize(datetime.utcfromtimestamp(stamp))
-    loc_dt = utc_dt.astimezone(loc_tz)
-    return (loc_dt.year, loc_dt.month,loc_dt.day,loc_dt.hour,loc_dt.minute,loc_dt.second)
-
-def filename2stamp(filename):
-    """
-    Docstring
-    Args: filename (str), the filename of communication log
-    Return: UNIX time (int)
-    """
-    [d_str,h_str] = filename.split(' ')
-    [y,m,d] = np.array(d_str.split('-'),dtype=int)
-    h = int(h_str.split('_')[0])
-    stamp = datetime2stamp((y,m,d,h,0,0),'UTC')
-    return stamp
 
 def read_comm_logs(study_folder: str, tz: str, ID:str, time_start = None, time_end = None):
     """
@@ -243,17 +203,6 @@ def comm_logs_summaries(df_text, df_call, stamp_start, stamp_end, tz, option):
                     'num_s', 'num_r', 'num_mms_s', 'num_mms_r', 'num_s_tel','num_r_tel', 'total_char_s', 'total_char_r'])
     return stats_pdframe
 
-def write_all_summaries(ID, stamp_start, stamp_end, stats_pdframe, output_folder):
-    """
-    Docstring
-    Args: ID: str, stamp_start, stamp_end are int, stats_pdframe is pd dataframe
-          output_path should be the folder path where you want to save the output
-    Return: write out as csv files named by user ID and timestamps
-    """
-    if os.path.exists(output_folder)==False:
-        os.mkdir(output_folder)
-    df.to_csv(output_folder + "/" + str(ID) + "_" + str(stamp_start) + "_"+str(stamp_end) + ".csv",index=False)
-    print("User" + str(ID) + ' : CSV file of summary statistics is generated.')
 
 # Main function/wrapper should take standard arguments with Beiwe names:
 def log_stats_main(study_folder: str, output_folder:str, tz: str,  option: str, time_start: str = None, time_end: str = None, beiwe_id = None):

@@ -1,19 +1,31 @@
-import os
+# import os
+# import sys
+# sys.path.append('../trunk')
+# import math
+# import numpy as np
+# import pandas as pd
+# import scipy.stats as stat
+# from itertools import groupby
+# from datetime import  timedelta,datetime
+# import pytz
+# from pytz import timezone
+# import calendar
+# import logging
+# from common_funcs import *
+# from sogp_gps import *
+# from data2mobmat import *
+
+from logging import getLogger
 import sys
-sys.path.append('../trunk')
 import math
 import numpy as np
-import pandas as pd
 import scipy.stats as stat
-from itertools import groupby
-from datetime import  timedelta,datetime
-import pytz
-from pytz import timezone
-import calendar
-import logging
-from common_funcs import *
-from sogp_gps import *
-from data2mobmat import *
+from ..poplar.legacy.common_funcs import stamp2datetime
+from .data2mobmat import great_circle_dist, ExistKnot
+
+
+logger = getLogger(__name__)
+
 
 ## the details of the functions are in paper [Liu and Onnela (2020)]
 

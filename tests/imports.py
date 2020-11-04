@@ -18,7 +18,6 @@ def test_imports(subpackage_name, module_names):
     print('Failed imports: %s \n' % n_failure)
 
 
-
 # Test imports for forest.willow
 test_imports('forest.willow',
             ['log_stats', 'log_summ_stats'])

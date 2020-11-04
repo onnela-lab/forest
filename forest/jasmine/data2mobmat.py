@@ -1,17 +1,27 @@
-import os
+# import os
+# import sys
+# sys.path.append('../trunk')
+# import math
+# import numpy as np
+# import pandas as pd
+# import scipy.stats as stat
+# from itertools import groupby
+# from datetime import  timedelta,datetime
+# import pytz
+# from pytz import timezone
+# import calendar
+# import logging
+# from common_funcs import *
+
+from logging import getLogger
 import sys
-sys.path.append('../trunk')
 import math
 import numpy as np
-import pandas as pd
-import scipy.stats as stat
 from itertools import groupby
-from datetime import  timedelta,datetime
-import pytz
-from pytz import timezone
-import calendar
-import logging
-from common_funcs import *
+
+
+logger = getLogger(__name__)
+
 
 ## the radius of the earth
 R = 6.371*10**6

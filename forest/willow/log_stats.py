@@ -17,8 +17,8 @@ import pandas as pd
 import numpy as np
 import logging
 from ..poplar.functions.log import log_to_csv
-from ..poplar.legacy.common_funcs import read_data
-from .log_summ_stats import write_all_summaries, datetime2stamp, stamp2datetime
+from ..poplar.legacy.common_funcs import (read_data, write_all_summaries, 
+                                          datetime2stamp, stamp2datetime)
 
 logger = logging.getLogger(__name__)
 
