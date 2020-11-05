@@ -1,18 +1,3 @@
-# import os
-# import sys
-# sys.path.append('../trunk')
-# import math
-# import numpy as np
-# import pandas as pd
-# import scipy.stats as stat
-# from itertools import groupby
-# from datetime import  timedelta,datetime
-# import pytz
-# from pytz import timezone
-# import calendar
-# import logging
-# from common_funcs import *
-
 from logging import getLogger
 import sys
 import math
@@ -21,7 +6,6 @@ from itertools import groupby
 
 
 logger = getLogger(__name__)
-
 
 ## the radius of the earth
 R = 6.371*10**6
@@ -125,7 +109,6 @@ def pairwise_great_circle_dist(latlon_array):
         for j in np.arange(i+1,k):
             dist.append(great_circle_dist(latlon_array[i,0],latlon_array[i,1],latlon_array[j,0],latlon_array[j,1]))
     return dist
-
 
 def collapse_data(data, itrvl, accuracylim):
     """

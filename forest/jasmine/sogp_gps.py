@@ -1,26 +1,9 @@
-# import os
-# import sys
-# sys.path.append('../trunk')
-# import math
-# import numpy as np
-# import pandas as pd
-# import scipy.stats as stat
-# from itertools import groupby
-# from datetime import  timedelta,datetime
-# import pytz
-# from pytz import timezone
-# import calendar
-# import logging
-# from common_funcs import *
-
 from logging import getLogger
 import sys
 import math
 import numpy as np
 
-
 logger = getLogger(__name__)
-
 
 ## the radius of the earth
 R = 6.371*10**6
@@ -37,7 +20,6 @@ def K0(x1,x2,pars):
     k2 = np.exp(-abs(x1[0]-x2[0])/l2)*np.exp(-(np.sin(abs(x1[0]-x2[0])/604800*math.pi))**2/a2)
     k3 = np.exp(-abs(x1[1]-x2[1])/l3)
     return b1*k1+b2*k2+b3*k3
-
 
 ## all the functions below are based on the equations in [Csato and Opper (2002)]
 ## ref: http://www.cs.ubbcluj.ro/~csatol/SOGP/thesis/Gaussian_Process.html#SECTION00521000000000000000

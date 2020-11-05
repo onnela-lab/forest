@@ -10,7 +10,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 def datetime2stamp(time_list,tz_str):
     """
     Docstring
@@ -32,7 +31,6 @@ def datetime2stamp(time_list,tz_str):
     except:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         logger.debug(str(exc_value).replace(",", ""))
-
 
 def stamp2datetime(stamp,tz_str):
     """
@@ -102,10 +100,17 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
             ## create a list to convert all filenames to UNIX time
             filestamps = np.array([filename2stamp(filename) for filename in filenames])
             ## find the timestamp in the identifier (when the user was enrolled)
-            identifier_Files = os.listdir(study_folder + "/" + ID + "/identifiers")
-            identifiers = pd.read_csv(study_folder + "/" + ID + "/identifiers/"+ identifier_Files[0], sep = ",")
+            if os.path.exists(study_folder + "/" + ID + "/identifiers"):
+                identifier_Files = os.listdir(study_folder + "/" + ID + "/identifiers")
+                identifiers = pd.read_csv(study_folder + "/" + ID + "/identifiers/"+ identifier_Files[0], sep = ",")
+                ## now determine the starting and ending time according to the Docstring
+                if identifiers.index[0]>10**10:  ## sometimes the identifier has mismatched colnames and columns
+                    stamp_start1 = identifiers.index[0]/1000
+                else:
+                    stamp_start1 = identifiers["timestamp"][0]/1000
+            else:
+                stamp_start1 = filestamps[0]
             ## now determine the starting and ending time according to the Docstring
-            stamp_start1= identifiers["timestamp"][0]/1000
             if time_start == None:
                 stamp_start = stamp_start1
             else:
@@ -146,7 +151,6 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
     except:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         logger.debug(str(ID) + ': ' + str(exc_value).replace(",", ""))
-        
 
 def write_all_summaries(ID, stats_pdframe, output_folder):
     """

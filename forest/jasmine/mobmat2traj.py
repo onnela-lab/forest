@@ -1,20 +1,3 @@
-# import os
-# import sys
-# sys.path.append('../trunk')
-# import math
-# import numpy as np
-# import pandas as pd
-# import scipy.stats as stat
-# from itertools import groupby
-# from datetime import  timedelta,datetime
-# import pytz
-# from pytz import timezone
-# import calendar
-# import logging
-# from common_funcs import *
-# from sogp_gps import *
-# from data2mobmat import *
-
 from logging import getLogger
 import sys
 import math
@@ -26,9 +9,7 @@ from .data2mobmat import great_circle_dist, ExistKnot
 
 logger = getLogger(__name__)
 
-
 ## the details of the functions are in paper [Liu and Onnela (2020)]
-
 def num_sig_places(data,dist):
     """
     Args: data, 2d array like mobmat (k*7)
@@ -208,7 +189,6 @@ def create_tables(MobMat, BV_set):
             mis_table = np.vstack((mis_table,mov))
     mis_table = np.delete(mis_table,0,0)
     return flight_table, pause_table, mis_table
-
 
 def ImputeGPS(MobMat,BV_set,method,switch,num,linearity,tz_str,pars):
     """
@@ -513,7 +493,6 @@ def ImputeGPS(MobMat,BV_set,method,switch,num,linearity,tz_str,pars):
     except:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         logger.debug(str(exc_value).replace(",", ""))
-
 
 def Imp2traj(imp_table,MobMat,itrvl,r,w,h):
     """

@@ -1,32 +1,13 @@
-# import os
-# import sys
-# sys.path.append('../trunk')
-# import math
-# import pickle
-# import numpy as np
-# import pandas as pd
-# import scipy.stats as stat
-# from itertools import groupby
-# from datetime import  timedelta,datetime
-# import pytz
-# from pytz import timezone
-# import calendar
-# import logging
-# from common_funcs import *
-# from sogp_gps import *
-# from data2mobmat import *
-# from mobmat2traj import *
-
 import os
 import sys
 import pickle
 import logging
 import numpy as np
 import pandas as pd
-from ..poplar.legacy.common_funcs import (stamp2datetime, datetime2stamp, 
+from ..poplar.legacy.common_funcs import (stamp2datetime, datetime2stamp,
                                           read_data, write_all_summaries)
 from ..poplar.functions.log import log_to_csv
-from .data2mobmat import (great_circle_dist, pairwise_great_circle_dist, 
+from .data2mobmat import (great_circle_dist, pairwise_great_circle_dist,
                           GPS2MobMat, InferMobMat)
 from .mobmat2traj import num_sig_places, locate_home, ImputeGPS, Imp2traj
 from .sogp_gps import BV_select
@@ -337,25 +318,3 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_
       print("Finished without any warning messages.")
     else:
       print("Finished. Please check log.csv for warning messages.")
-
-
-### Eexample:
-## If there are all_BV_set and all_memory_dict from previous run, read them first
-# with open(output_folder+'/all_memory_dict.pickle', 'rb') as handle:
-#     all_memory_dict = pickle.load(handle)
-# with open(output_folder+'/all_BV_set.pickle', 'rb') as handle:
-#     all_BV_set = pickle.load(handle)
-
-# study_folder = 'F:/DATA/hope'
-# output_folder = 'C:/Users/glius/Downloads/hope_gps'
-# tz_str = 'America/New_York'
-# option = 'both'
-# save_traj = True
-# time_start = None
-# time_end = None
-# beiwe_id = ['i9fqxgwn','1rkt87d2','8r4hkqi6']
-# parameters = None
-# all_memory_dict = None
-# all_BV_set=None
-# gps_stats_main(study_folder, output_folder, tz_str,  option, save_traj, time_start, time_end, beiwe_id,
-#                parameters,all_memory_dict, all_BV_set)
