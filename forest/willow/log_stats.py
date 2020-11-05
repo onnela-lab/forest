@@ -1,23 +1,10 @@
-# import os
-# import sys
-# sys.path.append('../trunk')
-# import pandas as pd
-# import numpy as np
-# from dateutil import tz
-# from datetime import datetime
-# import pytz
-# from pytz import timezone
-# import calendar
-# import logging
-# from common_funcs import *
-
 import os
 import sys
 import pandas as pd
 import numpy as np
 import logging
 from ..poplar.functions.log import log_to_csv
-from ..poplar.legacy.common_funcs import (read_data, write_all_summaries, 
+from ..poplar.legacy.common_funcs import (read_data, write_all_summaries,
                                           datetime2stamp, stamp2datetime)
 
 logger = logging.getLogger(__name__)
@@ -169,10 +156,3 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
       print("Finished without any warning messages.")
     else:
       print("Finished. Please check log.csv for warning messages.")
-
-# test the code
-# study_folder = 'C:/Users/glius/Downloads/data'
-# output_folder = 'C:/Users/glius/Downloads/hope_log'
-# tz_str = 'America/New_York'
-# option = 'daily'
-# log_stats_main(study_folder,output_folder,tz_str,option)
