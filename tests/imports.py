@@ -24,7 +24,7 @@ test_imports('forest.willow',
 
 # Test imports for forest.jasmine
 test_imports('forest.jasmine',
-            ['data2mobmat', 'mobmat2traj', 'sogp_gps', 'traj2stats'，'simulate_gps_data'])
+            ['data2mobmat', 'mobmat2traj', 'sogp_gps', 'traj2stats','simulate_gps_data'])
 
 # Test imports for forest.poplar
 test_imports('forest.poplar.classes',
