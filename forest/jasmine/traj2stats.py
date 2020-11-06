@@ -304,8 +304,7 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_
 
     logger.info("End")
     ## generate the record file together with logger and comm_logs.csv
-    record = pd.DataFrame(np.array(record), columns=['ID','start_stamp','start_year','start_month','start_day','start_hour','start_min','start_sec',
-                          'end_stamp','end_year','end_month','end_day','end_hour','end_min','end_sec'])
+    record = pd.DataFrame(np.array(record), columns=['ID','start_stamp','start_year','start_month','start_day','start_hour','start_min','start_sec','end_stamp','end_year','end_month','end_day','end_hour','end_min','end_sec'])
     record.to_csv(output_folder + "/record.csv",index=False)
     ## save all_memory_dict and all_BV_set
     f = open(output_folder + "/all_memory_dict.pkl","wb")
