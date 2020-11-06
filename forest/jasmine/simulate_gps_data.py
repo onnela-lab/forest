@@ -322,10 +322,11 @@ def sim_GPS_data(cycle,p,output_folder):
     s = datetime2stamp([2020,8,24,0,0,0],'America/New_York')*1000
     if os.path.exists(output_folder+"/test_data")==False:
         os.mkdir(output_folder+"/test_data")
-
     for user in range(2):
         if os.path.exists(output_folder+"/test_data/user_"+str(user+1))==False:
             os.mkdir(output_folder+"/test_data/user_"+str(user+1))
+        if os.path.exists(output_folder+"/test_data/user_"+str(user+1)+"/gps")==False:
+            os.mkdir(output_folder+"/test_data/user_"+str(user+1)+"/gps")
         all_traj = gen_all_traj()
         obs = remove_data(all_traj,cycle,p,14)
         obs_pd = prepare_data(obs)
@@ -336,4 +337,4 @@ def sim_GPS_data(cycle,p,output_folder):
                 temp = obs_pd[(obs_pd["timestamp"]>=s_lower)&(obs_pd["timestamp"]<s_upper)]
                 [y,m,d,h,mins,sec] = stamp2datetime(s_lower/1000,"UTC")
                 filename = str(y)+"-"+int2str(m)+"-"+int2str(d)+" "+int2str(h)+"_00_00.csv"
-                temp.to_csv(output_folder+"/test_data/user_"+str(user+1)+"/"+filename,index = False)
+                temp.to_csv(output_folder+"/test_data/user_"+str(user+1)+"/gps/"+filename,index = False)
