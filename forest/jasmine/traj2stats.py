@@ -213,7 +213,8 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_
             and a record csv file to show which users are processed, from when to when
             and logger csv file to show warnings and bugs during the run
     """
-
+    if os.path.exists(output_folder)==False:
+        os.mkdir(output_folder)
     log_to_csv(output_folder)
     logger.info("Begin")
 
