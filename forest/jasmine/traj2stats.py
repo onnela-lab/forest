@@ -313,8 +313,9 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_
     f = open(output_folder + "/all_BV_set.pkl","wb")
     pickle.dump(all_BV_set,f)
     f.close()
-    temp = pd.read_csv(output_folder + "/log.csv")
-    if temp.shape[0]==3:
-      print("Finished without any warning messages.")
-    else:
-      print("Finished. Please check log.csv for warning messages.")
+    if os.path.exists(output_folder + "/log.csv")==True:
+        temp = pd.read_csv(output_folder + "/log.csv")
+        if temp.shape[0]==3:
+            print("Finished without any warning messages.")
+        else:
+            print("Finished. Please check log.csv for warning messages.")
