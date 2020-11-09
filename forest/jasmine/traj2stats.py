@@ -115,7 +115,10 @@ def gps_summaries(traj,tz_str,option):
                     av_f_dur = 0
                     sd_f_dur = 0
                 if option=="hourly":
-                    summary_stats.append([year,month,day,hour,obs_dur/60,total_pause_time/60,total_flight_time/60,time_at_home/60,
+                    if obs_dur==0:
+                        summary_stats.append([year,month,day,hour,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan])
+                    else:
+                        summary_stats.append([year,month,day,hour,obs_dur/60,total_pause_time/60,total_flight_time/60,time_at_home/60,
                                   max_dist_home, dist_traveled,av_f_len,sd_f_len,av_f_dur/60,sd_f_dur/60])
                 if option=="daily":
                     hours = []
@@ -144,7 +147,10 @@ def gps_summaries(traj,tz_str,option):
                     else:
                         D = pairwise_great_circle_dist(temp[:,[1,2]])
                         diameter = max(D)
-                    summary_stats.append([year,month,day,obs_dur/3600, obs_day/3600, obs_night/3600,total_pause_time/3600,total_flight_time/3600,
+                    if obs_dur == 0:
+                        summary_stats.append([year,month,day,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan])
+                    else:
+                        summary_stats.append([year,month,day,obs_dur/3600, obs_day/3600, obs_night/3600,total_pause_time/3600,total_flight_time/3600,
                                   time_at_home/3600, max_dist_home/1000, dist_traveled/1000,av_f_len/1000,sd_f_len/1000,av_f_dur/3600,sd_f_dur/3600,
                                   radius/1000, diameter/1000, num_sig, entropy])
             summary_stats = pd.DataFrame(np.array(summary_stats))
