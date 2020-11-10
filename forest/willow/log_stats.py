@@ -149,7 +149,7 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
                 stats_pdframe1 = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str, "hourly")
                 write_all_summaries(ID, stats_pdframe1, output_folder + "/hourly")
                 stats_pdframe2 = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str, "daily")
-                write_all_summaries(ID, summary_stats2, output_folder + "/daily")
+                write_all_summaries(ID, stats_pdframe2, output_folder + "/daily")
             else:
                 stats_pdframe = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str,option)
                 write_all_summaries(ID, stats_pdframe, output_folder)
