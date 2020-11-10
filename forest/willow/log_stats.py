@@ -120,6 +120,8 @@ def comm_logs_summaries(ID:str, df_text, df_call, stamp_start, stamp_end, tz_str
 
 # Main function/wrapper should take standard arguments with Beiwe names:
 def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: str, time_start = None, time_end = None, beiwe_id = None):
+    if os.path.exists(output_folder)==False:
+        os.mkdir(output_folder)
     log_to_csv(output_folder)
     logger.info("Begin")
     ## beiwe_id should be a list of str
@@ -152,7 +154,9 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
                           'end_stamp','end_year','end_month','end_day','end_hour','end_min','end_sec'])
     record.to_csv(output_folder + "/record.csv",index=False)
     temp = pd.read_csv(output_folder + "/log.csv")
-    if temp.shape[0]==3:
-      print("Finished without any warning messages.")
-    else:
-      print("Finished. Please check log.csv for warning messages.")
+    if os.path.exists(output_folder + "/log.csv")==True:
+        temp = pd.read_csv(output_folder + "/log.csv")
+        if temp.shape[0]==3:
+            print("Finished without any warning messages.")
+        else:
+            print("Finished. Please check log.csv for warning messages.")
