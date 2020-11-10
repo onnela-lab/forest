@@ -122,6 +122,11 @@ def comm_logs_summaries(ID:str, df_text, df_call, stamp_start, stamp_end, tz_str
 def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: str, time_start = None, time_end = None, beiwe_id = None):
     if os.path.exists(output_folder)==False:
         os.mkdir(output_folder)
+    if option == 'both':
+        if os.path.exists(output_folder+"/hourly")==False:
+            os.mkdir(output_folder+"/hourly")
+        if os.path.exists(output_folder+"/daily")==False:
+            os.mkdir(output_folder+"/daily")
     log_to_csv(output_folder)
     logger.info("Begin")
     ## beiwe_id should be a list of str
@@ -140,9 +145,15 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
             stamp_start = min(text_stamp_start,call_stamp_start)
             stamp_end = max(text_stamp_end, call_stamp_end)
             ## process data
-            stats_pdframe = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str, option)
-            ## save output
-            write_all_summaries(ID, stats_pdframe, output_folder)
+            if option == "both":
+                stats_pdframe1 = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str, "hourly")
+                write_all_summaries(ID, stats_pdframe1, output_folder + "/hourly")
+                stats_pdframe2 = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str, "daily")
+                write_all_summaries(ID, summary_stats2, output_folder + "/daily")
+            else:
+                stats_pdframe = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str,option)
+                write_all_summaries(ID, stats_pdframe, output_folder)
+    
             [y1,m1,d1,h1,min1,s1] = stamp2datetime(stamp_start,tz_str)
             [y2,m2,d2,h2,min2,s2] = stamp2datetime(stamp_end,tz_str)
             record.append([str(ID),stamp_start,y1,m1,d1,h1,min1,s1,stamp_end,y2,m2,d2,h2,min2,s2])
@@ -153,7 +164,6 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
     record = pd.DataFrame(np.array(record), columns=['ID','start_stamp','start_year','start_month','start_day','start_hour','start_min','start_sec',
                           'end_stamp','end_year','end_month','end_day','end_hour','end_min','end_sec'])
     record.to_csv(output_folder + "/record.csv",index=False)
-    temp = pd.read_csv(output_folder + "/log.csv")
     if os.path.exists(output_folder + "/log.csv")==True:
         temp = pd.read_csv(output_folder + "/log.csv")
         if temp.shape[0]==3:
