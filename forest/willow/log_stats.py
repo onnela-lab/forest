@@ -153,7 +153,7 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
             else:
                 stats_pdframe = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str,option)
                 write_all_summaries(ID, stats_pdframe, output_folder)
-    
+
             [y1,m1,d1,h1,min1,s1] = stamp2datetime(stamp_start,tz_str)
             [y2,m2,d2,h2,min2,s2] = stamp2datetime(stamp_end,tz_str)
             record.append([str(ID),stamp_start,y1,m1,d1,h1,min1,s1,stamp_end,y2,m2,d2,h2,min2,s2])
@@ -161,8 +161,7 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
             logger.info("There is a problem with respect to user %s." % str(ID))
     logger.info("End")
     ## generate the record file together with logger and comm_logs.csv
-    record = pd.DataFrame(np.array(record), columns=['ID','start_stamp','start_year','start_month','start_day','start_hour','start_min','start_sec',
-                          'end_stamp','end_year','end_month','end_day','end_hour','end_min','end_sec'])
+    record = pd.DataFrame(np.array(record), columns=['ID','start_stamp','start_year','start_month','start_day','start_hour','start_min','start_sec','end_stamp','end_year','end_month','end_day','end_hour','end_min','end_sec'])
     record.to_csv(output_folder + "/record.csv",index=False)
     if os.path.exists(output_folder + "/log.csv")==True:
         temp = pd.read_csv(output_folder + "/log.csv")
