@@ -1,11 +1,16 @@
-# forest (clean)
+# forest 
+
+For more detailed info on specific subpackages, see our Wiki
 
 ## Description
+
+Description of how beiwe data looks (folder structure + on/off cycles)
+
 Input: typically raw data from smartphones
 Output: typically summary files
 -	Data preparation
-o	Identifying time zones
-o	Unit conversion
+    - Identifying time zones
+    - Unit conversion
 -	Data imputation
 -	Data summarizing
 
