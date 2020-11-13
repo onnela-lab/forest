@@ -109,7 +109,7 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
                 else:
                     stamp_start1 = identifiers["timestamp"][0]/1000
             else:
-                stamp_start1 = filestamps[0]
+                stamp_start1 = sorted(filestamps)[0]
             ## now determine the starting and ending time according to the Docstring
             if time_start == None:
                 stamp_start = stamp_start1
