@@ -112,8 +112,7 @@ def log_to_csv(log_dir, level = logging.DEBUG,
     '''
     try:
         # initialize csv
-        filepath = setup_csv(name = log_name, directory = log_dir, 
-                             header = header)
+        filepath = setup_csv(name=log_name, dirpath=log_dir, header=header)
         # configure logging output
         logging.basicConfig(format = log_format,
                             filename = filepath,
