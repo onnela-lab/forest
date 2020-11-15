@@ -127,8 +127,8 @@ def collapse_data(data, itrvl, accuracylim):
                  fourth is none
     """
     data = data[data.accuracy<accuracylim]
-    t_start = np.array(data.timestamp)[0]/1000
-    t_end = np.array(data.timestamp)[-1]/1000
+    t_start = sorted(np.array(data.timestamp))[0]/1000
+    t_end = sorted(np.array(data.timestamp))[-1]/1000
     avgmat = np.empty([int(np.ceil((t_end-t_start)/itrvl))+2,4])
     sys.stdout.write("Collapse data within " + str(itrvl)+" second intervals ..."+'\n')
     IDam = 0

@@ -49,10 +49,10 @@ def gps_summaries(traj,tz_str,option):
             sys.stdout.write("Calculating the daily summary stats..." + '\n')
             time_list = stamp2datetime(traj[0,3],tz_str)
             time_list[3]=0; time_list[4]=0; time_list[5]=0
-            start_stamp = datetime2stamp(time_list,tz_str) + 3600*24
+            start_stamp = datetime2stamp(time_list,tz_str)
             time_list = stamp2datetime(traj[-1,3],tz_str)
             time_list[3]=0; time_list[4]=0; time_list[5]=0
-            end_stamp = datetime2stamp(time_list,tz_str)
+            end_stamp = datetime2stamp(time_list,tz_str) + 3600*24
             ## if it starts from 2019-3-8 11 o'clock, then our daily summary starts from 2019-3-9)
             h = (end_stamp - start_stamp)/60/60/24
             window = 60*60*24

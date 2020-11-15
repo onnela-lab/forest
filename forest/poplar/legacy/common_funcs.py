@@ -109,7 +109,7 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
                 else:
                     stamp_start1 = identifiers["timestamp"][0]/1000
             else:
-                stamp_start1 = filestamps[0]
+                stamp_start1 = sorted(filestamps)[0]
             ## now determine the starting and ending time according to the Docstring
             if time_start == None:
                 stamp_start = stamp_start1
@@ -119,12 +119,12 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
             ##Last hour: look at all the subject's directories (except survey) and find the latest date for each directory
             directories = os.listdir(study_folder + "/" + ID)
             directories = list(set(directories)-set(["survey_answers","survey_timings"]))
-            lastDate = []
+            all_timestamps = []
             for i in directories:
                 files = os.listdir(study_folder + "/" + ID + "/" + i)
-                lastDate.append(files[-1])
-            stamp_end_vec = [filename2stamp(j) for j in lastDate]
-            stamp_end1 = max(stamp_end_vec)
+                all_timestamps += [filename2stamp(filename) for filename in files]
+            ordered_timestamps = sorted([timestamp for timestamp in all_timestamps if timestamp is not None])
+            stamp_end1 = ordered_timestamps[-1]
             if time_end == None:
                 stamp_end = stamp_end1
             else:

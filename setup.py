@@ -18,7 +18,7 @@ with open('LICENSE.md') as f:
 
 setup(
     name = 'forest',
-    version = '0.1',
+    version = '0.1.1',
     description = '--add description here--',
     long_description = readme,
     author = 'Onnela Lab',
