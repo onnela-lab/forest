@@ -64,7 +64,7 @@ def gen_basic_traj(l_s, l_e, vehicle, t_s):
     err_lon = np.random.normal(loc=0.0, scale= 2*1e-5, size= traj_array.shape[0])
     traj_array[:,1] = traj_array[:,1] + err_lat
     traj_array[:,2] = traj_array[:,2] + err_lon
-    return traj_array
+    return traj_array, d
 
 def gen_basic_pause(l_s, t_s, t_e_range, t_diff_range):
     traj_list = []
@@ -84,11 +84,13 @@ def gen_basic_pause(l_s, t_s, t_e_range, t_diff_range):
     return traj_array
 
 def gen_route_traj(route, vehicle, t_s):
+    total_d = 0
     traj = np.zeros((1,3))
     for i in range(len(route)-1):
         l_s = route[i]
         l_e = route[i+1]
-        trip = gen_basic_traj(l_s, l_e, vehicle, t_s)
+        trip, d = gen_basic_traj(l_s, l_e, vehicle, t_s)
+        total_d = total_d + d
         t_s = trip[-1,0]
         traj = np.vstack((traj,trip))
         if (i+1)!=len(route)-1 and vehicle=='bus':
@@ -96,9 +98,10 @@ def gen_route_traj(route, vehicle, t_s):
             t_s = trip[-1,0]
             traj = np.vstack((traj,trip))
     traj = traj[1:,:]
-    return traj
+    return traj, total_d
 
 def gtraj_with_regular_visits(day):
+    total_d = 0
     dur = np.random.uniform(15,40,1)[0]
     t_s = (day-1) * 24 * 60 * 60
     traj = np.zeros((1,3))
@@ -106,47 +109,58 @@ def gtraj_with_regular_visits(day):
     traj[0,1] = home_g[0]
     traj[0,2] = home_g[1]
     home_morning = gen_basic_pause(home_g, t_s, None, [7.5*3600, 8.5*3600])
+    t0 = home_morning[-1,0]-home_morning[0,0]
     traj = np.vstack((traj,home_morning))
     t_s = home_morning[-1,0]
-    home2gym = gen_route_traj([home_g, b_start, gym], 'walk', t_s)
+    home2gym,d = gen_route_traj([home_g, b_start, gym], 'walk', t_s)
+    total_d = total_d + d
     traj = np.vstack((traj,home2gym))
     t_s = home2gym[-1,0]
     workout = gen_basic_pause(gym, t_s, None, [dur*60, dur*60])
     traj = np.vstack((traj,workout))
     t_s = workout[-1,0]
-    gym2bus = gen_basic_traj(gym, b_start, 'walk', t_s)
+    gym2bus,d = gen_basic_traj(gym, b_start, 'walk', t_s)
+    total_d = total_d + d
     traj = np.vstack((traj,gym2bus))
     t_s = gym2bus[-1,0]
     waitbus = gen_basic_pause(b_start, t_s, None, [3*60, 6*60])
     traj = np.vstack((traj,waitbus))
     t_s = waitbus[-1,0]
     bus_time = t_s
-    onbus = gen_route_traj([b_start,hmart,mit,turn1,turn2,turn3,b_end], 'bus', t_s)
+    onbus,d = gen_route_traj([b_start,hmart,mit,turn1,turn2,turn3,b_end], 'bus', t_s)
+    total_d = total_d + d
     traj = np.vstack((traj,onbus))
     t_s = onbus[-1,0]
-    bus2hsph = gen_basic_traj(b_end, hsph, 'walk', t_s)
+    bus2hsph,d = gen_basic_traj(b_end, hsph, 'walk', t_s)
+    total_d = total_d + d
     traj = np.vstack((traj,bus2hsph))
     t_s = bus2hsph[-1,0]
     athsph = gen_basic_pause(hsph, t_s, None, [5*3600, 6*3600])
     traj = np.vstack((traj,athsph))
     t_s = athsph[-1,0]
-    hsph2bus = gen_basic_traj(hsph, b_end, 'walk', t_s)
+    hsph2bus,d = gen_basic_traj(hsph, b_end, 'walk', t_s)
+    total_d = total_d + d
     traj = np.vstack((traj,hsph2bus))
     t_s = hsph2bus[-1,0]
     waitbus = gen_basic_pause(b_end, t_s, None, [3*60, 6*60])
     traj = np.vstack((traj,waitbus))
     t_s = waitbus[-1,0]
-    onbus = gen_route_traj([b_end,turn3,turn2,turn1,mit,hmart,b_start], 'bus', t_s)
+    onbus,d = gen_route_traj([b_end,turn3,turn2,turn1,mit,hmart,b_start], 'bus', t_s)
+    total_d = total_d + d
     traj = np.vstack((traj,onbus))
     t_s = onbus[-1,0]
-    bus2home = gen_basic_traj(b_start, home_g, 'walk', t_s)
+    bus2home,d = gen_basic_traj(b_start, home_g, 'walk', t_s)
+    total_d = total_d + d
     traj = np.vstack((traj,bus2home))
     t_s = bus2home[-1,0]
-    home_night = gen_basic_pause(home_g, t_s, [day*24*60*60-1, day*24*60*60-1], None)
+    home_night,d = gen_basic_pause(home_g, t_s, [day*24*60*60-1, day*24*60*60-1], None)
+    t1 = home_night[-1,0]-home_night[0,0]
+    total_d = total_d + d
     traj = np.vstack((traj,home_night))
-    return traj
+    return traj, total_d/1000, (t0+t1)/3600
 
 def gtraj_with_one_visit(day):
+    total_d = 0
     dur = np.random.uniform(15,40,1)[0]
     t_s = (day-1) * 24 * 60 * 60
     traj = np.zeros((1,3))
@@ -154,115 +168,141 @@ def gtraj_with_one_visit(day):
     traj[0,1] = home_g[0]
     traj[0,2] = home_g[1]
     home_morning = gen_basic_pause(home_g, t_s, None, [9*3600, 9.5*3600])
+    t0 = home_morning[-1,0]-home_morning[0,0]
     traj = np.vstack((traj,home_morning))
     t_s = home_morning[-1,0]
-    home2bus = gen_basic_traj(home_g, b_start, 'walk', t_s)
+    home2bus,d = gen_basic_traj(home_g, b_start, 'walk', t_s)
+    total_d = total_d + d
     traj = np.vstack((traj,home2bus))
     t_s = home2bus[-1,0]
     waitbus = gen_basic_pause(b_start, t_s, None, [3*60, 6*60])
     traj = np.vstack((traj,waitbus))
     t_s = waitbus[-1,0]
-    onbus = gen_route_traj([b_start,hmart,mit], 'bus', t_s)
+    onbus,d = gen_route_traj([b_start,hmart,mit], 'bus', t_s)
+    total_d = total_d + d
     traj = np.vstack((traj,onbus))
     t_s = onbus[-1,0]
     atmit = gen_basic_pause(mit, t_s, None, [2.5*3600, 3*3600])
     traj = np.vstack((traj,atmit))
     t_s = atmit[-1,0]
-    mit2hmart = gen_basic_traj(mit, hmart, 'walk', t_s)
+    mit2hmart,d = gen_basic_traj(mit, hmart, 'walk', t_s)
+    total_d = total_d + d
     traj = np.vstack((traj,mit2hmart))
     t_s = mit2hmart[-1,0]
     hmart_time = t_s
     athmart = gen_basic_pause(hmart, t_s, None, [15*60, 25*60])
     traj = np.vstack((traj,athmart))
     t_s = athmart[-1,0]
-    hmart2home = gen_route_traj([hmart,b_start,home_g], 'walk', t_s)
+    hmart2home,d = gen_route_traj([hmart,b_start,home_g], 'walk', t_s)
+    total_d = total_d + d
     traj = np.vstack((traj,hmart2home))
     t_s = hmart2home[-1,0]
     home_afternoon = gen_basic_pause(home_g, t_s, None, [4*3600, 5*3600])
+    t1 = home_afternoon[-1,0]-home_afternoon[0,0]
     traj = np.vstack((traj,home_afternoon))
     t_s = home_afternoon[-1,0]
-    home2movie = gen_route_traj([home_g,b_start,hmart,mit,turn1,movie], 'bus', t_s)
+    home2movie,d = gen_route_traj([home_g,b_start,hmart,mit,turn1,movie], 'bus', t_s)
+    total_d = total_d + d
     traj = np.vstack((traj,home2movie))
     t_s = home2movie[-1,0]
     atmovie = gen_basic_pause(movie, t_s, None, [dur*60, dur*60])
     traj = np.vstack((traj,atmovie))
     t_s = atmovie[-1,0]
-    movie2home = gen_route_traj([movie,turn1,mit,hmart,b_start,home_g], 'bus', t_s)
+    movie2home,d = gen_route_traj([movie,turn1,mit,hmart,b_start,home_g], 'bus', t_s)
+    total_d = total_d + d
     traj = np.vstack((traj,movie2home))
     t_s = movie2home[-1,0]
     home_night = gen_basic_pause(home_g, t_s, [day*24*60*60-1, day*24*60*60-1], None)
+    t2 = home_night[-1,0]-home_night[0,0]
     traj = np.vstack((traj,home_night))
-    return traj
+    return traj, total_d/1000, (t0+t1+t2)/3600
 
 def gtraj_random(day):
+    total_d = 0
     t_s = (day-1) * 24 * 60 * 60
     traj = np.zeros((1,3))
     traj[0,0] = t_s
     traj[0,1] = home_g[0]
     traj[0,2] = home_g[1]
     home_morning = gen_basic_pause(home_g, t_s, None, [9*3600, 9.5*3600])
+    t0 = home_morning[-1,0]-home_morning[0,0]
     traj = np.vstack((traj,home_morning))
     t_s = home_morning[-1,0]
     randnum = np.random.randint(0,3,1)
     if randnum == 0:
-        home2bus = gen_basic_traj(home_g, b_start, 'walk', t_s)
+        home2bus,d = gen_basic_traj(home_g, b_start, 'walk', t_s)
+        total_d = total_d + d
         traj = np.vstack((traj,home2bus))
         t_s = home2bus[-1,0]
         waitbus = gen_basic_pause(b_start, t_s, None, [3*60, 6*60])
         traj = np.vstack((traj,waitbus))
         t_s = waitbus[-1,0]
-        onbus = gen_route_traj([b_start,hmart,mit], 'bus', t_s)
+        onbus, d = gen_route_traj([b_start,hmart,mit], 'bus', t_s)
+        total_d = total_d + d
         traj = np.vstack((traj,onbus))
         t_s = onbus[-1,0]
         atmit = gen_basic_pause(mit, t_s, None, [2.5*3600, 3*3600])
         traj = np.vstack((traj,atmit))
         t_s = atmit[-1,0]
-        mit2hmart = gen_basic_traj(mit, hmart, 'walk', t_s)
+        mit2hmart,d = gen_basic_traj(mit, hmart, 'walk', t_s)
+        total_d = total_d + d
         traj = np.vstack((traj,mit2hmart))
         t_s = mit2hmart[-1,0]
         hmart_time = t_s
         athmart = gen_basic_pause(hmart, t_s, None, [15*60, 25*60])
         traj = np.vstack((traj,athmart))
         t_s = athmart[-1,0]
-        hmart2home = gen_route_traj([hmart,b_start,home_g], 'walk', t_s)
+        hmart2home,d = gen_route_traj([hmart,b_start,home_g], 'walk', t_s)
+        total_d = total_d + d
         traj = np.vstack((traj,hmart2home))
         t_s = hmart2home[-1,0]
     if randnum == 1:
-        home2hmart = gen_route_traj([home_g,b_start,hmart], 'walk', t_s)
+        home2hmart,d = gen_route_traj([home_g,b_start,hmart], 'walk', t_s)
+        total_d = total_d + d
         traj = np.vstack((traj,home2hmart))
         t_s = home2hmart[-1,0]
         athmart = gen_basic_pause(hmart, t_s, None, [15*60, 25*60])
         traj = np.vstack((traj,athmart))
         t_s = athmart[-1,0]
-        hmart2res = gen_basic_traj(hmart, restaurant, 'walk', t_s)
+        hmart2res,d = gen_basic_traj(hmart, restaurant, 'walk', t_s)
+        total_d = total_d + d
         traj = np.vstack((traj,hmart2res))
         t_s = hmart2res[-1,0]
         atres = gen_basic_pause(restaurant, t_s, None, [45*60, 60*60])
         traj = np.vstack((traj,atres))
         t_s = atres[-1,0]
-        res2home = gen_route_traj([restaurant,b_start,home_g], 'walk', t_s)
+        res2home,d = gen_route_traj([restaurant,b_start,home_g], 'walk', t_s)
+        total_d = total_d + d
         traj = np.vstack((traj,res2home))
         t_s = res2home[-1,0]
     if randnum == 2:
-        home2home = gen_route_traj([home_g,b_start,gym,turn4,home_g], 'walk', t_s)
+        home2home,d = gen_route_traj([home_g,b_start,gym,turn4,home_g], 'walk', t_s)
+        total_d = total_d + d
         traj = np.vstack((traj,home2home))
         t_s = home2home[-1,0]
     home_night = gen_basic_pause(home_g, t_s, [day*24*60*60-1, day*24*60*60-1], None)
+    t1 = home_night[-1,0]-home_night[0,0]
     traj = np.vstack((traj,home_night))
-    return traj
+    return traj, total_d/1000, (t0+t1)/3600
 
 def gen_all_traj():
-    gtraj = gtraj_with_regular_visits(1)
+    all_D = []
+    all_T = []
+    gtraj,D,T = gtraj_with_regular_visits(1)
+    all_D.append(D)
+    all_T.append(T)
     all_gtraj = gtraj
     for i in np.arange(2,15):
         if sum(np.array([3,5,8,10,12]==i))==1:
-            gtraj = gtraj_with_regular_visits(i)
+            gtraj,D,T = gtraj_with_regular_visits(i)
         elif i == 2:
-            gtraj = gtraj_with_one_visit(i)
+            gtraj,D,T = gtraj_with_one_visit(i)
         else:
-            gtraj = gtraj_random(i)
+            gtraj,D,T = gtraj_random(i)
         all_gtraj = np.vstack((all_gtraj,gtraj))
-    return all_gtraj
+        all_D.append(D)
+        all_T.append(T)
+    return all_gtraj,all_D,all_T
 
 ## cycle is minute
 def remove_data(full_data,cycle,p,day):
@@ -327,7 +367,10 @@ def sim_GPS_data(cycle,p,output_folder):
             os.mkdir(output_folder+"/test_data/user_"+str(user+1))
         if os.path.exists(output_folder+"/test_data/user_"+str(user+1)+"/gps")==False:
             os.mkdir(output_folder+"/test_data/user_"+str(user+1)+"/gps")
-        all_traj = gen_all_traj()
+        all_traj,all_D,all_T = gen_all_traj()
+        print("User_"+str(user+1))
+        print("distance(km): ", all_D)
+        print("hometime(hr): ", all_T)
         obs = remove_data(all_traj,cycle,p,14)
         obs_pd = prepare_data(obs)
         for i in range(14):
