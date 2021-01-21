@@ -1,6 +1,8 @@
 # forest 
 
-For more detailed info on specific subpackages, see our Wiki
+For more detailed info on specific subpackages, see our Wiki.
+
+**Please note that Forest uses Python 3.6.**
 
 ## Description
 
