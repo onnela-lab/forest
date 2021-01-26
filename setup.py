@@ -19,7 +19,7 @@ with open('LICENSE.md') as f:
 setup(
     name = 'forest',
     version = '0.1.1',
-    description = '--add description here--',
+    description = 'Library to analyze smartphone health data (surveys and sensor data) from Beiwe and other platforms',
     long_description = readme,
     author = 'Onnela Lab',
     author_email = 'onnela.lab@gmail.com',
