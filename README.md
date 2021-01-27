@@ -1,4 +1,4 @@
-# forest 
+# forest (Based on Python 3.6.0)
 
 For more detailed info on specific subpackages, see our Wiki.
 
