@@ -153,7 +153,7 @@ def gtraj_with_regular_visits(day):
     total_d = total_d + d
     traj = np.vstack((traj,bus2home))
     t_s = bus2home[-1,0]
-    home_night,d = gen_basic_pause(home_g, t_s, [day*24*60*60-1, day*24*60*60-1], None)
+    home_night = gen_basic_pause(home_g, t_s, [day*24*60*60-1, day*24*60*60-1], None)
     t1 = home_night[-1,0]-home_night[0,0]
     total_d = total_d + d
     traj = np.vstack((traj,home_night))
