@@ -4,8 +4,9 @@ import pandas as pd
 import glob
 import json
 import numpy as np
+from typing import List
 
-# Explore use of logging function
+# Explore use of logging function (TO DO: Read wiki)
 logger = logging.getLogger(__name__)
 
 
@@ -156,3 +157,150 @@ def aggregate_survey_timings(path):
     del all_data['event']
 
     return all_data, survey_begins, survey_submits, survey_notifications, survey_question_times
+
+
+
+def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
+    """
+    Created on Thu Jan 28 11:34:23 2021
+
+    @author: DEBEU
+    
+    Parameters
+    ----------
+    person_ids : list of beiwe_ids to .
+    study_dir : raw data directory containing directories for each beiwe_id.
+    survey_id : back_end id for survey (and name of folder within
+    study_dir/beiwe_id/survey_timings).
+    
+    
+
+
+
+    Returns
+    -------
+    Record with beiwe_id / phone_os / date_hour / start_time / end_time.
+    For iOS users: 
+        start_time = time of 'present' of first question
+        end_time = time of 'submitted'
+    For Android 
+        start_time = ....
+        end_time = ....
+        
+    Assumes
+    -------
+    Operating system-specific difference in registration of survey timings
+    That a survey with survey_id is not triggered more than once an hour
+    
+
+    """
+    record = np.array(['beiwe_id', 'phone_os', 'date_hour', 'start_time', 'end_time']).reshape(1,5)
+    for pid in person_ids:
+        print(pid)
+        survey_dir = os.path.join(study_dir, pid, "survey_timings", survey_id)
+        
+        try:
+            filepaths = os.listdir(survey_dir)
+        except FileNotFoundError:
+            continue
+        
+        # For each survey
+        for fp in filepaths:
+            print(fp)
+            try:
+                f = pd.read_csv(os.path.join(survey_dir, fp))
+            except:
+                pass
+            
+            # Check whether participant uses iOS
+            if 'event' in f.columns: # iOS: last columnname == 'event'
+            # Note: this assumes that all files have headers (check!)
+            ### Logic for iPhones ###
+                
+                # Here you could have a loop over pd.unique(f['survey id']) to do it in
+                # one iteration for all surveys -->
+                #for sid in survey_ids:
+                # Note to Nellie: might be useful to have it iterate over surveys and store timings for each survey
+           
+                # select relevant rows and columns
+                f = f.loc[(f['survey id'] == survey_id) & # only this survey 
+                   ((f['event'] == 'present') | # only present / submit events
+                    (f['event'] == 'submitted')), 
+                  ['timestamp', 'UTC time','survey id', 'event']]
+                
+                # Extract time indicators
+                # We assume participants enter only 1 survey per hour
+                f['UTC time'] = f['UTC time'].astype('datetime64[ns]')
+                f['date_hour'] = f['UTC time'].dt.strftime('%Y_%m_%d_%H')
+    
+                #sort by UTC_time
+                f = f.sort_values(by='date_hour',ascending=True)
+                
+                f = f.drop_duplicates(subset=['date_hour', 'event'], keep='first')
+    
+                f = f.pivot(columns = 'event', values = 'UTC time', index = 'date_hour').reset_index()
+                
+                for timestamp in pd.unique(f['date_hour']):
+                    try:                
+                        present = f.loc[f['date_hour'] == timestamp, 'present'][0]
+                    except KeyError:
+                        present = None
+                        
+                    try:                
+                        submitted = f.loc[f['date_hour'] == timestamp, 'submitted'][0]
+                    except KeyError:
+                        submitted = None
+                   
+                    record = np.vstack([record, 
+                                        [pid,'iOs', timestamp,
+                                         present, submitted]])
+            else:
+                #LOGIC FOR ANDROID USERS
+                f = f.loc[(f['survey id'] == survey_id) & # only this survey 
+                   ((f['question id'] == "Survey first rendered and displayed to user") | # only present / submit events
+                    (f['question id'] == 'User hit submit')), 
+                  ['timestamp', 'UTC time','question id']]
+                
+                # Extract time indicators
+                # We assume participants enter only 1 survey per hour
+                f['UTC time'] = f['UTC time'].astype('datetime64[ns]')
+                f['date_hour'] = f['UTC time'].dt.strftime('%Y_%m_%d_%H')
+                
+                f = f.sort_values(by='date_hour',ascending=True)
+                
+                # Looks like if Androids have double events, you should take the   last
+                f = f.drop_duplicates(subset=['date_hour', 'question id'], keep='last')
+        
+                f = f.pivot(columns = 'question id', values = 'UTC time', index = 'date_hour').rename(columns = {'Survey first rendered and displayed to user':'present', 'User hit submit':'submitted'}).reset_index()
+                
+                for timestamp in pd.unique(f['date_hour']):
+                    try:                
+                        present = f['present'][0]
+                    except KeyError:
+                        present = None
+                        
+                    try:                
+                        submitted = f['submitted'][0]
+                    except KeyError:
+                        submitted = None
+                   
+                    record = np.vstack([record,
+                                        [pid,'Android', timestamp,
+                                         present, submitted]])
+                    
+    svtm = pd.DataFrame(record[1:,:],
+                    columns = record[0])
+
+    # Fix surveys that were completed over more than an hour
+    svtm['day'] = pd.to_datetime(svtm['date_hour'].astype('str'), format='%Y_%m_%d_%H').dt.strftime('%Y-%m-%d')
+    
+    svtm = svtm.groupby(['beiwe_id', 'day', 'phone_os']).agg(
+        {
+         'start_time':min,    # Sum duration per group
+          'end_time':max
+         }).reset_index()
+    
+    svtm['duration'] = svtm['end_time'] - svtm['start_time']
+    svtm['duration_in_sec'] = svtm['duration'].dt.seconds
+
+    return svtm
