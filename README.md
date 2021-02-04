@@ -27,7 +27,10 @@ To install, clone this repository to a local directory and then:
 ```
 pip install path/to/forest
 ```
-Alternatively, [install directly from github](https://pip.pypa.io/en/stable/reference/pip_install/#git) with `pip`.
+Alternatively, [install directly from github](https://pip.pypa.io/en/stable/reference/pip_install/#git) with `pip`. As long as the repo is private, it may prompt you to login.
+```
+pip install git+https://github.com/onnela-lab/forest
+```
 
 Currently, all imports from `forest` must be explicit.  For example:
 ```
