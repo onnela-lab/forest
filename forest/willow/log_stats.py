@@ -140,7 +140,7 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
             print("Error in reading data.")
             logging.error()
             raise e
-            break
+            continue
         ## stamps from call and text should be the stamp_end
         stamp_start = min(text_stamp_start,call_stamp_start)
         stamp_end = max(text_stamp_end, call_stamp_end)
@@ -153,7 +153,7 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
                 print("Error in summarizing hourly statistics.")
                 logging.error()
                 raise e
-                break
+                continue
 
             try:
                 stats_pdframe2 = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str, "daily")
@@ -161,7 +161,7 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
                 print("Error in summarizing daily statistics.")
                 logging.error()
                 raise e
-                break
+                continue
 
             try:
                 write_all_summaries(ID, stats_pdframe1, output_folder + "/hourly")
@@ -177,7 +177,7 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
                 print("Error in summarizing statistics.")
                 logging.error()
                 raise e
-                break
+                continue
             try:
                 write_all_summaries(ID, stats_pdframe, output_folder)
             except Exception as e:
