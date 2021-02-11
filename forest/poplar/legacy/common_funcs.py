@@ -96,7 +96,7 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
         elif not os.path.exists(folder_path):
             logger.warning('User '+ str(ID) + ' : ' + str(datastream) + ' data are not collected.')
         else:
-            filenames = np.array(os.listdir(folder_path))
+            filenames = np.sort(np.array(os.listdir(folder_path)))
             ## create a list to convert all filenames to UNIX time
             filestamps = np.array([filename2stamp(filename) for filename in filenames])
             ## find the timestamp in the identifier (when the user was enrolled)
