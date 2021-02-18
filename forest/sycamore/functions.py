@@ -135,6 +135,9 @@ def aggregate_survey_timings(path):
     all_data['instance_id'] = np.cumsum(all_data['beg_flg'])
     
     # Once instance_id is created, we can remove start and end times to separate dataframes
+    # Create a copy that has everthing
+    control_set = all_data.copy()
+    
     survey_begins = all_data.loc[all_data.beg_flg == 1, ]
     all_data = all_data.loc[all_data.beg_flg != 1]
 
@@ -157,8 +160,7 @@ def aggregate_survey_timings(path):
     del all_data['beg_flg']
     del all_data['event']
 
-    return all_data, survey_begins, survey_submits, survey_notifications, survey_question_times
-
+    return control_set, all_data, survey_begins, survey_submits, survey_notifications, survey_question_times
 
 
 def parse_timings(survey, survey_id):
