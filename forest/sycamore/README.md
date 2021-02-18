@@ -1,6 +1,6 @@
 ### Authors: Nellie Ponarul, Anna Beukenhorst  
 
-### Last Update Date: 3 February 2021  
+### Last Update Date: 17 February 2021  
 
 ### Executive Summary: 
 Use `sycamore` to process and analyze Beiwe survey data.
@@ -17,12 +17,22 @@ Download raw data from your Beiwe server and use this package to process the dat
 Methods are designed for use on the `survey_timings` data from the Beiwe app.
 
 ___
-## Functions
-1.  [`syc.aggregate_survey_timings`](#agg)  
-2.  [`syc.get_survey_timings`](#get)
+## Functions  
+1.  [`syc.parse_timings`](#config)
+2.  [`syc.aggregate_survey_timings`](#agg)  
+3.  [`syc.get_survey_timings`](#get)
 
 ___
-## 1. `syc.aggregate_survey_timings` <a name="agg"/>
+## 1. `syc.parse_timings` <a name = "config"/>  
+Takes the path to the study configuration file and outputs a table summarizing the questions and scheduled timings of each survey.  
+
+*Example*  
+```
+config_path = path/to/config file
+surveys_info = syc.parse_timings(config_path)
+```
+___
+## 2. `syc.aggregate_survey_timings` <a name="agg"/>
 Takes a path to raw data and returns aggregated `survey_timings` data in separate tabular datasets. This is useful for processing data for use in another platform like Tableau:  
 
 1. **Questions dataset**: Contains the questions and answers for all survey instances (an instance is single survey completion by a user for a survey) in a study.
@@ -38,7 +48,7 @@ questions, starts, submits, notif, q_times = syc.aggregate_survey_timings(path)
 ```
   
 ___
-## 2. `syc.get_survey_timings` <a name="get"/>  
+## 3. `syc.get_survey_timings` <a name="get"/>  
 Extracts the beginning and submission times for each survey instance in a given study and survey (using the survey ID), using the `survey_timings` data.  
 
 *Example*  
