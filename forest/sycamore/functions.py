@@ -5,6 +5,7 @@ import glob
 import json
 import numpy as np
 from typing import List
+import datetime
 
 # Explore use of logging function (TO DO: Read wiki)
 logger = logging.getLogger(__name__)
@@ -159,6 +160,74 @@ def aggregate_survey_timings(path):
     return all_data, survey_begins, survey_submits, survey_notifications, survey_question_times
 
 
+def parse_timings(survey, survey_id):
+    '''
+    Args:
+        survey (dict): 
+            a survey dictionary from configuration file
+        survey_id (int):
+            a provided survey id, since the configuration file has no survey file
+            
+    Returns:
+        A dataframe with a survey id, question_id, and weekly timings
+    '''
+    if 'timings' in survey.keys():
+        # there are 7 elements 
+        times = survey['timings']
+        times_row = []
+        # Loop through all days
+        for i,t in enumerate(times):
+            time_val = {}
+            time_val['timings_day'] = 'timings_day_' + str(i)
+            # If there is a timing for that day
+            if len(t) > 0:
+                # Convert seconds to datetime
+                time_val['time'] = str(datetime.timedelta(seconds = t[0])) 
+            else:
+                time_val['time'] = float('NaN')
+            times_row.append(time_val)
+        output = pd.DataFrame(times_row)
+        output['id'] = survey_id
+       ## Add in absolute timings and relative timings        
+    return output.pivot(columns = 'timings_day', values = 'time', index = 'id').reset_index()
+
+def parse_surveys(config_file):
+    '''
+    Args:
+        config_file(str):
+            path to the study configuration file
+    
+    Returns:
+        A dataframe with all surveys, question ids, question texts, question types and the expected timings of the survey
+    '''
+    # Read in configuration file
+    with open(config_file) as f:
+        data = json.load(f)
+    surveys = data['surveys']
+    
+    # Create an array for surveys and one for timings
+    output = []
+    timings_arr = []
+    for i,s in enumerate(surveys):
+        # Pull out questions
+        content = s['content']
+        # Pull out timings
+        timings = parse_timings(s, i)
+        for q in s['content']:
+            surv = {}
+            surv['id'] = i
+            surv['question_id'] = q['question_id']
+            surv['question_text'] = q['question_text']
+            surv['question_type'] = q['question_type']
+            if 'text_field_type' in q.keys():
+                surv['text_field_type'] = q['text_field_type']
+            # Convert surv to data frame
+            surv = pd.DataFrame([surv]).merge(timings, left_on = 'id', right_on = 'id')
+            output.append(surv)
+    
+    return pd.concat(output)
+
+
 
 def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
     """
@@ -172,9 +241,6 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
     study_dir : raw data directory containing directories for each beiwe_id.
     survey_id : back_end id for survey (and name of folder within
     study_dir/beiwe_id/survey_timings).
-    
-    
-
 
 
     Returns
@@ -206,7 +272,7 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
         
         # For each survey
         for fp in filepaths:
-            print(fp)
+#             print(fp)
             try:
                 f = pd.read_csv(os.path.join(survey_dir, fp))
             except:
