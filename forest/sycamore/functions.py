@@ -7,6 +7,7 @@ import numpy as np
 from typing import List
 import datetime
 import pytz
+import math
 
 # import sys
 # # add path to poplar dir
@@ -126,16 +127,7 @@ def aggregate_surveys(path):
     del all_data['question id lag']
     # OUTPUT AGGREGATE
     return all_data
-
-def check_survey_times(agg_data, config, tz_str= 'America/New_York'):
-    local_tz = pytz.timezone(tz_str)
-    agg_data['UTC time'] = agg_data['UTC time'].astimezone(timezone(tz_str))
-#     agg_data['study_time'] = datetime2stamp(agg_data['timestamp'].astype('int'), tz_str )
-#     agg_data['study_time'] = stamp2datetime(agg_data['study_time'], tz_str)
-    return agg_data
     
-
-
 
 def parse_timings(survey, survey_id):
     '''
@@ -164,9 +156,9 @@ def parse_timings(survey, survey_id):
                 time_val['time'] = float('NaN')
             times_row.append(time_val)
         output = pd.DataFrame(times_row)
-        output['id'] = survey_id
+        output['config_id'] = survey_id
        ## Add in absolute timings and relative timings        
-    return output.pivot(columns = 'timings_day', values = 'time', index = 'id').reset_index()
+    return output.pivot(columns = 'timings_day', values = 'time', index = 'config_id').reset_index()
 
 def parse_surveys(config_file):
     '''
@@ -192,25 +184,77 @@ def parse_surveys(config_file):
         timings = parse_timings(s, i)
         for q in s['content']:
             surv = {}
-            surv['id'] = i
+            surv['config_id'] = i
             surv['question_id'] = q['question_id']
             surv['question_text'] = q['question_text']
             surv['question_type'] = q['question_type']
             if 'text_field_type' in q.keys():
                 surv['text_field_type'] = q['text_field_type']
             # Convert surv to data frame
-            surv = pd.DataFrame([surv]).merge(timings, left_on = 'id', right_on = 'id')
-#             surv['question_index'] = 1
-#             surv['question_index'] = surv['question_index'].cumsum()
-#             surv['question_index'] = np.cumsum(surv['question_index'])
-#             print(np.cumsum(surv['question_index']))
+            surv = pd.DataFrame([surv]).merge(timings, left_on = 'config_id', right_on = 'config_id')
             output.append(surv)
-    output = pd.concat(output)
-#     output['question_index'] = output.groupby('id')['question_index'].cumsum()
-    
+    output = pd.concat(output)    
     return output
 
+def aggregate_surveys_config(path, config_file):
+    config_surveys = parse_surveys(config_file)
+    agg_data = aggregate_surveys(path)
+    
+    df_merged = agg_data.merge(config_surveys, how = 'left', left_on = 'question id', right_on = 'question_id').drop(['question_id', 'question_text', 'question_type'], axis = 1)
+    df_merged['config_id_update'] = df_merged['config_id'].fillna(method = 'ffill')
+    df_merged['config_id'] = df_merged.apply(lambda row: row['config_id_update'] if row['event'] in ['User hit submit', 'submitted'] else row['config_id'], axis = 1 )
+    
+    del df_merged['config_id_update']
+    
+    return df_merged 
 
+
+def check_time(submit_time, notice_time, tz_str):
+    '''
+    Function that takes submit_time (datetime) and notice_time(datetime) and measures timelapse between the two. 
+    '''
+    pass
+
+
+def convert_time(submit_time, dow, day, time):
+    '''
+    Function that takes a submission time and the given day of week and returns the date of a requested day.
+    https://stackoverflow.com/questions/17277002/how-to-get-all-datetime-instances-of-the-current-week-given-a-day
+    '''
+    days = [submit_time + datetime.timedelta(days=i) for i in range(0 - dow, 7 - dow)]
+    
+    time = time.split(':')
+    time = [int(t) for t in time]
+    
+    # Get rid of timing
+#     https://stackoverflow.com/questions/26882499/reset-time-part-of-a-pandas-timestamp
+    days = [d - pd.offsets.Micro(0) for d in days]
+    days = [d.replace(hour = time[0], minute = time[1], second = time[2], microsecond = 0) for d in days]
+    
+    return days[day]
+    
+    
+
+def convert_timings(df_merged):
+    # To do - Add functionality that looks at the day of week of the submission, and replaces "timings" times with the full UTC date
+    timings_cols = ['timings_day_'+str(i) for i in range(7)]
+    
+    for i, t_col in enumerate(timings_cols):
+        df_merged[t_col] = df_merged.apply(lambda row: row[t_col] if isinstance(row[t_col], float) else convert_time(row['UTC time'], row['DOW'],i, row[t_col]), axis = 1)
+    return df_merged
+
+
+def summarize_submissions(path, config_file):
+    df_merged = aggregate_surveys_config(path, config_file)
+    
+    # To do - Add functionality that looks at the day of week of the submission, and replaces "timings" times with the full UTC date
+    
+    # Keep only submit lines
+    df_merged_submits = df_merged.loc[df_merged.event.isin(['User hit submit', 'submitted'])]
+    
+    # Create summary
+    return df_merged_submits.groupby(['config_id', 'user_id']).size().reset_index(name='counts')
+    
 
 def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
     """
