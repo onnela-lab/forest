@@ -32,8 +32,6 @@ def read_json(path):
         dictionary = json.load(f)
     return(dictionary)
 
-
-
 # load events & question types dictionary
 # From Josh's legacy script
 this_dir = os.path.dirname(__file__)
@@ -41,6 +39,10 @@ events = read_json(os.path.join(this_dir, 'events.json'))
 question_type_names = read_json(os.path.join(this_dir, 'question_type_names.json'))
 
 def make_lookup():
+    '''
+    From legacy script
+    Reformats the question types JSON to be usable in future functions
+    '''
     lookup = {'iOS':{}, 'Android':{}}
     for k in question_type_names:    
         for opsys in ['iOS', 'Android']:
@@ -75,8 +77,22 @@ def q_types_standardize(q, lkp = question_types_lookup):
 
 
 
-def read_and_aggregate(path, user, data_stream):
-    st_path = os.path.join(path, user, data_stream)
+def read_and_aggregate(path, beiwe_id, data_stream):
+    '''
+    Reads in all downloaded data for a particular user and data stream and stacks the datasets
+
+    Args:
+        path (str):
+            path to downloaded data. This is a folder that includes the user data in a subfolder with the beiwe_id as the subfolder name
+        beiwe_id (str):
+            ID of user to aggregate data
+        data_stream (str):
+            Data stream to aggregate. Must be a datastream name as downloaded from the server (TODO: ADD A CHECK)
+
+    Returns:
+        survey_data (DataFrame): dataframe with stacked data, a field for the beiwe ID, a field for the day of week.
+    '''
+    st_path = os.path.join(path, beiwe_id, data_stream)
     if os.path.isdir(st_path):
         # get all survey timings files
         all_files = glob.glob(os.path.join(st_path, '*/*.csv'))
@@ -85,7 +101,7 @@ def read_and_aggregate(path, user, data_stream):
         #Read in all files
         survey_data = [pd.read_csv(file) for file in all_files]
         survey_data = pd.concat(survey_data, axis = 0, ignore_index = False)
-        survey_data['user_id'] = user
+        survey_data['user_id'] = beiwe_id
         survey_data['UTC time'] = survey_data['UTC time'].astype('datetime64[ns]')
         survey_data['DOW'] = survey_data['UTC time'].dt.dayofweek
         return survey_data
@@ -95,9 +111,18 @@ def read_and_aggregate(path, user, data_stream):
         
         
 def aggregate_surveys(path):
-    # get a list of users (ignoring hidden files and registry file downloaded when using mano)
+    '''
+    Reads all survey data from a downloaded study folder and stacks data together. Standardizes question types between iOS and Android devices and 
     
+    Args:
+        path(str):
+            path to downloaded data. This is a folder that includes the user data in a subfolder with the beiwe_id as the subfolder name 
+    
+    Returns:
+        all_data(DataFrame): An aggregated dataframe that has a question index field to understand if there are multiple lines for one question.
+    '''
     # READ AND AGGREGATE DATA
+    # get a list of users (ignoring hidden files and registry file downloaded when using mano)
     users = [u for u in os.listdir(path) if not u.startswith('.') and u != 'registry']
     
     if len(users) == 0:
@@ -139,12 +164,15 @@ def parse_timings(survey, survey_id):
             
     Returns:
         A dataframe with a survey id, question_id, and weekly timings
+        
+    ASSUMPTIONS: Assumes one time per day - will need to test this on a survey that has multiple surveys. if there are multiple times, will only consider the first one.
     '''
     if 'timings' in survey.keys():
         # there are 7 elements 
         times = survey['timings']
         times_row = []
-        # Loop through all days
+        # Loop through all days (roll forward 1)
+        times = list(np.roll(np.array(times, dtype = "object"), -1))
         for i,t in enumerate(times):
             time_val = {}
             time_val['timings_day'] = 'timings_day_' + str(i)
@@ -170,8 +198,10 @@ def parse_surveys(config_file):
         A dataframe with all surveys, question ids, question texts, question types and the expected timings of the survey
     '''
     # Read in configuration file
-    with open(config_file) as f:
-        data = json.load(f)
+#     with open(config_file) as f:
+#         data = json.load(f)
+    
+    data = read_json(config_file)
     surveys = data['surveys']
     
     # Create an array for surveys and one for timings
@@ -196,24 +226,25 @@ def parse_surveys(config_file):
     output = pd.concat(output)    
     return output
 
-def aggregate_surveys_config(path, config_file):
-    config_surveys = parse_surveys(config_file)
-    agg_data = aggregate_surveys(path)
-    
-    df_merged = agg_data.merge(config_surveys, how = 'left', left_on = 'question id', right_on = 'question_id').drop(['question_id', 'question_text', 'question_type'], axis = 1)
-    df_merged['config_id_update'] = df_merged['config_id'].fillna(method = 'ffill')
-    df_merged['config_id'] = df_merged.apply(lambda row: row['config_id_update'] if row['event'] in ['User hit submit', 'submitted'] else row['config_id'], axis = 1 )
-    
-    del df_merged['config_id_update']
-    
-    return df_merged 
 
-
-def check_time(submit_time, notice_time, tz_str):
+def time_diff(submit_time, notice_time, tz_str):
     '''
-    Function that takes submit_time (datetime) and notice_time(datetime) and measures timelapse between the two. 
+    Function that measures the time lapse between two dates. Assumes the submit_time is in UTC time and that the notice_time is in a provided study timezone.
+    
+    Args:
+        submit_time(datetime64[ns]):
+            Time on survey record. Assumed to be in UTC time.
+        notice_time(datetime64[ns]):
+            Time survey was scheduled for. Assumed to be in the given timezone
+        tz_str(str):
+            Given timezone of the study, will be used for the notice_time
+        
+    Returns:
+        Difference in time between submit_time and notice_time
     '''
-    pass
+    submit_time_local = pytz.utc.localize(submit_time, is_dst=None).astimezone(pytz.UTC)
+    notice_time = pytz.utc.localize(notice_time, is_dst=None).astimezone(tz_str)
+    return submit_time_local.astimezone(tz_str)- notice_time
 
 
 def convert_time(submit_time, dow, day, time):
@@ -232,29 +263,69 @@ def convert_time(submit_time, dow, day, time):
     days = [d.replace(hour = time[0], minute = time[1], second = time[2], microsecond = 0) for d in days]
     
     return days[day]
-    
-    
 
-def convert_timings(df_merged):
-    # To do - Add functionality that looks at the day of week of the submission, and replaces "timings" times with the full UTC date
+
+def add_time_diff(df_merged, study_tz):
+    '''
+    Function that merges the aggregated survey data for a certain study with the configuration file information and calculates the difference in notification and time and survey log time.
+    
+    Args:
+        
+    '''
     timings_cols = ['timings_day_'+str(i) for i in range(7)]
     
     for i, t_col in enumerate(timings_cols):
         df_merged[t_col] = df_merged.apply(lambda row: row[t_col] if isinstance(row[t_col], float) else convert_time(row['UTC time'], row['DOW'],i, row[t_col]), axis = 1)
+        
+    # Get a difference field
+    for i, t_col in enumerate(timings_cols):
+        df_merged[t_col + '_diff'] = df_merged.apply(lambda row: row[t_col] if isinstance(row[t_col], float) else time_diff(row['UTC time'], row[t_col], tz_str = study_tz), axis = 1)
+    
     return df_merged
 
 
-def summarize_submissions(path, config_file):
-    df_merged = aggregate_surveys_config(path, config_file)
+def aggregate_surveys_config(path, config_file, calc_time_diff = False, study_tz= None):
+    '''
+    Merges stacked survey data with processed configuration file data and removes lines that are not questions or submission lines
     
-    # To do - Add functionality that looks at the day of week of the submission, and replaces "timings" times with the full UTC date
+    Args:
+        path (str): 
+            path to downloaded data. This is a folder that includes the user data in a subfolder with the beiwe_id as the subfolder name 
+        config_file(str):
+            path to the study configuration file
+        calc_time_diff(bool):
+            If this is true, will calculate fields that have the time difference between the survey line and the expected delivery date for each day.
+        study_tz(str):
+            If calc_time_diff is true, will need the study timezone to calculate the difference
+            
+    Returns:
+        df_merged(DataFrame): Merged data frame 
+    '''
+    config_surveys = parse_surveys(config_file)
+    agg_data = aggregate_surveys(path)
     
-    # Keep only submit lines
-    df_merged_submits = df_merged.loc[df_merged.event.isin(['User hit submit', 'submitted'])]
+    df_merged = agg_data.merge(config_surveys[['config_id', 'question_id']], how = 'left', left_on = 'question id', right_on = 'question_id').drop(['question_id'], axis = 1)
+    df_merged['config_id_update'] = df_merged['config_id'].fillna(method = 'ffill')
+    df_merged['config_id'] = df_merged.apply(lambda row: row['config_id_update'] if row['event'] in ['User hit submit', 'submitted'] else row['config_id'], axis = 1 )
     
-    # Create summary
-    return df_merged_submits.groupby(['config_id', 'user_id']).size().reset_index(name='counts')
+    del df_merged['config_id_update']
     
+    timings_cols = ['config_id'] + ['timings_day_'+str(i) for i in range(7)]
+    # Get unique timings for each survey
+    timings_u = config_surveys[timings_cols].drop_duplicates()
+    df_merged = df_merged.merge(timings_u,how = 'left', left_on = 'config_id', right_on = 'config_id' )
+    
+    # Remove notification and expiration lines
+    df_merged = df_merged.loc[(~df_merged['question id'].isnull()) & (~df_merged['config_id'].isnull())]
+    
+    if calc_time_diff:
+        try:
+            df_merged = add_time_diff(df_merged, study_tz)
+        except ValueError:
+            print('No study timezone inputted')
+    
+    return df_merged
+
 
 def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
     """
