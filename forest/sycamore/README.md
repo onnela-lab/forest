@@ -1,6 +1,6 @@
 ### Authors: Nellie Ponarul, Anna Beukenhorst  
 
-### Last Update Date: 17 February 2021  
+### Last Update Date: 24 February 2021  
 
 ### Executive Summary: 
 Use `sycamore` to process and analyze Beiwe survey data.
@@ -19,7 +19,7 @@ Methods are designed for use on the `survey_timings` data from the Beiwe app.
 ___
 ## Functions  
 1.  [`syc.parse_timings`](#config)
-2.  [`syc.aggregate_survey_timings`](#agg)  
+2.  [`syc.aggregate_surveys_config`](#agg)  
 3.  [`syc.get_survey_timings`](#get)
 
 ___
@@ -32,19 +32,18 @@ config_path = path/to/config file
 surveys_info = syc.parse_timings(config_path)
 ```
 ___
-## 2. `syc.aggregate_survey_timings` <a name="agg"/>
-Takes a path to raw data and returns aggregated `survey_timings` data in separate tabular datasets. This is useful for processing data for use in another platform like Tableau:  
-
-1. **Questions dataset**: Contains the questions and answers for all survey instances (an instance is single survey completion by a user for a survey) in a study.
-2. **Starts dataset**: Contains all of the survey start times for all instances
-3. **Submits dataset**: Contains all of the survey end times for all instances
-4. **Survey notifications** (iOS): Contains all of the survey notifications data for all instances, like the time the user is notified a survey has been delievered, and if the user did not take the survey, the time the notification expired. Note, this data is only collected for iOS users.
-5. **Survey question times** (iOS): Contains all metadata on when a question is presented to a user and unpresented to a user across all survey instances. Note, this data is only collected for iOS users.  
+## 2. `syc.aggregate_surveys_config` <a name="agg"/>
+Takes a path to raw data and returns aggregated `survey_timings` data with timings information from the study configuration file in a tabular format. This is useful for analysis in Tableau or other formats. Has the option to add fields that will calculate the time lapse between the expectation survey notification and line in the survey data. If this option is used, the study timzone must also be supplied through the `study_tz` argument.  
 
 *Example*  
 ```
 path = 'path/to/data'  
-questions, starts, submits, notif, q_times = syc.aggregate_survey_timings(path)
+config_path = 'path/to/study_config_file'
+study_tz = 'America/New_York'
+# Without time lapse fields
+survey_data = syc.aggregate_surveys_config(path, config)
+# With time lapse fields
+survey_data = syc.aggregate_surveys_config(path, config, calc_time_diff = True, study_tz = study_tz)
 ```
   
 ___
