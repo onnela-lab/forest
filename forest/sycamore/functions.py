@@ -151,7 +151,7 @@ def aggregate_surveys(path):
     
     del all_data['question id lag']
     # OUTPUT AGGREGATE
-    return all_data
+    return all_data.reset_index()
     
 
 def parse_timings(survey, survey_id):
@@ -172,6 +172,7 @@ def parse_timings(survey, survey_id):
         times = survey['timings']
         times_row = []
         # Loop through all days (roll forward 1)
+        # So that monday is 0 and sunday is 6 (matches pandas datetime structure)
         times = list(np.roll(np.array(times, dtype = "object"), -1))
         for i,t in enumerate(times):
             time_val = {}
@@ -213,45 +214,36 @@ def parse_surveys(config_file):
         # Pull out timings
         timings = parse_timings(s, i)
         for q in s['content']:
-            surv = {}
-            surv['config_id'] = i
-            surv['question_id'] = q['question_id']
-            surv['question_text'] = q['question_text']
-            surv['question_type'] = q['question_type']
-            if 'text_field_type' in q.keys():
-                surv['text_field_type'] = q['text_field_type']
-            # Convert surv to data frame
-            surv = pd.DataFrame([surv]).merge(timings, left_on = 'config_id', right_on = 'config_id')
-            output.append(surv)
-    output = pd.concat(output)    
+            if 'question_id' in q.keys():
+                surv = {}
+                surv['config_id'] = i
+                surv['question_id'] = q['question_id']
+                surv['question_text'] = q['question_text']
+                surv['question_type'] = q['question_type']
+                if 'text_field_type' in q.keys():
+                    surv['text_field_type'] = q['text_field_type']
+                # Convert surv to data frame
+                surv = pd.DataFrame([surv]).merge(timings, left_on = 'config_id', right_on = 'config_id')
+                output.append(surv)
+    output = pd.concat(output).reset_index()    
     return output
 
 
-def time_diff(submit_time, notice_time, tz_str):
+def convert_timezone(utc_date, tz_str):
     '''
-    Function that measures the time lapse between two dates. Assumes the submit_time is in UTC time and that the notice_time is in a provided study timezone.
-    
-    Args:
-        submit_time(datetime64[ns]):
-            Time on survey record. Assumed to be in UTC time.
-        notice_time(datetime64[ns]):
-            Time survey was scheduled for. Assumed to be in the given timezone
-        tz_str(str):
-            Given timezone of the study, will be used for the notice_time
-        
-    Returns:
-        Difference in time between submit_time and notice_time
-    '''
-    submit_time_local = pytz.utc.localize(submit_time, is_dst=None).astimezone(pytz.UTC)
-    notice_time = pytz.utc.localize(notice_time, is_dst=None).astimezone(tz_str)
-    return submit_time_local.astimezone(tz_str)- notice_time
+    Converts a date from UTC time to the given timezone
+    '''  
+#     utc_conv = pytz.utc.localize(utc_date, is_dst=None).astimezone(pytz.UTC)
+    date_local = pytz.utc.localize(utc_date, is_dst=None).astimezone(tz_str)
+    return date_local
 
 
-def convert_time(submit_time, dow, day, time):
+def convert_time_to_date(submit_time, dow, day, time):
     '''
     Function that takes a submission time and the given day of week and returns the date of a requested day.
     https://stackoverflow.com/questions/17277002/how-to-get-all-datetime-instances-of-the-current-week-given-a-day
-    '''
+    ''' 
+    day = day % 7
     days = [submit_time + datetime.timedelta(days=i) for i in range(0 - dow, 7 - dow)]
     
     time = time.split(':')
@@ -262,29 +254,23 @@ def convert_time(submit_time, dow, day, time):
     days = [d - pd.offsets.Micro(0) for d in days]
     days = [d.replace(hour = time[0], minute = time[1], second = time[2], microsecond = 0) for d in days]
     
-    return days[day]
+    return days[day]  
 
 
-def add_time_diff(df_merged, study_tz):
+def convert_timezone_df(df_merged, tz_str = None, utc_col = 'UTC time'):
     '''
-    Function that merges the aggregated survey data for a certain study with the configuration file information and calculates the difference in notification and time and survey log time.
-    
-    Args:
-        
-    '''
-    timings_cols = ['timings_day_'+str(i) for i in range(7)]
-    
-    for i, t_col in enumerate(timings_cols):
-        df_merged[t_col] = df_merged.apply(lambda row: row[t_col] if isinstance(row[t_col], float) else convert_time(row['UTC time'], row['DOW'],i, row[t_col]), axis = 1)
-        
-    # Get a difference field
-    for i, t_col in enumerate(timings_cols):
-        df_merged[t_col + '_diff'] = df_merged.apply(lambda row: row[t_col] if isinstance(row[t_col], float) else time_diff(row['UTC time'], row[t_col], tz_str = study_tz), axis = 1)
+    Converts the UTC time field in the survey_timings data to the given timezone
+    '''  
+    if tz_str is None:
+        tz_str = 'America/New_York'
+#     print(df_merged[utc_col])
+    df_merged['Local time'] = df_merged.apply(lambda row: convert_timezone(row[utc_col], tz_str), axis = 1)
     
     return df_merged
 
 
-def aggregate_surveys_config(path, config_file, calc_time_diff = False, study_tz= None):
+
+def aggregate_surveys_config(path, config_file, study_tz= None):
     '''
     Merges stacked survey data with processed configuration file data and removes lines that are not questions or submission lines
     
@@ -318,11 +304,16 @@ def aggregate_surveys_config(path, config_file, calc_time_diff = False, study_tz
     # Remove notification and expiration lines
     df_merged = df_merged.loc[(~df_merged['question id'].isnull()) & (~df_merged['config_id'].isnull())]
     
-    if calc_time_diff:
-        try:
-            df_merged = add_time_diff(df_merged, study_tz)
-        except ValueError:
-            print('No study timezone inputted')
+    # Convert to the study's timezone
+    df_merged = convert_timezone_df(df_merged)
+    
+    
+    
+#     if calc_time_diff:
+#         try:
+#             df_merged = add_time_diff(df_merged, study_tz)
+#         except ValueError:
+#             print('No study timezone inputted')
     
     return df_merged
 
