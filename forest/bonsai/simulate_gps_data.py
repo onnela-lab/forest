@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 from ..poplar.legacy.common_funcs import datetime2stamp,stamp2datetime
-from .data2mobmat import great_circle_dist
+from ..jasmine.data2mobmat import great_circle_dist
 
 b_start = [42.3696, -71.1131]
 home_g = [42.3678, -71.1138]
