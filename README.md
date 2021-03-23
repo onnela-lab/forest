@@ -38,6 +38,47 @@ from forest.jasmine.traj2stats import gps_stats_main
 from forest.poplar.functions.io import read_json
 ```
 
+To immediately test out forest, adapt the filepaths in the code below and run:
+```
+# Import forest
+import forest
+
+# 1. If you don't have any smartphone data (yet) you can generate fake data
+path_to_synthetic_gps_data = "ENTER/PATH1/HERE"
+path_to_synthetic_log_data = "ENTER/PATH2/HERE"
+path_to_gps_summary = "ENTER/PATH/TO/DESIRED/OUTPUT/FOLDER1/HERE"
+path_to_log_summary = "ENTER/PATH/TO/DESIRED/OUTPUT/FOLDER2/HERE"
+
+# Generate fake call and text logs 
+forest.bonsai.sim_log_data(path_to_synthetic_log_data)
+
+# Generate synthetic gps data and communication logs data as csv files
+# Define parameters for generating the data
+# To save smartphone battery power, we typically collect location data intermittently: e.g. during an on-cycle of 3 minutes, followed by an off-cycle of 12 minutes. We'll generate data in this way
+cycle = 15 # Length of off-cycle + length of on-cycle in minutes
+p = 0.8 # Length off-cycle / (length off-cycle + length on-cycle)
+forest.bonsai.sim_GPS_data(cycle, p, path_to_synthetic_log_data)
+
+# 2. Specify parameters for imputation 
+# See https://github.com/onnela-lab/forest/wiki/Jasmine-documentation#input for details
+tz_str = "America/New_York" # time zone where the study took place (assumes that all participants were always in this time zone)
+option = "daily" # Generate summary metrics "hourly", "daily" or "both"
+save_traj = False # Save imputed trajectories?
+time_start = None 
+time_end = None
+beiwe_id = None
+parameters = None
+all_memory_dict = None
+all_BV_set= None
+
+# 3. Impute location data and generate mobility summary metrics using the simulated data above
+gps_stats_main(path_to_synthetic_gps_data, path_to_gps_summary, tz_str, option, save_traj, time_start, time_end, beiwe_id, parameters, all_memory_dict, all_BV_set)
+
+# 4. Generate daily summary metrics for call/text logs
+log_stats_main(path_to_synthetic_log_data, path_to_log_summary, tz_str, option, time_start, time_end, beiwe_id)
+```
+
+
 ## For contributors
 
 ## References
