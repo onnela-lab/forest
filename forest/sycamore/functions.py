@@ -106,7 +106,7 @@ def read_and_aggregate(path, beiwe_id, data_stream):
         survey_data['DOW'] = survey_data['UTC time'].dt.dayofweek
         return survey_data
     else:
-        logging.warning('No survey_timings for user %s.' % user)
+        logging.warning('No survey_timings for user %s.' % beiwe_id)
         
         
         
@@ -151,7 +151,7 @@ def aggregate_surveys(path):
     
     del all_data['question id lag']
     # OUTPUT AGGREGATE
-    return all_data.reset_index()
+    return all_data.reset_index(drop = True)
     
 
 def parse_timings(survey, survey_id):
@@ -189,7 +189,7 @@ def parse_timings(survey, survey_id):
        ## Add in absolute timings and relative timings        
     return output.pivot(columns = 'timings_day', values = 'time', index = 'config_id').reset_index()
 
-def parse_surveys(config_file):
+def parse_surveys(config_file, answers_l = False):
     '''
     Args:
         config_file(str):
@@ -224,8 +224,14 @@ def parse_surveys(config_file):
                     surv['text_field_type'] = q['text_field_type']
                 # Convert surv to data frame
 #                 surv = pd.DataFrame([surv]).merge(timings, left_on = 'config_id', right_on = 'config_id')
+
+                if answers_l:
+                    if 'answers' in q.keys():
+                        for i, a in enumerate(q['answers']):
+                            surv['answer_'+str(i)] = a['text']
+                
                 output.append(pd.DataFrame([surv]))
-    output = pd.concat(output).reset_index()    
+    output = pd.concat(output).reset_index(drop = True)    
     return output
 
 
@@ -322,7 +328,7 @@ def aggregate_surveys_config(path, config_file, study_tz= None):
 #         except ValueError:
 #             print('No study timezone inputted')
     
-    return df_merged
+    return df_merged.reset_index(drop = True)
 
 
 def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
