@@ -212,7 +212,7 @@ def parse_surveys(config_file):
         # Pull out questions
         content = s['content']
         # Pull out timings
-        timings = parse_timings(s, i)
+#         timings = parse_timings(s, i)
         for q in s['content']:
             if 'question_id' in q.keys():
                 surv = {}
@@ -223,8 +223,8 @@ def parse_surveys(config_file):
                 if 'text_field_type' in q.keys():
                     surv['text_field_type'] = q['text_field_type']
                 # Convert surv to data frame
-                surv = pd.DataFrame([surv]).merge(timings, left_on = 'config_id', right_on = 'config_id')
-                output.append(surv)
+#                 surv = pd.DataFrame([surv]).merge(timings, left_on = 'config_id', right_on = 'config_id')
+                output.append(pd.DataFrame([surv]))
     output = pd.concat(output).reset_index()    
     return output
 
@@ -266,6 +266,10 @@ def convert_timezone_df(df_merged, tz_str = None, utc_col = 'UTC time'):
 #     print(df_merged[utc_col])
     df_merged['Local time'] = df_merged.apply(lambda row: convert_timezone(row[utc_col], tz_str), axis = 1)
     
+    # Remove timezone from datetime format
+    tz = pytz.timezone(tz_str)
+    df_merged['Local time'] = [t.replace(tzinfo=None) for t in df_merged['Local time']]
+    
     return df_merged
 
 
@@ -296,13 +300,16 @@ def aggregate_surveys_config(path, config_file, study_tz= None):
     
     del df_merged['config_id_update']
     
-    timings_cols = ['config_id'] + ['timings_day_'+str(i) for i in range(7)]
+    # Mark submission lines 
+    df_merged['submit_line'] = df_merged.apply(lambda row: 1 if row['event'] in ['User hit submit', 'submitted'] else 0, axis = 1 )
+    
+#     timings_cols = ['config_id'] + ['timings_day_'+str(i) for i in range(7)]
     # Get unique timings for each survey
-    timings_u = config_surveys[timings_cols].drop_duplicates()
-    df_merged = df_merged.merge(timings_u,how = 'left', left_on = 'config_id', right_on = 'config_id' )
+#     timings_u = config_surveys[timings_cols].drop_duplicates()
+#     df_merged = df_merged.merge(timings_u,how = 'left', left_on = 'config_id', right_on = 'config_id' )
     
     # Remove notification and expiration lines
-    df_merged = df_merged.loc[(~df_merged['question id'].isnull()) & (~df_merged['config_id'].isnull())]
+    df_merged = df_merged.loc[(~df_merged['question id'].isnull()) | (~df_merged['config_id'].isnull())]
     
     # Convert to the study's timezone
     df_merged = convert_timezone_df(df_merged)

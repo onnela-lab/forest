@@ -76,22 +76,57 @@ def generate_survey_times(time_start, time_end,timings = [], survey_type = 'week
 def gen_survey_schedule(config, time_start, time_end, beiwe_ids):
     # List of surveys
     surveys = functions.read_json(config)['surveys']
+#     print(surveys)
     # For each survey create a list of survey times
     times_sur = []
     for u_id in beiwe_ids:
         for i,s in enumerate(surveys):
-            s_times = generate_survey_times(time_start, time_end, timings = s['timings'])
-            tbl = pd.DataFrame(s_times, columns = ['delivery_time'])
-            tbl['id'] = i
-            tbl['beiwe_id'] = u_id
-            # Get all question IDs for the survey
-            qs = [q['question_id'] for q in s['content'] if 'question_id' in q.keys()]
-            if len(qs) > 0:
-                q_ids = pd.DataFrame({'question_id': qs})
-                tbl = pd.merge(tbl, q_ids, how = 'cross')
-            times_sur.append(tbl)
+            if s['timings'] != []:
+                s_times = generate_survey_times(time_start, time_end, timings = s['timings'])
+                # Add in relative and absolute survey timings here
+                ###
+                tbl = pd.DataFrame(s_times, columns = ['delivery_time'])
+                # Create the "next" time column too, which indicates the next time the survey will be deployed
+                tbl['next_delivery_time'] = tbl.delivery_time.shift(-1)
+                tbl['id'] = i
+                tbl['beiwe_id'] = u_id
+                # Get all question IDs for the survey
+                qs = [q['question_id'] for q in s['content'] if 'question_id' in q.keys()]
+                if len(qs) > 0:
+                    q_ids = pd.DataFrame({'question_id': qs})
+                    tbl = pd.merge(tbl, q_ids, how = 'cross')
+                times_sur.append(tbl)
     
     times_sur = pd.concat(times_sur).reset_index(drop = True)
     return times_sur
         
-        
+
+def survey_submits_main(config_path, path, time_start, time_end, beiwe_ids, study_tz = None):
+    # Generate aggregated survey data
+    agg = functions.aggregate_surveys_config(path, config_path, study_tz)
+    
+    # Generate scheduled surveys data
+    sched = gen_survey_schedule(config_path, time_start, time_end, beiwe_ids)
+    
+    # Merge survey submit lines onto the schedule data and identify submitted lines
+    submit_lines = pd.merge(
+        sched[['delivery_time', 'next_delivery_time', 'id', 'beiwe_id']].drop_duplicates(), 
+        agg[['Local time', 'config_id', 'survey id' ,'user_id']].loc[agg.submit_line == 1].drop_duplicates(), 
+        how = 'left', 
+        left_on = ['id', 'beiwe_id'], 
+        right_on = ['config_id', 'user_id'])
+    
+    submit_lines = submit_lines.loc[
+        (submit_lines['Local time'] >= submit_lines['delivery_time']) & 
+        (submit_lines['Local time'] < submit_lines['next_delivery_time'])]
+    
+    # Select appropriate columns and rename
+    submit_lines = submit_lines[['survey id', 'delivery_time', 'beiwe_id', 'Local time']]
+    
+    submit_lines = submit_lines.rename(columns = {'Local time':'submit_time'})
+    
+    return submit_lines
+    
+    
+    
+    
