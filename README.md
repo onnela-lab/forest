@@ -1,8 +1,6 @@
 # forest (Based on Python 3.6.0)
 
-For more detailed info on specific subpackages, see our Wiki.
-
-**Please note that Forest uses Python 3.6.**
+For more detailed info on specific subpackages, see our [Wiki](https://github.com/onnela-lab/forest/wiki). Please note that Forest uses Python 3.6.
 
 ## Description
 
@@ -81,15 +79,10 @@ log_stats_main(path_to_synthetic_log_data, path_to_log_summary, tz_str, option, 
 
 ## For contributors
 
-## References
+## More info
 
-Onnela lab:
-
-Beiwe platform for smartphone data collection:
-
-### Papers describing forest
-
-### Papers using forest
+[Beiwe platform for smartphone data collection](https://www.beiwe.org/)
+[Onnela lab](https://www.hsph.harvard.edu/onnela-lab/)
 
 ## Version 
-Forest 0.1
+Forest 1.0
