@@ -239,7 +239,6 @@ def convert_timezone(utc_date, tz_str):
     '''
     Converts a date from UTC time to the given timezone
     '''  
-#     utc_conv = pytz.utc.localize(utc_date, is_dst=None).astimezone(pytz.UTC)
     date_local = pytz.utc.localize(utc_date, is_dst=None).astimezone(tz_str)
     return date_local
 
@@ -269,7 +268,7 @@ def convert_timezone_df(df_merged, tz_str = None, utc_col = 'UTC time'):
     '''  
     if tz_str is None:
         tz_str = 'America/New_York'
-#     print(df_merged[utc_col])
+
     df_merged['Local time'] = df_merged.apply(lambda row: convert_timezone(row[utc_col], tz_str), axis = 1)
     
     # Remove timezone from datetime format
@@ -309,24 +308,11 @@ def aggregate_surveys_config(path, config_file, study_tz= None):
     # Mark submission lines 
     df_merged['submit_line'] = df_merged.apply(lambda row: 1 if row['event'] in ['User hit submit', 'submitted'] else 0, axis = 1 )
     
-#     timings_cols = ['config_id'] + ['timings_day_'+str(i) for i in range(7)]
-    # Get unique timings for each survey
-#     timings_u = config_surveys[timings_cols].drop_duplicates()
-#     df_merged = df_merged.merge(timings_u,how = 'left', left_on = 'config_id', right_on = 'config_id' )
-    
     # Remove notification and expiration lines
     df_merged = df_merged.loc[(~df_merged['question id'].isnull()) | (~df_merged['config_id'].isnull())]
     
     # Convert to the study's timezone
     df_merged = convert_timezone_df(df_merged)
-    
-    
-    
-#     if calc_time_diff:
-#         try:
-#             df_merged = add_time_diff(df_merged, study_tz)
-#         except ValueError:
-#             print('No study timezone inputted')
     
     return df_merged.reset_index(drop = True)
 
