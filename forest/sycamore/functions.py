@@ -137,6 +137,9 @@ def aggregate_surveys(path):
     all_data = pd.concat(all_data, axis = 0, ignore_index = False).drop_duplicates()        
 
     # FIX EVENT FIELDS    
+    # Ensure there is an 'event' field (They're won't be one if all users are Android)
+    if 'event' not in all_data.columns:
+        all_data['event'] = None
     # Move Android evens from the question id field to the event field
     all_data.event = all_data.apply(lambda row: row['question id'] if row['question id'] in ['Survey first rendered and displayed to user', 'User hit submit'] else row['event'], axis = 1)
     all_data['question id'] = all_data.apply(lambda row: np.nan if row['question id'] == row['event'] else row['question id'], axis = 1)
