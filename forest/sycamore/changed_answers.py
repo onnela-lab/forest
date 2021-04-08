@@ -14,13 +14,14 @@ def subset_answer_choices(answer):
     '''
     If a user changes their answers multiple times, an iOS device will have redundant answers at the beginning
     and end of the list, so we remove them.
-    '''
+    Args:
+        answer(list):
+            List of changed answers
     
-    # TODO: Subset out beginning NA
-#     if math.isnan(answer[0]):
-#         print(answer[0])
-#         answer = answer[1:]
-
+    Returns:
+        answer(list):
+            List of changed answers with redundant answers removed
+    '''
     if isinstance(answer[0], float):
         answer = answer[1:]
     
@@ -32,9 +33,23 @@ def subset_answer_choices(answer):
 
 
 #Function that takes aggregated data and adds list of changed answers and first and last times and answers
-def agg_changed_answers(path, config_file, study_tz= None):
+def agg_changed_answers(study_dir, config_path, study_tz= None):
+    '''
+    Args:
+        config_path(str):
+            File path to study configuration file
+        study_dir(str):
+            File path to study data
+        study_tz(str):
+            Timezone of study. This defaults to 'America/New_York'
     
-    agg = functions.aggregate_surveys_config(path, config_file, study_tz)
+    Returns:
+        agg(DataFrame):
+            Dataframe with aggregated data, one line per question answered, with changed answers aggregated into a list. 
+            The Final answer is in the 'last_answer' field
+    '''
+    
+    agg = functions.aggregate_surveys_config(study_dir, config_path, study_tz)
     
     cols = ['survey id', 'user_id','question id', 'question text', 'question type', 'question index']
     
@@ -63,9 +78,23 @@ def agg_changed_answers(path, config_file, study_tz= None):
 
 # Create a summary file that has survey, beiwe id, question id, average number of changed answers, average time spent answering question
 
-def agg_changed_answers_main(path, config_file, study_tz = None):
+def agg_changed_answers_summary(study_dir, config_path, study_tz = None):
+    '''
+    Args:
+        config_path(str):
+            File path to study configuration file
+        study_dir(str):
+            File path to study data
+        study_tz(str):
+            Timezone of study. This defaults to 'America/New_York'
     
-    detail = agg_changed_answers(path, config_file, study_tz)
+    Returns:
+        agg(DataFrame):
+            Dataframe with aggregated data, one line per question answered, with changed answers aggregated into a list. 
+            The Final answer is in the 'last_answer' field
+    '''
+    
+    detail = agg_changed_answers(study_dir, config_path, study_tz)
     
     summary_cols = ['survey id', 'user_id', 'question id', 'question text', 'question type']
     num_answers = detail.groupby(summary_cols)['num_answers'].count()

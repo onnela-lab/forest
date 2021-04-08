@@ -169,16 +169,26 @@ def survey_submits(config_path, study_dir, time_start, time_end, beiwe_ids, stud
         left_on = ['id', 'beiwe_id'], 
         right_on = ['config_id', 'user_id'])
     
-    submit_lines = submit_lines.loc[
-        (submit_lines['Local time'] >= submit_lines['delivery_time']) & 
-        (submit_lines['Local time'] < submit_lines['next_delivery_time'])]
+    # Get the submigged survey line
+    submit_lines['submit_flg'] = np.where(
+    (submit_lines['Local time'] >= submit_lines['delivery_time']) & 
+        (submit_lines['Local time'] < submit_lines['next_delivery_time']),
+        1,0
+    )
     
-    # Select appropriate columns and rename
-    submit_lines = submit_lines[['survey id', 'delivery_time', 'beiwe_id', 'Local time']]
+    # Take the maximum survey submit line
+    submit_lines2 = submit_lines.groupby(['delivery_time', 'next_delivery_time', 'survey id', 'beiwe_id', 'config_id'])['submit_flg'].max().reset_index()
     
-    submit_lines = submit_lines.rename(columns = {'Local time':'submit_time'})
+    # Merge on the times of the survey submission
+    merge_cols = ['delivery_time', 'next_delivery_time', 'survey id', 'beiwe_id', 'config_id', 'submit_flg']
+    submit_lines3 = pd.merge(submit_lines2, submit_lines[merge_cols + ['Local time']], how = 'left', left_on = merge_cols, right_on = merge_cols)
+
+    submit_lines3['submit_time'] = np.where(submit_lines3.submit_flg == 1, submit_lines3['Local time'], np.array(0, dtype='datetime64[ns]'))
     
-    return submit_lines
+#     # Select appropriate columns
+    submit_lines3 = submit_lines3[['survey id', 'delivery_time', 'beiwe_id', 'submit_flg', 'submit_time']]
+    
+    return submit_lines3.sort_values(['survey id', 'beiwe_id'])
     
     
     
