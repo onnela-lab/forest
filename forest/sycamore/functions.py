@@ -9,26 +9,21 @@ import datetime
 import pytz
 import math
 
-# import sys
-# # add path to poplar dir
-# sys.path.append('../')
-
-# from poplar.legacy.common_funcs import stamp2datetime, datetime2stamp
 
 # Explore use of logging function (TO DO: Read wiki)
 logger = logging.getLogger(__name__)
 
 
 # Modified from legacy beiwetools code
-def read_json(path):
+def read_json(study_dir):
     '''
     Read a json file into a dictionary.
     Args:
-        path (str):  Path to json file.
+        study_dir (str):  study_dir to json file.
     Returns:
         dictionary (dict) 
     '''
-    with open(path, 'r') as f:        
+    with open(study_dir, 'r') as f:        
         dictionary = json.load(f)
     return(dictionary)
 
@@ -50,9 +45,8 @@ def make_lookup():
             lookup[opsys][opsys_name] = k
     return(lookup)
 
+# Create a lookup to be used in question standardization
 question_types_lookup = make_lookup()
-
-
 
 
 def q_types_standardize(q, lkp = question_types_lookup):
@@ -75,14 +69,12 @@ def q_types_standardize(q, lkp = question_types_lookup):
     else:
         return q
 
-
-
-def read_and_aggregate(path, beiwe_id, data_stream):
+def read_and_aggregate(study_dir, beiwe_id, data_stream):
     '''
     Reads in all downloaded data for a particular user and data stream and stacks the datasets
 
     Args:
-        path (str):
+        study_dir (str):
             path to downloaded data. This is a folder that includes the user data in a subfolder with the beiwe_id as the subfolder name
         beiwe_id (str):
             ID of user to aggregate data
@@ -92,7 +84,7 @@ def read_and_aggregate(path, beiwe_id, data_stream):
     Returns:
         survey_data (DataFrame): dataframe with stacked data, a field for the beiwe ID, a field for the day of week.
     '''
-    st_path = os.path.join(path, beiwe_id, data_stream)
+    st_path = os.path.join(study_dir, beiwe_id, data_stream)
     if os.path.isdir(st_path):
         # get all survey timings files
         all_files = glob.glob(os.path.join(st_path, '*/*.csv'))
@@ -109,13 +101,12 @@ def read_and_aggregate(path, beiwe_id, data_stream):
         logging.warning('No survey_timings for user %s.' % beiwe_id)
         
         
-        
-def aggregate_surveys(path):
+def aggregate_surveys(study_dir):
     '''
     Reads all survey data from a downloaded study folder and stacks data together. Standardizes question types between iOS and Android devices and 
     
     Args:
-        path(str):
+        study_dir(str):
             path to downloaded data. This is a folder that includes the user data in a subfolder with the beiwe_id as the subfolder name 
     
     Returns:
@@ -123,7 +114,7 @@ def aggregate_surveys(path):
     '''
     # READ AND AGGREGATE DATA
     # get a list of users (ignoring hidden files and registry file downloaded when using mano)
-    users = [u for u in os.listdir(path) if not u.startswith('.') and u != 'registry']
+    users = [u for u in os.listdir(study_dir) if not u.startswith('.') and u != 'registry']
     
     if len(users) == 0:
         print('No users in directory')
@@ -131,7 +122,7 @@ def aggregate_surveys(path):
     
     all_data = []
     for u in users:
-        all_data.append(read_and_aggregate(path, u, 'survey_timings'))
+        all_data.append(read_and_aggregate(study_dir, u, 'survey_timings'))
         
     # Collapse all users into one file and drop duplicates
     all_data = pd.concat(all_data, axis = 0, ignore_index = False).drop_duplicates()        
@@ -157,55 +148,19 @@ def aggregate_surveys(path):
     return all_data.reset_index(drop = True)
     
 
-def parse_timings(survey, survey_id):
-    '''
-    Args:
-        survey (dict): 
-            a survey dictionary from configuration file
-        survey_id (int):
-            a provided survey id, since the configuration file has no survey file
-            
-    Returns:
-        A dataframe with a survey id, question_id, and weekly timings
-        
-    ASSUMPTIONS: Assumes one time per day - will need to test this on a survey that has multiple surveys. if there are multiple times, will only consider the first one.
-    '''
-    if 'timings' in survey.keys():
-        # there are 7 elements 
-        times = survey['timings']
-        times_row = []
-        # Loop through all days (roll forward 1)
-        # So that monday is 0 and sunday is 6 (matches pandas datetime structure)
-        times = list(np.roll(np.array(times, dtype = "object"), -1))
-        for i,t in enumerate(times):
-            time_val = {}
-            time_val['timings_day'] = 'timings_day_' + str(i)
-            # If there is a timing for that day
-            if len(t) > 0:
-                # Convert seconds to datetime
-                time_val['time'] = str(datetime.timedelta(seconds = t[0])) 
-            else:
-                time_val['time'] = float('NaN')
-            times_row.append(time_val)
-        output = pd.DataFrame(times_row)
-        output['config_id'] = survey_id
-       ## Add in absolute timings and relative timings        
-    return output.pivot(columns = 'timings_day', values = 'time', index = 'config_id').reset_index()
 
-def parse_surveys(config_file, answers_l = False):
+def parse_surveys(config_path, answers_l = False):
     '''
     Args:
-        config_file(str):
+        config_path(str):
             path to the study configuration file
+        answers_l(bool):
+            If True, include question answers in summary
     
     Returns:
-        A dataframe with all surveys, question ids, question texts, question types and the expected timings of the survey
-    '''
-    # Read in configuration file
-#     with open(config_file) as f:
-#         data = json.load(f)
-    
-    data = read_json(config_file)
+        A dataframe with all surveys, question ids, question texts, question types
+    '''    
+    data = read_json(config_path)
     surveys = data['surveys']
     
     # Create an array for surveys and one for timings
@@ -240,34 +195,32 @@ def parse_surveys(config_file, answers_l = False):
 
 def convert_timezone(utc_date, tz_str):
     '''
-    Converts a date from UTC time to the given timezone
+    Args:
+        utc_date(datetime):
+            Given date, assumed to be in UTC time
+        tz_str(str):
+            timezone to convert the utc_date too (a string used by the pytz library)
+        
+    Returns:
+        A converted date from UTC time to the given timezone
     '''  
     date_local = pytz.utc.localize(utc_date, is_dst=None).astimezone(tz_str)
     return date_local
 
 
-def convert_time_to_date(submit_time, dow, day, time):
-    '''
-    Function that takes a submission time and the given day of week and returns the date of a requested day.
-    https://stackoverflow.com/questions/17277002/how-to-get-all-datetime-instances-of-the-current-week-given-a-day
-    ''' 
-    day = day % 7
-    days = [submit_time + datetime.timedelta(days=i) for i in range(0 - dow, 7 - dow)]
-    
-    time = time.split(':')
-    time = [int(t) for t in time]
-    
-    # Get rid of timing
-#     https://stackoverflow.com/questions/26882499/reset-time-part-of-a-pandas-timestamp
-    days = [d - pd.offsets.Micro(0) for d in days]
-    days = [d.replace(hour = time[0], minute = time[1], second = time[2], microsecond = 0) for d in days]
-    
-    return days[day]  
-
-
 def convert_timezone_df(df_merged, tz_str = None, utc_col = 'UTC time'):
     '''
-    Converts the UTC time field in the survey_timings data to the given timezone
+    Args:
+        df_merged(DataFrame):
+            Dataframe that has a field of dates that are in UTC time
+        tz_str(str):
+            Study timezone (this should be a string from the pytz library)
+        utc_col:
+            Name of column in data that has UTC time dates
+    
+    Returns:
+        df_merged(DataFrame):
+            
     '''  
     if tz_str is None:
         tz_str = 'America/New_York'
@@ -282,26 +235,29 @@ def convert_timezone_df(df_merged, tz_str = None, utc_col = 'UTC time'):
 
 
 
-def aggregate_surveys_config(path, config_file, study_tz= None):
+def aggregate_surveys_config(study_dir, config_path, study_tz= None):
     '''
     Merges stacked survey data with processed configuration file data and removes lines that are not questions or submission lines
     
     Args:
-        path (str): 
+        study_dir (str): 
             path to downloaded data. This is a folder that includes the user data in a subfolder with the beiwe_id as the subfolder name 
-        config_file(str):
+        config_path(str):
             path to the study configuration file
         calc_time_diff(bool):
             If this is true, will calculate fields that have the time difference between the survey line and the expected delivery date for each day.
         study_tz(str):
-            If calc_time_diff is true, will need the study timezone to calculate the difference
+            Timezone of study. This defaults to 'America/New_York'
             
     Returns:
         df_merged(DataFrame): Merged data frame 
     '''
-    config_surveys = parse_surveys(config_file)
-    agg_data = aggregate_surveys(path)
     
+    # Read in aggregated data and survey configuration
+    config_surveys = parse_surveys(config_path)
+    agg_data = aggregate_surveys(study_dir)
+    
+    # Merge data together and add configuration survey ID to all lines 
     df_merged = agg_data.merge(config_surveys[['config_id', 'question_id']], how = 'left', left_on = 'question id', right_on = 'question_id').drop(['question_id'], axis = 1)
     df_merged['config_id_update'] = df_merged['config_id'].fillna(method = 'ffill')
     df_merged['config_id'] = df_merged.apply(lambda row: row['config_id_update'] if row['event'] in ['User hit submit', 'submitted'] else row['config_id'], axis = 1 )

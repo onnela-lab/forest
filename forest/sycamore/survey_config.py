@@ -14,9 +14,14 @@ import functions
 
 def convert_time_to_date(submit_time, day, time):
     '''
-    Function that takes a submission time and the given day of week and returns the date of a requested day.
-    https://stackoverflow.com/questions/17277002/how-to-get-all-datetime-instances-of-the-current-week-given-a-day
     Takes a single array of timings and a single day
+    Args: 
+        submit_time(datetime):
+            date in week for which we want to extract another date and time
+        day(int):
+            desired day of week
+        time(list):
+            List of timings times from the configuration surveys information
     ''' 
     
     # Convert inputted desired day into an integer between 0 and 6
@@ -42,10 +47,23 @@ def convert_time_to_date(submit_time, day, time):
 def generate_survey_times(time_start, time_end,timings = [], survey_type = 'weekly'):
     '''
     Takes a start time and end time and generates a schedule of all sent surveys in time frame for the given survey type
+    Args:
+        time_start(str):
+            The first date for which we want to generate survey times
+        time_end(str):
+            The last date for which we want to generate survey times
+        timings(list):
+            list of survey timings, directly from the configuration file survey information
+        survey_type(str):
+            What type of survey schedule to generate times for
+            NOTE: As of now this only works for weekly surveys
+            
+    Returns:
+        surveys(list):
+            A list of all survey times that occur between the time_start and time_end per the given survey timings schedule
     ''' 
     if survey_type not in ['weekly', 'absolute', 'relative']:
         raise ValueError('Incorrect type of survey. Ensure this is weekly, absolute, or relative.')  
-        
     
     # Get the number of weeks between start and end time
     t_start = pd.Timestamp(time_start)
@@ -73,10 +91,24 @@ def generate_survey_times(time_start, time_end,timings = [], survey_type = 'week
     return surveys
 
 
-def gen_survey_schedule(config, time_start, time_end, beiwe_ids):
+def gen_survey_schedule(config_path, time_start, time_end, beiwe_ids):
+    '''
+    Args:
+        config_path(str):
+            File path to study configuration file
+        time_start(str):
+            The first date of the survey data
+        time_end(str):
+            The last date of the survey data
+        beiwe_ids(list):
+            List of users in study for which we are generating a survey schedule
+        
+    Returns:
+        times_sur(DataFrame):
+            DataFrame with a line for every survey deployed to every user in the study for the given time range
+    '''
     # List of surveys
-    surveys = functions.read_json(config)['surveys']
-#     print(surveys)
+    surveys = functions.read_json(config_path)['surveys']
     # For each survey create a list of survey times
     times_sur = []
     for u_id in beiwe_ids:
@@ -101,9 +133,30 @@ def gen_survey_schedule(config, time_start, time_end, beiwe_ids):
     return times_sur
         
 
-def survey_submits_main(config_path, path, time_start, time_end, beiwe_ids, study_tz = None):
+def survey_submits(config_path, study_dir, time_start, time_end, beiwe_ids, study_tz = None):
+    '''
+    Args:
+        config_path(str):
+            File path to study configuration file
+        study_dir(str):
+            File path to study data
+        time_start(str):
+            The first date of the survey data
+        time_end(str):
+            The last date of the survey data
+        beiwe_ids(list):
+            List of users in study for which we are generating a survey schedule        
+        study_tz(str):
+            Timezone of study. This defaults to 'America/New_York'
+    
+    Returns:
+        A DataFrame with all surveys deployed in the given timeframe on the study to the users with completion times
+        
+    '''
+    time_start = pd.Timestamp(time_start)
+    time_end = pd.Timestamp(time_end)
     # Generate aggregated survey data
-    agg = functions.aggregate_surveys_config(path, config_path, study_tz)
+    agg = functions.aggregate_surveys_config(study_dir, config_path, study_tz)
     
     # Generate scheduled surveys data
     sched = gen_survey_schedule(config_path, time_start, time_end, beiwe_ids)
