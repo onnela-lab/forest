@@ -33,10 +33,10 @@ def survey_stats_main(output_dir, study_dir, config_path, time_start, time_end, 
     
     # Write out summaries
 #     agg_data.to_csv(os.path.join(output_dir, 'agg_survey_data.csv'), index = False)
-    ca_detail.to_csv(os.path.join(output_dir, 'changed_answers_survey_data.csv'), index = False)
-    ca_summary.to_csv(os.path.join(output_dir, 'changed_answers_summary.csv'), index = False)
-    ss_detail.to_csv(os.path.join(output_dir, 'survey_submits_data.csv'), index = False)
-    ss_summary.to_csv(os.path.join(output_dir, 'survey_submits_summary.csv'), index = False)
+    ca_detail.to_csv(os.path.join(output_dir, 'answers_data.csv'), index = False)
+    ca_summary.to_csv(os.path.join(output_dir, 'answers_summary.csv'), index = False)
+    ss_detail.to_csv(os.path.join(output_dir, 'submits_data.csv'), index = False)
+    ss_summary.to_csv(os.path.join(output_dir, 'submits_summary.csv'), index = False)
     
     
     return 

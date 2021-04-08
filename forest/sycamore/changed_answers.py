@@ -100,11 +100,19 @@ def agg_changed_answers_summary(study_dir, config_path, agg, study_tz = None):
     num_answers = detail.groupby(summary_cols)['num_answers'].count()
     avg_time = detail.groupby(summary_cols)['time_to_answer'].apply(lambda x: sum(x, datetime.timedelta())/len(x))
     avg_chgs = detail.groupby(summary_cols)['num_answers'].mean()
+    most_common_answer = detail.groupby(summary_cols)['all_answers'].apply(lambda x: max(set([x for x in x for x in x]), key = [x for x in x for x in x].count))
     
-    out = pd.concat([num_answers, avg_time, avg_chgs], axis = 1).reset_index()
+    out = pd.concat([num_answers, avg_time, avg_chgs, most_common_answer], axis = 1).reset_index()
     
-    out.columns = summary_cols + ['num_answers', 'average_time_to_answer', 'average_number_of_answers']
+    out.columns = summary_cols + ['num_answers', 'average_time_to_answer', 'average_number_of_answers', 'most_common_answer']
     
+    # Select relevant columns from detail to output and keep one line per question
+    detail = detail.loc[detail['last_answer'] == detail['answer']]
+    detail_cols = ['survey id', 'beiwe_id', 'question id', 'question text', 'question type', 'question answer options', 'timestamp', 'Local time', 'last_answer', 'all_answers', 'num_answers', 'first_time', 'last_time', 'time_to_answer']
+    
+    detail = detail[detail_cols]
+
+
     return detail, out
     
     

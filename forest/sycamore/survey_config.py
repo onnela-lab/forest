@@ -187,16 +187,18 @@ def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg,
 #     # Select appropriate columns
     submit_lines3 = submit_lines3[['survey id', 'delivery_time', 'beiwe_id', 'submit_flg', 'submit_time']]
     
-    submit_lines3['time_to_submit'] = np.where(submit_lines3['submit_flg'] == 1, submit_lines3['submit_time'] - submit_lines3['delivery_time'], np.array(0, dtype='datetime64[ns]'))
+#     submit_lines3['time_to_submit'] = np.where(submit_lines3['submit_flg'] == 1, submit_lines3['submit_time'] - submit_lines3['delivery_time'], np.array(0, dtype='datetime64[ns]'))
+    submit_lines3['time_to_submit'] = submit_lines3['submit_time'] - submit_lines3['delivery_time']
     
     # Create a summary that has survey_id, beiwe_id, num_surveys, num submitted surveys, average time to submit
     summary_cols = ['survey id', 'beiwe_id']
     num_surveys = submit_lines3.groupby(summary_cols)['submit_flg'].count()
     num_complete_surveys = submit_lines3.groupby(summary_cols)['submit_flg'].sum()
+    avg_time_to_submit = submit_lines3.loc[submit_lines3.submit_flg == 1].groupby(summary_cols)['time_to_submit'].apply(lambda x: sum(x, datetime.timedelta())/len(x))
 #     avg_time_to_submit = submit_lines3.groupby(summary_cols)['time_to_submit'].apply(lambda x: sum(x, datetime.timedelta())/len(x))
     
-    submit_lines_summary = pd.concat([num_surveys, num_complete_surveys], axis = 1).reset_index()
-    submit_lines_summary.columns = ['survey id', 'beiwe_id', 'num_surveys', 'num_complete_surveys']
+    submit_lines_summary = pd.concat([num_surveys, num_complete_surveys, avg_time_to_submit], axis = 1).reset_index()
+    submit_lines_summary.columns = ['survey id', 'beiwe_id', 'num_surveys', 'num_complete_surveys', 'avg_time_to_submit']
     
     return submit_lines3.sort_values(['survey id', 'beiwe_id']).drop_duplicates(), submit_lines_summary
     
