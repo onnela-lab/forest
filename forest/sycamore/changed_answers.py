@@ -33,7 +33,7 @@ def subset_answer_choices(answer):
 
 
 #Function that takes aggregated data and adds list of changed answers and first and last times and answers
-def agg_changed_answers(study_dir, config_path, study_tz= None):
+def agg_changed_answers(study_dir, config_path, agg, study_tz= None):
     '''
     Args:
         config_path(str):
@@ -49,9 +49,9 @@ def agg_changed_answers(study_dir, config_path, study_tz= None):
             The Final answer is in the 'last_answer' field
     '''
     
-    agg = functions.aggregate_surveys_config(study_dir, config_path, study_tz)
+#     agg = functions.aggregate_surveys_config(study_dir, config_path, study_tz)
     
-    cols = ['survey id', 'user_id','question id', 'question text', 'question type', 'question index']
+    cols = ['survey id', 'beiwe_id','question id', 'question text', 'question type', 'question index']
     
     agg['last_answer'] = agg.groupby(cols).answer.transform('last')
     # add in an answer ID and take the last of that too to join back on the time
@@ -78,7 +78,7 @@ def agg_changed_answers(study_dir, config_path, study_tz= None):
 
 # Create a summary file that has survey, beiwe id, question id, average number of changed answers, average time spent answering question
 
-def agg_changed_answers_summary(study_dir, config_path, study_tz = None):
+def agg_changed_answers_summary(study_dir, config_path, agg, study_tz = None):
     '''
     Args:
         config_path(str):
@@ -94,9 +94,9 @@ def agg_changed_answers_summary(study_dir, config_path, study_tz = None):
             The Final answer is in the 'last_answer' field
     '''
     
-    detail = agg_changed_answers(study_dir, config_path, study_tz)
+    detail = agg_changed_answers(study_dir, config_path, agg, study_tz)
     
-    summary_cols = ['survey id', 'user_id', 'question id', 'question text', 'question type']
+    summary_cols = ['survey id', 'beiwe_id', 'question id', 'question text', 'question type']
     num_answers = detail.groupby(summary_cols)['num_answers'].count()
     avg_time = detail.groupby(summary_cols)['time_to_answer'].apply(lambda x: sum(x, datetime.timedelta())/len(x))
     avg_chgs = detail.groupby(summary_cols)['num_answers'].mean()
@@ -105,7 +105,7 @@ def agg_changed_answers_summary(study_dir, config_path, study_tz = None):
     
     out.columns = summary_cols + ['num_answers', 'average_time_to_answer', 'average_number_of_answers']
     
-    return out
+    return detail, out
     
     
     

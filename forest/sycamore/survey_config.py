@@ -133,13 +133,13 @@ def gen_survey_schedule(config_path, time_start, time_end, beiwe_ids):
     return times_sur
         
 
-def survey_submits(config_path, study_dir, time_start, time_end, beiwe_ids, study_tz = None):
+def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg, study_tz = None):
     '''
     Args:
-        config_path(str):
-            File path to study configuration file
         study_dir(str):
             File path to study data
+        config_path(str):
+            File path to study configuration file
         time_start(str):
             The first date of the survey data
         time_end(str):
@@ -151,12 +151,11 @@ def survey_submits(config_path, study_dir, time_start, time_end, beiwe_ids, stud
     
     Returns:
         A DataFrame with all surveys deployed in the given timeframe on the study to the users with completion times
-        
     '''
     time_start = pd.Timestamp(time_start)
     time_end = pd.Timestamp(time_end)
     # Generate aggregated survey data
-    agg = functions.aggregate_surveys_config(study_dir, config_path, study_tz)
+#     agg = functions.aggregate_surveys_config(study_dir, config_path, study_tz)
     
     # Generate scheduled surveys data
     sched = gen_survey_schedule(config_path, time_start, time_end, beiwe_ids)
@@ -164,10 +163,10 @@ def survey_submits(config_path, study_dir, time_start, time_end, beiwe_ids, stud
     # Merge survey submit lines onto the schedule data and identify submitted lines
     submit_lines = pd.merge(
         sched[['delivery_time', 'next_delivery_time', 'id', 'beiwe_id']].drop_duplicates(), 
-        agg[['Local time', 'config_id', 'survey id' ,'user_id']].loc[agg.submit_line == 1].drop_duplicates(), 
+        agg[['Local time', 'config_id', 'survey id' ,'beiwe_id']].loc[agg.submit_line == 1].drop_duplicates(), 
         how = 'left', 
         left_on = ['id', 'beiwe_id'], 
-        right_on = ['config_id', 'user_id'])
+        right_on = ['config_id', 'beiwe_id'])
     
     # Get the submigged survey line
     submit_lines['submit_flg'] = np.where(
@@ -188,7 +187,18 @@ def survey_submits(config_path, study_dir, time_start, time_end, beiwe_ids, stud
 #     # Select appropriate columns
     submit_lines3 = submit_lines3[['survey id', 'delivery_time', 'beiwe_id', 'submit_flg', 'submit_time']]
     
-    return submit_lines3.sort_values(['survey id', 'beiwe_id'])
+    submit_lines3['time_to_submit'] = np.where(submit_lines3['submit_flg'] == 1, submit_lines3['submit_time'] - submit_lines3['delivery_time'], np.array(0, dtype='datetime64[ns]'))
+    
+    # Create a summary that has survey_id, beiwe_id, num_surveys, num submitted surveys, average time to submit
+    summary_cols = ['survey id', 'beiwe_id']
+    num_surveys = submit_lines3.groupby(summary_cols)['submit_flg'].count()
+    num_complete_surveys = submit_lines3.groupby(summary_cols)['submit_flg'].sum()
+#     avg_time_to_submit = submit_lines3.groupby(summary_cols)['time_to_submit'].apply(lambda x: sum(x, datetime.timedelta())/len(x))
+    
+    submit_lines_summary = pd.concat([num_surveys, num_complete_surveys], axis = 1).reset_index()
+    submit_lines_summary.columns = ['survey id', 'beiwe_id', 'num_surveys', 'num_complete_surveys']
+    
+    return submit_lines3.sort_values(['survey id', 'beiwe_id']).drop_duplicates(), submit_lines_summary
     
     
     

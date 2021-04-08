@@ -93,7 +93,7 @@ def read_and_aggregate(study_dir, beiwe_id, data_stream):
         #Read in all files
         survey_data = [pd.read_csv(file) for file in all_files]
         survey_data = pd.concat(survey_data, axis = 0, ignore_index = False)
-        survey_data['user_id'] = beiwe_id
+        survey_data['beiwe_id'] = beiwe_id
         survey_data['UTC time'] = survey_data['UTC time'].astype('datetime64[ns]')
         survey_data['DOW'] = survey_data['UTC time'].dt.dayofweek
         return survey_data
@@ -141,7 +141,7 @@ def aggregate_surveys(study_dir):
     # ADD A QUESTION INDEX (to track changed answers)
     all_data['question id lag'] = all_data['question id'].shift(1)
     all_data['question index']  = all_data.apply(lambda row: 1 if ((row['question id'] != row['question id lag'])) else 0, axis = 1)
-    all_data['question index'] = all_data.groupby(['survey id', 'user_id'])['question index'].cumsum()
+    all_data['question index'] = all_data.groupby(['survey id', 'beiwe_id'])['question index'].cumsum()
     
     del all_data['question id lag']
     # OUTPUT AGGREGATE
