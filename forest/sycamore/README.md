@@ -1,6 +1,6 @@
 ### Authors: Nellie Ponarul, Anna Beukenhorst  
 
-### Last Update Date: 24 February 2021  
+### Last Update Date: 8 April 2021  
 
 ### Executive Summary: 
 Use `sycamore` to process and analyze Beiwe survey data.
@@ -8,46 +8,52 @@ Use `sycamore` to process and analyze Beiwe survey data.
 
 #### Installation
 
-`from forest import sycamore.functions as syc`
+`from forest import sycamore.sycamore_main as syc`  
+
+`from forest import sycamore.functions as sycf`
 
 ## Usage:  
-Download raw data from your Beiwe server and use this package to process the data in the `survey_timings` data stream.   
+Download raw data from your Beiwe server and use this package to process the data in the `survey_timings` data stream. Summary data provides metrics around survey submissions and survey question completion.
+
+Outputs include:  
+
+* `changed_answers_summary.csv` : For each beiwe id, survey id, and question id, this file provides the following summaries:
+  * `num_answers`: The number of times in the given data the answer is answered.
+  * `average_time_to_answer`: The average amount of time the user takes to answer the question.
+  * `average_number_of_answers`: Average number of answers selected for a question. This indicated if a user changed an answer before submitting it.  
+
+
+* `survey_submits_summary.csv`: For each survey id and beiwe id, this file provides the following summaries:  
+  * `num_surveys`: The number of surveys issued to the user in the given timeframe.
+  * `num_completed_surveys`: The number of surveys the user submitted in the given timeframe. A completed survey is considered a survey that was completed before the next survey was deployed to the user.  
 
 ## Data:   
 Methods are designed for use on the `survey_timings` data from the Beiwe app.
 
 ___
 ## Functions  
-1.  [`syc.parse_timings`](#config)
-2.  [`syc.aggregate_surveys_config`](#agg)  
-3.  [`syc.get_survey_timings`](#get)
+1.  [`syc.sycamore_main`](#syc_main)
+2.  [`sycf.get_survey_timings`](#get)
 
 ___
-## 1. `syc.parse_timings` <a name = "config"/>  
-Takes the path to the study configuration file and outputs a table summarizing the questions and scheduled timings of each survey.  
+## 1. `syc.sycamore_main` <a name = "syc_main"/>  
+Takes the path to the study configuration file and outputs summary tables about the survey data.
 
 *Example*  
 ```
 config_path = path/to/config file
-surveys_info = syc.parse_timings(config_path)
-```
-___
-## 2. `syc.aggregate_surveys_config` <a name="agg"/>
-Takes a path to raw data and returns aggregated `survey_timings` data with timings information from the study configuration file in a tabular format. This is useful for analysis in Tableau or other formats. Has the option to add fields that will calculate the time lapse between the expectation survey notification and line in the survey data. If this option is used, the study timzone must also be supplied through the `study_tz` argument.  
+study_dir = path/to/data  
+output_dir = path/to/output
+beiwe_ids = list of ids in study_dir
+time_start = start time
+time_end = end time  
+study_tz = Timezone of study (if not defined, defaults to 'America/New_York'
 
-*Example*  
+sycamore_main.survey_stats_main(output_dir, study_dir, config_path, time_start, time_end, beiwe_ids, study_tz)
+
 ```
-path = 'path/to/data'  
-config_path = 'path/to/study_config_file'
-study_tz = 'America/New_York'
-# Without time lapse fields
-survey_data = syc.aggregate_surveys_config(path, config)
-# With time lapse fields
-survey_data = syc.aggregate_surveys_config(path, config, calc_time_diff = True, study_tz = study_tz)
-```
-  
 ___
-## 3. `syc.get_survey_timings` <a name="get"/>  
+## 2. `sycf.get_survey_timings` <a name="get"/>  
 Extracts the beginning and submission times for each survey instance in a given study and survey (using the survey ID), using the `survey_timings` data.  
 
 *Example*  
@@ -57,7 +63,7 @@ RAW_DATA_DIR_HERE = path/to/data
 all_ptcp = os.listdir(path)
 PATH_TO_OUTPUT_FILE = path/to/ouput
 
-survey_timings_array = get_survey_timings(all_ptcp,
+survey_timings_array = sycf.get_survey_timings(all_ptcp,
                    RAW_DATA_DIR_HERE,
                    SURVEY_ID)
                    
