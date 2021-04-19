@@ -71,8 +71,9 @@ def agg_changed_answers(study_dir, config_path, agg, study_tz= None):
     
     # Filter agg down to the line of the last question time
     agg = agg.loc[agg['Local time'] == agg['last_time']]
-
     
+
+
     return agg.reset_index(drop = True)
 
 
@@ -96,6 +97,27 @@ def agg_changed_answers_summary(study_dir, config_path, agg, study_tz = None):
     
     detail = agg_changed_answers(study_dir, config_path, agg, study_tz)
     
+    
+    #####################################################################
+    ## Add instance id and update first time to be the last last time if there is only one line
+    surv_config = functions.parse_surveys(config_path)
+    surv_config['q_internal_id'] = surv_config.groupby('config_id').cumcount()+1
+    
+    detail = pd.merge(detail, surv_config[['question_id', 'q_internal_id']], how = 'left', left_on = 'question id', right_on = 'question_id')
+
+    
+    detail['instance_id'] = np.where(detail['q_internal_id'] == 1, 1, 0)
+    detail['instance_id'] = detail['instance_id'].cumsum()
+    
+    detail['last_time_1'] = detail.groupby(['instance_id'])['last_time'].shift(1)
+    
+    # if there is one answer and the last_time and first_time are the same, make the first_time = last_time_1
+    detail['first_time'] = np.where((detail.num_answers == 1) & (detail.first_time == detail.last_time) & (detail.q_internal_id != 1), detail.last_time_1, detail.first_time)
+    
+    # Update time_to_answer
+    detail['time_to_answer'] = detail['last_time']-detail['first_time']
+    #####################################################################
+    
     summary_cols = ['survey id', 'beiwe_id', 'question id', 'question text', 'question type']
     num_answers = detail.groupby(summary_cols)['num_answers'].count()
     avg_time = detail.groupby(summary_cols)['time_to_answer'].apply(lambda x: sum(x, datetime.timedelta())/len(x))
@@ -111,6 +133,8 @@ def agg_changed_answers_summary(study_dir, config_path, agg, study_tz = None):
     detail_cols = ['survey id', 'beiwe_id', 'question id', 'question text', 'question type', 'question answer options', 'timestamp', 'Local time', 'last_answer', 'all_answers', 'num_answers', 'first_time', 'last_time', 'time_to_answer']
     
     detail = detail[detail_cols]
+    
+    
 
 
     return detail, out
