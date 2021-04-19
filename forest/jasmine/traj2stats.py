@@ -310,18 +310,13 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_
 
     logger.info("End")
     ## generate the record file together with logger and comm_logs.csv
-    record = pd.DataFrame(np.array(record), columns=['ID','start_stamp','start_year','start_month','start_day','start_hour','start_min','start_sec','end_stamp','end_year','end_month','end_day','end_hour','end_min','end_sec'])
-    record.to_csv(output_folder + "/record.csv",index=False)
-    ## save all_memory_dict and all_BV_set
-    f = open(output_folder + "/all_memory_dict.pkl","wb")
-    pickle.dump(all_memory_dict,f)
-    f.close()
-    f = open(output_folder + "/all_BV_set.pkl","wb")
-    pickle.dump(all_BV_set,f)
-    f.close()
-    if os.path.exists(output_folder + "/log.csv")==True:
-        temp = pd.read_csv(output_folder + "/log.csv")
-        if temp.shape[0]==3:
-            print("Finished without any warning messages.")
-        else:
-            print("Finished. Please check log.csv for warning messages.")
+    if len(record)>0:
+      record = pd.DataFrame(np.array(record), columns=['ID','start_stamp','start_year','start_month','start_day','start_hour','start_min','start_sec','end_stamp','end_year','end_month','end_day','end_hour','end_min','end_sec'])
+      record.to_csv(output_folder + "/record.csv",index=False)
+      ## save all_memory_dict and all_BV_set
+      f = open(output_folder + "/all_memory_dict.pkl","wb")
+      pickle.dump(all_memory_dict,f)
+      f.close()
+      f = open(output_folder + "/all_BV_set.pkl","wb")
+      pickle.dump(all_BV_set,f)
+      f.close()
