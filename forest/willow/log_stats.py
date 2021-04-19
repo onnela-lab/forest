@@ -137,8 +137,7 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
             text_data, text_stamp_start, text_stamp_end = read_data(ID, study_folder, "texts", tz_str, time_start, time_end)
             call_data, call_stamp_start, call_stamp_end = read_data(ID, study_folder, "calls", tz_str, time_start, time_end)
         except Exception as e:
-            print("Error in reading data.")
-            logging.error()
+            logger.error("Error in reading data.")
             raise e
             break
         ## stamps from call and text should be the stamp_end
@@ -150,16 +149,14 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
             try:
                 stats_pdframe1 = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str, "hourly")
             except Exception as e:
-                print("Error in summarizing hourly statistics.")
-                logging.error()
+                logger.error("Error in summarizing hourly statistics.")
                 raise e
                 break
 
             try:
                 stats_pdframe2 = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str, "daily")
             except Exception as e:
-                print("Error in summarizing daily statistics.")
-                logging.error()
+                logger.error("Error in summarizing daily statistics.")
                 raise e
                 break
 
@@ -167,22 +164,19 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
                 write_all_summaries(ID, stats_pdframe1, output_folder + "/hourly")
                 write_all_summaries(ID, stats_pdframe2, output_folder + "/daily")
             except Exception as e:
-                print("Error in writing out summary stats to csv.")
-                logging.error()
+                logger.error("Error in writing out summary stats to csv.")
                 raise e
         else:
             try:
                 stats_pdframe = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str,option)
             except Exception as e:
-                print("Error in summarizing statistics.")
-                logging.error()
+                logger.error("Error in summarizing statistics.")
                 raise e
                 break
             try:
                 write_all_summaries(ID, stats_pdframe, output_folder)
             except Exception as e:
-                print("Error in writing out summary stats to csv.")
-                logging.error()
+                logger.error("Error in writing out summary stats to csv.")
                 raise e
 
             try:
@@ -190,8 +184,7 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
                 [y2,m2,d2,h2,min2,s2] = stamp2datetime(stamp_end,tz_str)
                 record.append([str(ID),stamp_start,y1,m1,d1,h1,min1,s1,stamp_end,y2,m2,d2,h2,min2,s2])
             except Exception as e:
-                print("Error in appending the record of current subject to history file.")
-                logging.error()
+                logger.error("Error in appending the record of current subject to history file.")
                 raise e
 
     logger.info("End")
@@ -206,6 +199,5 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
             else:
                 print("Finished. Please check log.csv for warning messages.")
     except Exception as e:
-        print("Error in writing out record file.")
-        logging.error()
+        logger.error("Error in writing out record file.")
         raise e
