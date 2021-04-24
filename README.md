@@ -1,5 +1,5 @@
 <p align="left">
-  <img width="354" height="132" src="https://github.com/onnela-lab/forest/blob/master/forest-logo-color.png">
+  <img width="264" height="99" src="https://github.com/onnela-lab/forest/blob/master/forest-logo-color.png">
 </p>
 
 # Forest (Python 3.6.0)
