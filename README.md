@@ -1,4 +1,4 @@
-<p align="center">
+<p align="left">
   <img width="354" height="132" src="https://github.com/onnela-lab/forest/blob/master/forest-logo-color.png">
 </p>
 
