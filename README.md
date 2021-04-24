@@ -2,7 +2,7 @@
   <img width="354" height="132" src="https://github.com/onnela-lab/forest/blob/master/forest-logo-color.png">
 </p>
 
-# forest (Based on Python 3.6.0)
+# Forest (Python 3.6.0)
 
 For more detailed info on specific subpackages, see our [Wiki](https://github.com/onnela-lab/forest/wiki). Please note that Forest uses Python 3.6.
 
