@@ -1,7 +1,5 @@
-![alt text](https://github.com/onnela-lab/forest/blob/master/forest-logo-color.png)
-
 <p align="center">
-  <img width="460" height="300" src="https://github.com/onnela-lab/forest/blob/master/forest-logo-color.png">
+  <img width="354" height="132" src="https://github.com/onnela-lab/forest/blob/master/forest-logo-color.png">
 </p>
 
 # forest (Based on Python 3.6.0)
