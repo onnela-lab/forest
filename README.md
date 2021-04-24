@@ -9,7 +9,7 @@ Forest can be run locally but is also integrated into the Beiwe back-end on AWS,
 
 For more detailed info on specific subpackages, see our [Wiki](https://github.com/onnela-lab/forest/wiki). Please note that Forest uses Python 3.6.
 
-## Description
+# Description
 
 Description of how beiwe data looks (folder structure + on/off cycles)
 
@@ -27,7 +27,7 @@ Output: typically summary files
     - Daily summaries of call & text metadata: use **willow**
     - Survey completion time from survey metadata: use **sycamore**
     
-## Usage
+# Usage
 To install, clone this repository to a local directory and then:
 ```
 pip install path/to/forest
