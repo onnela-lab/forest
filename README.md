@@ -37,16 +37,18 @@ Alternatively, [install directly from github](https://pip.pypa.io/en/stable/refe
 pip install git+https://github.com/onnela-lab/forest
 ```
 
-Currently, all imports from `forest` must be explicit.  For example:
+Currently, all imports from `forest` must be explicit.  For the below example you need to import:
 ```
+from forest.bonsai.simulate_log_data import sim_log_data
+from forest.bonsai.simulate_gps_data import sim_GPS_data
 from forest.jasmine.traj2stats import gps_stats_main
-from forest.poplar.functions.io import read_json
+from forest.willow.log_stats import log_stats_main
 ```
 
 To immediately test out forest, adapt the filepaths in the code below and run:
 ```
-# Import forest
-import forest
+# Run the above 4 imports
+# In future, it would be great to have all functions import automatically
 
 # 1. If you don't have any smartphone data (yet) you can generate fake data
 path_to_synthetic_gps_data = "ENTER/PATH1/HERE"
@@ -55,14 +57,15 @@ path_to_gps_summary = "ENTER/PATH/TO/DESIRED/OUTPUT/FOLDER1/HERE"
 path_to_log_summary = "ENTER/PATH/TO/DESIRED/OUTPUT/FOLDER2/HERE"
 
 # Generate fake call and text logs 
-forest.bonsai.sim_log_data(path_to_synthetic_log_data)
+# Because of the explicit imports, you don't have to precede the functions with forest.subpackage.
+sim_log_data(path_to_synthetic_log_data)
 
 # Generate synthetic gps data and communication logs data as csv files
 # Define parameters for generating the data
 # To save smartphone battery power, we typically collect location data intermittently: e.g. during an on-cycle of 3 minutes, followed by an off-cycle of 12 minutes. We'll generate data in this way
 cycle = 15 # Length of off-cycle + length of on-cycle in minutes
 p = 0.8 # Length off-cycle / (length off-cycle + length on-cycle)
-forest.bonsai.sim_GPS_data(cycle, p, path_to_synthetic_log_data)
+sim_GPS_data(cycle, p, path_to_synthetic_log_data)
 
 # 2. Specify parameters for imputation 
 # See https://github.com/onnela-lab/forest/wiki/Jasmine-documentation#input for details
