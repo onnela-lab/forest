@@ -32,7 +32,7 @@ To install, clone this repository to a local directory and then:
 ```
 pip install path/to/forest
 ```
-Alternatively, [install directly from github](https://pip.pypa.io/en/stable/reference/pip_install/#git) with `pip`. As long as the repo is private, it may prompt you to login.
+Alternatively, [install directly from github](https://pip.pypa.io/en/stable/reference/pip_install/#git) with `pip`. As the repo is public, it won't prompt you to login. If you've used forest in the past, it might be prudent to do a '''pip uninstall forest''' first.
 ```
 pip install git+https://github.com/onnela-lab/forest
 ```
