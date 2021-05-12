@@ -1,0 +1,14 @@
+{
+    "iOS": [
+        "notified",
+        "expired",
+        "present",
+        "changed",
+        "unpresent",
+        "submitted"
+    ],
+    "Android": [
+        "Survey first rendered and displayed to user",
+        "User hit submit"
+    ]
+}
