@@ -9,7 +9,7 @@ import datetime
 import pytz
 import math
 import datetime
-import functions
+from .functions import read_json
 
 
 def convert_time_to_date(submit_time, day, time):
@@ -108,7 +108,7 @@ def gen_survey_schedule(config_path, time_start, time_end, beiwe_ids):
             DataFrame with a line for every survey deployed to every user in the study for the given time range
     '''
     # List of surveys
-    surveys = functions.read_json(config_path)['surveys']
+    surveys = read_json(config_path)['surveys']
     # For each survey create a list of survey times
     times_sur = []
     for u_id in beiwe_ids:
