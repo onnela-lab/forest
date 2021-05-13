@@ -7,7 +7,7 @@ import numpy as np
 import datetime
 import pytz
 import math
-import functions
+from .functions import parse_surveys
 
 ### Write a function that subsets the list if it starts with nan and ends with two of the same elements
 def subset_answer_choices(answer):
@@ -100,7 +100,7 @@ def agg_changed_answers_summary(study_dir, config_path, agg, study_tz = None):
     
     #####################################################################
     ## Add instance id and update first time to be the last last time if there is only one line
-    surv_config = functions.parse_surveys(config_path)
+    surv_config = parse_surveys(config_path)
     surv_config['q_internal_id'] = surv_config.groupby('config_id').cumcount()+1
     
     detail = pd.merge(detail, surv_config[['question_id', 'q_internal_id']], how = 'left', left_on = 'question id', right_on = 'question_id')

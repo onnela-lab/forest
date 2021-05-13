@@ -1,7 +1,7 @@
 import os
-import functions as agg
-import survey_config as sc
-import changed_answers as ca
+from .functions import aggregate_surveys_config
+from .survey_config import survey_submits
+from .changed_answers import agg_changed_answers_summary
 
 def survey_stats_main(output_dir, study_dir, config_path, time_start, time_end, beiwe_ids, study_tz = None): 
     '''
@@ -23,13 +23,13 @@ def survey_stats_main(output_dir, study_dir, config_path, time_start, time_end, 
     '''
     
     # Read, aggregate and clean data 
-    agg_data = agg.aggregate_surveys_config(study_dir, config_path, study_tz)
+    agg_data = aggregate_surveys_config(study_dir, config_path, study_tz)
     
     # Create changed answers detail and summary
-    ca_detail, ca_summary = ca.agg_changed_answers_summary(study_dir, config_path, agg_data, study_tz)
+    ca_detail, ca_summary = agg_changed_answers_summary(study_dir, config_path, agg_data, study_tz)
     
     # Create survey submits detail and summary
-    ss_detail, ss_summary = sc.survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg_data, study_tz)
+    ss_detail, ss_summary = survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg_data, study_tz)
     
     # Write out summaries
 #     agg_data.to_csv(os.path.join(output_dir, 'agg_survey_data.csv'), index = False)
