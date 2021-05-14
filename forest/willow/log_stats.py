@@ -145,4 +145,5 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
                         write_all_summaries(ID, stats_pdframe, output_folder)
                     sys.stdout.write("Summary statistics obtained. Finished." + '\n')
             except:
+                sys.stdout.write("An error occured when processing the data." + '\n')
                 pass

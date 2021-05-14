@@ -353,20 +353,20 @@ def int2str(h):
     else:
         return str(h)
 
-def sim_GPS_data(cycle,p,output_folder):
+def sim_GPS_data(cycle,p,data_folder):
     ## only two parameters
     ## cycle is the sum of on-cycle and off_cycle, unit is minute
     ## p is the missing rate, in other words, the proportion of off_cycle, should be within [0,1]
     ## it returns a pandas dataframe with only observations from on_cycles, which mimics the real data file
     ## the data are the trajectories over two weeks, sampled at 1Hz, with an obvious activity pattern
     s = datetime2stamp([2020,8,24,0,0,0],'America/New_York')*1000
-    if os.path.exists(output_folder+"/test_data")==False:
-        os.mkdir(output_folder+"/test_data")
+    if os.path.exists(data_folder)==False:
+        os.mkdir(data_folder)
     for user in range(2):
-        if os.path.exists(output_folder+"/test_data/user_"+str(user+1))==False:
-            os.mkdir(output_folder+"/test_data/user_"+str(user+1))
-        if os.path.exists(output_folder+"/test_data/user_"+str(user+1)+"/gps")==False:
-            os.mkdir(output_folder+"/test_data/user_"+str(user+1)+"/gps")
+        if os.path.exists(data_folder+"/user_"+str(user+1))==False:
+            os.mkdir(data_folder+"/user_"+str(user+1))
+        if os.path.exists(data_folder+"/user_"+str(user+1)+"/gps")==False:
+            os.mkdir(data_folder+"/user_"+str(user+1)+"/gps")
         all_traj,all_D,all_T = gen_all_traj()
         print("User_"+str(user+1))
         print("distance(km): ", all_D)
@@ -380,4 +380,4 @@ def sim_GPS_data(cycle,p,output_folder):
                 temp = obs_pd[(obs_pd["timestamp"]>=s_lower)&(obs_pd["timestamp"]<s_upper)]
                 [y,m,d,h,mins,sec] = stamp2datetime(s_lower/1000,"UTC")
                 filename = str(y)+"-"+int2str(m)+"-"+int2str(d)+" "+int2str(h)+"_00_00.csv"
-                temp.to_csv(output_folder+"/test_data/user_"+str(user+1)+"/gps/"+filename,index = False)
+                temp.to_csv(data_folder+"/user_"+str(user+1)+"/gps/"+filename,index = False)
