@@ -269,8 +269,8 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_
             os.mkdir(output_folder+"/trajectory")
 
     for ID in beiwe_id:
+        sys.stdout.write('User: '+ ID  + '\n')
         try:
-            sys.stdout.write('User: '+ ID  + '\n')
             ## data quality check
             quality = gps_quality_check(study_folder, ID)
             if quality>0.6:
