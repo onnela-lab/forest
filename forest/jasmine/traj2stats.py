@@ -268,51 +268,52 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_
         if os.path.exists(output_folder+"/trajectory")==False:
             os.mkdir(output_folder+"/trajectory")
 
-    for ID in beiwe_id:
-        sys.stdout.write('User: '+ ID  + '\n')
-        try:
-            ## data quality check
-            quality = gps_quality_check(study_folder, ID)
-            if quality>0.6:
-                ## read data
-                sys.stdout.write("Read in the csv files ..." + '\n')
-                data, stamp_start, stamp_end = read_data(ID, study_folder, "gps", tz_str, time_start, time_end)
-                if orig_r is None:
-                    r = itrvl
-                if orig_h is None:
-                    h = r
-                if orig_w is None:
-                    w = np.mean(data.accuracy)
-                ## process data
-                mobmat1 = GPS2MobMat(data,itrvl,accuracylim,r,w,h)
-                mobmat2 = InferMobMat(mobmat1,itrvl,r)
-                out_dict = BV_select(mobmat2,sigma2,tol,d,pars0,all_memory_dict[str(ID)],all_BV_set[str(ID)])
-                all_BV_set[str(ID)] = BV_set = out_dict["BV_set"]
-                all_memory_dict[str(ID)] = out_dict["memory_dict"]
-                imp_table = ImputeGPS(mobmat2,BV_set,method,switch,num,linearity,tz_str,pars1)
-                traj = Imp2traj(imp_table,mobmat2,itrvl,r,w,h)
-                ## save all_memory_dict and all_BV_set
-                f = open(output_folder + "/all_memory_dict.pkl","wb")
-                pickle.dump(all_memory_dict,f)
-                f.close()
-                f = open(output_folder + "/all_BV_set.pkl","wb")
-                pickle.dump(all_BV_set,f)
-                f.close()
-                if save_traj == True:
-                    pd_traj = pd.DataFrame(traj)
-                    pd_traj.columns = ["status","x0","y0","t0","x1","y1","t1","obs"]
-                    dest_path = output_folder +"/trajectory/" + str(ID) + ".csv"
-                    pd_traj.to_csv(dest_path,index=False)
-                if option == 'both':
-                    summary_stats1 = gps_summaries(traj,tz_str,'hourly')
-                    write_all_summaries(ID, summary_stats1, output_folder + "/hourly")
-                    summary_stats2 = gps_summaries(traj,tz_str,'daily')
-                    write_all_summaries(ID, summary_stats2, output_folder + "/daily")
+    if len(beiwe_id)>0:
+        for ID in beiwe_id:
+            sys.stdout.write('User: '+ ID  + '\n')
+            try:
+                ## data quality check
+                quality = gps_quality_check(study_folder, ID)
+                if quality>0.6:
+                    ## read data
+                    sys.stdout.write("Read in the csv files ..." + '\n')
+                    data, stamp_start, stamp_end = read_data(ID, study_folder, "gps", tz_str, time_start, time_end)
+                    if orig_r is None:
+                        r = itrvl
+                    if orig_h is None:
+                        h = r
+                    if orig_w is None:
+                        w = np.mean(data.accuracy)
+                    ## process data
+                    mobmat1 = GPS2MobMat(data,itrvl,accuracylim,r,w,h)
+                    mobmat2 = InferMobMat(mobmat1,itrvl,r)
+                    out_dict = BV_select(mobmat2,sigma2,tol,d,pars0,all_memory_dict[str(ID)],all_BV_set[str(ID)])
+                    all_BV_set[str(ID)] = BV_set = out_dict["BV_set"]
+                    all_memory_dict[str(ID)] = out_dict["memory_dict"]
+                    imp_table = ImputeGPS(mobmat2,BV_set,method,switch,num,linearity,tz_str,pars1)
+                    traj = Imp2traj(imp_table,mobmat2,itrvl,r,w,h)
+                    ## save all_memory_dict and all_BV_set
+                    f = open(output_folder + "/all_memory_dict.pkl","wb")
+                    pickle.dump(all_memory_dict,f)
+                    f.close()
+                    f = open(output_folder + "/all_BV_set.pkl","wb")
+                    pickle.dump(all_BV_set,f)
+                    f.close()
+                    if save_traj == True:
+                        pd_traj = pd.DataFrame(traj)
+                        pd_traj.columns = ["status","x0","y0","t0","x1","y1","t1","obs"]
+                        dest_path = output_folder +"/trajectory/" + str(ID) + ".csv"
+                        pd_traj.to_csv(dest_path,index=False)
+                    if option == 'both':
+                        summary_stats1 = gps_summaries(traj,tz_str,'hourly')
+                        write_all_summaries(ID, summary_stats1, output_folder + "/hourly")
+                        summary_stats2 = gps_summaries(traj,tz_str,'daily')
+                        write_all_summaries(ID, summary_stats2, output_folder + "/daily")
+                    else:
+                        summary_stats = gps_summaries(traj,tz_str,option)
+                        write_all_summaries(ID, summary_stats, output_folder)
                 else:
-                    summary_stats = gps_summaries(traj,tz_str,option)
-                    write_all_summaries(ID, summary_stats, output_folder)
-            else:
-                sys.stdout.write("GPS data are not collected or the data quality is too low." + '\n')
-        except:
-            sys.stdout.write("An error occured when processing the data." + '\n')
-            pass
+                    sys.stdout.write("GPS data are not collected or the data quality is too low." + '\n')
+            except:
+                sys.stdout.write("An error occured when processing the data." + '\n')
+                pass

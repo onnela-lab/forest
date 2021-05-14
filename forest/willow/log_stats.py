@@ -124,8 +124,8 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
 
     if len(beiwe_id)>0:
         for ID in beiwe_id:
+            sys.stdout.write('User: '+ ID + '\n')
             try:
-                sys.stdout.write('User: '+ ID + '\n')
                 ## read data
                 text_data, text_stamp_start, text_stamp_end = read_data(ID, study_folder, "texts", tz_str, time_start, time_end)
                 call_data, call_stamp_start, call_stamp_end = read_data(ID, study_folder, "calls", tz_str, time_start, time_end)
