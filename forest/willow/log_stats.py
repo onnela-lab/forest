@@ -2,12 +2,8 @@ import os
 import sys
 import pandas as pd
 import numpy as np
-import logging
-from ..poplar.functions.log import log_to_csv
 from ..poplar.legacy.common_funcs import (read_data, write_all_summaries,
                                           datetime2stamp, stamp2datetime)
-
-logger = logging.getLogger(__name__)
 
 def comm_logs_summaries(ID:str, df_text, df_call, stamp_start, stamp_end, tz_str, option):
     """
@@ -122,82 +118,31 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
             os.mkdir(output_folder+"/hourly")
         if os.path.exists(output_folder+"/daily")==False:
             os.mkdir(output_folder+"/daily")
-    log_to_csv(output_folder)
-    logger.info("Begin")
     ## beiwe_id should be a list of str
     if beiwe_id == None:
         beiwe_id = os.listdir(study_folder)
-    ## create a record of processed user ID and starting/ending time
-    record = []
-    for ID in beiwe_id:
-        sys.stdout.write('User: '+ ID + '\n')
-        ## read data
-        sys.stdout.write("Read in the csv files ..." + '\n')
-        try:
-            text_data, text_stamp_start, text_stamp_end = read_data(ID, study_folder, "texts", tz_str, time_start, time_end)
-            call_data, call_stamp_start, call_stamp_end = read_data(ID, study_folder, "calls", tz_str, time_start, time_end)
-        except Exception as e:
-            logger.error("Error in reading data.")
-            raise e
-            break
-        ## stamps from call and text should be the stamp_end
-        stamp_start = min(text_stamp_start,call_stamp_start)
-        stamp_end = max(text_stamp_end, call_stamp_end)
-        ## process data
 
-        if option == "both":
+    if len(beiwe_id)>0:
+        for ID in beiwe_id:
             try:
-                stats_pdframe1 = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str, "hourly")
-            except Exception as e:
-                logger.error("Error in summarizing hourly statistics.")
-                raise e
-                break
-
-            try:
-                stats_pdframe2 = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str, "daily")
-            except Exception as e:
-                logger.error("Error in summarizing daily statistics.")
-                raise e
-                break
-
-            try:
-                write_all_summaries(ID, stats_pdframe1, output_folder + "/hourly")
-                write_all_summaries(ID, stats_pdframe2, output_folder + "/daily")
-            except Exception as e:
-                logger.error("Error in writing out summary stats to csv.")
-                raise e
-        else:
-            try:
-                stats_pdframe = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str,option)
-            except Exception as e:
-                logger.error("Error in summarizing statistics.")
-                raise e
-                break
-            try:
-                write_all_summaries(ID, stats_pdframe, output_folder)
-            except Exception as e:
-                logger.error("Error in writing out summary stats to csv.")
-                raise e
-
-            try:
-                [y1,m1,d1,h1,min1,s1] = stamp2datetime(stamp_start,tz_str)
-                [y2,m2,d2,h2,min2,s2] = stamp2datetime(stamp_end,tz_str)
-                record.append([str(ID),stamp_start,y1,m1,d1,h1,min1,s1,stamp_end,y2,m2,d2,h2,min2,s2])
-            except Exception as e:
-                logger.error("Error in appending the record of current subject to history file.")
-                raise e
-
-    logger.info("End")
-    ## generate the record file together with logger and comm_logs.csv
-    try:
-        record = pd.DataFrame(np.array(record), columns=['ID','start_stamp','start_year','start_month','start_day','start_hour','start_min','start_sec','end_stamp','end_year','end_month','end_day','end_hour','end_min','end_sec'])
-        record.to_csv(output_folder + "/record.csv",index=False)
-        if os.path.exists(output_folder + "/log.csv")==True:
-            temp = pd.read_csv(output_folder + "/log.csv")
-            if temp.shape[0]==3:
-                print("Finished without any warning messages.")
-            else:
-                print("Finished. Please check log.csv for warning messages.")
-    except Exception as e:
-        logger.error("Error in writing out record file.")
-        raise e
+                sys.stdout.write('User: '+ ID + '\n')
+                ## read data
+                text_data, text_stamp_start, text_stamp_end = read_data(ID, study_folder, "texts", tz_str, time_start, time_end)
+                call_data, call_stamp_start, call_stamp_end = read_data(ID, study_folder, "calls", tz_str, time_start, time_end)
+                if text_data.shape[0]>0 or call_data.shape[0]>0:
+                    ## stamps from call and text should be the stamp_end
+                    sys.stdout.write("Data imported ..." + '\n')
+                    stamp_start = min(text_stamp_start,call_stamp_start)
+                    stamp_end = max(text_stamp_end, call_stamp_end)
+                    ## process data
+                    if option == "both":
+                        stats_pdframe1 = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str, "hourly")
+                        stats_pdframe2 = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str, "daily")
+                        write_all_summaries(ID, stats_pdframe1, output_folder + "/hourly")
+                        write_all_summaries(ID, stats_pdframe2, output_folder + "/daily")
+                    else:
+                        stats_pdframe = comm_logs_summaries(ID, text_data, call_data, stamp_start, stamp_end, tz_str,option)
+                        write_all_summaries(ID, stats_pdframe, output_folder)
+                    sys.stdout.write("Summary statistics obtained. Finished." + '\n')
+            except:
+                pass

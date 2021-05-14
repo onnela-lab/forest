@@ -71,7 +71,7 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
             read one csv file, process one, not wait until all the csv's are imported (that may be too large in memory!)
     """
     df = pd.DataFrame()
-    stamp_start = 0 ; stamp_end = 0
+    stamp_start = 1e12 ; stamp_end = 0
     folder_path = study_folder + "/" + ID +  "/" + str(datastream)
     ## if text folder exists, call folder must exists
     if not os.path.exists(study_folder + "/" + ID):
@@ -116,7 +116,7 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
         ## extract the filenames in range
         files_in_range = filenames[(filestamps>=stamp_start)*(filestamps<stamp_end)]
         if len(files_in_range) == 0:
-            print('User '+ str(ID) + ' : There are no ' + str(datastream) + ' data in range.')
+            sys.stdout.write('User '+ str(ID) + ' : There are no ' + str(datastream) + ' data in range.'+ '\n')
         else:
             if datastream!='accelerometer':
                 ## read in the data one by one file and stack them
@@ -127,7 +127,6 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
                         df = hour_data
                     else:
                         df = df.append(hour_data,ignore_index=True)
-                sys.stdout.write("Data imported ..." + '\n')
     if datastream == "accelerometer":
         return files_in_range, stamp_start, stamp_end
     else:
@@ -143,4 +142,3 @@ def write_all_summaries(ID, stats_pdframe, output_folder):
     if os.path.exists(output_folder)==False:
         os.mkdir(output_folder)
     stats_pdframe.to_csv(output_folder + "/" + str(ID) +  ".csv",index=False)
-    print('Done.')
