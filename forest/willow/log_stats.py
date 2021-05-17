@@ -121,9 +121,13 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
     ## beiwe_id should be a list of str
     if beiwe_id == None:
         beiwe_id = os.listdir(study_folder)
+        id_w_folder = []
+        for i in beiwe_id:
+            if os.path.isdir(study_folder+"/"+i):
+                id_w_folder.append(i)
 
-    if len(beiwe_id)>0:
-        for ID in beiwe_id:
+    if len(id_w_folder)>0:
+        for ID in id_w_folder:
             sys.stdout.write('User: '+ ID + '\n')
             try:
                 ## read data
