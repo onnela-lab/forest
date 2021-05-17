@@ -143,13 +143,13 @@ def int2str(h):
     return str(h)
 
 def gen_text_files(output_folder):
-  if os.path.exists(output_folder+"/test_data")==False:
-    os.mkdir(output_folder+"/test_data")
+  if os.path.exists(output_folder)==False:
+    os.mkdir(output_folder)
   for ID in ["user_1","user_2"]:
-    if os.path.exists(output_folder+"/test_data/"+ID)==False:
-      os.mkdir(output_folder+"/test_data/"+ID)
-    if os.path.exists(output_folder+"/test_data/"+ID+"/texts")==False:
-      os.mkdir(output_folder+"/test_data/"+ID+"/texts")
+    if os.path.exists(output_folder+"/"+ID)==False:
+      os.mkdir(output_folder+"/"+ID)
+    if os.path.exists(output_folder+"/"+ID+"/texts")==False:
+      os.mkdir(output_folder+"/"+ID+"/texts")
     phone_nums = gen_random_id(20)
     for i in range(14):
       status = gen_status()
@@ -173,16 +173,16 @@ def gen_text_files(output_folder):
               new_line = [(start_t+stamps[k])*1000,"-",contacts[g],sms,gen_text_len(),(start_t+stamps[k]-np.random.randint(10))*1000]
               data.append(new_line)
           data = pd.DataFrame(data,columns=["timestamp","UTC time","hashed phone number","sent vs received","message length","time sent"])
-          data.to_csv(output_folder+"/test_data/"+ID+"/texts/"+filename,index=False)
+          data.to_csv(output_folder+"/"+ID+"/texts/"+filename,index=False)
 
 def gen_call_files(output_folder):
-  if os.path.exists(output_folder+"/test_data")==False:
-    os.mkdir(output_folder+"/test_data")
+  if os.path.exists(output_folder)==False:
+    os.mkdir(output_folder)
   for ID in ["user_1","user_2"]:
-    if os.path.exists(output_folder+"/test_data/"+ID)==False:
-      os.mkdir(output_folder+"/test_data/"+ID)
-    if os.path.exists(output_folder+"/test_data/"+ID+"/calls")==False:
-      os.mkdir(output_folder+"/test_data/"+ID+"/calls")
+    if os.path.exists(output_folder+"/"+ID)==False:
+      os.mkdir(output_folder+"/"+ID)
+    if os.path.exists(output_folder+"/"+ID+"/calls")==False:
+      os.mkdir(output_folder+"/"+ID+"/calls")
     phone_nums = gen_random_id(20)
     for i in range(14):
       status = gen_status()
@@ -217,7 +217,7 @@ def gen_call_files(output_folder):
             new_line = [start_t*1000+all_stamps[z]*1000,"-",all_phone[z],call_type,all_dur[z]]
             data.append(new_line)
           data = pd.DataFrame(data,columns=["timestamp","UTC time","hashed phone number","call type","duration in seconds"])
-          data.to_csv(output_folder+"/test_data/"+ID+"/calls/"+filename,index=False)
+          data.to_csv(output_folder+"/"+ID+"/calls/"+filename,index=False)
 
 def sim_log_data(output_folder):
   gen_text_files(output_folder)

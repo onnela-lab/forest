@@ -5,10 +5,6 @@ import numpy as np
 from datetime import datetime
 from pytz import timezone
 import calendar
-import logging
-
-
-logger = logging.getLogger(__name__)
 
 def datetime2stamp(time_list,tz_str):
     """
@@ -21,16 +17,12 @@ def datetime2stamp(time_list,tz_str):
     to check all timezones
     Return: Unix time, which is what Beiwe uses
     """
-    try:
-        loc_tz =  timezone(tz_str)
-        loc_dt = loc_tz.localize(datetime(time_list[0], time_list[1], time_list[2], time_list[3], time_list[4], time_list[5]))
-        utc = timezone("UTC")
-        utc_dt = loc_dt.astimezone(utc)
-        timestamp = calendar.timegm(utc_dt.timetuple())
-        return timestamp
-    except:
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        logger.debug(str(exc_value).replace(",", ""))
+    loc_tz =  timezone(tz_str)
+    loc_dt = loc_tz.localize(datetime(time_list[0], time_list[1], time_list[2], time_list[3], time_list[4], time_list[5]))
+    utc = timezone("UTC")
+    utc_dt = loc_dt.astimezone(utc)
+    timestamp = calendar.timegm(utc_dt.timetuple())
+    return timestamp
 
 def stamp2datetime(stamp,tz_str):
     """
@@ -43,15 +35,11 @@ def stamp2datetime(stamp,tz_str):
     to check all timezones
     Return: a list of integers [year, month, day, hour (0-23), min, sec] in the specified tz
     """
-    try:
-        loc_tz =  timezone(tz_str)
-        utc = timezone("UTC")
-        utc_dt = utc.localize(datetime.utcfromtimestamp(stamp))
-        loc_dt = utc_dt.astimezone(loc_tz)
-        return [loc_dt.year, loc_dt.month,loc_dt.day,loc_dt.hour,loc_dt.minute,loc_dt.second]
-    except:
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        logger.debug(str(exc_value).replace(",", ""))
+    loc_tz =  timezone(tz_str)
+    utc = timezone("UTC")
+    utc_dt = utc.localize(datetime.utcfromtimestamp(stamp))
+    loc_dt = utc_dt.astimezone(loc_tz)
+    return [loc_dt.year, loc_dt.month,loc_dt.day,loc_dt.hour,loc_dt.minute,loc_dt.second]
 
 def filename2stamp(filename):
     """
@@ -59,15 +47,11 @@ def filename2stamp(filename):
     Args: filename (str), the filename of communication log
     Return: UNIX time (int)
     """
-    try:
-        [d_str,h_str] = filename.split(' ')
-        [y,m,d] = np.array(d_str.split('-'),dtype=int)
-        h = int(h_str.split('_')[0])
-        stamp = datetime2stamp((y,m,d,h,0,0),'UTC')
-        return stamp
-    except:
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        logger.debug(str(exc_value).replace(",", ""))
+    [d_str,h_str] = filename.split(' ')
+    [y,m,d] = np.array(d_str.split('-'),dtype=int)
+    h = int(h_str.split('_')[0])
+    stamp = datetime2stamp((y,m,d,h,0,0),'UTC')
+    return stamp
 
 def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start, time_end):
     """
@@ -87,70 +71,66 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
             read one csv file, process one, not wait until all the csv's are imported (that may be too large in memory!)
     """
     df = pd.DataFrame()
-    stamp_start = 0 ; stamp_end = 0
+    stamp_start = 1e12 ; stamp_end = 0
     folder_path = study_folder + "/" + ID +  "/" + str(datastream)
     ## if text folder exists, call folder must exists
-    try:
-        if not os.path.exists(study_folder + "/" + ID):
-            logger.warning('User '+ str(ID) + ' does not exist, please check the ID again.')
-        elif not os.path.exists(folder_path):
-            logger.warning('User '+ str(ID) + ' : ' + str(datastream) + ' data are not collected.')
-        else:
-            filenames = np.sort(np.array(os.listdir(folder_path)))
-            ## create a list to convert all filenames to UNIX time
-            filestamps = np.array([filename2stamp(filename) for filename in filenames])
-            ## find the timestamp in the identifier (when the user was enrolled)
-            if os.path.exists(study_folder + "/" + ID + "/identifiers"):
-                identifier_Files = os.listdir(study_folder + "/" + ID + "/identifiers")
-                identifiers = pd.read_csv(study_folder + "/" + ID + "/identifiers/"+ identifier_Files[0], sep = ",")
-                ## now determine the starting and ending time according to the Docstring
-                if identifiers.index[0]>10**10:  ## sometimes the identifier has mismatched colnames and columns
-                    stamp_start1 = identifiers.index[0]/1000
-                else:
-                    stamp_start1 = identifiers["timestamp"][0]/1000
-            else:
-                stamp_start1 = sorted(filestamps)[0]
+    if not os.path.exists(study_folder + "/" + ID):
+        print('User '+ str(ID) + ' does not exist, please check the ID again.')
+    elif not os.path.exists(folder_path):
+        print('User '+ str(ID) + ' : ' + str(datastream) + ' data are not collected.')
+    else:
+        filenames = np.sort(np.array(os.listdir(folder_path)))
+        ## create a list to convert all filenames to UNIX time
+        filestamps = np.array([filename2stamp(filename) for filename in filenames])
+        ## find the timestamp in the identifier (when the user was enrolled)
+        if os.path.exists(study_folder + "/" + ID + "/identifiers"):
+            identifier_Files = os.listdir(study_folder + "/" + ID + "/identifiers")
+            identifiers = pd.read_csv(study_folder + "/" + ID + "/identifiers/"+ identifier_Files[0], sep = ",")
             ## now determine the starting and ending time according to the Docstring
-            if time_start == None:
-                stamp_start = stamp_start1
+            if identifiers.index[0]>10**10:  ## sometimes the identifier has mismatched colnames and columns
+                stamp_start1 = identifiers.index[0]/1000
             else:
-                stamp_start2 = datetime2stamp(time_start,tz_str)
-                stamp_start = max(stamp_start1,stamp_start2)
-            ##Last hour: look at all the subject's directories (except survey) and find the latest date for each directory
-            directories = os.listdir(study_folder + "/" + ID)
-            directories = list(set(directories)-set(["survey_answers","survey_timings"]))
-            all_timestamps = []
-            for i in directories:
-                files = os.listdir(study_folder + "/" + ID + "/" + i)
-                all_timestamps += [filename2stamp(filename) for filename in files]
-            ordered_timestamps = sorted([timestamp for timestamp in all_timestamps if timestamp is not None])
-            stamp_end1 = ordered_timestamps[-1]
-            if time_end == None:
-                stamp_end = stamp_end1
-            else:
-                stamp_end2 =  datetime2stamp(time_end,tz_str)
-                stamp_end = min(stamp_end1,stamp_end2)
-            ## extract the filenames in range
-            files_in_range = filenames[(filestamps>=stamp_start)*(filestamps<stamp_end)]
-            if len(files_in_range) == 0:
-                logger.warning('User '+ str(ID) + ' : There are no ' + str(datastream) + ' data in range.')
-            else:
-                if datastream!='accelerometer':
-                    ## read in the data one by one file and stack them
-                    for data_file in files_in_range:
-                        dest_path = folder_path + "/" + data_file
-                        hour_data = pd.read_csv(dest_path)
-                        if df.shape[0]==0:
-                            df = hour_data
-                        else:
-                            df = df.append(hour_data,ignore_index=True)
-                    sys.stdout.write("Data imported ..." + '\n')
-                    return df, stamp_start, stamp_end
-                else:
-                    return files_in_range, stamp_start, stamp_end
-    except:
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        logger.debug(str(ID) + ': ' + str(exc_value).replace(",", ""))
+                stamp_start1 = identifiers["timestamp"][0]/1000
+        else:
+            stamp_start1 = sorted(filestamps)[0]
+        ## now determine the starting and ending time according to the Docstring
+        if time_start == None:
+            stamp_start = stamp_start1
+        else:
+            stamp_start2 = datetime2stamp(time_start,tz_str)
+            stamp_start = max(stamp_start1,stamp_start2)
+        ##Last hour: look at all the subject's directories (except survey) and find the latest date for each directory
+        directories = os.listdir(study_folder + "/" + ID)
+        directories = list(set(directories)-set(["survey_answers","survey_timings"]))
+        all_timestamps = []
+        for i in directories:
+            files = os.listdir(study_folder + "/" + ID + "/" + i)
+            all_timestamps += [filename2stamp(filename) for filename in files]
+        ordered_timestamps = sorted([timestamp for timestamp in all_timestamps if timestamp is not None])
+        stamp_end1 = ordered_timestamps[-1]
+        if time_end == None:
+            stamp_end = stamp_end1
+        else:
+            stamp_end2 =  datetime2stamp(time_end,tz_str)
+            stamp_end = min(stamp_end1,stamp_end2)
+        ## extract the filenames in range
+        files_in_range = filenames[(filestamps>=stamp_start)*(filestamps<stamp_end)]
+        if len(files_in_range) == 0:
+            sys.stdout.write('User '+ str(ID) + ' : There are no ' + str(datastream) + ' data in range.'+ '\n')
+        else:
+            if datastream!='accelerometer':
+                ## read in the data one by one file and stack them
+                for data_file in files_in_range:
+                    dest_path = folder_path + "/" + data_file
+                    hour_data = pd.read_csv(dest_path)
+                    if df.shape[0]==0:
+                        df = hour_data
+                    else:
+                        df = df.append(hour_data,ignore_index=True)
+    if datastream == "accelerometer":
+        return files_in_range, stamp_start, stamp_end
+    else:
+        return df, stamp_start, stamp_end
 
 def write_all_summaries(ID, stats_pdframe, output_folder):
     """
@@ -159,11 +139,6 @@ def write_all_summaries(ID, stats_pdframe, output_folder):
           output_path should be the folder path where you want to save the output
     Return: write out as csv files named by user ID
     """
-    try:
-        if os.path.exists(output_folder)==False:
-            os.mkdir(output_folder)
-        stats_pdframe.to_csv(output_folder + "/" + str(ID) +  ".csv",index=False)
-        print('Done.')
-    except:
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        logger.debug(str(ID) + ': ' + str(exc_value).replace(",", ""))
+    if os.path.exists(output_folder)==False:
+        os.mkdir(output_folder)
+    stats_pdframe.to_csv(output_folder + "/" + str(ID) +  ".csv",index=False)

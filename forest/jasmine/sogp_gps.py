@@ -1,9 +1,6 @@
-from logging import getLogger
 import sys
 import math
 import numpy as np
-
-logger = getLogger(__name__)
 
 ## the radius of the earth
 R = 6.371*10**6
@@ -233,78 +230,74 @@ def SOGP(X,Y,sigma2,tol,d,pars,Q,C,alpha,bv):
           pars, a list of parameters
     Return: a dictionary with bv,alpha: 1d array (d) Q,C: 2d array (d*d)
     """
-    try:
-        n = len(Y)
-        I = 0 ## an indicator shows if it is the first time that the number of bvs hits d
-        for i in range(n):
+    n = len(Y)
+    I = 0 ## an indicator shows if it is the first time that the number of bvs hits d
+    for i in range(n):
+        if X.ndim==1:
+            x_current = X[i]
+        else:
+            x_current = X[i,:]
+        y_current = Y[i]
+        k = update_k(bv,x_current,pars)
+        if np.shape(C)[0]==0:
+            sigmax = 1+sigma2
+        else:
+            sigmax = 1+sigma2+k.dot(C).dot(k)
+        q = update_q(k,alpha,sigmax,y_current)
+        r = -1/sigmax
+        e_hat = update_e_hat(Q,k)
+        gamma = update_gamma(k,e_hat)
+        if gamma<tol:
+            s = update_s_hat(C,k,e_hat)
+            eta = update_eta(gamma,sigmax)
+            alpha = update_alpha_hat(alpha,q,eta,s)
+            C = update_c_hat(C,sigmax,eta,s)
+        else:
+            s = update_s(C,k)
+            alpha = update_alpha(alpha,q,s)
+            C = update_c(C,sigmax,s)
+            Q = update_Q(Q,gamma,e_hat)
             if X.ndim==1:
-                x_current = X[i]
+                new_point = np.array([x_current,y_current])
             else:
-                x_current = X[i,:]
-            y_current = Y[i]
-            k = update_k(bv,x_current,pars)
-            if np.shape(C)[0]==0:
-                sigmax = 1+sigma2
-            else:
-                sigmax = 1+sigma2+k.dot(C).dot(k)
-            q = update_q(k,alpha,sigmax,y_current)
-            r = -1/sigmax
-            e_hat = update_e_hat(Q,k)
-            gamma = update_gamma(k,e_hat)
-            if gamma<tol:
-                s = update_s_hat(C,k,e_hat)
-                eta = update_eta(gamma,sigmax)
-                alpha = update_alpha_hat(alpha,q,eta,s)
-                C = update_c_hat(C,sigmax,eta,s)
-            else:
-                s = update_s(C,k)
-                alpha = update_alpha(alpha,q,s)
-                C = update_c(C,sigmax,s)
-                Q = update_Q(Q,gamma,e_hat)
-                if X.ndim==1:
-                    new_point = np.array([x_current,y_current])
-                else:
-                    new_point = np.concatenate((x_current,[y_current]))
-                bv.append(new_point)
-                if len(bv)>=d:
-                    I = I + 1
-                if I==1:
-                    ## the sample size hits d first time, calculate K once and then update it in another way
-                    K = np.zeros([d,d])
-                    for i in range(d):
-                        for j in range(d):
-                            K[i,j] = K0(bv[i][:-1],bv[j][:-1],pars)
-                    S = np.linalg.inv(np.linalg.inv(C)+K)
-
-                if len(bv)>d:
-                    alpha_vec = update_alpha_vec(alpha,Q,C)
-                    c_mat = update_c_mat(C,Q)
-                    q_mat = update_q_mat(Q)
-                    s_mat = np.hstack([np.vstack([S,np.zeros(d)]),np.zeros([d+1,1])])
-                    s_mat[d,d] = 1/sigma2
-                    k_mat = update_K(bv,K,pars)
-                    eps = np.zeros(d)
+                new_point = np.concatenate((x_current,[y_current]))
+            bv.append(new_point)
+            if len(bv)>=d:
+                I = I + 1
+            if I==1:
+                ## the sample size hits d first time, calculate K once and then update it in another way
+                K = np.zeros([d,d])
+                for i in range(d):
                     for j in range(d):
-                        eps[j] = alpha_vec[j]/(q_mat[j,j]+c_mat[j,j])-s_mat[j,j]/q_mat[j,j]+np.log(1+c_mat[j,j]/q_mat[j,j])
-                    loc = np.where(eps == np.min(eps))[0][0]
-                    del bv[loc]
-                    if loc==0:
-                        #index = np.append(np.arange(1,d+1),0)
-                        index = np.concatenate((np.arange(1,d+1),[0]))
-                    else:
-                        #index = np.append(np.append(np.arange(0,loc),np.arange(loc+1,d+1)),loc)
-                        index = np.concatenate((np.arange(0,loc),np.arange(loc+1,d+1),[loc]))
-                    alpha = update_alpha_vec(alpha[index],(Q[index,:])[:,index],(C[index,:])[:,index])
+                        K[i,j] = K0(bv[i][:-1],bv[j][:-1],pars)
+                S = np.linalg.inv(np.linalg.inv(C)+K)
 
-                    C = update_c_mat((C[index,:])[:,index],(Q[index,:])[:,index])
-                    Q = update_q_mat((Q[index,:])[:,index])
-                    S = update_s_mat(k_mat,s_mat,index,Q)
-                    K = (k_mat[index[:d],:])[:,index[:d]]
-        output = {'bv':bv,'alpha':alpha,'Q':Q,'C':C}
-        return output
-    except:
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        logger.debug(str(exc_value).replace(",", ""))
+            if len(bv)>d:
+                alpha_vec = update_alpha_vec(alpha,Q,C)
+                c_mat = update_c_mat(C,Q)
+                q_mat = update_q_mat(Q)
+                s_mat = np.hstack([np.vstack([S,np.zeros(d)]),np.zeros([d+1,1])])
+                s_mat[d,d] = 1/sigma2
+                k_mat = update_K(bv,K,pars)
+                eps = np.zeros(d)
+                for j in range(d):
+                    eps[j] = alpha_vec[j]/(q_mat[j,j]+c_mat[j,j])-s_mat[j,j]/q_mat[j,j]+np.log(1+c_mat[j,j]/q_mat[j,j])
+                loc = np.where(eps == np.min(eps))[0][0]
+                del bv[loc]
+                if loc==0:
+                    #index = np.append(np.arange(1,d+1),0)
+                    index = np.concatenate((np.arange(1,d+1),[0]))
+                else:
+                    #index = np.append(np.append(np.arange(0,loc),np.arange(loc+1,d+1)),loc)
+                    index = np.concatenate((np.arange(0,loc),np.arange(loc+1,d+1),[loc]))
+                alpha = update_alpha_vec(alpha[index],(Q[index,:])[:,index],(C[index,:])[:,index])
+
+                C = update_c_mat((C[index,:])[:,index],(Q[index,:])[:,index])
+                Q = update_q_mat((Q[index,:])[:,index])
+                S = update_s_mat(k_mat,s_mat,index,Q)
+                K = (k_mat[index[:d],:])[:,index[:d]]
+    output = {'bv':bv,'alpha':alpha,'Q':Q,'C':C}
+    return output
 
 def BV_select(MobMat,sigma2,tol,d,pars,memory_dict,BV_set):
     """
@@ -317,64 +310,60 @@ def BV_select(MobMat,sigma2,tol,d,pars,memory_dict,BV_set):
           memory_dict: a dictionary of dictionary from SOGP()
     Return: a dictionary with bv [trajectory], bv_index, and an updated memory_dict
     """
-    try:
-        sys.stdout.write("Selecting basis vectors ..." + '\n')
-        flight_index = MobMat[:,0]==1
-        pause_index = MobMat[:,0]==2
-        mean_x = (MobMat[:,1]+MobMat[:,4])/2
-        mean_y = (MobMat[:,2]+MobMat[:,5])/2
-        mean_t = (MobMat[:,3]+MobMat[:,6])/2
-        ## use t as the unique key to match bv and mobmat
+    sys.stdout.write("Selecting basis vectors ..." + '\n')
+    flight_index = MobMat[:,0]==1
+    pause_index = MobMat[:,0]==2
+    mean_x = (MobMat[:,1]+MobMat[:,4])/2
+    mean_y = (MobMat[:,2]+MobMat[:,5])/2
+    mean_t = (MobMat[:,3]+MobMat[:,6])/2
+    ## use t as the unique key to match bv and mobmat
 
-        if memory_dict == None:
-            memory_dict = {}
-            memory_dict['1'] = {'bv':[],'alpha':[],'Q':[],'C':[]}
-            memory_dict['2'] = {'bv':[],'alpha':[],'Q':[],'C':[]}
-            memory_dict['3'] = {'bv':[],'alpha':[],'Q':[],'C':[]}
-            memory_dict['4'] = {'bv':[],'alpha':[],'Q':[],'C':[]}
+    if memory_dict == None:
+        memory_dict = {}
+        memory_dict['1'] = {'bv':[],'alpha':[],'Q':[],'C':[]}
+        memory_dict['2'] = {'bv':[],'alpha':[],'Q':[],'C':[]}
+        memory_dict['3'] = {'bv':[],'alpha':[],'Q':[],'C':[]}
+        memory_dict['4'] = {'bv':[],'alpha':[],'Q':[],'C':[]}
 
-        X = np.transpose(np.vstack((mean_t,mean_x)))[flight_index]
-        Y = mean_y[flight_index]
-        result1 = SOGP(X,Y,sigma2,tol,d,pars,memory_dict['1']['Q'],memory_dict['1']['C'],memory_dict['1']['alpha'],memory_dict['1']['bv'])
-        bv1 = result1['bv']
-        t1 = np.array([bv1[j][0] for j in range(len(bv1))])
+    X = np.transpose(np.vstack((mean_t,mean_x)))[flight_index]
+    Y = mean_y[flight_index]
+    result1 = SOGP(X,Y,sigma2,tol,d,pars,memory_dict['1']['Q'],memory_dict['1']['C'],memory_dict['1']['alpha'],memory_dict['1']['bv'])
+    bv1 = result1['bv']
+    t1 = np.array([bv1[j][0] for j in range(len(bv1))])
 
-        X = np.transpose(np.vstack((mean_t,mean_x)))[pause_index]
-        Y = mean_y[pause_index]
-        result2 = SOGP(X,Y,sigma2,tol,d,pars,memory_dict['2']['Q'],memory_dict['2']['C'],memory_dict['2']['alpha'],memory_dict['2']['bv'])
-        bv2 = result2['bv']
-        t2 = np.array([bv2[j][0] for j in range(len(bv2))])
+    X = np.transpose(np.vstack((mean_t,mean_x)))[pause_index]
+    Y = mean_y[pause_index]
+    result2 = SOGP(X,Y,sigma2,tol,d,pars,memory_dict['2']['Q'],memory_dict['2']['C'],memory_dict['2']['alpha'],memory_dict['2']['bv'])
+    bv2 = result2['bv']
+    t2 = np.array([bv2[j][0] for j in range(len(bv2))])
 
-        X = np.transpose(np.vstack((mean_t,mean_y)))[flight_index]
-        Y = mean_x[flight_index]
-        result3 = SOGP(X,Y,sigma2,tol,d,pars,memory_dict['3']['Q'],memory_dict['3']['C'],memory_dict['3']['alpha'],memory_dict['3']['bv'])
-        bv3 = result3['bv']
-        t3 = np.array([bv3[j][0] for j in range(len(bv3))])
+    X = np.transpose(np.vstack((mean_t,mean_y)))[flight_index]
+    Y = mean_x[flight_index]
+    result3 = SOGP(X,Y,sigma2,tol,d,pars,memory_dict['3']['Q'],memory_dict['3']['C'],memory_dict['3']['alpha'],memory_dict['3']['bv'])
+    bv3 = result3['bv']
+    t3 = np.array([bv3[j][0] for j in range(len(bv3))])
 
-        X = np.transpose(np.vstack((mean_t,mean_y)))[pause_index]
-        Y = mean_x[pause_index]
-        result4 = SOGP(X,Y,sigma2,tol,d,pars,memory_dict['4']['Q'],memory_dict['4']['C'],memory_dict['4']['alpha'],memory_dict['4']['bv'])
-        bv4 = result4['bv']
-        t4 = np.array([bv4[j][0] for j in range(len(bv4))])
+    X = np.transpose(np.vstack((mean_t,mean_y)))[pause_index]
+    Y = mean_x[pause_index]
+    result4 = SOGP(X,Y,sigma2,tol,d,pars,memory_dict['4']['Q'],memory_dict['4']['C'],memory_dict['4']['alpha'],memory_dict['4']['bv'])
+    bv4 = result4['bv']
+    t4 = np.array([bv4[j][0] for j in range(len(bv4))])
 
-        unique_t = np.unique(np.concatenate((np.concatenate((t1,t2)),np.concatenate((t3,t4)))))
-        if BV_set != None:
-            all_candidates = np.vstack((BV_set,MobMat))
-            all_t = (all_candidates[:,3]+all_candidates[:,6])/2
-        else:
-            all_candidates = MobMat
-            all_t = mean_t
-        index = []
-        for j in range(len(all_t)):
-            if np.any(unique_t == all_t[j]):
-                index.append(j)
-        index = np.array(index)
-        BV_set = all_candidates[index,:]
-        memory_dict['1'] = result1
-        memory_dict['2'] = result2
-        memory_dict['3'] = result3
-        memory_dict['4'] = result4
-        return {'BV_set':BV_set,'memory_dict':memory_dict}
-    except:
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        logger.debug(str(exc_value).replace(",", ""))
+    unique_t = np.unique(np.concatenate((np.concatenate((t1,t2)),np.concatenate((t3,t4)))))
+    if BV_set != None:
+        all_candidates = np.vstack((BV_set,MobMat))
+        all_t = (all_candidates[:,3]+all_candidates[:,6])/2
+    else:
+        all_candidates = MobMat
+        all_t = mean_t
+    index = []
+    for j in range(len(all_t)):
+        if np.any(unique_t == all_t[j]):
+            index.append(j)
+    index = np.array(index)
+    BV_set = all_candidates[index,:]
+    memory_dict['1'] = result1
+    memory_dict['2'] = result2
+    memory_dict['3'] = result3
+    memory_dict['4'] = result4
+    return {'BV_set':BV_set,'memory_dict':memory_dict}
