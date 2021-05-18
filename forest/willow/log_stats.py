@@ -121,6 +121,11 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
     ## beiwe_id should be a list of str
     if beiwe_id == None:
         beiwe_id = os.listdir(study_folder)
+        id_w_folder = []
+        for i in beiwe_id:
+            if os.path.isdir(study_folder+"/"+i):
+                id_w_folder.append(i)
+        beiwe_id = id_w_folder
 
     if len(beiwe_id)>0:
         for ID in beiwe_id:
