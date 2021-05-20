@@ -101,7 +101,7 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
             stamp_start = max(stamp_start1,stamp_start2)
         ##Last hour: look at all the subject's directories (except survey) and find the latest date for each directory
         directories = os.listdir(study_folder + "/" + ID)
-        directories = list(set(directories)-set(["survey_answers","survey_timings"]))
+        directories = list(set(directories)-set(["survey_answers","survey_timings","audio_recordings"]))
         all_timestamps = []
         for i in directories:
             files = os.listdir(study_folder + "/" + ID + "/" + i)
