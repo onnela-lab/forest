@@ -55,5 +55,5 @@ with open(args.api) as api_file:
                 )
             except KeyError:
                 # ignore missing variables in Forest output for now
-                pass
+                output_row.append("")
         diff_output.writerow(output_row)
