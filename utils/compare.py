@@ -8,13 +8,21 @@ import argparse
 import collections
 import csv
 import json
+import os
 import sys
 
 parser = argparse.ArgumentParser()
-parser.add_argument("api", help="path to summary API output file", type=str)
-parser.add_argument("forest", help="path to Forest output file", type=str)
-parser.add_argument("participant_id", help="study participant ID", type=str)
+parser.add_argument("api_file", help="path to summary API output file",
+                    type=str)
+parser.add_argument("forest_file", help="path to Forest output file", type=str)
+parser.add_argument("participant_id", help="study participant ID", type=str,
+                    nargs="?", default=None)
 args = parser.parse_args()
+
+if not args.participant_id:
+    args.participant_id = os.path.splitext(
+        os.path.basename(args.forest_file)
+    )[0]
 
 variable_mapping = collections.OrderedDict([
     ("distance_diameter", "diameter"),
@@ -30,17 +38,17 @@ variable_mapping = collections.OrderedDict([
 
 forest_output = {}
 
-with open(args.forest) as forest_file:
+with open(args.forest_file) as forest_file:
     for row in csv.DictReader(forest_file):
         date = f"{int(float(row['year']))}-" \
                f"{int(float(row['month'])):02}-" \
                f"{int(float(row['day'])):02}"
         forest_output[date] = row
 
-diff_output = csv.writer(sys.stdout)
-diff_output.writerow(["date"] + list(variable_mapping.keys()))
+output = csv.writer(sys.stdout)
+output.writerow(["date"] + list(variable_mapping.keys()))
 
-with open(args.api) as api_file:
+with open(args.api_file) as api_file:
     api_output = json.load(api_file)
     for api_entry in api_output:
         if api_entry["participant_id"] != args.participant_id:
@@ -56,4 +64,4 @@ with open(args.api) as api_file:
             except KeyError:
                 # ignore missing variables in Forest output for now
                 output_row.append("")
-        diff_output.writerow(output_row)
+        output.writerow(output_row)
