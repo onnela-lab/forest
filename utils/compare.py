@@ -62,6 +62,14 @@ with open(args.api_file) as api_file:
                     api_entry[json_name] - float(forest_entry[csv_name])
                 )
             except KeyError:
-                # ignore missing variables in Forest output for now
+                # ignore missing variables in Forest output
                 output_row.append("")
+            except ValueError:
+                if (api_entry[json_name] is None
+                        and forest_entry[csv_name] == ""):
+                    # ignore empty values
+                    output_row.append("")
+                    continue
+                else:
+                    raise
         output.writerow(output_row)
