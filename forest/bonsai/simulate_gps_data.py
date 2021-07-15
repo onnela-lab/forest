@@ -58,8 +58,24 @@ def getPath(lat1, lon1, lat2, lon2, transport, api_key):
 
 			return np.array(path_coordinates), great_circle_dist(lat1, lon1, lat2, lon2)
 		else:
-			print(call.status_code, call.reason)
-			return np.array([[lon1, lat1], [lon2, lat2]]), great_circle_dist(lat1, lon1, lat2, lon2)
+			time.sleep(60)
+			call = requests.get('https://api.openrouteservice.org/v2/directions/{}?api_key={}&start={},{}&end={},{}'.format(transport,api_key,lon1,lat1,lon2,lat2),
+							headers=headers)
+
+			if call.reason == 'OK' and call.status_code == 200:
+				res = json.loads(call.text)['features'][0]
+				path_coordinates = res['geometry']['coordinates']
+				#distance = res['properties']['segments'][0]['distance'] # meters
+				
+				if (path_coordinates[0] != [lon1, lat1]):
+					path_coordinates[0] = [lon1, lat1]
+				if (path_coordinates[-1] != [lon2, lat2]):
+					path_coordinates[-1] = [lon2, lat2]
+
+				return np.array(path_coordinates), great_circle_dist(lat1, lon1, lat2, lon2)
+			else:
+				print(call.status_code, call.reason)
+				return np.array([[lon1, lat1], [lon2, lat2]]), great_circle_dist(lat1, lon1, lat2, lon2)
 	
 	
 	
@@ -178,10 +194,19 @@ def createAmenityQuery(area, amenity):
 			node{}["office"];
 			out 100;
 			""".format(area)
+	elif amenity == 'university':
+		q = """
+			[out:json];
+			(
+				node{0}["amenity"="university"];
+				way{0}["amenity"="university"];
+			);
+			out center 100;
+			""".format(area)
 	
 	return q
 
-def getQueryResults(api, query_str, n):
+def getQueryResults(query_str, n):
 	"""
 	This function runs an overpass query and randomly selects nodes from the results
 	Args: 
@@ -191,21 +216,48 @@ def getQueryResults(api, query_str, n):
 	Return: 
 		list of coordinates
 	"""
-
+	overpass_url = "http://overpass-api.de/api/interpreter"
+	response = requests.get(overpass_url, params={'data': query_str})
+	data = response.json()
 	
-	res = api.query(query_str)
-	if len(res.nodes) == 0:
+	if len(data['elements']) == 0:
 		return []
-	elif len(res.nodes) < n:
-		return [(float(node.lat), float(node.lon)) for node in res.nodes]
+	elif len(data['elements']) < n:
+		coords = []
+		for element in data['elements']:
+			if element['type'] == 'node':
+				lon = element['lon']
+				lat = element['lat']
+			elif 'center' in element:
+				lon = element['center']['lon']
+				lat = element['center']['lat']
+			coords.append((lat, lon)) 
+		return coords
 	else:
-		index = np.random.choice(range(len(res.nodes)), n, replace=False)
+		index = np.random.choice(range(len(data['elements'])), n, replace=False)
 	
 		if n == 1:
 			index = index[0]
-			return (float(res.nodes[index].lat), float(res.nodes[index].lon))
+			element = data["elements"][index]
+			if element['type'] == 'node':
+				lon = element['lon']
+				lat = element['lat']
+			elif 'center' in element:
+				lon = element['center']['lon']
+				lat = element['center']['lat']
+			return (lat, lon)
 		else:
-			return [(float(res.nodes[i].lat), float(res.nodes[i].lon)) for i in index]
+			res = [data["elements"][i] for i in index]
+			coords = []
+			for element in res:
+				if element['type'] == 'node':
+					lon = element['lon']
+					lat = element['lat']
+				elif 'center' in element:
+					lon = element['center']['lon']
+					lat = element['center']['lat']
+				coords.append((lat, lon)) 
+			return coords
 	
 	
 
@@ -250,13 +302,12 @@ class Person:
 			if self.main_employment == 1:
 				query_str = createAmenityQuery(self.house_area, "office")
 			elif self.main_employment == 2:
-				query_str = createAmenityQuery(self.house_area, "university")
-				
+				query_str = createAmenityQuery(boundingBox(house_address[0], house_address[1], 5000), "university")
 			try:
-				self.office_address = getQueryResults(overpy.Overpass(), query_str, 1)
+				self.office_address = getQueryResults(query_str, 1)
 			except:
 				time.sleep(20)
-				self.office_address = getQueryResults(overpy.Overpass(), query_str, 1)
+				self.office_address = getQueryResults(query_str, 1)
 			no_office_days = np.random.randint(3,6,1)[0]
 			self.office_days = np.random.choice(range(5), no_office_days, replace=False)
 			self.office_days.sort()
@@ -272,11 +323,11 @@ class Person:
 		for exit in self.possible_exits:
 			if len(all_nodes[exit]) > 3:
 				random_places = np.random.choice(range(len(all_nodes[exit])), 3, replace=False).tolist()
-				setattr(self, exit+'_places', [(float(place.lat), float(place.lon)) for place in np.array(all_nodes[exit])[random_places]])
+				setattr(self, exit+'_places', [(place[0], place[1]) for place in np.array(all_nodes[exit])[random_places]])
 			elif len(all_nodes[exit]) == 0:
 				setattr(self, exit+'_places', [])
 			else:
-				setattr(self, exit+'_places', [(float(place.lat), float(place.lon)) for place in np.array(all_nodes[exit])])
+				setattr(self, exit+'_places', [(place[0], place[1]) for place in np.array(all_nodes[exit])])
 
 			distances = [great_circle_dist(self.house_address[0], self.house_address[1], place[0], place[1]) for place in getattr(self, exit+'_places')]
 			order = np.argsort(distances)
@@ -491,6 +542,17 @@ class Person:
 
 
 def gen_basic_traj(l_s, l_e, vehicle, t_s):
+	"""
+	This function generates basic trajectories between 2 points.
+	Args: 
+		l_s: tuple, coordinates of start point
+		l_e: tuple, coordinates of end point
+		vehicle: str, means of transportation, can be one of the following: (car, bus, walk, bike)
+		t_s: float, starting time
+	Return: 
+		numpy.ndarray, containing the trajectories
+		float, total distance travelled
+	"""
 	traj_list = []
 	[lat_s, lon_s] = l_s
 	if vehicle == 'walk':
@@ -534,6 +596,16 @@ def gen_basic_traj(l_s, l_e, vehicle, t_s):
 	return traj_array, d
 
 def gen_basic_pause(l_s, t_s, t_e_range, t_diff_range):
+	"""
+	This function generates basic trajectories for a pause.
+	Args: 
+		l_s: tuple, coordinates of pause location
+		t_s: float, starting time
+		t_e_range: list, limits of ending time (None if t_diff_range used)
+		t_diff_range: list, limits of duration (None if t_e_range used)
+	Return: 
+		numpy.ndarray, containing the trajectories
+	"""
 	traj_list = []
 	if t_e_range is None:
 		r_time = int(np.around(np.random.uniform(t_diff_range[0], t_diff_range[1], 1), 0))
@@ -551,6 +623,16 @@ def gen_basic_pause(l_s, t_s, t_e_range, t_diff_range):
 	return traj_array
 
 def gen_route_traj(route, vehicle, t_s):
+	"""
+	This function generates basic trajectories between multiple points.
+	Args: 
+		route: list, contains coordinates of multiple locations
+		vehicle: str, means of transportation, can be one of the following: (car, bus, walk, bike)
+		t_s: float, starting time
+	Return: 
+		numpy.ndarray, containing the trajectories
+		float, total distance travelled
+	"""
 	total_d = 0
 	traj = np.zeros((1,3))
 	for i in range(len(route)-1):
@@ -587,7 +669,6 @@ def gen_all_traj(house_address, attributes, all_nodes, start_date, end_date):
 	"""
 
 	person = Person(house_address, attributes, all_nodes)
-		
 	if len(person.possible_exits) < 4 or (person.main_employment > 0 and len(person.office_address) == 0):
 		return [], [], []
 			
@@ -685,7 +766,16 @@ def gen_all_traj(house_address, attributes, all_nodes, start_date, end_date):
 
 ## cycle is minute
 def remove_data(full_data,cycle,p,day):
-	## keep the first and last 10 minutes,on-off-on-off,cycle=on+off,p=off/cycle
+	"""
+	Only keeps observed data from simulated trajectories dpending on cycle and p.
+	Args:
+		full_data: (numpy.ndarray) contains the complete trajectories
+		cycle: (int) on_period + off_period of observations, in minutes
+		p: (float) off_period/cycle, in between 0 and 1
+		day: (int) number of days in full_data
+	Returns:
+		obs_data: (numpy.ndarray) contains the trajectories of the on period.
+	"""
 	sample_dur = int(np.around(60*cycle*(1-p),0))
 	for i in range(day):
 		start = int(np.around(np.random.uniform(0, 60*cycle, 1),0))+86400*i
@@ -701,10 +791,22 @@ def remove_data(full_data,cycle,p,day):
 	obs_data = full_data[index_all,:]
 	return obs_data
 
-def prepare_data(obs, s):
+def prepare_data(obs, s, tz_str):
+	"""
+	Perpares the data in a dataframe.
+	Args:
+		obs: (numpy.ndarray) observed trajectories.
+		s: (int) timestamp of starting day
+		tz_str: (str) timezone
+	Returns:
+		new: (pandas.DataFrame) final dataframe of simulated gps data.
+	"""
+	utc_start = stamp2datetime(s, tz_str)
+	utc_start_stamp = datetime2stamp(utc_start, "UTC")
+
 	new = np.zeros((obs.shape[0],6))
 	new[:,0] = (obs[:,0] + s)*1000
-	new[:,1] = 0
+	new[:,1] = (obs[:,0] + utc_start_stamp)*1000
 	new[:,2] = obs[:,1]
 	new[:,3] = obs[:,2]
 	new[:,4] = 0
@@ -726,6 +828,13 @@ def impute2second(traj):
 	return secondwise
 
 def int2str(h):
+	"""
+	Converts numbers to 2 digit strings.
+	Args:
+		h: (int) 
+	Returns:
+		str of h, 2 digit minimum
+	"""
 	if h<10:
 		return str(0)+str(h)
 	else:
@@ -736,7 +845,15 @@ possible_exits = ['cafe', 'bar', 'restaurant', 'park', 'cinema', 'dance', 'fitne
 main_employment_dictionary = {'none':0, 'work':1, 'student':2}
 
 def process_attributes(attributes, key, user):
-
+	"""
+	Preprocesses the attributes of each person.
+	Args:
+		attributes: (dictionary) contains attributes of each person, loaded from json file.
+		key: (str) a key from attributes.keys()
+		user: (int) number of user
+	Returns:
+		attrs: (list) list of attributes for a user
+	"""
 	attrs = []
 
 	if "vehicle" in attributes[key].keys():
@@ -815,6 +932,7 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 		a pandas dataframe with only observations from on_cycles, which mimics the real data file
 	"""
 
+	print("Loading Attributes...")
 	attributes_dictionary = {}
 	attributes = json.load(open(attributes_dir))
 
@@ -837,7 +955,13 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 					if len(attrs) == 0:
 						return None
 					attributes_dictionary[user] = attrs
+	
+	for user in range(1, N + 1):
+		if user not in attributes_dictionary.keys():
+			attributes_dictionary[user] = [np.random.choice(range(3), 1)[0], np.random.choice(range(3), 1)[0],
+			np.random.choice(range(11), 1)[0], np.random.choice(range(11), 1)[0], np.random.choice(possible_exits, 3, replace=False).tolist()]
 
+	print("Finding Timezone...")
 	location_ctr = location.split("/")[0]
 	location_city = location.split("/")[1]
 	q = """
@@ -849,15 +973,19 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 		""".format(location_ctr, location_city)
 
 	api = overpy.Overpass()
-	res = api.query(q)
+	try:
+		res = api.query(q)
+	except:
+		time.sleep(20)
+		res = api.query(q)
 	location_coords = (float(res.nodes[0].lat), float(res.nodes[0].lon))
 	
 	obj = TimezoneFinder()
-	tz_str = obj.timezone_at(lng=location_coords[0], lat=location_coords[1])
+	tz_str = obj.timezone_at(lng=location_coords[1], lat=location_coords[0])
 
 	start_date = np.array(start_date.split("/")).astype(int)
 	end_date = np.array(end_date.split("/")).astype(int)
-    
+	
 	start_date = datetime.date(start_date[2],start_date[1],start_date[0])
 	end_date = datetime.date(end_date[2],end_date[1],end_date[0])
 	no_of_days = (end_date - start_date).days
@@ -865,7 +993,7 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 	s = datetime2stamp([start_date.year,start_date.month,start_date.day,0,0,0],tz_str)*1000
 	if os.path.exists(data_folder)==False:
 		os.mkdir(data_folder)
-
+	print("Gathering Addresses...")
 	overpy_query = createAddressQuery(location_ctr, location_city, 100)
 	try:
 		r = api.query(overpy_query)
@@ -877,11 +1005,11 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 		
 	user = 0
 	i = 0
+	print("Starting to generate trajectories...")
 	while user < N:
 
 		house_address = (float(nodes[i].lat), float(nodes[i].lon))
 		house_area = boundingBox(house_address[0], house_address[1], 2000)
-
 		
 		q = """
 		[out:json];
@@ -893,36 +1021,58 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 			node{0}["leisure"="park"];
 			node{0}["leisure"="dance"];
 			node{0}["leisure"="fitness_centre"];
+			way{0}["amenity"="cafe"];
+			way{0}["amenity"="bar"];
+			way{0}["amenity"="restaurant"];
+			way{0}["amenity"="cinema"];
+			way{0}["leisure"="park"];
+			way{0}["leisure"="dance"];
+			way{0}["leisure"="fitness_centre"];
 		);
-		out;
+		out center;
 		""".format(house_area)
-		try:
-			res = api.query(q)
-		except:
-			time.sleep(20)
-			res = api.query(q)
 
+		overpass_url = "http://overpass-api.de/api/interpreter"
+		response = requests.get(overpass_url, params={'data': q}, timeout=5*60)
+		if response.status_code == 200:
+			pass
+		else:
+			time.sleep(60)
+			response = requests.get(overpass_url, params={'data': q}, timeout=5*60)
+		try:
+			res = response.json()
+		except:
+			time.sleep(60)
+			response = requests.get(overpass_url, params={'data': q}, timeout=5*60)
+			res = response.json()
 		all_nodes = {'cafe': [], 'bar': [], 'restaurant': [],
 		'cinema': [], 'park': [], 'dance': [],
 		'fitness': []}
 
-		for node in res.nodes:
-			if 'amenity' in node.tags.keys():
-				if node.tags['amenity'] == 'cafe':
-					all_nodes['cafe'].append(node)
-				if node.tags['amenity'] == 'bar':
-					all_nodes['bar'].append(node)
-				if node.tags['amenity'] == 'restaurant':
-					all_nodes['restaurant'].append(node)
-				if node.tags['amenity'] == 'cinema':
-					all_nodes['cinema'].append(node)
-			elif 'leisure' in node.tags.keys():
-				if node.tags['leisure'] == 'park':
-					all_nodes['park'].append(node)
-				if node.tags['leisure'] == 'dance':
-					all_nodes['dance'].append(node)
-				if node.tags['leisure'] == 'fitness_centre':
-					all_nodes['fitness'].append(node)
+		for element in res['elements']:
+			if element['type'] == 'node':
+				lon = element['lon']
+				lat = element['lat']
+			elif 'center' in element:
+				lon = element['center']['lon']
+				lat = element['center']['lat']
+
+			if 'amenity' in element['tags']:
+				if element['tags']['amenity'] == 'cafe':
+					all_nodes['cafe'].append((lat, lon))
+				if element['tags']['amenity'] == 'bar':
+					all_nodes['bar'].append((lat, lon))
+				if element['tags']['amenity'] == 'restaurant':
+					all_nodes['restaurant'].append((lat, lon))
+				if element['tags']['amenity'] == 'cinema':
+					all_nodes['cinema'].append((lat, lon))
+			elif 'leisure' in element['tags']:
+				if element['tags']['leisure'] == 'park':
+					all_nodes['park'].append((lat, lon))
+				if element['tags']['leisure'] == 'dance':
+					all_nodes['dance'].append((lat, lon))
+				if element['tags']['leisure'] == 'fitness_centre':
+					all_nodes['fitness'].append((lat, lon))
 
 
 		if os.path.exists(data_folder+"/user_"+str(user+1))==False:
@@ -939,8 +1089,8 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 		all_T = np.array(all_T)/3600
 
 		print("User_"+str(user+1))
-		print("distance(km): ", all_D.tolist())
-		print("hometime(hr): ", all_T.tolist())
+		print("	distance(km): ", all_D.tolist())
+		print("	hometime(hr): ", all_T.tolist())
 		obs = remove_data(all_traj,cycle,p,no_of_days)
 		obs_pd = prepare_data(obs, s/1000)
 		for i in range(no_of_days):
