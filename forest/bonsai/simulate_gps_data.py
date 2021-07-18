@@ -1,4 +1,5 @@
 import os
+import sys
 import numpy as np
 import pandas as pd
 import re
@@ -15,7 +16,7 @@ from forest.jasmine.data2mobmat import great_circle_dist
 api_key = "5b3ce3597851110001cf6248551c505f7c61488a887356ff5ea924d5"
 R = 6.371*10**6
 
-def getPath(lat1, lon1, lat2, lon2, transport, api_key):
+def getPath(lat1: float, lon1: float, lat2: float, lon2: float, transport: str, api_key: str) -> tuple[np.ndarray, float]:
 	"""
 	This function takes 2 sets of coordinates and a mean of transport and using the openroute api
 	calculates the set of nodes to traverse from location1 to location2 along with the duration 
@@ -76,10 +77,8 @@ def getPath(lat1, lon1, lat2, lon2, transport, api_key):
 			else:
 				print(call.status_code, call.reason)
 				return np.array([[lon1, lat1], [lon2, lat2]]), great_circle_dist(lat1, lon1, lat2, lon2)
-	
-	
-	
-def basicPath(path, transport):
+
+def basicPath(path: np.ndarray, transport: str) -> np.ndarray:
 	"""
 	This function takes a path from getPath() function and subsets it
 	to the provided number of nodes
@@ -119,33 +118,8 @@ def basicPath(path, transport):
 		basic_path = path[indexes2]
 	
 	return basic_path
-
-
-
-def createAddressQuery(ctr_iso, city, results):
-	"""
-	This function outputs a query to parse in the overpass api to
-	output a certain number of random addressess
-	Args: 
-		ctr_iso: str, country 2 letter ISO code
-		   city: str, city name
-		results: int, number of addresses to output
-	Return: 
-		oberpass query string
-	"""
-
-
-	q = """
-	[out:json];
-	area["ISO3166-1"="{}"][admin_level=2] -> .country;
-	area[name="{}"] -> .city;
-	node(area.country)(area.city)["addr:street"];
-	out center {};
-	""".format(ctr_iso, city, str(results))
 	
-	return q
-	
-def boundingBox(lat, lon, radius):
+def boundingBox(lat: float, lon: float, radius: int) -> tuple[float]:
 	"""
 	This function outputs an area around a set of coordinates
 	Args: 
@@ -159,116 +133,12 @@ def boundingBox(lat, lon, radius):
 	lon_const = (radius / (1000*r_earth)) * (180 / np.pi) / np.cos(lat * np.pi/180)
 	return (lat-lat_const, lon-lon_const, lat+lat_const, lon+lon_const)
 
-def createAmenityQuery(area, amenity):
-	"""
-	This function outputs a query to parse in the overpass api to
-	output a certain number of random addressess of certain amenities
-	Args: 
-		area: tuple with 4 elements, bounding box area to look at, output from boundingBox() function
-	 amenity: str, amenity to look for can be one of the following
-		 ['cafe', 'bar', 'restaurant', 'university', 'marketplace','station', 'bank','hospital', 
-		  'pharmacy','cinema', 'theatre', 'fitness_centre', 'park', 'dance', 'grocery', 'supermarket', 'clothes', 'office']
-	Return: 
-		overpass query string
-	"""
-	# amenity in ['cafe', 'bar', 'restaurant', 'university', 'marketplace','station', 'bank','hospital', 
-	# 'pharmacy','cinema', 'theatre', 'fitness_centre', 'park', 'dance', 'grocery', 'supermarket', 'clothes', 'office']
-	if amenity == 'station':
-		code = 'public_transport' 
-	elif amenity in ['fitness_centre', 'sports_centre', 'dance', 'park']:
-		code = 'leisure'
-	elif amenity in ['grocery', 'supermarket', 'clothes']:
-		code = 'shop'
-	else:
-		code = 'amenity' 
-
-	q = """
-	[out:json];
-	node{}["{}"="{}"];
-	out 100;
-	""".format(area,code,amenity)
-	
-	if amenity == 'office':
-		q = """
-			[out:json];
-			node{}["office"];
-			out 100;
-			""".format(area)
-	elif amenity == 'university':
-		q = """
-			[out:json];
-			(
-				node{0}["amenity"="university"];
-				way{0}["amenity"="university"];
-			);
-			out center 100;
-			""".format(area)
-	
-	return q
-
-def getQueryResults(query_str, n):
-	"""
-	This function runs an overpass query and randomly selects nodes from the results
-	Args: 
-		   api: overpass api object
-	 query_str: str, representing an overpass query
-			 n: int, number of nodes to sample
-	Return: 
-		list of coordinates
-	"""
-	overpass_url = "http://overpass-api.de/api/interpreter"
-	response = requests.get(overpass_url, params={'data': query_str})
-	data = response.json()
-	
-	if len(data['elements']) == 0:
-		return []
-	elif len(data['elements']) < n:
-		coords = []
-		for element in data['elements']:
-			if element['type'] == 'node':
-				lon = element['lon']
-				lat = element['lat']
-			elif 'center' in element:
-				lon = element['center']['lon']
-				lat = element['center']['lat']
-			coords.append((lat, lon)) 
-		return coords
-	else:
-		index = np.random.choice(range(len(data['elements'])), n, replace=False)
-	
-		if n == 1:
-			index = index[0]
-			element = data["elements"][index]
-			if element['type'] == 'node':
-				lon = element['lon']
-				lat = element['lat']
-			elif 'center' in element:
-				lon = element['center']['lon']
-				lat = element['center']['lat']
-			return (lat, lon)
-		else:
-			res = [data["elements"][i] for i in index]
-			coords = []
-			for element in res:
-				if element['type'] == 'node':
-					lon = element['lon']
-					lat = element['lat']
-				elif 'center' in element:
-					lon = element['center']['lon']
-					lat = element['center']['lat']
-				coords.append((lat, lon)) 
-			return coords
-	
-	
-
-
 class Person:
 	"""
 	This class represents a person whose life we want to simulate. 
 	"""
 
-	
-	def __init__(self, house_address, attributes, all_nodes):
+	def __init__(self, house_address: tuple, attributes: list, all_nodes: dict):
 		"""
 		This function sets the basic attributes and information to be used of the person.
 		Args: 
@@ -300,17 +170,19 @@ class Person:
 		self.house_area = boundingBox(house_address[0], house_address[1], 2000)
 		if self.main_employment > 0:
 			if self.main_employment == 1:
-				query_str = createAmenityQuery(self.house_area, "office")
+				employment_str = "office"
 			elif self.main_employment == 2:
-				query_str = createAmenityQuery(boundingBox(house_address[0], house_address[1], 5000), "university")
-			try:
-				self.office_address = getQueryResults(query_str, 1)
-			except:
-				time.sleep(20)
-				self.office_address = getQueryResults(query_str, 1)
-			no_office_days = np.random.randint(3,6,1)[0]
-			self.office_days = np.random.choice(range(5), no_office_days, replace=False)
-			self.office_days.sort()
+				employment_str = "university"
+			
+			if len(all_nodes[employment_str]) != 0:
+				i = np.random.choice(range(len(all_nodes[employment_str])), 1)[0]
+				self.office_address = all_nodes[employment_str][i]
+
+				no_office_days = np.random.binomial(5, self.active_status/10)
+				self.office_days = np.random.choice(range(5), no_office_days, replace=False)
+				self.office_days.sort()
+			else:
+				self.office_address = ""
 		else:
 			self.office_days = []
 			
@@ -333,16 +205,16 @@ class Person:
 			order = np.argsort(distances)
 			setattr(self, exit+'_places_ordered', np.array(getattr(self, exit+'_places'))[order].tolist())
 
-
+		# remove all exits which have no places nearby
 		possible_exits2 = self.possible_exits.copy()
 		for act in possible_exits2:
 			if len(getattr(self, act+'_places')) == 0:
 				self.possible_exits.remove(act)
 
-
-		travelling_status_norm = self.travelling_status / 10
+		# order preferred places by travelling_status
+		travelling_status_norm = (self.travelling_status**2) /  (self.travelling_status**2 + (10-self.travelling_status)**2)
 		for act in self.possible_exits:
-			act_places = getattr(self, act + '_places_ordered')
+			act_places = getattr(self, act + '_places_ordered').copy()
 
 			places = []
 			for i in range(len(act_places) - 1, -1, -1):
@@ -352,8 +224,18 @@ class Person:
 
 			setattr(self, act + '_places', places)
 
+		# find places near office
+		if self.main_employment > 0 and len(self.office_address) > 0:
+			self.office_exits = []
+			self.office_codes = []
+			for exit in ['cafe', 'restaurant', 'park', 'fitness']:
+				for place in getattr(self, exit+'_places'):
+					if great_circle_dist(self.office_address[0], self.office_address[1], place[0], place[1]) < 500:
+						self.office_exits.append(place)
+						self.office_codes.append(exit)
+						
 
-	def updatePreferredLocations(self, travelling_status):
+	def setTravellingStatus(self, travelling_status: int):
 		"""
 		Update preferred locations of exits depending on new travelling status.
 		Args:
@@ -362,9 +244,9 @@ class Person:
 
 		setattr(self, 'travelling_status', travelling_status)
 
-		travelling_status_norm = self.travelling_status / 10
+		travelling_status_norm = (travelling_status**2) /  (travelling_status**2 + (10-travelling_status)**2)
 		for act in self.possible_exits:
-			act_places = getattr(self, act + '_places')
+			act_places = getattr(self, act + '_places_ordered').copy()
 
 			places = []
 			for i in range(len(act_places) - 1, -1, -1):
@@ -374,9 +256,16 @@ class Person:
 
 			setattr(self, act + '_places', places)
 
+	def setActiveStatus(self, active_status: int):
+		"""
+		Update active status.
+		Args:
+			active_status: 0-10 | int indicating new travelling_status
+		"""
+
+		setattr(self, 'active_status', active_status)
 		
-		
-	def updatePreferredExits(self, exit_code):
+	def updatePreferredExits(self, exit_code: str):
 		"""
 		This function updates the set of preferred exits for the day, after an action has been performed.
 		Args: 
@@ -392,18 +281,19 @@ class Person:
 			else:
 				self.preferred_exits_today[index_of_code], self.preferred_exits_today[index_of_code+1] = self.preferred_exits_today[index_of_code+1], self.preferred_exits_today[index_of_code]
 		
-	def choosePreferredExit(self, t_s):
+	def choosePreferredExit(self, t_s: float, update: bool = True) -> tuple[str, tuple]:
 		"""
 		This function samples through the possible actions for the person, 
 		depending on his attributes and the time.
 		Args: 
 			t_s: float, current time in seconds
+			update: boolean, to update preferrences
 		Return:
 			  selected_action_decoded: str, selected action to perform
 					selected_location: tuple, selected location's coordinates
 		"""
 
-		probs_of_staying_home = [1-0.8*self.active_status/10, 0.8*self.active_status/10]
+		probs_of_staying_home = [1-self.active_status/10, self.active_status/10]
 		if np.random.choice([0,1], 1, p=probs_of_staying_home)[0] == 0:
 			return 'home', self.house_address
 
@@ -440,7 +330,8 @@ class Person:
 		
 		selected_action = np.random.choice(actions, 1, p=probabilities)[0]
 		
-		self.updatePreferredExits(selected_action)
+		if update:
+			self.updatePreferredExits(selected_action)
 				
 		action_locations = getattr(self, selected_action+'_places')
 		ratios2 = [7, 2, 1][:len(action_locations)]
@@ -451,9 +342,17 @@ class Person:
 		selected_location = action_locations[selected_location_index]
 		
 		return selected_action, selected_location
-
-	
 		
+	def choosePreferredOfficeExit(self, api_key):
+
+		chosen_exit_index = np.random.choice(range(len(self.office_exits)), 1)[0]
+		chosen_exit = self.office_exits[chosen_exit_index]
+		self.updatePreferredExits(self.office_codes[chosen_exit_index])
+
+		go_path, return_path, _ = self.calculateTrip(self.office_address, chosen_exit, api_key) 
+
+		return go_path, return_path, self.office_codes[chosen_exit_index]
+
 	def endOfDayReset(self):
 		"""
 		Reset preferred exits of the day. To run when a day ends
@@ -461,13 +360,13 @@ class Person:
 		self.preferred_exits_today = self.preferred_exits
 		self.office_today = False
 
-	
-	def calculateTrip(self, destination, api_key):
+	def calculateTrip(self, origin: tuple, destination: tuple, api_key: str) -> tuple[np.ndarray, np.ndarray, str]:
 		"""
 		This function uses the openrouteservice api to produce the path
 		from person's house to destination and back.
 		Args: 
 			destination: tuple, coordinates for destination
+				 origin: tuple, coordinates for origin
 				api_key: str, openrouteservice api key
 		Return:
 			  go_path: 2d numpy array, containing [lat,lon] of route from house to destination
@@ -476,17 +375,18 @@ class Person:
 		"""
 
 
-		home_distance = great_circle_dist(self.house_address[0], self.house_address[1], destination[0], destination[1])
+		distance = great_circle_dist(origin[0], origin[1], destination[0], destination[1])
 		transportations = {0: 'bus', 1: 'car', 2: 'bicycle'}
 
-		if home_distance <= 1000:
+		if distance <= 1000:
 			transport = 'foot'
 		else:
 			transport = transportations[self.vehicle]
 
-		if str(destination[0])+'_'+str(destination[1])+'_go' in self.trips.keys():
-			go_path = self.trips[str(destination[0])+'_'+str(destination[1])+'_go']
-			return_path = self.trips[str(destination[0])+'_'+str(destination[1])+'_return']
+		coords_str = str(origin[0])+'_'+str(origin[1])+'_'+str(destination[0])+'_'+str(destination[1])
+		if coords_str+'_go' in self.trips.keys():
+			go_path = self.trips[coords_str+'_go']
+			return_path = self.trips[coords_str+'_return']
 		else:
 			path, _ = getPath(self.house_address[0], self.house_address[1], destination[0], destination[1], transport, api_key)
 			go_path = basicPath(path, transport)
@@ -497,12 +397,12 @@ class Person:
 			go_path = [[x[1], x[0]] for x in go_path]
 			return_path = [[x[1], x[0]] for x in return_path]
 
-			self.trips[str(destination[0])+'_'+str(destination[1])+'_go'] = go_path
-			self.trips[str(destination[0])+'_'+str(destination[1])+'_return'] = return_path
+			self.trips[coords_str+'_go'] = go_path
+			self.trips[coords_str+'_return'] = return_path
 
 		return go_path, return_path, transport
 
-	def chooseAction(self, t_s, day_now):
+	def chooseAction(self, t_s: float, day_now: int, update: bool = True) -> tuple[str, tuple[float, float], list[int, int], str]:
 		"""
 		This function decides action for person to take.
 		Args: 
@@ -512,6 +412,7 @@ class Person:
 			  str, 'p', 'p_night' or 'fpf' indicating pause, pause for the night or flight-pause-flight
 			tuple, destination's coordinates
 			 list, contains [minimum, maximum] duration of pause in seconds
+			  str, exit code
 		"""
 		time_now = t_s % (24 * 60 * 60)
 
@@ -522,13 +423,14 @@ class Person:
 				return 'p', self.house_address,[8 * 3600, 12 * 3600], 'home_morning'
 		
 		if not self.office_today:
-			self.office_today = not self.office_today
+			if update:
+				self.office_today = not self.office_today
 			if day_now in self.office_days:
 				return 'fpf', self.office_address, [7 * 3600, 9 * 3600], 'office'
 			elif day_now < 5:
 				return 'p', self.house_address, [7 * 3600, 9 * 3600], 'office_home'
 
-		exit, location = self.choosePreferredExit(t_s)
+		exit, location = self.choosePreferredExit(t_s, update)
 
 		if exit == 'home':
 			if time_now + 2*3600 > 24*3600 - 1:
@@ -537,11 +439,9 @@ class Person:
 		elif exit == 'home_night':
 			return 'p_night', self.house_address,[24 * 3600 - time_now, 24 * 3600 - time_now], exit
 		else:
-			return 'fpf', location, [0.5 * 3600, 2 * 3600], exit
+			return 'fpf', location, [0.5 * 3600 + 1.5 * 3600 * (self.active_status - 1)/9, 1 * 3600 + 1.5 * 3600 * (self.active_status - 1)/9], exit
 
-
-
-def gen_basic_traj(l_s, l_e, vehicle, t_s):
+def gen_basic_traj(l_s: tuple[float], l_e: tuple[float], vehicle: str, t_s: float) -> tuple[np.ndarray, float]:
 	"""
 	This function generates basic trajectories between 2 points.
 	Args: 
@@ -595,7 +495,7 @@ def gen_basic_traj(l_s, l_e, vehicle, t_s):
 	traj_array[:,2] = traj_array[:,2] + err_lon
 	return traj_array, d
 
-def gen_basic_pause(l_s, t_s, t_e_range, t_diff_range):
+def gen_basic_pause(l_s: tuple[float], t_s: float, t_e_range: list[float], t_diff_range: list[float]) -> np.ndarray:
 	"""
 	This function generates basic trajectories for a pause.
 	Args: 
@@ -622,7 +522,7 @@ def gen_basic_pause(l_s, t_s, t_e_range, t_diff_range):
 	traj_array[:,2] = traj_array[:,2] + err_lon
 	return traj_array
 
-def gen_route_traj(route, vehicle, t_s):
+def gen_route_traj(route: list, vehicle: str, t_s: float) -> tuple[np.ndarray, float]:
 	"""
 	This function generates basic trajectories between multiple points.
 	Args: 
@@ -653,12 +553,13 @@ def gen_route_traj(route, vehicle, t_s):
 	traj = traj[1:,:]
 	return traj, total_d
 
-def gen_all_traj(house_address, attributes, all_nodes, start_date, end_date):
+def gen_all_traj(house_address: str, attributes: list, switches: dict, all_nodes: dict, start_date: datetime.date, end_date: datetime.date) -> tuple[np.ndarray, list, list]:
 	"""
 	Generates trajectories for a single person.
 	Args:
 		house_address: (str) indicating the house address of the person to generate
 		attributes: (list) contains the attributes required to generate a class Person
+		switches: (dictionary) contains changes of attributes in between the simulation
 		all_nodes: (dictionary) contains all locations of all amenities around the house address 
 		start_date: (datetime.date object) start date of trajectories
 		end_date: (datetime.date object) end date of trajectories, end date is not included in the trajectories
@@ -671,6 +572,20 @@ def gen_all_traj(house_address, attributes, all_nodes, start_date, end_date):
 	person = Person(house_address, attributes, all_nodes)
 	if len(person.possible_exits) < 4 or (person.main_employment > 0 and len(person.office_address) == 0):
 		return [], [], []
+
+	val_active_change = -1
+	time_active_change = -1
+	val_travel_change = -1
+	time_travel_change = -1
+	if len(switches.keys()) != 0:
+		for key in switches.keys():
+			key_list = key.split("-")
+			if key_list[0] == "active_status":
+				time_active_change = int(key_list[1]) - 1
+				val_active_change = switches[key]
+			elif key_list[0] == "travelling_status":
+				time_travel_change = int(key_list[1]) - 1
+				val_travel_change = switches[key]
 			
 	current_date = start_date
 	
@@ -690,8 +605,10 @@ def gen_all_traj(house_address, attributes, all_nodes, start_date, end_date):
 
 	while current_date < end_date:
 
-		#if t_s == 4*24*3600:
-		#	person.updatePreferredLocations(3)
+		if t_s == time_travel_change*24*3600:
+			person.setTravellingStatus(val_travel_change)
+		if t_s == time_active_change*24*3600:
+			person.setActiveStatus(val_active_change)
 
 		current_weekdate = current_date.weekday()
 		action, location, limits, exit = person.chooseAction(t_s, current_weekdate)
@@ -708,7 +625,7 @@ def gen_all_traj(house_address, attributes, all_nodes, start_date, end_date):
 			t_s = res[-1, 0]
 				
 		elif action == 'fpf':
-			go_path, return_path, transport = person.calculateTrip(location, api_key)
+			go_path, return_path, transport = person.calculateTrip(person.house_address, location, api_key)
 			transport2 = transport
 			if transport2 == 'foot':
 				transport2 = 'walk'
@@ -719,22 +636,96 @@ def gen_all_traj(house_address, attributes, all_nodes, start_date, end_date):
 			res1, d1 = gen_route_traj(go_path, transport2, t_s)
 			
 			t_s1 = res1[-1, 0]
-			# Pause
-			res2 = gen_basic_pause(location, t_s1, None, limits)
-			
-			t_s3 = res2[-1, 0]
+
+			if exit == 'office' and len(person.office_codes) != 0 and np.random.binomial(1, person.travelling_status/10, 1)==1:
+				office_with_exit = True
+
+				rndm_coefficient = np.random.uniform(0,0.6,1)[0]
+				limits2 = [l * rndm_coefficient for l in limits]
+
+				# Pause 1
+				res2 = gen_basic_pause(location, t_s1, None, limits2)
+				t_s2 = res2[-1, 0]
+
+				go_path2, return_path2, exit2 = person.choosePreferredOfficeExit(api_key)
+				# Flight 1.1
+				res3, d11 = gen_route_traj(go_path2, 'foot', t_s2)
+				t_s3 = res3[-1, 0]
+
+				# Pause 2
+				res4 = gen_basic_pause(return_path2[0], t_s3, None, [15 * 60, 60 * 60])
+				t_s4 = res4[-1, 0]
+
+				# Flight 1.2
+				res5, d12 = gen_route_traj(return_path2, 'foot', t_s4)
+				t_s5 = res5[-1, 0]
+
+				# Pause 3
+				limits3 = [max(l * (1-rndm_coefficient) - (t_s5-t_s2), 0) for l in limits]
+				res6 = gen_basic_pause(location, t_s5, None, limits3)
+				t_s6 = res6[-1, 0]
+
+				d1 += d11 + d12
+
+			else:
+				office_with_exit = False
+
+				# Pause
+				res6 = gen_basic_pause(location, t_s1, None, limits)
+				t_s6 = res6[-1, 0]
+
 			# Flight 2
-			res3, d3 = gen_route_traj(return_path, transport2, t_s3)        
+			res7, d2 = gen_route_traj(return_path, transport2, t_s6)        
+			t_s7 = res7[-1, 0]
 			
-			t_s4 = res3[-1, 0]
-			
-			if (t_s4%(24*3600)) < 24*60*60:
-				daily_actions.append(exit)
-				t_s = t_s4
-				traj = np.vstack((traj, res1, res2, res3))
-				total_d += (d1 + d3)
-				if location == person.house_address:
-					home_time += res2[-1, 0] - res2[0, 0]
+			action3, location3, duration3, exit3  = person.chooseAction(t_s7, current_weekdate, update=False)
+			if action3 == "fpf" and great_circle_dist(location[0], location[1], location3[0], location[1]) < great_circle_dist(person.house_address[0], person.house_address[1], location3[0], location3[1]):
+				
+				go_path3, return_path3, _ = person.calculateTrip(location, location3, api_key)
+				
+				# Flight 2
+				res8, d21 = gen_route_traj(go_path3, transport2, t_s6) 
+				t_s8 = res8[-1, 0] 
+
+				# Pause 2.1
+				res9 = gen_basic_pause(location3, t_s8, None, duration3)
+				t_s9 = res9[-1, 0]
+
+				# Flight 3
+				res10, d22 = gen_route_traj(return_path3, transport2, t_s9) 
+				t_s10 = res10[-1, 0] 
+
+				if (t_s10%(24*3600)) < 24*60*60:
+					person.updatePreferredExits(exit3)
+					t_s = t_s10
+					if office_with_exit:
+						daily_actions.append(exit)
+						daily_actions.append(exit + '_' + exit2)
+						daily_actions.append(exit2 + '_' + exit)
+						daily_actions.append(exit + '_' + exit3)
+						traj = np.vstack((traj, res1, res2, res3, res4, res5, res6, res8, res9, res10))
+					else: 
+						daily_actions.append(exit)
+						daily_actions.append(exit + '_' + exit3)
+						traj = np.vstack((traj, res1, res6, res8, res9, res10))
+					total_d += (d1 + d21 + d22)
+					continue
+
+
+
+
+			if (t_s7%(24*3600)) < 24*60*60:
+				
+				t_s = t_s7
+				if office_with_exit:
+					daily_actions.append(exit)
+					daily_actions.append(exit + '_' + exit2)
+					daily_actions.append(exit2 + '_' + exit)
+					traj = np.vstack((traj, res1, res2, res3, res4, res5, res6, res7))
+				else: 
+					daily_actions.append(exit)
+					traj = np.vstack((traj, res1, res6, res7))
+				total_d += (d1 + d2)
 			
 		elif action == 'p_night':
 			daily_actions.append(exit)
@@ -757,15 +748,13 @@ def gen_all_traj(house_address, attributes, all_nodes, start_date, end_date):
 			home_time = 0
 			total_d = 0
 			daily_actions = []
+		
 	
 	traj = traj[:-1,:] 	
 		
 	return traj, home_time_list, total_d_list
 		
-		   
-
-## cycle is minute
-def remove_data(full_data,cycle,p,day):
+def remove_data(full_data: np.ndarray, cycle: int, p: float, day: int) -> np.ndarray:
 	"""
 	Only keeps observed data from simulated trajectories dpending on cycle and p.
 	Args:
@@ -791,7 +780,7 @@ def remove_data(full_data,cycle,p,day):
 	obs_data = full_data[index_all,:]
 	return obs_data
 
-def prepare_data(obs, s, tz_str):
+def prepare_data(obs: np.ndarray, s: int, tz_str: str) -> pd.DataFrame:
 	"""
 	Perpares the data in a dataframe.
 	Args:
@@ -815,7 +804,7 @@ def prepare_data(obs, s, tz_str):
 			'longitude','altitude','accuracy'])
 	return(new)
 
-def impute2second(traj):
+def impute2second(traj: np.ndarray) -> np.ndarray:
 	secondwise = []
 	for i in range(traj.shape[0]):
 		for j in np.arange(int(traj[i,3]),int(traj[i,6])):
@@ -827,7 +816,7 @@ def impute2second(traj):
 	secondwise = np.array(secondwise)
 	return secondwise
 
-def int2str(h):
+def int2str(h: int) -> str:
 	"""
 	Converts numbers to 2 digit strings.
 	Args:
@@ -840,11 +829,11 @@ def int2str(h):
 	else:
 		return str(h)
 
-vehicle_dictionary = {'foot':0, 'car':1, 'bicycle':2}
-possible_exits = ['cafe', 'bar', 'restaurant', 'park', 'cinema', 'dance', 'fitness']
-main_employment_dictionary = {'none':0, 'work':1, 'student':2}
+vehicle_dict = {'foot': 0, 'car': 1, 'bicycle': 2}
+possible_exits_list = ['cafe', 'bar', 'restaurant', 'park', 'cinema', 'dance', 'fitness']
+main_employment_dict = {'none': 0, 'work': 1, 'student': 2}
 
-def process_attributes(attributes, key, user):
+def process_attributes(attributes: dict[int, list], key: str, user: int) -> tuple[list, dict]:
 	"""
 	Preprocesses the attributes of each person.
 	Args:
@@ -853,26 +842,28 @@ def process_attributes(attributes, key, user):
 		user: (int) number of user
 	Returns:
 		attrs: (list) list of attributes for a user
+		switches: (dictionary) contains possible changes of attributes in between of simulation  
 	"""
 	attrs = []
+	switches = {}
 
 	if "vehicle" in attributes[key].keys():
-		if attributes[key]['vehicle'] in ['foot', 'car', 'bicycle']:
+		if attributes[key]['vehicle'] in vehicle_dict:
 			pass
 		else:
 			print("For User "+ str(user) + " vehicle was not in ['foot', 'car', 'bicycle']")
 			return []
-		attrs.append(vehicle_dictionary[attributes[key]['vehicle']])
+		attrs.append(vehicle_dict[attributes[key]['vehicle']])
 	else:
 		attrs.append(np.random.choice(range(3), 1)[0])
 
 	if "main_employment" in attributes[key].keys():
-		if attributes[key]['main_employment'] in ['none', 'work', 'student']:
+		if attributes[key]['main_employment'] in main_employment_dict:
 			pass
 		else:
 			print("For User "+ str(user) + " main_employment was not in ['none', 'work', 'student']")
 			return []
-		attrs.append(main_employment_dictionary[attributes[key]['main_employment']])
+		attrs.append(main_employment_dict[attributes[key]['main_employment']])
 	else:
 		attrs.append(np.random.choice(range(3), 1)[0])
 
@@ -900,11 +891,11 @@ def process_attributes(attributes, key, user):
 	if "preferred_exits" in attributes[key].keys():
 
 		for exit in attributes[key]['preferred_exits']:
-			if exit not in possible_exits:
+			if exit not in possible_exits_list:
 				print("For User "+ str(user) + " exit " + exit +  " is not in ['cafe', 'bar', 'restaurant', 'park', 'cinema', 'dance', 'fitness']")
 
 		preferred_exits = attributes[key]['preferred_exits']
-		possible_exits2 = [x for x in possible_exits if x not in preferred_exits]
+		possible_exits2 = [x for x in possible_exits_list if x not in preferred_exits]
 		
 		random_exits = np.random.choice(possible_exits2, 3 - len(preferred_exits), replace=False).tolist()
 		for choice in random_exits:
@@ -912,18 +903,23 @@ def process_attributes(attributes, key, user):
 
 		attrs.append(preferred_exits)
 	else:
-		attrs.append(np.random.choice(possible_exits, 3, replace=False).tolist())
+		attrs.append(np.random.choice(possible_exits_list, 3, replace=False).tolist())
 
-	return attrs
+	for x in attributes[key].keys():
+		key_list = x.split("-")
+		if len(key_list) == 2:
+			switches[x] = attributes[key][x]
 
-def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attributes_dir = None):
+	return attrs, switches
+
+def sim_GPS_data(N: int, location: str, start_date: list[int], end_date: list[int], cycle: int, p: float, data_folder: str, attributes_dir: str = None):
 	"""
 	Generates gps trajectories.
 	Args:
 		N: (int) number of people to simulate
 		location: (str) indicating country and city to simulate at, format "Country_2_letter_ISO_code/City_Name"
-		start_date: (str) start date of trajectories, format "day/month/year"
-		end_date: (str) end date of trajectories, end date is not included in the trajectories, format "day/month/year"
+		start_date: (list) start date of trajectories, format  [year, month, day]
+		end_date: (list) end date of trajectories, end date is not included in the trajectories, format [year, month, day]
 		cycle: (int) the sum of on-cycle and off_cycle, unit is minute
 		p: (float) the missing rate, in other words, the proportion of off_cycle, should be within [0,1]
 		data_folder: (str) directory to save trajectories
@@ -934,6 +930,7 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 
 	print("Loading Attributes...")
 	attributes_dictionary = {}
+	switches_dictionary = {}
 	attributes = json.load(open(attributes_dir))
 
 
@@ -942,74 +939,93 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 			users = re.search(r"[0-9]*-?[0-9]+", key).group(0).split('-')
 			if len(users) == 0:
 				print("Wrong format in attributes.json on " + key)
-				return None
+				sys.exit()
 			elif len(users) == 1:
 				user = int(users[0])
-				attrs = process_attributes(attributes, key, user)
+				attrs, switches = process_attributes(attributes, key, user)
 				if len(attrs) == 0:
-					return None
+					sys.exit()
 				attributes_dictionary[user] = attrs
+				switches_dictionary[user] = switches
 			else:
 				for user in range(int(users[0]), int(users[1]) + 1):
-					attrs = process_attributes(attributes, key, user)
+					attrs, switches = process_attributes(attributes, key, user)
 					if len(attrs) == 0:
-						return None
+						sys.exit()
 					attributes_dictionary[user] = attrs
+					switches_dictionary[user] = switches
 	
 	for user in range(1, N + 1):
 		if user not in attributes_dictionary.keys():
 			attributes_dictionary[user] = [np.random.choice(range(3), 1)[0], np.random.choice(range(3), 1)[0],
-			np.random.choice(range(11), 1)[0], np.random.choice(range(11), 1)[0], np.random.choice(possible_exits, 3, replace=False).tolist()]
-
-	print("Finding Timezone...")
-	location_ctr = location.split("/")[0]
-	location_city = location.split("/")[1]
-	q = """
-		area["ISO3166-1"="{}"][admin_level=2];
-		(
-		node["place"="city"]["name"="{}"](area);
-		);
-		out;
-		""".format(location_ctr, location_city)
+			np.random.choice(range(11), 1)[0], np.random.choice(range(11), 1)[0], np.random.choice(possible_exits_list, 3, replace=False).tolist()]
+		if user not in switches_dictionary.keys():
+			switches_dictionary[user] = {}
+	
+	print("Gathering Addresses...")
+	try:
+		location_ctr = location.split("/")[0]
+		location_city = location.split("/")[1]
+	except IndexError:
+		print("Location provided did not have the correct format.")
+		sys.exit()
 
 	api = overpy.Overpass()
-	try:
-		res = api.query(q)
-	except:
-		time.sleep(20)
-		res = api.query(q)
-	location_coords = (float(res.nodes[0].lat), float(res.nodes[0].lon))
-	
-	obj = TimezoneFinder()
-	tz_str = obj.timezone_at(lng=location_coords[1], lat=location_coords[0])
 
-	start_date = np.array(start_date.split("/")).astype(int)
-	end_date = np.array(end_date.split("/")).astype(int)
+	overpy_query = """
+	[out:json];
+	area["ISO3166-1"="{}"][admin_level=2] -> .country;
+	area[name="{}"] -> .city;
+	node(area.country)(area.city)["addr:street"];
+	out center {};
+	""".format(location_ctr, location_city, str(100))
 	
-	start_date = datetime.date(start_date[2],start_date[1],start_date[0])
-	end_date = datetime.date(end_date[2],end_date[1],end_date[0])
-	no_of_days = (end_date - start_date).days
-
-	s = datetime2stamp([start_date.year,start_date.month,start_date.day,0,0,0],tz_str)*1000
-	if os.path.exists(data_folder)==False:
-		os.mkdir(data_folder)
-	print("Gathering Addresses...")
-	overpy_query = createAddressQuery(location_ctr, location_city, 100)
 	try:
 		r = api.query(overpy_query)
 	except:
-		time.sleep(20)
-		r = api.query(overpy_query)	
-	index = np.random.choice(range(len(r.nodes)), 100, replace=False)
+		time.sleep(30)
+		try:
+			r = api.query(overpy_query)	
+		except:
+			print("Too many Overpass requests in a short time. Please try again in a minute.")
+			sys.exit()
+
+	try:
+		index = np.random.choice(range(len(r.nodes)), 100, replace=False)
+	except ValueError:
+		print("Overpass query came back empty. Check that the location argument, ISO code and city name, did not have any misspellings.")
 	nodes = np.array(r.nodes)[index]
-		
+
+	location_coords = (float(nodes[0].lat), float(nodes[0].lon))
+	
+	obj = TimezoneFinder()
+	tz_str = obj.timezone_at(lng=location_coords[1], lat=location_coords[0])
+	
+	start_date = datetime.date(start_date[0],start_date[1],start_date[2])
+	end_date = datetime.date(end_date[0],end_date[1],end_date[2])
+	no_of_days = (end_date - start_date).days
+
+	s = datetime2stamp([start_date.year,start_date.month,start_date.day,0,0,0],tz_str)*1000
+
+	if os.path.exists(data_folder)==False:
+		os.mkdir(data_folder)
+
 	user = 0
-	i = 0
+	ind = 0
 	print("Starting to generate trajectories...")
 	while user < N:
 
-		house_address = (float(nodes[i].lat), float(nodes[i].lon))
+		house_address = (float(nodes[ind].lat), float(nodes[ind].lon))
 		house_area = boundingBox(house_address[0], house_address[1], 2000)
+
+		attrs = attributes_dictionary[user+1]
+		if attrs[1] == 1:
+			q_employment = 'node' + str(house_area) + '["office"];'
+		elif attrs[1] == 2:
+			house_area2 = boundingBox(house_address[0], house_address[1], 5000)
+			q_employment = 'node' + str(house_area2) + '["amenity"="university"];\n\t\t\tway' + str(house_area2) + '["amenity"="university"];'
+		else:
+			q_employment = ""
 		
 		q = """
 		[out:json];
@@ -1028,9 +1044,10 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 			way{0}["leisure"="park"];
 			way{0}["leisure"="dance"];
 			way{0}["leisure"="fitness_centre"];
+			{1}
 		);
 		out center;
-		""".format(house_area)
+		""".format(house_area, q_employment)
 
 		overpass_url = "http://overpass-api.de/api/interpreter"
 		response = requests.get(overpass_url, params={'data': q}, timeout=5*60)
@@ -1044,10 +1061,15 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 		except:
 			time.sleep(60)
 			response = requests.get(overpass_url, params={'data': q}, timeout=5*60)
-			res = response.json()
+			try:
+				res = response.json()
+			except:
+				print("Too many Overpass requests in a short time. Please try again in a minute.")
+				sys.exit()
+				
 		all_nodes = {'cafe': [], 'bar': [], 'restaurant': [],
 		'cinema': [], 'park': [], 'dance': [],
-		'fitness': []}
+		'fitness': [], 'office': [], 'university': []}
 
 		for element in res['elements']:
 			if element['type'] == 'node':
@@ -1056,6 +1078,9 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 			elif 'center' in element:
 				lon = element['center']['lon']
 				lat = element['center']['lat']
+
+			if 'office' in element['tags']:
+				all_nodes['office'].append((lat, lon))
 
 			if 'amenity' in element['tags']:
 				if element['tags']['amenity'] == 'cafe':
@@ -1066,6 +1091,8 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 					all_nodes['restaurant'].append((lat, lon))
 				if element['tags']['amenity'] == 'cinema':
 					all_nodes['cinema'].append((lat, lon))
+				if element['tags']['amenity'] == 'university':
+					all_nodes['university'].append((lat, lon))
 			elif 'leisure' in element['tags']:
 				if element['tags']['leisure'] == 'park':
 					all_nodes['park'].append((lat, lon))
@@ -1081,9 +1108,9 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 			os.mkdir(data_folder+"/user_"+str(user+1)+"/gps")
 
 
-		all_traj,all_T,all_D = gen_all_traj(house_address, attributes_dictionary[user+1], all_nodes, start_date, end_date)
+		all_traj,all_T,all_D = gen_all_traj(house_address, attributes_dictionary[user+1], switches_dictionary[user+1],all_nodes, start_date, end_date)
 		if len(all_traj) == 0:
-			i += 1
+			ind += 1
 			continue
 		all_D = np.array(all_D)/1000
 		all_T = np.array(all_T)/3600
@@ -1092,7 +1119,7 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 		print("	distance(km): ", all_D.tolist())
 		print("	hometime(hr): ", all_T.tolist())
 		obs = remove_data(all_traj,cycle,p,no_of_days)
-		obs_pd = prepare_data(obs, s/1000)
+		obs_pd = prepare_data(obs, s/1000, tz_str)
 		for i in range(no_of_days):
 			for j in range(24):
 				s_lower = s+i*24*60*60*1000+j*60*60*1000
@@ -1103,4 +1130,4 @@ def sim_GPS_data(N, location, start_date, end_date, cycle, p, data_folder, attri
 				temp.to_csv(data_folder+"/user_"+str(user+1)+"/gps/"+filename,index = False)
 
 		user += 1
-		i += 1
+		ind += 1
