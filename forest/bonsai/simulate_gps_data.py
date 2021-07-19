@@ -1033,8 +1033,6 @@ def sim_GPS_data(N: int, location: str, start_date: list[int], end_date: list[in
 	user = 0
 	ind = 0
 	print("Starting to generate trajectories...")
-	d_all = []
-	t_all = []
 	while user < N:
 
 		house_address = (float(nodes[ind].lat), float(nodes[ind].lon))
@@ -1137,9 +1135,6 @@ def sim_GPS_data(N: int, location: str, start_date: list[int], end_date: list[in
 		all_D = np.array(all_D)/1000
 		all_T = np.array(all_T)/3600
 
-		d_all.append(all_D)
-		t_all.append(all_T)
-
 		print("User_"+str(user+1))
 		print("	distance(km): ", all_D.tolist())
 		print("	hometime(hr): ", all_T.tolist())
@@ -1156,4 +1151,3 @@ def sim_GPS_data(N: int, location: str, start_date: list[int], end_date: list[in
 
 		user += 1
 		ind += 1
-	return d_all, t_all
