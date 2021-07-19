@@ -13,7 +13,6 @@ from forest.poplar.legacy.common_funcs import datetime2stamp,stamp2datetime
 from forest.jasmine.data2mobmat import great_circle_dist
 
 
-api_key = "5b3ce3597851110001cf6248551c505f7c61488a887356ff5ea924d5"
 R = 6.371*10**6
 
 def getPath(lat1: float, lon1: float, lat2: float, lon2: float, transport: str, api_key: str) -> tuple[np.ndarray, float]:
@@ -45,7 +44,7 @@ def getPath(lat1: float, lon1: float, lat2: float, lon2: float, transport: str, 
 			'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
 		}
 		call = requests.get('https://api.openrouteservice.org/v2/directions/{}?api_key={}&start={},{}&end={},{}'.format(transport,api_key,lon1,lat1,lon2,lat2),
-							headers=headers)
+							headers=headers, timeout=90)
 		
 		if call.reason == 'OK' and call.status_code == 200:
 			res = json.loads(call.text)['features'][0]
@@ -61,7 +60,7 @@ def getPath(lat1: float, lon1: float, lat2: float, lon2: float, transport: str, 
 		else:
 			time.sleep(60)
 			call = requests.get('https://api.openrouteservice.org/v2/directions/{}?api_key={}&start={},{}&end={},{}'.format(transport,api_key,lon1,lat1,lon2,lat2),
-							headers=headers)
+							headers=headers, timeout=90)
 
 			if call.reason == 'OK' and call.status_code == 200:
 				res = json.loads(call.text)['features'][0]
@@ -135,7 +134,7 @@ def boundingBox(lat: float, lon: float, radius: int) -> tuple[float]:
 
 class Person:
 	"""
-	This class represents a person whose life we want to simulate. 
+	This class represents a person whose trajectories we want to simulate. 
 	"""
 
 	def __init__(self, house_address: tuple, attributes: list, all_nodes: dict):
@@ -233,7 +232,6 @@ class Person:
 					if great_circle_dist(self.office_address[0], self.office_address[1], place[0], place[1]) < 500:
 						self.office_exits.append(place)
 						self.office_codes.append(exit)
-						
 
 	def setTravellingStatus(self, travelling_status: int):
 		"""
@@ -343,13 +341,23 @@ class Person:
 		
 		return selected_action, selected_location
 		
-	def choosePreferredOfficeExit(self, api_key):
+	def choosePreferredOfficeExit(self, api_key: str) -> tuple[np.ndarray, np.ndarray, str]:
+		"""
+		This function samples through the possible exits when the person is at work or university.
+		Args: 
+			api_key: str, api key of open route service
+		Return:
+			  np.ndarray, array of nodes to travel from office address to location of exit
+		 	  np.ndarray, array of nodes to travel back from location of exit to office address
+					 str, exit selected
+		"""
 
 		chosen_exit_index = np.random.choice(range(len(self.office_exits)), 1)[0]
 		chosen_exit = self.office_exits[chosen_exit_index]
 		self.updatePreferredExits(self.office_codes[chosen_exit_index])
 
-		go_path, return_path, _ = self.calculateTrip(self.office_address, chosen_exit, api_key) 
+		go_path, _ = self.calculateTrip(self.office_address, chosen_exit, api_key) 
+		return_path, _ = self.calculateTrip(chosen_exit, self.office_address, api_key) 
 
 		return go_path, return_path, self.office_codes[chosen_exit_index]
 
@@ -360,7 +368,7 @@ class Person:
 		self.preferred_exits_today = self.preferred_exits
 		self.office_today = False
 
-	def calculateTrip(self, origin: tuple, destination: tuple, api_key: str) -> tuple[np.ndarray, np.ndarray, str]:
+	def calculateTrip(self, origin: tuple, destination: tuple, api_key: str) -> tuple[np.ndarray, str]:
 		"""
 		This function uses the openrouteservice api to produce the path
 		from person's house to destination and back.
@@ -369,8 +377,7 @@ class Person:
 				 origin: tuple, coordinates for origin
 				api_key: str, openrouteservice api key
 		Return:
-			  go_path: 2d numpy array, containing [lat,lon] of route from house to destination
-		  return_path: 2d numpy array, containing [lat,lon] of route from destination to house
+			     path: 2d numpy array, containing [lat,lon] of route from origin to destination
 			transport: str, means of transport
 		"""
 
@@ -384,23 +391,17 @@ class Person:
 			transport = transportations[self.vehicle]
 
 		coords_str = str(origin[0])+'_'+str(origin[1])+'_'+str(destination[0])+'_'+str(destination[1])
-		if coords_str+'_go' in self.trips.keys():
-			go_path = self.trips[coords_str+'_go']
-			return_path = self.trips[coords_str+'_return']
+		if coords_str in self.trips.keys():
+			path = self.trips[coords_str]
 		else:
-			path, _ = getPath(self.house_address[0], self.house_address[1], destination[0], destination[1], transport, api_key)
-			go_path = basicPath(path, transport)
+			path, _ = getPath(origin[0], origin[1], destination[0], destination[1], transport, api_key)
+			path = basicPath(path, transport)
 
-			path2, _ = getPath(destination[0], destination[1], self.house_address[0], self.house_address[1], transport, api_key)
-			return_path = basicPath(path2, transport)
+			path = [[x[1], x[0]] for x in path]
 
-			go_path = [[x[1], x[0]] for x in go_path]
-			return_path = [[x[1], x[0]] for x in return_path]
+			self.trips[coords_str] = path
 
-			self.trips[coords_str+'_go'] = go_path
-			self.trips[coords_str+'_return'] = return_path
-
-		return go_path, return_path, transport
+		return path, transport
 
 	def chooseAction(self, t_s: float, day_now: int, update: bool = True) -> tuple[str, tuple[float, float], list[int, int], str]:
 		"""
@@ -553,7 +554,7 @@ def gen_route_traj(route: list, vehicle: str, t_s: float) -> tuple[np.ndarray, f
 	traj = traj[1:,:]
 	return traj, total_d
 
-def gen_all_traj(house_address: str, attributes: list, switches: dict, all_nodes: dict, start_date: datetime.date, end_date: datetime.date) -> tuple[np.ndarray, list, list]:
+def gen_all_traj(house_address: str, attributes: list, switches: dict, all_nodes: dict, start_date: datetime.date, end_date: datetime.date, api_key: str) -> tuple[np.ndarray, list, list]:
 	"""
 	Generates trajectories for a single person.
 	Args:
@@ -563,6 +564,7 @@ def gen_all_traj(house_address: str, attributes: list, switches: dict, all_nodes
 		all_nodes: (dictionary) contains all locations of all amenities around the house address 
 		start_date: (datetime.date object) start date of trajectories
 		end_date: (datetime.date object) end date of trajectories, end date is not included in the trajectories
+		api_key: (str) api key for open route service
 	Returns:
 		traj: (numpy.ndarray) contains the gps trajectories of a single person, first column is time, second column is lattitude and third column is longitude
 		home_time_list: (list) contains the time spent at home each day in seconds
@@ -597,11 +599,9 @@ def gen_all_traj(house_address: str, attributes: list, switches: dict, all_nodes
 	
 	home_time = 0
 	total_d = 0
-	daily_actions = []
 	
 	home_time_list = []
 	total_d_list = []
-	daily_actions_list = []
 
 	while current_date < end_date:
 
@@ -619,13 +619,15 @@ def gen_all_traj(house_address: str, attributes: list, switches: dict, all_nodes
 			if location == person.house_address:
 				home_time += res[-1, 0] - res[0, 0]
 				
-			daily_actions.append(exit)
-
 			traj = np.vstack((traj, res))
 			t_s = res[-1, 0]
 				
 		elif action == 'fpf':
-			go_path, return_path, transport = person.calculateTrip(person.house_address, location, api_key)
+			t_s_list = []
+			d_temp = 0
+
+			go_path, transport = person.calculateTrip(person.house_address, location, api_key)
+			return_path, _ = person.calculateTrip(location, person.house_address, api_key)
 			transport2 = transport
 			if transport2 == 'foot':
 				transport2 = 'walk'
@@ -634,11 +636,12 @@ def gen_all_traj(house_address: str, attributes: list, switches: dict, all_nodes
 			
 			# Flight 1
 			res1, d1 = gen_route_traj(go_path, transport2, t_s)
-			
 			t_s1 = res1[-1, 0]
+			t_s_list.append(t_s1)
+			traj2 = res1
+			d_temp += d1
 
 			if exit == 'office' and len(person.office_codes) != 0 and np.random.binomial(1, person.travelling_status/10, 1)==1:
-				office_with_exit = True
 
 				rndm_coefficient = np.random.uniform(0,0.6,1)[0]
 				limits2 = [l * rndm_coefficient for l in limits]
@@ -646,89 +649,107 @@ def gen_all_traj(house_address: str, attributes: list, switches: dict, all_nodes
 				# Pause 1
 				res2 = gen_basic_pause(location, t_s1, None, limits2)
 				t_s2 = res2[-1, 0]
+				t_s_list.append(t_s2)
+				traj2 = np.vstack((traj2, res2))
 
-				go_path2, return_path2, exit2 = person.choosePreferredOfficeExit(api_key)
+				go_path2, return_path2, _ = person.choosePreferredOfficeExit(api_key)
 				# Flight 1.1
 				res3, d11 = gen_route_traj(go_path2, 'foot', t_s2)
 				t_s3 = res3[-1, 0]
+				t_s_list.append(t_s3)
+				traj2 = np.vstack((traj2, res3))
 
 				# Pause 2
 				res4 = gen_basic_pause(return_path2[0], t_s3, None, [15 * 60, 60 * 60])
 				t_s4 = res4[-1, 0]
+				t_s_list.append(t_s4)
+				traj2 = np.vstack((traj2, res4))
 
 				# Flight 1.2
 				res5, d12 = gen_route_traj(return_path2, 'foot', t_s4)
 				t_s5 = res5[-1, 0]
+				t_s_list.append(t_s5)
+				traj2 = np.vstack((traj2, res5))
 
 				# Pause 3
 				limits3 = [max(l * (1-rndm_coefficient) - (t_s5-t_s2), 0) for l in limits]
 				res6 = gen_basic_pause(location, t_s5, None, limits3)
 				t_s6 = res6[-1, 0]
+				t_s_list.append(t_s6)
+				traj2 = np.vstack((traj2, res6))
 
-				d1 += d11 + d12
+				d_temp += d11 + d12
 
 			else:
-				office_with_exit = False
-
 				# Pause
 				res6 = gen_basic_pause(location, t_s1, None, limits)
 				t_s6 = res6[-1, 0]
+				t_s_list.append(t_s6)
+				traj2 = np.vstack((traj2, res6))
 
 			# Flight 2
 			res7, d2 = gen_route_traj(return_path, transport2, t_s6)        
 			t_s7 = res7[-1, 0]
-			
+			traj3 = np.vstack((traj2, res7))
+
 			action3, location3, duration3, exit3  = person.chooseAction(t_s7, current_weekdate, update=False)
-			if action3 == "fpf" and great_circle_dist(location[0], location[1], location3[0], location[1]) < great_circle_dist(person.house_address[0], person.house_address[1], location3[0], location3[1]):
-				
-				go_path3, return_path3, _ = person.calculateTrip(location, location3, api_key)
-				
-				# Flight 2
-				res8, d21 = gen_route_traj(go_path3, transport2, t_s6) 
-				t_s8 = res8[-1, 0] 
+			update_exit = False
+			if action3 == "fpf":
+				if great_circle_dist(location[0], location[1], location3[0], location3[1]) < 5:
+					update_exit = True
+					# Pause 2
+					res8 = gen_basic_pause(location, t_s6, None, duration3)
+					t_s8 = res8[-1, 0]
+					t_s_list.append(t_s8)
+					traj2 = np.vstack((traj2, res8))
 
-				# Pause 2.1
-				res9 = gen_basic_pause(location3, t_s8, None, duration3)
-				t_s9 = res9[-1, 0]
+					# Flight 2
+					res9 ,d21 = gen_route_traj(return_path, transport2, t_s8)
+					t_s9 = res9[-1,0]
+					t_s_list.append(t_s9)
+					traj2 = np.vstack((traj2, res9))
+					d_temp += d21
+ 
+				elif great_circle_dist(location[0], location[1], location3[0], location3[1]) < great_circle_dist(person.house_address[0], person.house_address[1], location3[0], location3[1]):
+					update_exit = True
+					go_path3, _ = person.calculateTrip(location, location3, api_key)
+					return_path3, _ = person.calculateTrip(location3, person.house_address, api_key)
 
-				# Flight 3
-				res10, d22 = gen_route_traj(return_path3, transport2, t_s9) 
-				t_s10 = res10[-1, 0] 
+					# Flight 2
+					res8, d21 = gen_route_traj(go_path3, transport2, t_s6) 
+					t_s8 = res8[-1, 0] 
+					t_s_list.append(t_s8)
+					traj2 = np.vstack((traj2, res8))
 
-				if (t_s10%(24*3600)) < 24*60*60:
+					# Pause 2.1
+					res9 = gen_basic_pause(location3, t_s8, None, duration3)
+					t_s9 = res9[-1, 0]
+					t_s_list.append(t_s9)
+					traj2 = np.vstack((traj2, res9))
+
+					# Flight 3
+					res10, d22 = gen_route_traj(return_path3, transport2, t_s9) 
+					t_s10 = res10[-1, 0] 
+					t_s_list.append(t_s10)
+					traj2 = np.vstack((traj2, res10))
+
+					d_temp += d21 + d22
+
+
+			if (t_s_list[-1]%(24*3600)) < 24*60*60:
+				if update_exit:
 					person.updatePreferredExits(exit3)
-					t_s = t_s10
-					if office_with_exit:
-						daily_actions.append(exit)
-						daily_actions.append(exit + '_' + exit2)
-						daily_actions.append(exit2 + '_' + exit)
-						daily_actions.append(exit + '_' + exit3)
-						traj = np.vstack((traj, res1, res2, res3, res4, res5, res6, res8, res9, res10))
-					else: 
-						daily_actions.append(exit)
-						daily_actions.append(exit + '_' + exit3)
-						traj = np.vstack((traj, res1, res6, res8, res9, res10))
-					total_d += (d1 + d21 + d22)
-					continue
-
-
-
-
-			if (t_s7%(24*3600)) < 24*60*60:
 				
+				t_s = t_s_list[-1]
+				traj = np.vstack((traj, traj2))
+				total_d += d_temp
+
+			elif (t_s7%(24*3600)) < 24*60*60: 
 				t_s = t_s7
-				if office_with_exit:
-					daily_actions.append(exit)
-					daily_actions.append(exit + '_' + exit2)
-					daily_actions.append(exit2 + '_' + exit)
-					traj = np.vstack((traj, res1, res2, res3, res4, res5, res6, res7))
-				else: 
-					daily_actions.append(exit)
-					traj = np.vstack((traj, res1, res6, res7))
-				total_d += (d1 + d2)
+				traj = np.vstack((traj, traj3))
+				total_d += d_temp + d2
 			
 		elif action == 'p_night':
-			daily_actions.append(exit)
 			if limits[0]+limits[1] != 0:
 				res = gen_basic_pause(location, t_s, None, limits)
 				
@@ -743,11 +764,9 @@ def gen_all_traj(house_address: str, attributes: list, switches: dict, all_nodes
 			
 			home_time_list.append(home_time)
 			total_d_list.append(total_d)
-			daily_actions_list.append(daily_actions)
 			
 			home_time = 0
 			total_d = 0
-			daily_actions = []
 		
 	
 	traj = traj[:-1,:] 	
@@ -912,7 +931,7 @@ def process_attributes(attributes: dict[int, list], key: str, user: int) -> tupl
 
 	return attrs, switches
 
-def sim_GPS_data(N: int, location: str, start_date: list[int], end_date: list[int], cycle: int, p: float, data_folder: str, attributes_dir: str = None):
+def sim_GPS_data(N: int, location: str, start_date: list[int], end_date: list[int], cycle: int, p: float, api_key: str, data_folder: str, attributes_dir: str = None):
 	"""
 	Generates gps trajectories.
 	Args:
@@ -922,6 +941,7 @@ def sim_GPS_data(N: int, location: str, start_date: list[int], end_date: list[in
 		end_date: (list) end date of trajectories, end date is not included in the trajectories, format [year, month, day]
 		cycle: (int) the sum of on-cycle and off_cycle, unit is minute
 		p: (float) the missing rate, in other words, the proportion of off_cycle, should be within [0,1]
+		api_key: (str), api key for open route service https://openrouteservice.org/
 		data_folder: (str) directory to save trajectories
 		attributes_dir: (str) directory to json file containing attributes for each user, optional
 	Returns:
@@ -1013,6 +1033,8 @@ def sim_GPS_data(N: int, location: str, start_date: list[int], end_date: list[in
 	user = 0
 	ind = 0
 	print("Starting to generate trajectories...")
+	d_all = []
+	t_all = []
 	while user < N:
 
 		house_address = (float(nodes[ind].lat), float(nodes[ind].lon))
@@ -1108,12 +1130,15 @@ def sim_GPS_data(N: int, location: str, start_date: list[int], end_date: list[in
 			os.mkdir(data_folder+"/user_"+str(user+1)+"/gps")
 
 
-		all_traj,all_T,all_D = gen_all_traj(house_address, attributes_dictionary[user+1], switches_dictionary[user+1],all_nodes, start_date, end_date)
+		all_traj,all_T,all_D = gen_all_traj(house_address, attributes_dictionary[user+1], switches_dictionary[user+1],all_nodes, start_date, end_date, api_key)
 		if len(all_traj) == 0:
 			ind += 1
 			continue
 		all_D = np.array(all_D)/1000
 		all_T = np.array(all_T)/3600
+
+		d_all.append(all_D)
+		t_all.append(all_T)
 
 		print("User_"+str(user+1))
 		print("	distance(km): ", all_D.tolist())
@@ -1131,3 +1156,4 @@ def sim_GPS_data(N: int, location: str, start_date: list[int], end_date: list[in
 
 		user += 1
 		ind += 1
+	return d_all, t_all
