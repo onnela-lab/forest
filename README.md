@@ -60,12 +60,20 @@ path_to_log_summary = "ENTER/PATH/TO/DESIRED/OUTPUT/FOLDER2/HERE"
 # Because of the explicit imports, you don't have to precede the functions with forest.subpackage.
 sim_log_data(path_to_synthetic_log_data)
 
-# Generate synthetic gps data and communication logs data as csv files
+# Generate synthetic gps data as csv files
 # Define parameters for generating the data
-# To save smartphone battery power, we typically collect location data intermittently: e.g. during an on-cycle of 3 minutes, followed by an off-cycle of 12 minutes. We'll generate data in this way
+N = 5 # number of people to generate
+location = "US/Boston" # area to simulate, format "Country_2_letter_ISO_code/City_Name"
+start_date = [2021, 6, 1] # start date of trajectories, format  [year, month, day]
+end_date = [2021, 7, 1] # end date of trajectories, format  [year, month, day]
+# To save smartphone battery power, we typically collect location data intermittently: e.g. during an on-cycle of 3 minutes, followed by an off-cycle of 12 minutes.
 cycle = 15 # Length of off-cycle + length of on-cycle in minutes
 p = 0.8 # Length off-cycle / (length off-cycle + length on-cycle)
-sim_GPS_data(cycle, p, path_to_synthetic_log_data)
+# api key for generating realistic routes, can be generated for free here: https://openrouteservice.org/dev/
+api_key = "api key of open route service here"
+# optional directory of json file, containing attributes of each person to generate
+attributes_dir = "forest/bonsai/attributes.json"
+sim_GPS_data(N, location, start_date, end_date, cycle, p, api_key, path_to_synthetic_gps_data, attributes_dir)
 
 # 2. Specify parameters for imputation 
 # See https://github.com/onnela-lab/forest/wiki/Jasmine-documentation#input for details
