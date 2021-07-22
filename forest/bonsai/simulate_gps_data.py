@@ -9,8 +9,8 @@ import requests
 import json
 import overpy
 from timezonefinder import TimezoneFinder
-from forest.poplar.legacy.common_funcs import datetime2stamp,stamp2datetime
-from forest.jasmine.data2mobmat import great_circle_dist
+from ..poplar.legacy.common_funcs import datetime2stamp,stamp2datetime
+from ..jasmine.data2mobmat import great_circle_dist
 
 
 R = 6.371*10**6
@@ -144,7 +144,7 @@ class Person:
 			house_address: tuple, coordinates of primary home
 			   attributes: list, consists of various information
 			   attributes = [vehicle, main_employment, athletic_status, active_status, travelling_status, preferred_exits]
-				* vehicle = 0: nothing, 1: own car, 2: own_bicycle | used for distances and time of flights
+				* vehicle = 0: nothing, 1: own car, 2: own bicycle | used for distances and time of flights
 				* main_employment = 0: nothing, 1: worker, 2:student | used for routine action in weekdays
 				* active_status = 0-10 | used for probability in free time to take an action or stay home
 				* travelling status = 0-10 | used to derive amount of distance travelled
@@ -997,6 +997,8 @@ def sim_GPS_data(N: int, location: str, start_date: list[int], end_date: list[in
 	
 	for user in range(1, N + 1):
 		if user not in attributes_dictionary.keys():
+			# attributes: [vehicle, main_employment, athletic_status, active_status, travelling_status, preferred_exits]
+			# look at definition of Person class
 			attributes_dictionary[user] = [np.random.choice(range(3), 1)[0], np.random.choice(range(3), 1)[0],
 			np.random.choice(range(11), 1)[0], np.random.choice(range(11), 1)[0], np.random.choice(possible_exits_list, 3, replace=False).tolist()]
 		if user not in switches_dictionary.keys():
