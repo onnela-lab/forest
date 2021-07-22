@@ -1,0 +1,27 @@
+{
+    "User 1":
+    {
+        "main_employment": "none", 
+        "vehicle" : "car",
+        "travelling_status": 10,
+        "active_status": 0
+    },
+
+    "Users 2-4":
+    {
+        "main_employment": "student",
+        "vehicle" : "bicycle",
+        "travelling_status": 8,
+        "active_status": 8,
+        "active_status-16": 2 
+    },
+
+    "User 5":
+    {
+        "main_employment": "work",
+        "vehicle" : "foot",
+        "travelling_status": 9,
+        "travelling_status-20": 1,
+        "preferred_exits": ["cafe", "bar", "cinema"] 
+    }
+}
