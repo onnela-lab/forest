@@ -74,7 +74,7 @@ def getPath(lat1: float, lon1: float, lat2: float, lon2: float, transport: str, 
 
 				return np.array(path_coordinates), great_circle_dist(lat1, lon1, lat2, lon2)
 			else:
-				print("Openroute service failed with code " + call.status_code + ", because of " + call.reason)
+				print("Openroute service failed with code " + str(call.status_code) + ", because of " + call.reason)
 				sys.exit()
 
 def basicPath(path: np.ndarray, transport: str) -> np.ndarray:
@@ -175,6 +175,10 @@ class Person:
 			
 			if len(all_nodes[employment_str]) != 0:
 				i = np.random.choice(range(len(all_nodes[employment_str])), 1)[0]
+				
+				while all_nodes[employment_str][i] == self.house_address:
+					i = np.random.choice(range(len(all_nodes[employment_str])), 1)[0]
+					
 				self.office_address = all_nodes[employment_str][i]
 
 				no_office_days = np.random.binomial(5, self.active_status/10)
@@ -194,11 +198,18 @@ class Person:
 		for exit in self.possible_exits:
 			if len(all_nodes[exit]) > 3:
 				random_places = np.random.choice(range(len(all_nodes[exit])), 3, replace=False).tolist()
-				setattr(self, exit+'_places', [(place[0], place[1]) for place in np.array(all_nodes[exit])[random_places]])
-			elif len(all_nodes[exit]) == 0:
-				setattr(self, exit+'_places', [])
+				places_selected = [(place[0], place[1]) for place in np.array(all_nodes[exit])[random_places]]
+				if self.house_address in places_selected:
+					places_selected = [pl for pl in places_selected if pl != self.house_address]
+					r_id = np.random.choice(range(len(all_nodes[exit])), 1)[0]
+					while r_id in random_places:
+						r_id = np.random.choice(range(len(all_nodes[exit])), 1)[0]
+					place = all_nodes[exit][r_id]
+					places_selected.append((place[0], place[1]))
+
+				setattr(self, exit+'_places', places_selected)
 			else:
-				setattr(self, exit+'_places', [(place[0], place[1]) for place in np.array(all_nodes[exit])])
+				setattr(self, exit+'_places', [(place[0], place[1]) for place in all_nodes[exit] if (place[0], place[1]) != self.house_address])
 
 			distances = [great_circle_dist(self.house_address[0], self.house_address[1], place[0], place[1]) for place in getattr(self, exit+'_places')]
 			order = np.argsort(distances)
@@ -617,18 +628,13 @@ def gen_all_traj(house_address: str, attributes: list, switches: dict, all_nodes
 
 		current_weekdate = current_date.weekday()
 		action, location, limits, exit = person.chooseAction(t_s, current_weekdate)
-		if exit not in ["home", "home_night", "home_morning", "office_home"] and location[0] == person.house_address[0] and location[1] == person.house_address[1]:
-			if action not in ['office', 'university']:
-				getattr(person, exit + "_places").remove(location)
-			else:
-				return [], [], []
 
 		if action == 'p':
 			
 			res = gen_basic_pause(location, t_s, None, limits)
 			
 			if location == person.house_address:
-				home_time += res[-1, 0] - res[0, 0]
+				home_time += res[-1, 0] - res[0, 0] + 1
 				
 			traj = np.vstack((traj, res))
 			t_s = res[-1, 0]
@@ -747,9 +753,8 @@ def gen_all_traj(house_address: str, attributes: list, switches: dict, all_nodes
 					d_temp += d21 + d22
 
 
-			if t_s_list[-1] - (current_date - start_date).days * 24 * 3600 < 24 * 3600:
-				if update_exit:
-					person.updatePreferredExits(exit3)
+			if t_s_list[-1] - (current_date - start_date).days * 24 * 3600 < 24 * 3600 and update_exit:
+				person.updatePreferredExits(exit3)
 				
 				t_s = t_s_list[-1]
 				traj = np.vstack((traj, traj2))
@@ -759,13 +764,19 @@ def gen_all_traj(house_address: str, attributes: list, switches: dict, all_nodes
 				t_s = t_s7
 				traj = np.vstack((traj, traj3))
 				total_d += d_temp + d2
+
+			else:
+				# pause
+				res = gen_basic_pause(person.house_address, t_s, None, [15*60, 30*60])
+				t_s = res[-1, 0]
+				traj = np.vstack((traj, res))
 			
 		elif action == 'p_night':
 			if limits[0]+limits[1] != 0:
 				res = gen_basic_pause(location, t_s, None, limits)
 				
 				if location == person.house_address:
-					home_time += res[-1, 0] - res[0, 0]
+					home_time += res[-1, 0] - res[0, 0] + 1
 					
 				traj = np.vstack((traj, res))
 				t_s = res[-1, 0]
