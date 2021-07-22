@@ -5,7 +5,9 @@ requires = ['numpy',
             'scipy',
             'holidays', # poplar
             'pytz', # jasmine, poplar
-            'timezonefinder', # poplar
+            'timezonefinder', # bonsai, poplar
+            'requests', # bonsai
+            'overpy' # bonsai 
             ]
 
 package_data = {'': ['*.csv', '*.json']}
