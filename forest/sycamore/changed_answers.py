@@ -122,7 +122,7 @@ def agg_changed_answers_summary(study_dir, config_path, agg, study_tz = None):
     num_answers = detail.groupby(summary_cols)['num_answers'].count()
     avg_time = detail.groupby(summary_cols)['time_to_answer'].apply(lambda x: sum(x, datetime.timedelta())/len(x))
     avg_chgs = detail.groupby(summary_cols)['num_answers'].mean()
-    most_common_answer = detail.groupby(summary_cols)['all_answers'].apply(lambda x: max(set([x for x in x for x in x]), key = [x for x in x for x in x].count))
+    most_common_answer = detail.groupby(summary_cols)['all_answers'].apply(lambda x: max(set([x for x in x for x in x]), key = [x for x in x for x in x].count, default = 0))
     
     out = pd.concat([num_answers, avg_time, avg_chgs, most_common_answer], axis = 1).reset_index()
     

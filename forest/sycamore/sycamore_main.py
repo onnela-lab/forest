@@ -1,6 +1,6 @@
 import os
 from .functions import aggregate_surveys_config
-from .survey_config import survey_submits
+from .survey_config import survey_submits, survey_submits_no_config
 from .changed_answers import agg_changed_answers_summary
 
 def survey_stats_main(output_dir, study_dir, config_path, time_start, time_end, beiwe_ids, study_tz = None): 
@@ -31,12 +31,16 @@ def survey_stats_main(output_dir, study_dir, config_path, time_start, time_end, 
     # Create survey submits detail and summary
     ss_detail, ss_summary = survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg_data, study_tz)
     
+    # Add alternative survey submits table
+    submits_tbl = survey_submits_no_config(study_dir, agg_data)
+    
     # Write out summaries
 #     agg_data.to_csv(os.path.join(output_dir, 'agg_survey_data.csv'), index = False)
     ca_detail.to_csv(os.path.join(output_dir, 'answers_data.csv'), index = False)
     ca_summary.to_csv(os.path.join(output_dir, 'answers_summary.csv'), index = False)
     ss_detail.to_csv(os.path.join(output_dir, 'submits_data.csv'), index = False)
     ss_summary.to_csv(os.path.join(output_dir, 'submits_summary.csv'), index = False)
+    submits_tbl.to_csv(os.path.join(output_dir, 'submits_alt_summary.csv'), index = False)
     
     
     return 

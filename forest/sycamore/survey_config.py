@@ -201,7 +201,41 @@ def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg,
     submit_lines_summary.columns = ['survey id', 'beiwe_id', 'num_surveys', 'num_complete_surveys', 'avg_time_to_submit']
     
     return submit_lines3.sort_values(['survey id', 'beiwe_id']).drop_duplicates(), submit_lines_summary
+
+
+
+def survey_submits_no_config(study_dir, agg):
+    '''
+    Alternative function for getting the survey completions (doesn't have expected times of surveys)
+    Args:
+        study_dir(str):
+            File path to study data
+        agg(DataFrame):
+            Output of aggregate_surveys_config
+    '''
+    
+    tmp = agg.copy()
+    tmp['question index prev'] = tmp['question index'].shift(1)
+    tmp['config id prev'] = tmp['config_id'].shift(1)
+    
+    # Add a reset for when the configuration ID changes too
+    tmp['survey_inst_id'] = np.where(
+                                (tmp['config_id'] != tmp['config id prev']) | 
+                                ((tmp['question index prev'].isna()) | (abs(tmp['question index prev'] - tmp['question index']) > 1)), 1, 0)
+    tmp['survey_inst_id'] = np.cumsum(tmp['survey_inst_id'])
     
     
+    def summarize_submits(df):
+        tmp = {}
+        tmp['min_time'] = df.min()
+        tmp['max_time'] = df.max()
+        return pd.Series(tmp, index = ['min_time', 'max_time'])
+
+    tmp = tmp.groupby(['survey id', 'beiwe_id', 'survey_inst_id'])['UTC time'].apply(summarize_submits).reset_index()
+    tmp = tmp.pivot(index= [ 'survey id', 'beiwe_id','survey_inst_id'],columns='level_3', values = 'UTC time').reset_index()
+    tmp['time_to_complete'] = tmp[ 'max_time']-tmp[ 'min_time']
     
     
+    tmp['time_to_complete'] = [t.seconds for t in tmp['time_to_complete']]
+    
+    return tmp.sort_values(['beiwe_id', 'survey id'])
