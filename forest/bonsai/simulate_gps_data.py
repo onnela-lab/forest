@@ -1017,10 +1017,10 @@ def sim_GPS_data(N: int, location: str, start_date: list[int], end_date: list[in
 	overpy_query = """
 	[out:json];
 	area["ISO3166-1"="{}"][admin_level=2] -> .country;
-	area["name:en"="{}"] -> .city;
+	area["name"="{}"] -> .city;
 	node(area.country)(area.city)["addr:street"];
 	out center {};
-	""".format(location_ctr, location_city, str(100))
+	""".format(location_ctr, location_city, str(150))
 	
 	try:
 		r = api.query(overpy_query)
@@ -1032,10 +1032,30 @@ def sim_GPS_data(N: int, location: str, start_date: list[int], end_date: list[in
 			print("Too many Overpass requests in a short time. Please try again in a minute.")
 			sys.exit()
 
+	if len(r.nodes) == 0:
+		overpy_query = """
+		[out:json];
+		area["ISO3166-1"="{}"][admin_level=2] -> .country;
+		area["name:en"="{}"] -> .city;
+		node(area.country)(area.city)["addr:street"];
+		out center {};
+		""".format(location_ctr, location_city, str(100))
+
+		try:
+			r = api.query(overpy_query)
+		except:
+			time.sleep(30)
+			try:
+				r = api.query(overpy_query)	
+			except:
+				print("Too many Overpass requests in a short time. Please try again in a minute.")
+				sys.exit()
+
 	try:
 		index = np.random.choice(range(len(r.nodes)), 100, replace=False)
 	except ValueError:
 		print("Overpass query came back empty. Check that the location argument, ISO code and city name, did not have any misspellings.")
+		sys.exit()
 	nodes = np.array(r.nodes)[index]
 
 	location_coords = (float(nodes[0].lat), float(nodes[0].lon))
