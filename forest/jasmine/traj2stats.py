@@ -34,7 +34,7 @@ def gps_summaries(traj,tz_str,option,places_of_interest,thresholds):
     if places_of_interest is not None:
         q = "[out:json];\n("
         bbox = (min(traj[:,1]) -.01, min(traj[:,2]) -.01, max(traj[:,1]) + .01, max(traj[:,2]) + .01)
-        leisure_places = ["park"]
+        leisure_places = ["park", "beach_resort", "dance", "dog_park", "fitness_centre", "sports_centre"]
         amenity_places = ["bar", "cafe", "fast_food", "pub", "restaurant", "kindergarten", "library", "school", "university",
         "bank", "clinic", "doctors", "hospital", "pharmacy", "nursing_home", "casino", "cinema", "community_centre", "theatre",
         "childcare", "marketplace", "place_of_worship"]
@@ -185,7 +185,7 @@ def gps_summaries(traj,tz_str,option,places_of_interest,thresholds):
                         for i in range(len(places_of_interest)):
                             place = places_of_interest[i]
                             if len(all_places[place+'_nodes']) > 0:
-                                if min(great_circle_dist(row[1], row[2], np.array(all_places[place+'_nodes'])[:, 0], np.array(all_places[place+'_nodes'])[:, 1])) < 10:
+                                if min(great_circle_dist(row[1], row[2], np.array(all_places[place+'_nodes'])[:, 0], np.array(all_places[place+'_nodes'])[:, 1])) < 7.5:
                                     all_place_times_temp[i] += row[6] - row[3]
                                     continue
                             if len(all_places[place+'_ways']) > 0:
