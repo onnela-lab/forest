@@ -43,7 +43,6 @@ def convert_time_to_date(submit_time, day, time):
     return days[day] 
 
 
-
 def generate_survey_times(time_start, time_end,timings = [], survey_type = 'weekly'):
     '''
     Takes a start time and end time and generates a schedule of all sent surveys in time frame for the given survey type
@@ -203,13 +202,10 @@ def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg,
     return submit_lines3.sort_values(['survey id', 'beiwe_id']).drop_duplicates(), submit_lines_summary
 
 
-
-def survey_submits_no_config(study_dir, agg):
+def survey_submits_no_config(agg):
     '''
     Alternative function for getting the survey completions (doesn't have expected times of surveys)
     Args:
-        study_dir(str):
-            File path to study data
         agg(DataFrame):
             Output of aggregate_surveys_config
     '''
@@ -226,16 +222,15 @@ def survey_submits_no_config(study_dir, agg):
     
     
     def summarize_submits(df):
-        tmp = {}
-        tmp['min_time'] = df.min()
-        tmp['max_time'] = df.max()
+        tmp = {
+            'min_time': df.min(),
+            'max_time' : df.max()
+        }
         return pd.Series(tmp, index = ['min_time', 'max_time'])
 
     tmp = tmp.groupby(['survey id', 'beiwe_id', 'survey_inst_id'])['UTC time'].apply(summarize_submits).reset_index()
-    tmp = tmp.pivot(index= [ 'survey id', 'beiwe_id','survey_inst_id'],columns='level_3', values = 'UTC time').reset_index()
-    tmp['time_to_complete'] = tmp[ 'max_time']-tmp[ 'min_time']
-    
-    
+    tmp = tmp.pivot(index = ['survey id', 'beiwe_id','survey_inst_id'],columns='level_3', values = 'UTC time').reset_index()
+    tmp['time_to_complete'] = tmp['max_time'] - tmp['min_time']
     tmp['time_to_complete'] = [t.seconds for t in tmp['time_to_complete']]
     
     return tmp.sort_values(['beiwe_id', 'survey id'])
