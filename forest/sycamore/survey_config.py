@@ -220,7 +220,6 @@ def survey_submits_no_config(agg):
                                 ((tmp['question index prev'].isna()) | (abs(tmp['question index prev'] - tmp['question index']) > 1)), 1, 0)
     tmp['survey_inst_id'] = np.cumsum(tmp['survey_inst_id'])
     
-    
     def summarize_submits(df):
         tmp = {
             'min_time': df.min(),
@@ -232,5 +231,4 @@ def survey_submits_no_config(agg):
     tmp = tmp.pivot(index = ['survey id', 'beiwe_id','survey_inst_id'],columns='level_3', values = 'UTC time').reset_index()
     tmp['time_to_complete'] = tmp['max_time'] - tmp['min_time']
     tmp['time_to_complete'] = [t.seconds for t in tmp['time_to_complete']]
-    
     return tmp.sort_values(['beiwe_id', 'survey id'])
