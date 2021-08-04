@@ -1,7 +1,5 @@
 # Install Python dependencies and run tests
 
-name: Build on Ubuntu
-
 on: push
 
 jobs:
