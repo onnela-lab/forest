@@ -1,5 +1,7 @@
 # Install Python dependencies and run tests
 
+name: build
+
 on: push
 
 jobs:
