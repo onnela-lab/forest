@@ -14,7 +14,7 @@ from .data2mobmat import (great_circle_dist, pairwise_great_circle_dist,
 from .mobmat2traj import num_sig_places, locate_home, ImputeGPS, Imp2traj
 from .sogp_gps import BV_select
 
-def gps_summaries(traj,tz_str,option,places_of_interest,thresholds):
+def gps_summaries(traj,tz_str,option,places_of_interest):
     """
     This function derives summary statistics from the imputed trajectories
     if the option is hourly, it returns ["year","month","day","hour","obs_duration","pause_time","flight_time","home_time",
@@ -26,8 +26,6 @@ def gps_summaries(traj,tz_str,option,places_of_interest,thresholds):
           tz_str: timezone
           option: 'daily' or 'hourly'
           places_of_interest: list of amenities or leisure places to watch, keywords as used in openstreetmaps
-          thresholds: list of integers describing the time required in a day or an hour 
-          to consider time spent in each place significant, in seconds
     Return: a pd dataframe, with each row as an hour/day, and each col as a feature/stat
     """
 
@@ -195,8 +193,7 @@ def gps_summaries(traj,tz_str,option,places_of_interest,thresholds):
                                 
                 all_place_significant = [0 for _ in range(len(places_of_interest))]
                 for i in range(len(places_of_interest)):
-                    if all_place_times_temp[i] > thresholds[i]:
-                        all_place_significant[i] += 1
+                    all_place_significant[i] += all_place_times_temp[i]/60
 
             if len(flight_d_vec)>0:
                 av_f_len = np.mean(flight_d_vec)
@@ -321,7 +318,7 @@ def gps_quality_check(study_folder, ID):
         quality_check = quality_yes/(len(file_path)+0.0001)
     return quality_check
 
-def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, places_of_interest = None, thresholds = None, time_start = None, time_end = None, beiwe_id = None,
+def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, places_of_interest = None, time_start = None, time_end = None, beiwe_id = None,
     parameters = None, all_memory_dict = None, all_BV_set=None):
     """
     This the main function to do the GPS imputation. It calls every function defined before.
@@ -331,8 +328,6 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, place
             option, 'daily' or 'hourly' or 'both' (resolution for summary statistics)
             save_traj, bool, True if you want to save the trajectories as a csv file, False if you don't
             places_of_interest: list of amenities or leisure places to watch, keywords as used in openstreetmaps
-            thresholds: list of integers or single integer (if same for all places) describing the time required in a day or an hour 
-            to consider time spent in each place significant, in minutes
             time_start, time_end are starting time and ending time of the window of interest
             time should be a list of integers with format [year, month, day, hour, minute, second]
             if time_start is None and time_end is None: then it reads all the available files
@@ -347,25 +342,9 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, place
             and a record csv file to show which users are processed, from when to when
             and logger csv file to show warnings and bugs during the run
     """
+    
     if type(places_of_interest) != list and places_of_interest is not None:
         sys.stdout.write("Places of interest need to be of list type")
-        sys.exit()
-
-    if (places_of_interest is None and thresholds is not None) or (thresholds is None and places_of_interest is not None):
-        sys.stdout.write("Either both places_of_interest and thresholds need to be provided or neither")
-        sys.exit()
-    elif places_of_interest is None and thresholds is None:
-        pass
-    elif type(thresholds) == int:
-        thresholds = [thresholds*60 for _ in places_of_interest]
-    elif type(thresholds) == list:
-        if len(thresholds) == len(places_of_interest):
-            thresholds = [t*60 for t in thresholds]
-        else:
-            sys.stdout.write("Places of interest do not have the same length as the thresholds")
-            sys.exit()
-    else:
-        sys.stdout.write("Thresholds need to be either of int or list type")
         sys.exit()
 
     if os.path.exists(output_folder)==False:
@@ -445,12 +424,12 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, place
                         dest_path = output_folder +"/trajectory/" + str(ID) + ".csv"
                         pd_traj.to_csv(dest_path,index=False)
                     if option == 'both':
-                        summary_stats1 = gps_summaries(traj,tz_str,'hourly',places_of_interest,thresholds)
+                        summary_stats1 = gps_summaries(traj,tz_str,'hourly',places_of_interest)
                         write_all_summaries(ID, summary_stats1, output_folder + "/hourly")
-                        summary_stats2 = gps_summaries(traj,tz_str,'daily',places_of_interest,thresholds)
+                        summary_stats2 = gps_summaries(traj,tz_str,'daily',places_of_interest)
                         write_all_summaries(ID, summary_stats2, output_folder + "/daily")
                     else:
-                        summary_stats = gps_summaries(traj,tz_str,option,places_of_interest,thresholds)
+                        summary_stats = gps_summaries(traj,tz_str,option,places_of_interest)
                         write_all_summaries(ID, summary_stats, output_folder)
                 else:
                     sys.stdout.write("GPS data are not collected or the data quality is too low." + '\n')
