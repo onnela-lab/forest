@@ -177,23 +177,25 @@ def gps_summaries(traj,tz_str,option,places_of_interest):
             # Locations of importance
             if places_of_interest is not None:
                 pause_vec = temp[temp[:, 0] == 2]
-                all_place_times_temp = [0 for _ in places_of_interest]
+                all_place_times_temp = [0 for _ in range(len(places_of_interest) + 1)]
                 for row in pause_vec:
                     if great_circle_dist(row[1], row[2], home_x, home_y) > 1.5:
+                        add_to_other = True
                         for i in range(len(places_of_interest)):
                             place = places_of_interest[i]
                             if len(all_places[place+'_nodes']) > 0:
                                 if min(great_circle_dist(row[1], row[2], np.array(all_places[place+'_nodes'])[:, 0], np.array(all_places[place+'_nodes'])[:, 1])) < 7.5:
-                                    all_place_times_temp[i] += row[6] - row[3]
+                                    all_place_times_temp[i] += (row[6] - row[3])/60
+                                    add_to_other = False
                                     continue
                             if len(all_places[place+'_ways']) > 0:
                                 if np.sum([polygon.contains(Point(row[1], row[2])) for polygon in all_places[place+'_ways']])>0:
-                                    all_place_times_temp[i] += row[6] - row[3]
+                                    all_place_times_temp[i] += (row[6] - row[3])/60
+                                    add_to_other = False
                                     continue
-                                
-                all_place_significant = [0 for _ in range(len(places_of_interest))]
-                for i in range(len(places_of_interest)):
-                    all_place_significant[i] += all_place_times_temp[i]/60
+                        # in case of pause not in places of interest
+                        if add_to_other:
+                            all_place_times_temp[-1] += (row[6] - row[3])/60
 
             if len(flight_d_vec)>0:
                 av_f_len = np.mean(flight_d_vec)
@@ -223,7 +225,7 @@ def gps_summaries(traj,tz_str,option,places_of_interest):
                                           total_flight_time/60, av_f_len,sd_f_len,av_f_dur/60,sd_f_dur/60,
                                           total_pause_time/60,av_p_dur/60,sd_p_dur/60]
                     if places_of_interest is not None:
-                        res += all_place_significant
+                        res += all_place_times_temp
                     
                     summary_stats.append(res)
             if option=="daily":
@@ -265,11 +267,13 @@ def gps_summaries(traj,tz_str,option,places_of_interest):
                                          total_flight_time/3600, av_f_len/1000,sd_f_len/1000,av_f_dur/3600,sd_f_dur/3600,
                                          total_pause_time/3600, av_p_dur/3600, sd_p_dur/3600]
                     if places_of_interest is not None:
-                        res += all_place_significant
+                        res += all_place_times_temp
                     summary_stats.append(res)
         summary_stats = pd.DataFrame(np.array(summary_stats))
         if places_of_interest is None:
             places_of_interest = []
+        else:
+            places_of_interest.append("other")
         if option == "hourly":
             summary_stats.columns = ["year","month","day","hour","obs_duration","home_time","dist_traveled","max_dist_home",
                                      "total_flight_time","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration",
@@ -282,6 +286,8 @@ def gps_summaries(traj,tz_str,option,places_of_interest):
     else:
         if places_of_interest is None:
             places_of_interest = []
+        else:
+            places_of_interest.append("other")
         if option == "hourly":
             summary_stats = pd.DataFrame(columns=["year","month","day","hour","obs_duration","home_time","dist_traveled","max_dist_home",
                                      "total_flight_time","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration",
