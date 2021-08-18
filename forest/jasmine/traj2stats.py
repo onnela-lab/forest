@@ -7,6 +7,7 @@ import requests
 import time
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
+from ..bonsai.simulate_gps_data import boundingBox
 from ..poplar.legacy.common_funcs import (stamp2datetime, datetime2stamp,
                                           read_data, write_all_summaries)
 from .data2mobmat import (great_circle_dist, pairwise_great_circle_dist,
@@ -14,7 +15,7 @@ from .data2mobmat import (great_circle_dist, pairwise_great_circle_dist,
 from .mobmat2traj import num_sig_places, locate_home, ImputeGPS, Imp2traj
 from .sogp_gps import BV_select
 
-def gps_summaries(traj,tz_str,option,places_of_interest):
+def gps_summaries(traj,tz_str,option,places_of_interest=None,save_log=False,threshold=None):
     """
     This function derives summary statistics from the imputed trajectories
     if the option is hourly, it returns ["year","month","day","hour","obs_duration","pause_time","flight_time","home_time",
@@ -26,7 +27,11 @@ def gps_summaries(traj,tz_str,option,places_of_interest):
           tz_str: timezone
           option: 'daily' or 'hourly'
           places_of_interest: list of amenities or leisure places to watch, keywords as used in openstreetmaps
+          save_log, bool, True if you want to output a log of locations visited and their tags
+          threshold, int, time spent in a pause needs to exceed the threshold to be placed in the log 
+          only if save_log True, in minutes
     Return: a pd dataframe, with each row as an hour/day, and each col as a feature/stat
+            a dictionary, contains log of tags of all locations visited from openstreetmap
     """
 
     if places_of_interest is not None:
@@ -99,6 +104,7 @@ def gps_summaries(traj,tz_str,option,places_of_interest):
     ObsTraj = traj[traj[:,7]==1,:]
     home_x, home_y = locate_home(ObsTraj,tz_str)
     summary_stats = []
+    log_tags = {}
     if option == "hourly":
         ## find starting and ending time
         sys.stdout.write("Calculating the hourly summary stats..." + '\n')
@@ -175,27 +181,84 @@ def gps_summaries(traj,tz_str,option,places_of_interest):
             total_flight_time =  sum(flight_t_vec)
             dist_traveled = sum(mov_vec)
             # Locations of importance
-            if places_of_interest is not None:
+            log_tags_temp = []
+            if places_of_interest is not None or save_log:
                 pause_vec = temp[temp[:, 0] == 2]
-                all_place_times_temp = [0 for _ in range(len(places_of_interest) + 1)]
+                pause_df = pd.DataFrame(columns=["lat", "lon", "t"])
                 for row in pause_vec:
-                    if great_circle_dist(row[1], row[2], home_x, home_y) > 1.5:
+                    if great_circle_dist(row[1], row[2], home_x, home_y) > 5:
+                        if len(pause_df) == 0:
+                            pause_df = pd.concat([pause_df, pd.DataFrame({"lat":[row[1]], "lon":[row[2]], "t":[(row[6] - row[3])/60]})])
+                        elif np.min(great_circle_dist(row[1], row[2], pause_df.lat.to_numpy(), pause_df.lon.to_numpy())) > 5:
+                            pause_df = pd.concat([pause_df, pd.DataFrame({"lat":[row[1]], "lon":[row[2]], "t":[(row[6] - row[3])/60]})])
+                        else:
+                            pause_df.iloc[great_circle_dist(row[1], row[2], pause_df.lat.to_numpy(), pause_df.lon.to_numpy()) <= 5, -1] += (row[6] - row[3])/60 
+                all_place_times_temp = [0 for _ in range(len(places_of_interest) + 1)]
+                
+                for index in range(pause_df.shape[0]):
+                    row = pause_df.iloc[index]
+                    if places_of_interest is not None:
                         add_to_other = True
                         for i in range(len(places_of_interest)):
                             place = places_of_interest[i]
                             if len(all_places[place+'_nodes']) > 0:
-                                if min(great_circle_dist(row[1], row[2], np.array(all_places[place+'_nodes'])[:, 0], np.array(all_places[place+'_nodes'])[:, 1])) < 7.5:
-                                    all_place_times_temp[i] += (row[6] - row[3])/60
+                                if min(great_circle_dist(row.lat, row.lon, np.array(all_places[place+'_nodes'])[:, 0], np.array(all_places[place+'_nodes'])[:, 1])) < 7.5:
+                                    all_place_times_temp[i] += row.t/60
                                     add_to_other = False
                                     continue
                             if len(all_places[place+'_ways']) > 0:
-                                if np.sum([polygon.contains(Point(row[1], row[2])) for polygon in all_places[place+'_ways']])>0:
-                                    all_place_times_temp[i] += (row[6] - row[3])/60
+                                if np.sum([polygon.contains(Point(row.lat, row.lon)) for polygon in all_places[place+'_ways']])>0:
+                                    all_place_times_temp[i] += row.t/60
                                     add_to_other = False
                                     continue
                         # in case of pause not in places of interest
                         if add_to_other:
-                            all_place_times_temp[-1] += (row[6] - row[3])/60
+                            all_place_times_temp[-1] += row.t/60
+                    
+                    if save_log:
+                        if threshold is None:
+                            threshold = 60
+                            sys.stdout.write("threshold parameter set to None, automatically converted to 60min." + '\n')
+                        if row.t >= threshold:
+                            # call api to get tags
+                            bbox = boundingBox(row.lat, row.lon, 5)
+                            q = """
+                            [out:json];
+                            (
+                                node{0};
+                                way{0};
+                            );
+                            out geom qt;
+                            """.format(str(bbox))
+
+                            overpass_url = "http://overpass-api.de/api/interpreter"
+        
+                            tries = 0
+                            while True:
+                                response = requests.get(overpass_url, params={'data': q}, timeout=5*60)
+                                if response.status_code != 200:
+                                    if tries == 2:
+                                        sys.stdout.write("Too many Overpass requests in a short time. Please try again in a minute...")
+                                        sys.exit()
+                                    tries += 1
+                                    time.sleep(60)
+                                else: 
+                                    break
+
+                            locations = response.json()['elements']
+                            for element in locations:
+                                if element['type'] == 'node':
+                                    if great_circle_dist(row.lat, row.lon, element['lat'], element['lon']) < 7.5 and 'tags' in element.keys():
+                                        log_tags_temp.append(element['tags'])
+                                elif element['type'] == 'way':
+                                    points = [[x['lat'], x['lon']] for x in element['geometry']]
+                                    if len(points) < 3:
+                                        continue
+                                    polygon = Polygon(points)
+                                    if polygon.contains(Point(row.lat, row.lon)) and 'tags' in element.keys():
+                                        log_tags_temp.append(element['tags'])
+
+                        
 
             if len(flight_d_vec)>0:
                 av_f_len = np.mean(flight_d_vec)
@@ -217,15 +280,17 @@ def gps_summaries(traj,tz_str,option,places_of_interest):
                 if obs_dur==0:
                     res = [year,month,day,hour,0,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan]
                     if places_of_interest is not None:
-                        for p in range(len(places_of_interest)):
+                        for p in range(len(places_of_interest)+1):
                             res.append(np.nan)
                     summary_stats.append(res)
+                    log_tags[str(day)+'/'+str(month)+'/'+str(year)+' '+str(hour)+':00'] = np.nan
                 else:
                     res = [year,month,day,hour,obs_dur/60, time_at_home/60,dist_traveled, max_dist_home,
                                           total_flight_time/60, av_f_len,sd_f_len,av_f_dur/60,sd_f_dur/60,
                                           total_pause_time/60,av_p_dur/60,sd_p_dur/60]
                     if places_of_interest is not None:
                         res += all_place_times_temp
+                    log_tags[str(day)+'/'+str(month)+'/'+str(year)+' '+str(hour)+':00'] = log_tags_temp
                     
                     summary_stats.append(res)
             if option=="daily":
@@ -258,9 +323,10 @@ def gps_summaries(traj,tz_str,option,places_of_interest):
                 if obs_dur == 0:
                     res = [year,month,day,0,0,0,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan]
                     if places_of_interest is not None:
-                        for p in range(len(places_of_interest)):
+                        for p in range(len(places_of_interest)+1):
                             res.append(np.nan)
                     summary_stats.append(res)
+                    log_tags[str(day)+'/'+str(month)+'/'+str(year)] = np.nan
                 else:
                     res = [year,month,day,obs_dur/3600, obs_day/3600, obs_night/3600,time_at_home/3600,dist_traveled/1000,max_dist_home/1000,
                                          radius/1000, diameter/1000, num_sig, entropy,
@@ -269,6 +335,7 @@ def gps_summaries(traj,tz_str,option,places_of_interest):
                     if places_of_interest is not None:
                         res += all_place_times_temp
                     summary_stats.append(res)
+                    log_tags[str(day)+'/'+str(month)+'/'+str(year)] = log_tags_temp
         summary_stats = pd.DataFrame(np.array(summary_stats))
         if places_of_interest is None:
             places_of_interest = []
@@ -297,7 +364,7 @@ def gps_summaries(traj,tz_str,option,places_of_interest):
                                      "radius","diameter","num_sig_places","entropy",
                                      "total_flight_time","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration",
                                      "total_pause_time","av_pause_duration","sd_pause_duration"] + places_of_interest)
-    return summary_stats
+    return summary_stats, log_tags
 
 def gps_quality_check(study_folder, ID):
     """
@@ -324,7 +391,7 @@ def gps_quality_check(study_folder, ID):
         quality_check = quality_yes/(len(file_path)+0.0001)
     return quality_check
 
-def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, places_of_interest = None, time_start = None, time_end = None, beiwe_id = None,
+def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, places_of_interest = None, save_log = False, threshold = None, time_start = None, time_end = None, beiwe_id = None,
     parameters = None, all_memory_dict = None, all_BV_set=None):
     """
     This the main function to do the GPS imputation. It calls every function defined before.
@@ -334,6 +401,9 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, place
             option, 'daily' or 'hourly' or 'both' (resolution for summary statistics)
             save_traj, bool, True if you want to save the trajectories as a csv file, False if you don't
             places_of_interest: list of amenities or leisure places to watch, keywords as used in openstreetmaps
+            save_log, bool, True if you want to output a log of locations visited and their tags
+            threshold, int, time spent in a pause needs to exceed the threshold to be placed in the log 
+            only if save_log True, in minutes
             time_start, time_end are starting time and ending time of the window of interest
             time should be a list of integers with format [year, month, day, hour, minute, second]
             if time_start is None and time_end is None: then it reads all the available files
@@ -343,6 +413,7 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, place
             parameters: hyperparameters in functions, recommend to set it to none (by default)
             all_memory_dict and all_BV_set are dictionaries from previous run (none if it's the first time)
     Return: write summary stats as csv for each user during the specified period
+            and a log of all locations visited as a json file if required
             and imputed trajectory if required
             and memory objects (all_memory_dict and all_BV_set) as pickle files for future use
             and a record csv file to show which users are processed, from when to when
@@ -430,13 +501,21 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, place
                         dest_path = output_folder +"/trajectory/" + str(ID) + ".csv"
                         pd_traj.to_csv(dest_path,index=False)
                     if option == 'both':
-                        summary_stats1 = gps_summaries(traj,tz_str,'hourly',places_of_interest)
+                        summary_stats1, logs1 = gps_summaries(traj,tz_str,'hourly',places_of_interest,save_log,threshold)
                         write_all_summaries(ID, summary_stats1, output_folder + "/hourly")
-                        summary_stats2 = gps_summaries(traj,tz_str,'daily',places_of_interest)
+                        summary_stats2, logs2 = gps_summaries(traj,tz_str,'daily',places_of_interest,save_log,threshold)
                         write_all_summaries(ID, summary_stats2, output_folder + "/daily")
+                        if save_log:
+                            with open(output_folder + "/hourly/locations_logs.json", "w") as hourly:
+                                json.dump(logs1, hourly, indent = 4)
+                            with open(output_folder + "/daily/locations_logs.json", "w") as daily:
+                                json.dump(logs2, daily, indent = 4)
                     else:
-                        summary_stats = gps_summaries(traj,tz_str,option,places_of_interest)
+                        summary_stats, logs = gps_summaries(traj,tz_str,option,places_of_interest,save_log,threshold)
                         write_all_summaries(ID, summary_stats, output_folder)
+                        if save_log:
+                            with open(output_folder + "/" + option + "/locations_logs.json", "w") as loc:
+                                json.dump(logs, loc, indent = 4)
                 else:
                     sys.stdout.write("GPS data are not collected or the data quality is too low." + '\n')
             except:
