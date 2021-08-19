@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import requests
 import time
+import json
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 from ..bonsai.simulate_gps_data import boundingBox
@@ -15,7 +16,7 @@ from .data2mobmat import (great_circle_dist, pairwise_great_circle_dist,
 from .mobmat2traj import num_sig_places, locate_home, ImputeGPS, Imp2traj
 from .sogp_gps import BV_select
 
-def gps_summaries(traj,tz_str,option,places_of_interest=None,save_log=False,threshold=None):
+def gps_summaries(traj,tz_str,option,places_of_interest=None,save_log=False,threshold=None,split_day_night=False):
     """
     This function derives summary statistics from the imputed trajectories
     if the option is hourly, it returns ["year","month","day","hour","obs_duration","pause_time","flight_time","home_time",
@@ -30,9 +31,14 @@ def gps_summaries(traj,tz_str,option,places_of_interest=None,save_log=False,thre
           save_log, bool, True if you want to output a log of locations visited and their tags
           threshold, int, time spent in a pause needs to exceed the threshold to be placed in the log 
           only if save_log True, in minutes
+          split_day_night, bool, True if you want to split all metrics to datetime and nighttime patterns
+          only for daily option
     Return: a pd dataframe, with each row as an hour/day, and each col as a feature/stat
             a dictionary, contains log of tags of all locations visited from openstreetmap
     """
+
+    if option == "hourly":
+        split_day_night = False
 
     if places_of_interest is not None:
         q = "[out:json];\n("
@@ -131,11 +137,17 @@ def gps_summaries(traj,tz_str,option,places_of_interest=None,save_log=False,thre
         ## if it starts from 2019-3-8 11 o'clock, then our daily summary starts from 2019-3-9)
         window = 60*60*24
         h = (end_stamp - start_stamp)//window
+        if split_day_night:
+            h *= 2
 
     if h>0:
         for i in range(h):
-            t0 = start_stamp + i*window
-            t1 = start_stamp + (i+1)*window
+            if split_day_night:
+                i2 = i // 2
+            else: 
+                i2 = i
+            t0 = start_stamp + i2*window
+            t1 = start_stamp + (i2+1)*window
             current_time_list = stamp2datetime(t0,tz_str)
             year = current_time_list[0]
             month = current_time_list[1]
@@ -143,28 +155,72 @@ def gps_summaries(traj,tz_str,option,places_of_interest=None,save_log=False,thre
             hour = current_time_list[3]
             ## take a subset, the starting point of the last traj <t1 and the ending point of the first traj >t0
             index = (traj[:,3]<t1)*(traj[:,6]>t0)
+
+            if split_day_night:
+                current_time_list2 = current_time_list.copy()
+                current_time_list3 = current_time_list.copy()
+                current_time_list2[3] = 8
+                current_time_list3[3] = 20
+                t2 = datetime2stamp(current_time_list2, tz_str)
+                t3 = datetime2stamp(current_time_list3, tz_str)
+                if i % 2 == 0:
+                    # datetime
+                    index = (traj[:,3]<=t3)*(traj[:,6]>=t2)
+                else:
+                    # nighttime
+                    index1 = (traj[:,6]<t2)*(traj[:,3]<t1)*(traj[:,6]>t0) 
+                    index2 = (traj[:,3]>t3)*(traj[:,3]<t1)*(traj[:,6]>t0) 
+                    stop1 = sum(index1) - 1
+                    stop2 = sum(index1)
+                    index = index1 + index2
+
             temp = traj[index,:]
             ## take a subset which is exactly one hour/day, cut the trajs at two ends proportionally
-            if i!=0 and i!=h-1:
+            if i2!=0 and i2!=h-1:
+                if split_day_night and i % 2 == 0:
+                    t0_temp = t2
+                    t1_temp = t3
+                else:
+                    t0_temp = t0
+                    t1_temp = t1
+                    
                 if sum(index)==1:
-                    p0 = (t0-temp[0,3])/(temp[0,6]-temp[0,3])
-                    p1 = (t1-temp[0,3])/(temp[0,6]-temp[0,3])
+                    p0 = (t0_temp-temp[0,3])/(temp[0,6]-temp[0,3])
+                    p1 = (t1_temp-temp[0,3])/(temp[0,6]-temp[0,3])
                     x0 = temp[0,1]; x1 = temp[0,4]; y0 = temp[0,2]; y1 = temp[0,5]
                     temp[0,1] = (1-p0)*x0+p0*x1
                     temp[0,2] = (1-p0)*y0+p0*y1
-                    temp[0,3] = t0
+                    temp[0,3] = t0_temp
                     temp[0,4] = (1-p1)*x0+p1*x1
                     temp[0,5] = (1-p1)*y0+p1*y1
-                    temp[0,6] = t1
+                    temp[0,6] = t1_temp
                 else:
-                    p0 = (temp[0,6]-t0)/(temp[0,6]-temp[0,3])
-                    p1 = (t1-temp[-1,3])/(temp[-1,6]-temp[-1,3])
-                    temp[0,1] = (1-p0)*temp[0,4]+p0*temp[0,1]
-                    temp[0,2] = (1-p0)*temp[0,5]+p0*temp[0,2]
-                    temp[0,3] = t0
-                    temp[-1,4] = (1-p1)*temp[-1,1] + p1*temp[-1,4]
-                    temp[-1,5] = (1-p1)*temp[-1,2] + p1*temp[-1,5]
-                    temp[-1,6] = t1
+                    if split_day_night and i % 2 != 0:
+                        p0 = (temp[0,6]-t0)/(temp[0,6]-temp[0,3])
+                        p1 = (t2-temp[stop1,3])/(temp[stop1,6]-temp[stop1,3])
+                        p2 = (temp[stop2,6]-t3)/(temp[stop2,6]-temp[stop2,3])
+                        p3 = (t1-temp[-1,3])/(temp[-1,6]-temp[-1,3])
+                        temp[0,1] = (1-p0)*temp[0,4]+p0*temp[0,1]
+                        temp[0,2] = (1-p0)*temp[0,5]+p0*temp[0,2]
+                        temp[0,3] = t0
+                        temp[stop1,1] = (1-p1)*temp[stop1,4]+p1*temp[stop1,1]
+                        temp[stop1,2] = (1-p1)*temp[stop1,5]+p1*temp[stop1,2]
+                        temp[stop1,3] = t2
+                        temp[stop2,1] = (1-p2)*temp[stop2,4]+p2*temp[stop2,1]
+                        temp[stop2,2] = (1-p2)*temp[stop2,5]+p2*temp[stop2,2]
+                        temp[stop2,3] = t3
+                        temp[-1,4] = (1-p1)*temp[-1,1] + p1*temp[-1,4]
+                        temp[-1,5] = (1-p1)*temp[-1,2] + p1*temp[-1,5]
+                        temp[-1,6] = t1
+                    else:
+                        p0 = (temp[0,6]-t0_temp)/(temp[0,6]-temp[0,3])
+                        p1 = (t1_temp-temp[-1,3])/(temp[-1,6]-temp[-1,3])
+                        temp[0,1] = (1-p0)*temp[0,4]+p0*temp[0,1]
+                        temp[0,2] = (1-p0)*temp[0,5]+p0*temp[0,2]
+                        temp[0,3] = t0_temp
+                        temp[-1,4] = (1-p1)*temp[-1,1] + p1*temp[-1,4]
+                        temp[-1,5] = (1-p1)*temp[-1,2] + p1*temp[-1,5]
+                        temp[-1,6] = t1_temp
 
             obs_dur = sum((temp[:,6]-temp[:,3])[temp[:,7]==1])
             d_home_1 = great_circle_dist(home_x,home_y,temp[:,1],temp[:,2])
@@ -364,7 +420,19 @@ def gps_summaries(traj,tz_str,option,places_of_interest=None,save_log=False,thre
                                      "radius","diameter","num_sig_places","entropy",
                                      "total_flight_time","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration",
                                      "total_pause_time","av_pause_duration","sd_pause_duration"] + places_of_interest)
-    return summary_stats, log_tags
+
+    if split_day_night:
+        summary_stats_datetime = summary_stats[::2].reset_index(drop=True)
+        summary_stats_nighttime = summary_stats[1::2].reset_index(drop=True)
+        
+        summary_stats2 = pd.concat([summary_stats_datetime, summary_stats_nighttime.iloc[:, 3:]], axis = 1)
+        summary_stats2.columns = list(summary_stats.columns)[:3] + [cname + "_datetime" for cname in list(summary_stats.columns)[3:]] + [cname + "_nighttime" for cname in list(summary_stats.columns)[3:]]
+        summary_stats2 = summary_stats2.drop(["obs_day_datetime", "obs_night_datetime", "obs_day_nighttime", "obs_night_nighttime"], axis = 1)
+        summary_stats2.insert(3, "obs_duration", summary_stats2['obs_duration_datetime'] + summary_stats2['obs_duration_nighttime'])
+    else:
+        summary_stats2 = summary_stats
+        
+    return summary_stats2, log_tags
 
 def gps_quality_check(study_folder, ID):
     """
@@ -391,7 +459,7 @@ def gps_quality_check(study_folder, ID):
         quality_check = quality_yes/(len(file_path)+0.0001)
     return quality_check
 
-def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, places_of_interest = None, save_log = False, threshold = None, time_start = None, time_end = None, beiwe_id = None,
+def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, places_of_interest = None, save_log = False, threshold = None, split_day_night = False, time_start = None, time_end = None, beiwe_id = None,
     parameters = None, all_memory_dict = None, all_BV_set=None):
     """
     This the main function to do the GPS imputation. It calls every function defined before.
@@ -404,6 +472,8 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, place
             save_log, bool, True if you want to output a log of locations visited and their tags
             threshold, int, time spent in a pause needs to exceed the threshold to be placed in the log 
             only if save_log True, in minutes
+            split_day_night, bool, True if you want to split all metrics to datetime and nighttime patterns
+            only for daily option
             time_start, time_end are starting time and ending time of the window of interest
             time should be a list of integers with format [year, month, day, hour, minute, second]
             if time_start is None and time_end is None: then it reads all the available files
@@ -501,9 +571,9 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, place
                         dest_path = output_folder +"/trajectory/" + str(ID) + ".csv"
                         pd_traj.to_csv(dest_path,index=False)
                     if option == 'both':
-                        summary_stats1, logs1 = gps_summaries(traj,tz_str,'hourly',places_of_interest,save_log,threshold)
+                        summary_stats1, logs1 = gps_summaries(traj,tz_str,'hourly',places_of_interest,save_log,threshold,split_day_night)
                         write_all_summaries(ID, summary_stats1, output_folder + "/hourly")
-                        summary_stats2, logs2 = gps_summaries(traj,tz_str,'daily',places_of_interest,save_log,threshold)
+                        summary_stats2, logs2 = gps_summaries(traj,tz_str,'daily',places_of_interest,save_log,threshold,split_day_night)
                         write_all_summaries(ID, summary_stats2, output_folder + "/daily")
                         if save_log:
                             with open(output_folder + "/hourly/locations_logs.json", "w") as hourly:
@@ -511,7 +581,7 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, place
                             with open(output_folder + "/daily/locations_logs.json", "w") as daily:
                                 json.dump(logs2, daily, indent = 4)
                     else:
-                        summary_stats, logs = gps_summaries(traj,tz_str,option,places_of_interest,save_log,threshold)
+                        summary_stats, logs = gps_summaries(traj,tz_str,option,places_of_interest,save_log,threshold,split_day_night)
                         write_all_summaries(ID, summary_stats, output_folder)
                         if save_log:
                             with open(output_folder + "/" + option + "/locations_logs.json", "w") as loc:
