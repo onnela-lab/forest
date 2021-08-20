@@ -40,20 +40,28 @@ def gps_summaries(traj,tz_str,option,places_of_interest=None,save_log=False,thre
     if option == "hourly":
         split_day_night = False
 
-    if places_of_interest is not None:
-        q = "[out:json];\n("
-        bbox = (min(traj[:,1]) -.01, min(traj[:,2]) -.01, max(traj[:,1]) + .01, max(traj[:,2]) + .01)
-        leisure_places = ["park", "beach_resort", "dance", "dog_park", "fitness_centre", "sports_centre"]
-        amenity_places = ["bar", "cafe", "fast_food", "pub", "restaurant", "kindergarten", "library", "school", "university",
-        "bank", "clinic", "doctors", "hospital", "pharmacy", "nursing_home", "casino", "cinema", "community_centre", "theatre",
-        "childcare", "marketplace", "place_of_worship"]
-        for place in places_of_interest:
-            if place in amenity_places:
-                tag = "amenity"
-            elif place in leisure_places:
-                tag = "leisure"
+    if places_of_interest is not None or save_log:
+        pause_vec = traj[traj[:, 0] == 2]
+        lat = []
+        lon = []
+        for row in pause_vec:
+            if len(lat) == 0:
+                lat.append(row[1])
+                lon.append(row[2])
+            elif np.min(great_circle_dist(row[1], row[2], np.array(lat), np.array(lon))) > 500:
+                lat.append(row[1])
+                lon.append(row[2])
+        
 
-            q += "\n\tnode" + str(bbox) + "['" + tag +  "'='" + place + "'];\n\tway" + str(bbox) + "['" + tag +  "'='" + place + "'];"
+        q = "[out:json];\n("
+        
+        for i in range(len(lat)):
+            bbox = boundingBox(lat[i], lon[i], 500)
+
+            q += "\n\tnode" + str(bbox) + "['leisure'];"
+            q += "\n\tway" + str(bbox) + "['leisure'];"
+            q += "\n\tnode" + str(bbox) + "['amenity'];"
+            q += "\n\tway" + str(bbox) + "['amenity'];"
 
         q += "\n);\nout geom qt;"
         
@@ -63,6 +71,7 @@ def gps_summaries(traj,tz_str,option,places_of_interest=None,save_log=False,thre
         while True:
             response = requests.get(overpass_url, params={'data': q}, timeout=5*60)
             if response.status_code != 200:
+                # quit after third try without response
                 if tries == 2:
                     sys.stdout.write("Too many Overpass requests in a short time. Please try again in a minute...")
                     sys.exit()
@@ -72,40 +81,31 @@ def gps_summaries(traj,tz_str,option,places_of_interest=None,save_log=False,thre
                 break
 
         res = response.json()
-        all_places = {}
-        for place in places_of_interest:
-            all_places[place+'_nodes'] = []
-            all_places[place+'_ways'] = []
+        ids = {}
+        locations = {}
+        tags = {}
 
         for element in res['elements']:
+
+            element_id = element['id']
+
+            if 'amenity' in element['tags']:
+                if element['tags']['amenity'] not in ids.keys():
+                    ids[element['tags']['amenity']] = [element_id]
+                else:
+                    ids[element['tags']['amenity']].append(element_id)
+            elif 'leisure' in element['tags']:
+                if element['tags']['leisure'] not in ids.keys():
+                    ids[element['tags']['leisure']] = [element_id]
+                else:
+                    ids[element['tags']['leisure']].append(element_id)
+
             if element['type'] == 'node':
-                lon = element['lon']
-                lat = element['lat']
-
-                if 'amenity' in element['tags']:
-                    for place in amenity_places:
-                        if element['tags']['amenity'] == place:
-                            all_places[place+'_nodes'].append((lat, lon))
-                elif 'leisure' in element['tags']:
-                    for place in leisure_places:
-                        if element['tags']['leisure'] == place:
-                            all_places[place+'_nodes'].append((lat, lon))
-
+                locations[element_id] = [[element['lat'], element['lon']]]
             elif element['type'] == 'way':
-                points = [[x['lat'], x['lon']] for x in element['geometry']]
-                polygon = Polygon(points)
+                locations[element_id] = [[x['lat'], x['lon']] for x in element['geometry']]
 
-                if 'amenity' in element['tags']:
-                    for place in amenity_places:
-                        if element['tags']['amenity'] == place:
-                            all_places[place+'_ways'].append(polygon)
-                elif 'leisure' in element['tags']:
-                    for place in leisure_places:
-                        if element['tags']['leisure'] == place:
-                            all_places[place+'_ways'].append(polygon)
-
-            
-
+            tags[element_id] = element['tags']
 
     ObsTraj = traj[traj[:,7]==1,:]
     home_x, home_y = locate_home(ObsTraj,tz_str)
@@ -257,16 +257,21 @@ def gps_summaries(traj,tz_str,option,places_of_interest=None,save_log=False,thre
                         add_to_other = True
                         for i in range(len(places_of_interest)):
                             place = places_of_interest[i]
-                            if len(all_places[place+'_nodes']) > 0:
-                                if min(great_circle_dist(row.lat, row.lon, np.array(all_places[place+'_nodes'])[:, 0], np.array(all_places[place+'_nodes'])[:, 1])) < 7.5:
-                                    all_place_times_temp[i] += row.t/60
-                                    add_to_other = False
-                                    continue
-                            if len(all_places[place+'_ways']) > 0:
-                                if np.sum([polygon.contains(Point(row.lat, row.lon)) for polygon in all_places[place+'_ways']])>0:
-                                    all_place_times_temp[i] += row.t/60
-                                    add_to_other = False
-                                    continue
+                            if place in ids.keys():
+                                for element_id in ids[place]:
+                                    if len(locations[element_id]) == 1: 
+                                        if great_circle_dist(row.lat, row.lon, locations[element_id][0][0], locations[element_id][0][1]) < 7.5:
+                                            all_place_times_temp[i] += row.t/60
+                                            add_to_other = False
+                                            break
+                                    elif len(locations[element_id]) >= 3:
+                                        polygon = Polygon(locations[element_id])
+                                        point = Point(row.lat, row.lon)
+                                        if polygon.contains(point):
+                                            all_place_times_temp[i] += row.t/60
+                                            add_to_other = False
+                                            break
+
                         # in case of pause not in places of interest
                         if add_to_other:
                             all_place_times_temp[-1] += row.t/60
@@ -276,45 +281,18 @@ def gps_summaries(traj,tz_str,option,places_of_interest=None,save_log=False,thre
                             threshold = 60
                             sys.stdout.write("threshold parameter set to None, automatically converted to 60min." + '\n')
                         if row.t >= threshold:
-                            # call api to get tags
-                            bbox = boundingBox(row.lat, row.lon, 5)
-                            q = """
-                            [out:json];
-                            (
-                                node{0};
-                                way{0};
-                            );
-                            out geom qt;
-                            """.format(str(bbox))
+                            for index in range(len(locations.keys())):
+                                element_id = list(locations.keys())[index]
+                                values = list(locations.values())[index]
 
-                            overpass_url = "http://overpass-api.de/api/interpreter"
-        
-                            tries = 0
-                            while True:
-                                response = requests.get(overpass_url, params={'data': q}, timeout=5*60)
-                                if response.status_code != 200:
-                                    if tries == 2:
-                                        sys.stdout.write("Too many Overpass requests in a short time. Please try again in a minute...")
-                                        sys.exit()
-                                    tries += 1
-                                    time.sleep(60)
-                                else: 
-                                    break
-
-                            locations = response.json()['elements']
-                            for element in locations:
-                                if element['type'] == 'node':
-                                    if great_circle_dist(row.lat, row.lon, element['lat'], element['lon']) < 7.5 and 'tags' in element.keys():
-                                        log_tags_temp.append(element['tags'])
-                                elif element['type'] == 'way':
-                                    points = [[x['lat'], x['lon']] for x in element['geometry']]
-                                    if len(points) < 3:
-                                        continue
-                                    polygon = Polygon(points)
-                                    if polygon.contains(Point(row.lat, row.lon)) and 'tags' in element.keys():
-                                        log_tags_temp.append(element['tags'])
-
-                        
+                                if len(values) == 1:
+                                    if great_circle_dist(row.lat, row.lon, values[0][0], values[0][1]) < 7.5:
+                                        log_tags_temp.append(tags[element_id])
+                                elif len(values) >= 3:
+                                    polygon = Polygon(values)
+                                    point = Point(row.lat, row.lon)
+                                    if polygon.contains(point):
+                                        log_tags_temp.append(tags[element_id])
 
             if len(flight_d_vec)>0:
                 av_f_len = np.mean(flight_d_vec)
