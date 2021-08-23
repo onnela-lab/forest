@@ -32,7 +32,7 @@ def survey_stats_main(output_dir, study_dir, config_path, time_start, time_end, 
     ss_detail, ss_summary = survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg_data, study_tz)
     
     # Add alternative survey submits table
-    submits_tbl = survey_submits_no_config(study_dir, agg_data)
+    submits_tbl = survey_submits_no_config(study_dir, study_tz)
     
     # Write out summaries
 #     agg_data.to_csv(os.path.join(output_dir, 'agg_survey_data.csv'), index = False)

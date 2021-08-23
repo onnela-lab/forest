@@ -9,7 +9,7 @@ import datetime
 import pytz
 import math
 import datetime
-from .functions import read_json
+from .functions import read_json, aggregate_surveys_no_config
 
 
 def convert_time_to_date(submit_time, day, time):
@@ -202,23 +202,15 @@ def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg,
     return submit_lines3.sort_values(['survey id', 'beiwe_id']).drop_duplicates(), submit_lines_summary
 
 
-def survey_submits_no_config(agg):
+def survey_submits_no_config(study_dir, study_tz = None):
     '''
     Alternative function for getting the survey completions (doesn't have expected times of surveys)
     Args:
         agg(DataFrame):
-            Output of aggregate_surveys_config
+            Output of aggregate_surveys_no_config
     '''
     
-    tmp = agg.copy()
-    tmp['question index prev'] = tmp['question index'].shift(1)
-    tmp['config id prev'] = tmp['config_id'].shift(1)
-    
-    # Add a reset for when the configuration ID changes too
-    tmp['survey_inst_id'] = np.where(
-                                (tmp['config_id'] != tmp['config id prev']) | 
-                                ((tmp['question index prev'].isna()) | (abs(tmp['question index prev'] - tmp['question index']) > 1)), 1, 0)
-    tmp['survey_inst_id'] = np.cumsum(tmp['survey_inst_id'])
+    tmp = aggregate_surveys_no_config(study_dir, study_tz)
     
     def summarize_submits(df):
         tmp = {
@@ -227,8 +219,8 @@ def survey_submits_no_config(agg):
         }
         return pd.Series(tmp, index = ['min_time', 'max_time'])
 
-    tmp = tmp.groupby(['survey id', 'beiwe_id', 'survey_inst_id'])['UTC time'].apply(summarize_submits).reset_index()
-    tmp = tmp.pivot(index = ['survey id', 'beiwe_id','survey_inst_id'],columns='level_3', values = 'UTC time').reset_index()
+    tmp = tmp.groupby(['survey id', 'beiwe_id', 'surv_inst_flg'])['UTC time'].apply(summarize_submits).reset_index()
+    tmp = tmp.pivot(index = ['survey id', 'beiwe_id','surv_inst_flg'],columns='level_3', values = 'UTC time').reset_index()
     tmp['time_to_complete'] = tmp['max_time'] - tmp['min_time']
     tmp['time_to_complete'] = [t.seconds for t in tmp['time_to_complete']]
     return tmp.sort_values(['beiwe_id', 'survey id'])

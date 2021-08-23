@@ -144,6 +144,19 @@ def aggregate_surveys(study_dir):
     all_data['question index'] = all_data.groupby(['survey id', 'beiwe_id'])['question index'].cumsum()
     
     del all_data['question id lag']
+    
+    # Add a survey instance ID that is tied to the submit line
+    all_data['surv_inst_flg'] = 0
+    all_data.loc[all_data.event == 'submitted', ['surv_inst_flg']] = 1
+    all_data['surv_inst_flg'] = all_data['surv_inst_flg'].shift(1)
+    # If a change of survey occurs without a submit flg, flag the new line 
+    all_data['survey_prev'] = all_data['survey id'].shift(1)
+    all_data.loc[all_data['survey_prev'] != all_data['survey id'], ['surv_inst_flg']] = 1
+    all_data['surv_inst_flg'] = np.cumsum(all_data['surv_inst_flg'])
+    all_data.loc[all_data.surv_inst_flg.isna(), ['surv_inst_flg']] = 0
+    
+    del all_data['survey_prev']
+    
     # OUTPUT AGGREGATE
     return all_data.reset_index(drop = True)
     
@@ -274,6 +287,34 @@ def aggregate_surveys_config(study_dir, config_path, study_tz= None):
     df_merged = convert_timezone_df(df_merged)
     
     return df_merged.reset_index(drop = True)
+
+def aggregate_surveys_no_config(study_dir, study_tz= None):
+    '''
+    Cleans aggregated data
+    
+    Args:
+        study_dir (str): 
+            path to downloaded data. This is a folder that includes the user data in a subfolder with the beiwe_id as the subfolder name 
+        config_path(str):
+            path to the study configuration file
+        calc_time_diff(bool):
+            If this is true, will calculate fields that have the time difference between the survey line and the expected delivery date for each day.
+        study_tz(str):
+            Timezone of study. This defaults to 'America/New_York'
+            
+    Returns:
+        df_merged(DataFrame): Merged data frame 
+    ''' 
+    agg_data = aggregate_surveys(study_dir)
+    agg_data['submit_line'] = agg_data.apply(lambda row: 1 if row['event'] in ['User hit submit', 'submitted'] else 0, axis = 1 )
+    
+    # Remove notification and expiration lines
+    agg_data = agg_data.loc[(~agg_data['question id'].isnull())]
+    
+    # Convert to the study's timezone
+    agg_data = convert_timezone_df(agg_data)
+    
+    return agg_data.reset_index(drop = True)
 
 
 def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
