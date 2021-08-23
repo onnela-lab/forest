@@ -219,8 +219,8 @@ def survey_submits_no_config(study_dir, study_tz = None):
         }
         return pd.Series(tmp, index = ['min_time', 'max_time'])
 
-    tmp = tmp.groupby(['survey id', 'beiwe_id', 'surv_inst_flg'])['UTC time'].apply(summarize_submits).reset_index()
-    tmp = tmp.pivot(index = ['survey id', 'beiwe_id','surv_inst_flg'],columns='level_3', values = 'UTC time').reset_index()
+    tmp = tmp.groupby(['survey id', 'beiwe_id', 'surv_inst_flg'])['Local time'].apply(summarize_submits).reset_index()
+    tmp = tmp.pivot(index = ['survey id', 'beiwe_id','surv_inst_flg'],columns='level_3', values = 'Local time').reset_index()
     tmp['time_to_complete'] = tmp['max_time'] - tmp['min_time']
     tmp['time_to_complete'] = [t.seconds for t in tmp['time_to_complete']]
     return tmp.sort_values(['beiwe_id', 'survey id'])
