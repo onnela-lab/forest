@@ -96,8 +96,6 @@ def agg_changed_answers_summary(study_dir, config_path, agg, study_tz = None):
     '''
     
     detail = agg_changed_answers(study_dir, config_path, agg, study_tz)
-    
-    
     #####################################################################
     ## Add instance id and update first time to be the last last time if there is only one line
     surv_config = parse_surveys(config_path)
@@ -133,10 +131,6 @@ def agg_changed_answers_summary(study_dir, config_path, agg, study_tz = None):
     detail_cols = ['survey id', 'beiwe_id', 'question id', 'question text', 'question type', 'question answer options', 'timestamp', 'Local time', 'last_answer', 'all_answers', 'num_answers', 'first_time', 'last_time', 'time_to_answer']
     
     detail = detail[detail_cols]
-    
-    
-
-
     return detail, out
     
     
