@@ -80,6 +80,10 @@ sim_GPS_data(N, location, start_date, end_date, cycle, p, api_key, path_to_synth
 tz_str = "America/New_York" # time zone where the study took place (assumes that all participants were always in this time zone)
 option = "daily" # Generate summary metrics "hourly", "daily" or "both"
 save_traj = False # Save imputed trajectories?
+places_of_interest = ['cafe', 'bar', 'park'] # types of locations to monitor as summary stats
+save_log = True # save log of locations visited in json file
+threshold = 60 # time spent in any location must exceed threshold (in minutes) to be included in the log
+split_day_night = False # split datetime nighttime summary stats
 time_start = None 
 time_end = None
 beiwe_id = None
@@ -88,7 +92,7 @@ all_memory_dict = None
 all_BV_set= None
 
 # 3. Impute location data and generate mobility summary metrics using the simulated data above
-gps_stats_main(path_to_synthetic_gps_data, path_to_gps_summary, tz_str, option, save_traj, time_start, time_end, beiwe_id, parameters, all_memory_dict, all_BV_set)
+gps_stats_main(path_to_synthetic_gps_data, path_to_gps_summary, tz_str, option, save_traj, places_of_interest, save_log, threshold, split_day_night, time_start, time_end, beiwe_id, parameters, all_memory_dict, all_BV_set)
 
 # 4. Generate daily summary metrics for call/text logs
 log_stats_main(path_to_synthetic_log_data, path_to_log_summary, tz_str, option, time_start, time_end, beiwe_id)
