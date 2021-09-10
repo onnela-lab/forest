@@ -1,0 +1,18 @@
+# Install Python dependencies and run tests
+
+name: build
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout Forest code from GitHub repo
+        uses: actions/checkout@v2
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Run tests
+        run: python -m unittest tests/imports.py

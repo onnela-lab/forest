@@ -1,3 +1,5 @@
+[![build](https://github.com/onnela-lab/forest/actions/workflows/build.yml/badge.svg)](https://github.com/onnela-lab/forest/actions/workflows/build.yml)
+
 <p align="left">
   <img width="264" height="99" src="https://github.com/onnela-lab/forest/blob/master/forest-logo-color.png">
 </p>
