@@ -1,8 +1,21 @@
+"""
+Module to simulate realistic GPS trajectories
+of a number of people anywhere in the world.
+"""
+
 import os
+import sys
+import re
+import datetime
+import time
+import json
 import numpy as np
 import pandas as pd
-from ..poplar.legacy.common_funcs import datetime2stamp,stamp2datetime
-from ..jasmine.data2mobmat import great_circle_dist
+import requests
+import overpy
+from timezonefinder import TimezoneFinder
+from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
+from forest.jasmine.data2mobmat import great_circle_dist
 
 b_start = [42.3696, -71.1131]
 home_g = [42.3678, -71.1138]
@@ -22,6 +35,79 @@ work = [42.3444, -71.1135]
 movie = [42.3524, -71.0645]
 restaurant = [42.3679,-71.1089]
 R = 6.371*10**6
+
+def get_path(
+    lat1: float, lon1: float, lat2: float, lon2: float, transport: str, api_key: str
+) -> tuple[np.ndarray, float]:
+    """
+    This function takes 2 sets of coordinates and
+    a mean of transport and using the openroute api
+    calculates the set of nodes to traverse
+    from location1 to location2 along with the duration
+    and distance of the flight. \n
+    Args:
+        lat1, lon1: coordinates of start point
+        lat2, lon2: coordinates of end point
+        transport: means of transportation,
+        can be one of the following: (car, bus, foot, bicycle)
+        api_key: api key collected from
+        https://openrouteservice.org/dev/#/home \n
+    Return:
+        path_coordinates: 2d numpy array containing [lon,lat] of route
+        distance: distance of trip in meters
+    """
+    if great_circle_dist(lat1, lon1, lat2, lon2) < 250:
+        return (
+            np.array([[lon1, lat1], [lon2, lat2]]),
+            great_circle_dist(lat1, lon1, lat2, lon2),
+        )
+
+    if transport in ("car", "bus"):
+        transport = "driving-car"
+    elif transport == "foot":
+        transport = "foot-walking"
+    elif transport == "bicycle":
+        transport = "cycling-regular"
+    accept_str = "application/json, application/geo+json, "
+    accept_str += "application/gpx+xml, img/png; charset=utf-8"
+    headers = {
+        "Accept": accept_str,
+    }
+    api_str = "https://api.openrouteservice.org/v2/directions/"
+    api_str += "{}?api_key={}&start={},{}&end={},{}"
+
+    for try_no in range(4):
+
+        call = requests.get(
+            api_str.format(transport, api_key, lon1, lat1, lon2, lat2),
+            headers=headers,
+            timeout=90,
+        )
+
+        if call.reason == "OK" and call.status_code == 200:
+            break
+
+        if try_no == 3:
+            print(
+                "Openroute service failed with code "
+                + str(call.status_code)
+                + ", because of "
+                + call.reason
+            )
+            sys.exit()
+
+        time.sleep(60)
+
+    res = json.loads(call.text)["features"][0]
+    path_coordinates = res["geometry"]["coordinates"]
+    # distance = res['properties']['segments'][0]['distance'] # meters
+    if path_coordinates[0] != [lon1, lat1]:
+        path_coordinates[0] = [lon1, lat1]
+    if path_coordinates[-1] != [lon2, lat2]:
+        path_coordinates[-1] = [lon2, lat2]
+
+    return (np.array(path_coordinates), great_circle_dist(lat1, lon1, lat2, lon2))
+
 
 def gen_basic_traj(l_s, l_e, vehicle, t_s):
     traj_list = []
