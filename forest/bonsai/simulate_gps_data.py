@@ -4,17 +4,15 @@ of a number of people anywhere in the world.
 """
 
 import os
-import sys
 import time
-import json
+from typing import Tuple
 
 import numpy as np
-import pandas as pd
-import requests
 import openrouteservice
+import pandas as pd
 
-from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 from forest.jasmine.data2mobmat import great_circle_dist
+from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
 b_start = [42.3696, -71.1131]
 home_g = [42.3678, -71.1138]
@@ -36,11 +34,8 @@ restaurant = [42.3679,-71.1089]
 R = 6.371*10**6
 
 
-def get_path(
-    lat1: float, lon1: float,
-    lat2: float, lon2: float,
-    transport: str, api_key: str
-) -> tuple:
+def get_path(coords1: Tuple[float], coords2: Tuple[float], transport: str,
+             api_key: str) -> Tuple[np.ndarray, float]:
     """Calculates paths between sets of coordinates
 
     This function takes 2 sets of coordinates and
@@ -49,22 +44,26 @@ def get_path(
     from location1 to location2 along with the duration
     and distance of the flight.
     Args:
-        lat1, lon1: coordinates of start point
-        lat2, lon2: coordinates of end point
+        coords1: coordinates of start point (lat, lon)
+        coords2: coordinates of end point (lat, lon)
         transport: means of transportation,
             can be one of the following:
             (car, bus, foot, bicycle)
         api_key: api key collected from
             https://openrouteservice.org/dev/#/home
-    Return:
+    Returns:
         path_coordinates: 2d numpy array containing [lon,lat] of route
         distance: distance of trip in meters
     """
+
+    lat1 = coords1[0]
+    lon1 = coords1[1]
+    lat2 = coords2[0]
+    lon2 = coords2[1]
+
     if great_circle_dist(lat1, lon1, lat2, lon2) < 250:
-        return (
-            np.array([[lon1, lat1], [lon2, lat2]]),
-            great_circle_dist(lat1, lon1, lat2, lon2),
-        )
+        return (np.array([[lon1, lat1], [lon2, lat2]]),
+                great_circle_dist(lat1, lon1, lat2, lon2))
 
     if transport in ("car", "bus"):
         transport = "driving-car"
@@ -75,29 +74,22 @@ def get_path(
     client = openrouteservice.Client(key=api_key)
     coords = ((lon1, lat1), (lon2, lat2))
 
-    for try_no in range(4):
-
-        try:
-            routes = client.directions(
-                coords, profile=transport, format='geojson'
-                )
-            coordinates = routes['features'][0]['geometry']['coordinates']
-            path_coordinates = [coord for coord in coordinates]
-        except Exception:
-            time.sleep(60)
-
-    if type(path_coordinates) != list:
-        raise ValueError('path_coordinates not in correct format')        
+    try:
+        routes = client.directions(coords, profile=transport, format="geojson")
+        coordinates = routes["features"][0]["geometry"]["coordinates"]
+        path_coordinates = [coord for coord in coordinates]
+    except Exception:
+        raise RuntimeError(
+            "Openrouteservice did not return proper trajectories."
+        )
 
     if path_coordinates[0] != [lon1, lat1]:
         path_coordinates[0] = [lon1, lat1]
     if path_coordinates[-1] != [lon2, lat2]:
         path_coordinates[-1] = [lon2, lat2]
 
-    return (
-        np.array(path_coordinates),
-        great_circle_dist(lat1, lon1, lat2, lon2),
-        )
+    return (np.array(path_coordinates),
+            great_circle_dist(lat1, lon1, lat2, lon2))
 
 
 def gen_basic_traj(l_s, l_e, vehicle, t_s):
