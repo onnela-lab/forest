@@ -34,7 +34,7 @@ restaurant = [42.3679,-71.1089]
 R = 6.371*10**6
 
 
-def get_path(coords1: Tuple[float], coords2: Tuple[float], transport: str,
+def get_path(start: Tuple[float, float], end: Tuple[float, float], transport: str,
              api_key: str) -> Tuple[np.ndarray, float]:
     """Calculates paths between sets of coordinates
 
@@ -44,26 +44,28 @@ def get_path(coords1: Tuple[float], coords2: Tuple[float], transport: str,
     from location1 to location2 along with the duration
     and distance of the flight.
     Args:
-        coords1: coordinates of start point (lat, lon)
-        coords2: coordinates of end point (lat, lon)
+        start: coordinates of start point (lat, lon)
+        end: coordinates of end point (lat, lon)
         transport: means of transportation,
             can be one of the following:
             (car, bus, foot, bicycle)
         api_key: api key collected from
             https://openrouteservice.org/dev/#/home
     Returns:
-        path_coordinates: 2d numpy array containing [lon,lat] of route
+        path_coordinates: 2d numpy array containing [lat,lon] of route
         distance: distance of trip in meters
+    Raises:
+        RuntimeError: An error when openrouteservice does not 
+            return coordinates of route as expected
     """
 
-    lat1 = coords1[0]
-    lon1 = coords1[1]
-    lat2 = coords2[0]
-    lon2 = coords2[1]
+    lat1, lon1 = start
+    lat2, lon2 = end
+    distance = great_circle_dist(lat1, lon1, lat2, lon2)
 
-    if great_circle_dist(lat1, lon1, lat2, lon2) < 250:
-        return (np.array([[lon1, lat1], [lon2, lat2]]),
-                great_circle_dist(lat1, lon1, lat2, lon2))
+    if distance < 250:
+        return (np.array([[lat1, lon1], [lat2, lon2]]),
+                distance)
 
     if transport in ("car", "bus"):
         transport = "driving-car"
@@ -76,20 +78,24 @@ def get_path(coords1: Tuple[float], coords2: Tuple[float], transport: str,
 
     try:
         routes = client.directions(coords, profile=transport, format="geojson")
-        coordinates = routes["features"][0]["geometry"]["coordinates"]
-        path_coordinates = [coord for coord in coordinates]
     except Exception:
         raise RuntimeError(
             "Openrouteservice did not return proper trajectories."
         )
 
-    if path_coordinates[0] != [lon1, lat1]:
-        path_coordinates[0] = [lon1, lat1]
-    if path_coordinates[-1] != [lon2, lat2]:
-        path_coordinates[-1] = [lon2, lat2]
+    coordinates = routes["features"][0]["geometry"]["coordinates"]
+    path_coordinates = [[coord[1], coord[0]] for coord in coordinates]
 
-    return (np.array(path_coordinates),
-            great_circle_dist(lat1, lon1, lat2, lon2))
+    # sometimes if exact coordinates of location are not in a road
+    # the starting or ending coordinates of route will be returned
+    # in the nearer road which can be slightly different than
+    # the ones provided
+    if path_coordinates[0] != [lat1, lon1]:
+        path_coordinates[0] = [lat1, lon1]
+    if path_coordinates[-1] != [lat2, lon2]:
+        path_coordinates[-1] = [lat2, lon2]
+
+    return np.array(path_coordinates), distance
 
 
 def gen_basic_traj(l_s, l_e, vehicle, t_s):
