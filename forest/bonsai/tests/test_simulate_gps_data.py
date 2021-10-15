@@ -239,7 +239,7 @@ def directions1():
     }
 
 
-def test_get_path_starting_lattitude(coords1, coords2, directions1, mocker):
+def test_get_path_starting_latitude(coords1, coords2, directions1, mocker):
     mocker.patch(
         "openrouteservice.Client.directions", return_value=directions1
     )
