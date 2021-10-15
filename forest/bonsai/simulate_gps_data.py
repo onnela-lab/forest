@@ -1,8 +1,18 @@
+"""
+Module to simulate realistic GPS trajectories
+of a number of people anywhere in the world.
+"""
+
 import os
+import time
+from typing import Tuple
+
 import numpy as np
+import openrouteservice
 import pandas as pd
-from ..poplar.legacy.common_funcs import datetime2stamp,stamp2datetime
-from ..jasmine.data2mobmat import great_circle_dist
+
+from forest.jasmine.data2mobmat import great_circle_dist
+from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
 b_start = [42.3696, -71.1131]
 home_g = [42.3678, -71.1138]
@@ -22,6 +32,71 @@ work = [42.3444, -71.1135]
 movie = [42.3524, -71.0645]
 restaurant = [42.3679,-71.1089]
 R = 6.371*10**6
+
+
+def get_path(start: Tuple[float, float], end: Tuple[float, float], transport: str,
+             api_key: str) -> Tuple[np.ndarray, float]:
+    """Calculates paths between sets of coordinates
+
+    This function takes 2 sets of coordinates and
+    a mean of transport and using the openroute api
+    calculates the set of nodes to traverse
+    from location1 to location2 along with the duration
+    and distance of the flight.
+    Args:
+        start: coordinates of start point (lat, lon)
+        end: coordinates of end point (lat, lon)
+        transport: means of transportation,
+            can be one of the following:
+            (car, bus, foot, bicycle)
+        api_key: api key collected from
+            https://openrouteservice.org/dev/#/home
+    Returns:
+        path_coordinates: 2d numpy array containing [lat,lon] of route
+        distance: distance of trip in meters
+    Raises:
+        RuntimeError: An error when openrouteservice does not 
+            return coordinates of route as expected
+    """
+
+    lat1, lon1 = start
+    lat2, lon2 = end
+    distance = great_circle_dist(lat1, lon1, lat2, lon2)
+
+    if distance < 250:
+        return (np.array([[lat1, lon1], [lat2, lon2]]),
+                distance)
+
+    if transport in ("car", "bus"):
+        transport = "driving-car"
+    elif transport == "foot":
+        transport = "foot-walking"
+    elif transport == "bicycle":
+        transport = "cycling-regular"
+    client = openrouteservice.Client(key=api_key)
+    coords = ((lon1, lat1), (lon2, lat2))
+
+    try:
+        routes = client.directions(coords, profile=transport, format="geojson")
+    except Exception:
+        raise RuntimeError(
+            "Openrouteservice did not return proper trajectories."
+        )
+
+    coordinates = routes["features"][0]["geometry"]["coordinates"]
+    path_coordinates = [[coord[1], coord[0]] for coord in coordinates]
+
+    # sometimes if exact coordinates of location are not in a road
+    # the starting or ending coordinates of route will be returned
+    # in the nearer road which can be slightly different than
+    # the ones provided
+    if path_coordinates[0] != [lat1, lon1]:
+        path_coordinates[0] = [lat1, lon1]
+    if path_coordinates[-1] != [lat2, lon2]:
+        path_coordinates[-1] = [lat2, lon2]
+
+    return np.array(path_coordinates), distance
+
 
 def gen_basic_traj(l_s, l_e, vehicle, t_s):
     traj_list = []
