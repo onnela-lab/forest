@@ -1,8 +1,14 @@
 """Tests for simulate_gps_data module"""
 
+import numpy as np
 import pytest
 
-from forest.bonsai.simulate_gps_data import get_path
+from forest.bonsai.simulate_gps_data import (
+    bounding_box,
+    get_basic_path,
+    get_path,
+)
+from forest.jasmine.data2mobmat import great_circle_dist
 
 
 @pytest.fixture(scope="session")
@@ -271,3 +277,63 @@ def test_get_path_distance(coords1, coords2, directions1, mocker):
 def test_get_path_close_locations(coords1, coords3):
     """Tests case distance of locations is less than 250 meters."""
     assert len(get_path(coords1, coords3, "foot", "mock_api_key")[0]) == 2
+
+
+@pytest.fixture
+def random_path(coords1, coords2, directions1, mocker):
+    mocker.patch(
+        "openrouteservice.Client.directions", return_value=directions1
+    )
+
+    return get_path(coords1, coords2, "car", "mock_api_key")[0]
+
+
+def test_get_basic_path_simple_case(random_path):
+    """Test simple case of getting basic path"""
+    basic_random_path = get_basic_path(random_path, "car")
+    boolean_matrix = basic_random_path == np.array(
+        [
+            [51.458498, -2.59638],
+            [51.456975, -2.597508],
+            [51.460035, -2.60116],
+            [51.459923, -2.607755],
+            [51.457619, -2.608466],
+        ]
+    )
+    assert np.sum(boolean_matrix) == 10
+
+
+def test_get_basic_path_len_bicycle(random_path):
+    basic_random_path_bicycle = get_basic_path(random_path, "bicycle")
+    assert len(basic_random_path_bicycle) == 8
+
+
+def test_get_basic_path_len_car(random_path):
+    basic_random_path_car = get_basic_path(random_path, "car")
+    assert len(basic_random_path_car) == 5
+
+
+def test_get_basic_path_len_bus(random_path):
+    basic_random_path_bus = get_basic_path(random_path, "bus")
+    assert len(basic_random_path_bus) == 7
+
+
+@pytest.fixture(scope="session")
+def rndm_coords():
+    return 51.458726, -2.596069
+
+
+def test_bounding_box_simple_case(rndm_coords):
+    """Test bounding box simple case distance"""
+    bbox = bounding_box(rndm_coords, 500)
+    actual_distance = np.round(
+        great_circle_dist(rndm_coords[0], rndm_coords[1], bbox[0], bbox[1])
+    )
+    predicted_distance = np.round((2 * 500 ** 2) ** (1 / 2))
+    assert actual_distance == predicted_distance
+
+
+def test_bounding_box_zero_case(rndm_coords):
+    """Test case when 0 meters bounding box"""
+    bbox = bounding_box(rndm_coords, 0)
+    assert bbox[0] == bbox[2] and bbox[1] == bbox[3]

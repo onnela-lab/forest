@@ -98,6 +98,66 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float], transport: st
     return np.array(path_coordinates), distance
 
 
+def get_basic_path(path: np.ndarray, transport: str) -> np.ndarray:
+    """Subsets paths depending on transport for optimisation.
+
+    This function takes a path from get_path() function and subsets it
+    to a specific number of nodes.
+    Args:
+        path: 2d numpy array
+        length: integer
+        transport: str
+    Returns:
+        subset of original path that represents the flight
+    """
+
+    distance = great_circle_dist(
+        path[0][1], path[0][0], path[-1][1], path[-1][0]
+    )
+
+    if transport in ["foot", "bicycle"]:
+        length = 2 + distance // 200
+    else:
+        length = 2 + distance // 400
+
+    if transport == "bus":
+        length += 2  # bus route start and end
+
+    if length >= len(path):
+        basic_path = path
+    else:
+        indexes = list(range(0, len(path), int(len(path) / (length - 1))))
+        if len(indexes) < length:
+            indexes.append(len(path) - 1)
+        else:
+            indexes[-1] = len(path) - 1
+
+        indexes2 = []
+        for i in range(len(indexes) - 1):
+            if (path[indexes[i]] != path[indexes[i + 1]]).any():
+                indexes2.append(indexes[i])
+        indexes2.append(indexes[-1])
+
+    return path[indexes2]
+
+
+def bounding_box(center: Tuple[float, float], radius: int) -> Tuple:
+    """This function a bounding box around a set of coordinates.
+
+    Args:
+        center: set of coordinates (floats) (lat, lon)
+        radius: radius in meters of area around coordinates
+    Return:
+        tuple of 4 elements that represents a bounding box
+        around the coordinates provided
+    """
+    lat, lon = center
+    r_earth = 6371
+    lat_const = (radius / (1000 * r_earth)) * (180 / np.pi)
+    lon_const = lat_const / np.cos(lat * np.pi / 180)
+    return lat - lat_const, lon - lon_const, lat + lat_const, lon + lon_const
+
+
 def gen_basic_traj(l_s, l_e, vehicle, t_s):
     traj_list = []
     [lat_s, lon_s] = l_s
