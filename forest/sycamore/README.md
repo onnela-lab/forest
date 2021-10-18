@@ -13,10 +13,16 @@ Use `sycamore` to process and analyze Beiwe survey data.
 `from forest import sycamore.functions as sycf`
 
 ## Usage:  
-Download raw data from your Beiwe server and use this package to process the data in the `survey_timings` data stream. Summary data provides metrics around survey submissions and survey question completion.
+Download raw data from your Beiwe server and use this package to process the data in the `survey_timings` data stream. Summary data provides metrics around survey submissions and survey question completion. Additional outputs are generated if a config file is provided.
 
-Outputs include:  
+If config file is not provided, outputs include:  
 
+* `agg_survey_data.csv`: One csv with all data from the survey_timings datastresm.
+* `submits_alt_summary.csv`: One csv with survey completion times for all users.  
+
+If a config file is provided, additional outputs include:
+
+* `answers_data.csv`: Aggregated survey data (similar to agg_survey_data.csv, will likely be deprecated in future iterations).
 * `answers_summary.csv` : For each beiwe id, survey id, and question id, this file provides the following summaries:
   * `num_answers`: The number of times in the given data the answer is answered.
   * `average_time_to_answer`: The average amount of time the user takes to answer the question.
@@ -24,10 +30,11 @@ Outputs include:
   * `most_common_answer`: A user's most common answer to a question.
 
 
-* `survey_submits_summary.csv`: For each survey id and beiwe id, this file provides the following summaries:  
-  * `num_surveys`: The number of surveys issued to the user in the given timeframe.
-  * `num_completed_surveys`: The number of surveys the user submitted in the given timeframe. A completed survey is considered a survey that was completed before the next survey was deployed to the user.  
-  * `avg_time_to_submit`: The average amount of time that lapses between the survey getting deployed and the user submitting the survey.
+* `submits_summary.csv`: For each survey id and beiwe id, this file provides the following summaries:  
+  * `num_surveys`: The number of surveys issued to the user in the given timeframe. This is calculated from the provided config file.
+  * `num_completed_surveys`: The number of surveys the user submitted in the given timeframe. A completed survey is considered a survey that was completed before the next survey was deployed to the user.
+  * `avg_time_to_submit`: The average amount of time that lapses between the survey getting deployed and the user submitting the survey.  
+* `submits_data.csv`: For each survey id and beiwe id, this file provides survey timings details summarized in `submits_summary.csv`
 
 ## Data:   
 Methods are designed for use on the `survey_timings` data from the Beiwe app.
@@ -39,9 +46,19 @@ ___
 
 ___
 ## 1. `syc.sycamore_main` <a name = "syc_main"/>  
-Takes the path to the study configuration file and outputs summary tables about the survey data.
 
-*Example*  
+*Example (without config file)*    
+```
+study_dir = path/to/data  
+output_dir = path/to/output
+beiwe_ids = list of ids in study_dir
+time_start = start time
+time_end = end time  
+study_tz = Timezone of study (if not defined, defaults to 'America/New_York')
+
+sycamore_main.survey_stats_main(output_dir, study_dir, beiwe_ids, time_start = time_start, time_end = time_end, study_tz)
+```
+
 ```
 config_path = path/to/config file
 study_dir = path/to/data  
@@ -49,7 +66,7 @@ output_dir = path/to/output
 beiwe_ids = list of ids in study_dir
 time_start = start time
 time_end = end time  
-study_tz = Timezone of study (if not defined, defaults to 'America/New_York'
+study_tz = Timezone of study (if not defined, defaults to 'America/New_York')
 
 sycamore_main.survey_stats_main(output_dir, study_dir, config_path, time_start, time_end, beiwe_ids, study_tz)
 
