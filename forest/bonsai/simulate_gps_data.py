@@ -105,7 +105,6 @@ def get_basic_path(path: np.ndarray, transport: str) -> np.ndarray:
     to a specific number of nodes.
     Args:
         path: 2d numpy array
-        length: integer
         transport: str
     Returns:
         subset of original path that represents the flight
@@ -116,12 +115,17 @@ def get_basic_path(path: np.ndarray, transport: str) -> np.ndarray:
     )
 
     if transport in ["foot", "bicycle"]:
+        # slower speed thus capturing more locations
         length = 2 + distance // 200
+    elif transport == 'bus':
+        # higher speed thus capturing less locations
+        # bus route start and end +2
+        length = 4 + distance // 400
     else:
+        # transport is car
+        # higher speed thus capturing less locations
         length = 2 + distance // 400
-
-    if transport == "bus":
-        length += 2  # bus route start and end
+        
 
     if length >= len(path):
         basic_path = path
@@ -137,12 +141,13 @@ def get_basic_path(path: np.ndarray, transport: str) -> np.ndarray:
             if (path[indexes[i]] != path[indexes[i + 1]]).any():
                 indexes2.append(indexes[i])
         indexes2.append(indexes[-1])
+        basic_path = path[indexes2]
 
-    return path[indexes2]
+    return basic_path
 
 
 def bounding_box(center: Tuple[float, float], radius: int) -> Tuple:
-    """This function a bounding box around a set of coordinates.
+    """A bounding box around a set of coordinates.
 
     Args:
         center: set of coordinates (floats) (lat, lon)
@@ -152,8 +157,8 @@ def bounding_box(center: Tuple[float, float], radius: int) -> Tuple:
         around the coordinates provided
     """
     lat, lon = center
-    r_earth = 6371
-    lat_const = (radius / (1000 * r_earth)) * (180 / np.pi)
+    EARTH_RADIUS = 6371 # kilometers
+    lat_const = (radius / (1000 * EARTH_RADIUS)) * (180 / np.pi)
     lon_const = lat_const / np.cos(lat * np.pi / 180)
     return lat - lat_const, lon - lon_const, lat + lat_const, lon + lon_const
 
