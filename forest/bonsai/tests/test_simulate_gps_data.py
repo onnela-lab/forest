@@ -1,8 +1,11 @@
 """Tests for simulate_gps_data module"""
 
+import numpy as np
 import pytest
 
-from forest.bonsai.simulate_gps_data import get_path
+from forest.bonsai.simulate_gps_data import (bounding_box,
+    get_basic_path, get_path)
+from forest.jasmine.data2mobmat import great_circle_dist
 
 
 @pytest.fixture(scope="session")
@@ -271,3 +274,78 @@ def test_get_path_distance(coords1, coords2, directions1, mocker):
 def test_get_path_close_locations(coords1, coords3):
     """Tests case distance of locations is less than 250 meters."""
     assert len(get_path(coords1, coords3, "foot", "mock_api_key")[0]) == 2
+
+
+@pytest.fixture
+def random_path(directions1, coords1, coords2):
+    lat1, lon1 = coords1
+    lat2, lon2 = coords2
+    # path returned from running get_path function
+    # starting from coords1 and ending on coords2
+    # with car as transport
+    coordinates = directions1['features'][0]['geometry']['coordinates']
+    path_coordinates = [[coord[1], coord[0]] for coord in coordinates]
+
+    # sometimes if exact coordinates of location are not in a road
+    # the starting or ending coordinates of route will be returned
+    # in the nearer road which can be slightly different than
+    # the ones provided
+    if path_coordinates[0] != [lat1, lon1]:
+        path_coordinates[0] = [lat1, lon1]
+    if path_coordinates[-1] != [lat2, lon2]:
+        path_coordinates[-1] = [lat2, lon2]
+
+    return np.array(path_coordinates)
+
+
+def test_get_basic_path_simple_case(random_path):
+    """Test simple case of getting basic path"""
+    basic_random_path = get_basic_path(random_path, "car")
+    boolean_matrix = basic_random_path == np.array(
+        [
+            [51.458498, -2.59638],
+            [51.456975, -2.597508],
+            [51.460035, -2.60116],
+            [51.459923, -2.607755],
+            [51.457619, -2.608466],
+        ]
+    )
+    assert np.sum(boolean_matrix) == 10
+
+
+def test_get_basic_path_length_by_bicycle(random_path):
+    basic_random_path_bicycle = get_basic_path(random_path, "bicycle")
+    assert len(basic_random_path_bicycle) == 8
+
+
+def test_get_basic_path_length_by_car(random_path):
+    basic_random_path_car = get_basic_path(random_path, "car")
+    assert len(basic_random_path_car) == 5
+
+
+def test_get_basic_path_length_by_bus(random_path):
+    basic_random_path_bus = get_basic_path(random_path, "bus")
+    assert len(basic_random_path_bus) == 7
+
+
+@pytest.fixture(scope="session")
+def sample_coordinates():
+    return 51.458726, -2.596069
+
+
+def test_bounding_box_simple_case(sample_coordinates):
+    """Test bounding box simple case distance"""
+    bbox = bounding_box(sample_coordinates, 500)
+    # distance of bbox corner from center
+    distance = np.round(
+        great_circle_dist(
+            sample_coordinates[0], sample_coordinates[1], bbox[0], bbox[1]
+        )
+    )
+    # 707 comes from Pythagorean theorem
+    assert distance == 707
+
+
+def test_zero_meters_bounding_box(sample_coordinates):
+    bbox = bounding_box(sample_coordinates, 0)
+    assert bbox[0] == bbox[2] and bbox[1] == bbox[3]
