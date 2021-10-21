@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from forest.bonsai.simulate_gps_data import (bounding_box,
-    get_basic_path, get_path)
+    get_basic_path, get_path, Person)
 from forest.jasmine.data2mobmat import great_circle_dist
 
 
@@ -283,7 +283,7 @@ def random_path(directions1, coords1, coords2):
     # path returned from running get_path function
     # starting from coords1 and ending on coords2
     # with car as transport
-    coordinates = directions1['features'][0]['geometry']['coordinates']
+    coordinates = directions1["features"][0]["geometry"]["coordinates"]
     path_coordinates = [[coord[1], coord[0]] for coord in coordinates]
 
     # sometimes if exact coordinates of location are not in a road
@@ -349,3 +349,112 @@ def test_bounding_box_simple_case(sample_coordinates):
 def test_zero_meters_bounding_box(sample_coordinates):
     bbox = bounding_box(sample_coordinates, 0)
     assert bbox[0] == bbox[2] and bbox[1] == bbox[3]
+
+
+@pytest.fixture(scope="session")
+def sample_nodes():
+    """All nodes of preferred categories around sample_coordinates"""
+    return {
+        "cafe": [
+            (51.4730335, -2.5868174),
+            (51.4503187, -2.6000677),
+            (51.4542379, -2.5957399),
+            (51.4566122, -2.6049184),
+            (51.4491962, -2.597486),
+            (51.4513174, -2.5778401),
+        ],
+        "bar": [
+            (51.4592495, -2.6111314),
+            (51.4588478, -2.6106816),
+            (51.4531018, -2.5981952),
+            (51.4499107, -2.5808118),
+            (51.4511935, -2.5924017),
+            (51.4497689, -2.5973878),
+            (51.4532564, -2.592465),
+        ],
+        "restaurant": [
+            (51.4587343, -2.6110204),
+            (51.4555718, -2.6198581),
+            (51.4515447, -2.5852328),
+            (51.4564397, -2.589893),
+            (51.4564159, -2.5899766),
+            (51.4593627, -2.5916202),
+            (51.4544069, -2.5940264),
+            (51.4590668, -2.5915499),
+        ],
+        "cinema": [
+            (51.4589416, -2.5860582),
+            (51.4513069, -2.5982655),
+            (51.4611435, -2.5933154),
+            (51.4561455, -2.5967294),
+            (51.4629542, -2.6096249),
+            (51.4517717, -2.598108),
+            (51.4566839, -2.5915285),
+        ],
+        "park": [
+            (51.4609571, -2.5855459),
+            (51.4679187, -2.598686),
+            (51.4426429, -2.6014811),
+            (51.4405893, -2.5954815),
+            (51.4721951, -2.576308),
+        ],
+        "dance": [(51.4573642, -2.6177539)],
+        "fitness": [
+            (51.4541587, -2.5899168),
+            (51.4559791, -2.5917542),
+            (51.4516719, -2.5799672),
+            (51.4566176, -2.5695463),
+        ],
+        "office": [
+            (51.4566176, -2.5695463),
+            (51.4561455, -2.5967294),
+        ],
+        "university": [],
+    }
+
+
+def test_person_main_employment(sample_coordinates, sample_nodes):
+    random_person = Person(
+        sample_coordinates,
+        [0, 1, 6, 8, ["cinema", "bar", "park"]],
+        sample_nodes,
+    )
+    assert random_person.main_employment == 1
+
+
+def test_person_cafe_places(sample_coordinates, sample_nodes):
+    """Test one place from cafe_places attribute is actual cafe"""
+    random_person = Person(
+        sample_coordinates,
+        [0, 0, 2, 7, ["cafe", "cinema", "park"]],
+        sample_nodes,
+    )
+    cafe_place = (
+        random_person.cafe_places[0][0],
+        random_person.cafe_places[0][1],
+    )
+    assert cafe_place in sample_nodes["cafe"]
+
+
+def test_person_office_address(sample_coordinates, sample_nodes):
+    """Test person going to work office_address"""
+    random_person = Person(
+        sample_coordinates,
+        [0, 1, 6, 7, ["cafe", "cinema", "park"]],
+        sample_nodes,
+    )
+    office_address = (
+        random_person.office_address[0],
+        random_person.office_address[1],
+    )
+    assert office_address in sample_nodes["office"]
+
+
+def test_person_office_days(sample_coordinates, sample_nodes):
+    """Test person going to work office_address"""
+    random_person = Person(
+        sample_coordinates,
+        [0, 1, 6, 7, ["cafe", "bar", "park"]],
+        sample_nodes,
+    )
+    assert len(random_person.office_days) <= 5

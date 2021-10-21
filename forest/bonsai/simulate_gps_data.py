@@ -163,6 +163,168 @@ def bounding_box(center: Tuple[float, float], radius: int) -> Tuple:
     return lat - lat_const, lon - lon_const, lat + lat_const, lon + lon_const
 
 
+class Person:
+    """This class represents a person
+    whose trajectories we want to simulate."""
+
+    def __init__(
+        self,
+        house_address: Tuple[float, float],
+        attributes: list,
+        all_nodes: dict,
+    ):
+        """This function sets the basic attributes and information
+        to be used of the person.
+
+        Args:
+            house_address: tuple, coordinates of primary home
+            attributes: list, consists of various information
+                attributes = [vehicle, main_employment, athletic_status,
+                active_status, travelling_status, preferred_exits]
+                * vehicle = 0: nothing, 1: own car, 2: own bicycle
+                used for distances and time of flights
+                * main_employment = 0: nothing, 1: worker, 2:student
+                used for routine action in weekdays
+                * active_status = 0-10
+                used for probability in free time to take an action
+                or stay home
+                * travelling status = 0-10
+                used to derive amount of distance travelled
+                * preferred_exits = [x1, x2, x3]
+                used to sample action when free time
+                where x1-x3 are amenities (str)
+            all_nodes: dictionary, contains overpass nodes
+                of amenities near house
+
+        """
+
+        self.house_address = house_address
+        self.vehicle = attributes[0]
+        self.main_employment = attributes[1]
+        self.active_status = attributes[2]
+        self.travelling_status = attributes[3]
+        self.preferred_exits = attributes[4]
+
+        self.preferred_exits_today = attributes[4]
+        self.office_today = False
+
+        self.trips = {}
+
+        # define place of employment
+        self.house_area = bounding_box(house_address, 2000)
+        if self.main_employment > 0:
+            if self.main_employment == 1:
+                employment_str = "office"
+            elif self.main_employment == 2:
+                employment_str = "university"
+
+            if len(all_nodes[employment_str]) != 0:
+                i = np.random.choice(range(len(all_nodes[employment_str])), 1)[
+                    0
+                ]
+
+                while all_nodes[employment_str][i] == house_address:
+                    i = np.random.choice(
+                        range(len(all_nodes[employment_str])), 1
+                    )[0]
+
+                self.office_address = all_nodes[employment_str][i]
+
+                no_office_days = np.random.binomial(5, self.active_status / 10)
+                self.office_days = np.random.choice(
+                    range(5), no_office_days, replace=False
+                )
+                self.office_days.sort()
+            else:
+                self.office_address = ""
+        else:
+            self.office_days = []
+
+        # define favorite places
+        self.possible_exits = [
+            "cafe",
+            "bar",
+            "restaurant",
+            "park",
+            "cinema",
+            "dance",
+            "fitness",
+        ]
+
+        for possible_exit in self.possible_exits:
+            if len(all_nodes[possible_exit]) > 3:
+                random_places = np.random.choice(
+                    range(len(all_nodes[possible_exit])), 3, replace=False
+                ).tolist()
+                places_selected = [
+                    (place[0], place[1])
+                    for place in np.array(all_nodes[possible_exit])[
+                        random_places
+                    ]
+                ]
+                if house_address in places_selected:
+                    places_selected = [
+                        pl for pl in places_selected if pl != house_address
+                    ]
+                    r_id = np.random.choice(
+                        range(len(all_nodes[possible_exit])), 1
+                    )[0]
+                    while r_id in random_places:
+                        r_id = np.random.choice(
+                            range(len(all_nodes[possible_exit])), 1
+                        )[0]
+                    place = all_nodes[possible_exit][r_id]
+                    places_selected.append((place[0], place[1]))
+
+                setattr(self, possible_exit + "_places", places_selected)
+            else:
+                setattr(
+                    self,
+                    possible_exit + "_places",
+                    [
+                        (place[0], place[1])
+                        for place in all_nodes[possible_exit]
+                        if (place[0], place[1]) != house_address
+                    ],
+                )
+
+            distances = [
+                great_circle_dist(
+                    house_address[0], house_address[1], place[0], place[1]
+                )
+                for place in getattr(self, possible_exit + "_places")
+            ]
+            order = np.argsort(distances)
+            setattr(
+                self,
+                possible_exit + "_places_ordered",
+                np.array(getattr(self, possible_exit + "_places"))[
+                    order
+                ].tolist(),
+            )
+
+        # remove all exits which have no places nearby
+        possible_exits2 = self.possible_exits.copy()
+        for act in possible_exits2:
+            if len(getattr(self, act + "_places")) == 0:
+                self.possible_exits.remove(act)
+
+        # order preferred places by travelling_status
+        travelling_status_norm = (self.travelling_status ** 2) / (
+            self.travelling_status ** 2 + (10 - self.travelling_status) ** 2
+        )
+        for act in self.possible_exits:
+            act_places = getattr(self, act + "_places_ordered").copy()
+
+            places = []
+            for i in range(len(act_places) - 1, -1, -1):
+                index = np.random.binomial(i, travelling_status_norm)
+                places.append(act_places[index])
+                del act_places[index]
+
+            setattr(self, act + "_places", places)
+
+
 def gen_basic_traj(l_s, l_e, vehicle, t_s):
     traj_list = []
     [lat_s, lon_s] = l_s
