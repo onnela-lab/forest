@@ -182,14 +182,12 @@ class Attributes:
     """This class holds the attributes needed
     to create an instance of a person"""
 
-    def __init__(
-        self,
-        vehicle: str,
-        main_occupation: str,
-        active_status: int,
-        travelling_status: int,
-        preferred_places: list[str, str, str],
-    ):
+    def __init__(self,
+                 vehicle: str,
+                 main_occupation: str,
+                 active_status: int,
+                 travelling_status: int,
+                 preferred_places: list[str, str, str]):
         """This function sets the personality attributes
 
         Args:
@@ -218,12 +216,10 @@ class Person:
     """This class represents a person
     whose trajectories we want to simulate."""
 
-    def __init__(
-        self,
-        home_coordinates: Tuple[float, float],
-        attributes: Attributes,
-        local_places: dict,
-    ):
+    def __init__(self,
+                 home_coordinates: Tuple[float, float],
+                 attributes: Attributes,
+                 local_places: dict):
         """This function sets the basic attributes and information
         to be used of the person.
 
