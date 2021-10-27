@@ -5,6 +5,7 @@ of a number of people anywhere in the world.
 
 import os
 import time
+from enum import Enum
 from typing import Tuple
 
 import numpy as np
@@ -163,72 +164,112 @@ def bounding_box(center: Tuple[float, float], radius: int) -> Tuple:
     return lat - lat_const, lon - lon_const, lat + lat_const, lon + lon_const
 
 
+class Vehicle(Enum):
+    """This class enumerates vehicle for attributes"""
+    nothing = 0
+    car = 1
+    bicycle = 2
+
+
+class Occupation(Enum):
+    """This class enumerates occupation for attributes"""
+    nothing = 0
+    work = 1
+    studies = 2
+
+
+class Attributes:
+    """This class holds the attributes needed
+    to create an instance of a person"""
+
+    def __init__(
+        self,
+        vehicle: str,
+        main_occupation: str,
+        active_status: int,
+        travelling_status: int,
+        preferred_places: list[str, str, str],
+    ):
+        """This function sets the personality attributes
+
+        Args:
+            vehicle in ['nothing', 'car', 'bicycle']
+                used for distances and time of flights
+             main_occupation in ['nothing', 'work', 'studies']
+                used for routine action in weekdays
+            active_status = 0-10
+                used for probability in free time to take an action
+                or stay home
+            travelling status = 0-10
+                used to derive amount of distance travelled
+            preferred_places  = [x1, x2, x3]
+                used to sample action when free time
+                where x1-x3 are amenities (str)
+        """
+
+        self.vehicle = Vehicle[vehicle].value
+        self.main_occupation = Occupation[main_occupation].value
+        self.active_status = active_status
+        self.travelling_status = travelling_status
+        self.preferred_places = preferred_places
+
+
 class Person:
     """This class represents a person
     whose trajectories we want to simulate."""
 
     def __init__(
         self,
-        house_address: Tuple[float, float],
-        attributes: list,
-        all_nodes: dict,
+        home_coordinates: Tuple[float, float],
+        attributes: Attributes,
+        local_places: dict,
     ):
         """This function sets the basic attributes and information
         to be used of the person.
 
         Args:
-            house_address: tuple, coordinates of primary home
-            attributes: list, consists of various information
-                attributes = [vehicle, main_employment, athletic_status,
-                active_status, travelling_status, preferred_exits]
-                * vehicle = 0: nothing, 1: own car, 2: own bicycle
-                used for distances and time of flights
-                * main_employment = 0: nothing, 1: worker, 2:student
-                used for routine action in weekdays
-                * active_status = 0-10
-                used for probability in free time to take an action
-                or stay home
-                * travelling status = 0-10
-                used to derive amount of distance travelled
-                * preferred_exits = [x1, x2, x3]
-                used to sample action when free time
-                where x1-x3 are amenities (str)
-            all_nodes: dictionary, contains overpass nodes
+            home_coordinates: tuple, coordinates of primary home
+            attributes: Attributes class, consists of various information
+            local_places: dictionary, contains overpass nodes
                 of amenities near house
 
         """
 
-        self.house_address = house_address
-        self.vehicle = attributes[0]
-        self.main_employment = attributes[1]
-        self.active_status = attributes[2]
-        self.travelling_status = attributes[3]
-        self.preferred_exits = attributes[4]
-
-        self.preferred_exits_today = attributes[4]
+        self.home_coordinates = home_coordinates
+        self.vehicle = attributes.vehicle
+        self.main_occupation = attributes.main_occupation
+        self.active_status = attributes.active_status
+        self.travelling_status = attributes.travelling_status
+        self.preferred_places = attributes.preferred_places
+        # used to update preferred exits in a day if already
+        # visited
+        self.preferred_exits_today = self.preferred_places.copy()
         self.office_today = False
-
+        # this will hold the coordinates of paths
+        # to each location visited
         self.trips = {}
 
-        # define place of employment
-        self.house_area = bounding_box(house_address, 2000)
-        if self.main_employment > 0:
-            if self.main_employment == 1:
+        # if employed/student find a place nearby to visit
+        # for work or studies
+        # also set which days within the week to visit it
+        # depending on active status
+        if self.main_occupation in [1, 2]:
+            if self.main_occupation == 1:
                 employment_str = "office"
-            elif self.main_employment == 2:
+            elif self.main_occupation == 2:
                 employment_str = "university"
 
-            if len(all_nodes[employment_str]) != 0:
-                i = np.random.choice(range(len(all_nodes[employment_str])), 1)[
-                    0
-                ]
+            if len(local_places[employment_str]) != 0:
+                i = np.random.choice(
+                    range(len(local_places[employment_str])), 1
+                )[0]
 
-                while all_nodes[employment_str][i] == house_address:
+                while local_places[employment_str][i] == home_coordinates:
                     i = np.random.choice(
-                        range(len(all_nodes[employment_str])), 1
+                        range(len(local_places[employment_str])), 1
                     )[0]
 
-                self.office_address = all_nodes[employment_str][i]
+                self.office_address = local_places[employment_str][i]
 
                 no_office_days = np.random.binomial(5, self.active_status / 10)
                 self.office_days = np.random.choice(
@@ -241,7 +282,7 @@ class Person:
             self.office_days = []
 
         # define favorite places
-        self.possible_exits = [
+        self.possible_destinations = [
             "cafe",
             "bar",
             "restaurant",
@@ -251,31 +292,25 @@ class Person:
             "fitness",
         ]
 
-        for possible_exit in self.possible_exits:
-            if len(all_nodes[possible_exit]) > 3:
+        # for a certain amenity select 3 locations for each amenity randomly
+        # these will be considered the 3 favorite places to go
+        # 3 was chosen arbitrarily since people usually follow the
+        # same patterns and go out mostly in the same places
+        # order in the list of 3 matters, with order be of decreasing preference
+        for possible_exit in self.possible_destinations:
+            # if there are more than 3 sets of coordinates for an amenity
+            # select 3 at random, else select all of them as preferred
+            if len(local_places[possible_exit]) > 3:
                 random_places = np.random.choice(
-                    range(len(all_nodes[possible_exit])), 3, replace=False
+                    range(len(local_places[possible_exit])), 3, replace=False
                 ).tolist()
                 places_selected = [
                     (place[0], place[1])
-                    for place in np.array(all_nodes[possible_exit])[
+                    for place in np.array(local_places[possible_exit])[
                         random_places
                     ]
+                    if (place[0], place[1]) != home_coordinates
                 ]
-                if house_address in places_selected:
-                    places_selected = [
-                        pl for pl in places_selected if pl != house_address
-                    ]
-                    r_id = np.random.choice(
-                        range(len(all_nodes[possible_exit])), 1
-                    )[0]
-                    while r_id in random_places:
-                        r_id = np.random.choice(
-                            range(len(all_nodes[possible_exit])), 1
-                        )[0]
-                    place = all_nodes[possible_exit][r_id]
-                    places_selected.append((place[0], place[1]))
-
                 setattr(self, possible_exit + "_places", places_selected)
             else:
                 setattr(
@@ -283,14 +318,18 @@ class Person:
                     possible_exit + "_places",
                     [
                         (place[0], place[1])
-                        for place in all_nodes[possible_exit]
-                        if (place[0], place[1]) != house_address
+                        for place in local_places[possible_exit]
+                        if (place[0], place[1]) != home_coordinates
                     ],
                 )
-
+            # calculate distances of selected places from home
+            # create a list of the locations ordered by distance
             distances = [
                 great_circle_dist(
-                    house_address[0], house_address[1], place[0], place[1]
+                    home_coordinates[0],
+                    home_coordinates[1],
+                    place[0],
+                    place[1],
                 )
                 for place in getattr(self, possible_exit + "_places")
             ]
@@ -304,16 +343,18 @@ class Person:
             )
 
         # remove all exits which have no places nearby
-        possible_exits2 = self.possible_exits.copy()
+        possible_exits2 = self.possible_destinations.copy()
         for act in possible_exits2:
             if len(getattr(self, act + "_places")) == 0:
-                self.possible_exits.remove(act)
+                self.possible_destinations.remove(act)
 
         # order preferred places by travelling_status
+        # if travelling status high, preferred locations
+        # will be the ones that are further away
         travelling_status_norm = (self.travelling_status ** 2) / (
             self.travelling_status ** 2 + (10 - self.travelling_status) ** 2
         )
-        for act in self.possible_exits:
+        for act in self.possible_destinations:
             act_places = getattr(self, act + "_places_ordered").copy()
 
             places = []

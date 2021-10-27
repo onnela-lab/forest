@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from forest.bonsai.simulate_gps_data import (bounding_box,
-    get_basic_path, get_path, Person)
+    get_basic_path, get_path, Attributes, Person)
 from forest.jasmine.data2mobmat import great_circle_dist
 
 
@@ -352,7 +352,7 @@ def test_zero_meters_bounding_box(sample_coordinates):
 
 
 @pytest.fixture(scope="session")
-def sample_nodes():
+def sample_locations():
     """All nodes of preferred categories around sample_coordinates"""
     return {
         "cafe": [
@@ -413,48 +413,56 @@ def sample_nodes():
     }
 
 
-def test_person_main_employment(sample_coordinates, sample_nodes):
+def test_person_main_employment(sample_coordinates, sample_locations):
+    attributes = Attributes("nothing", "work", 6, 8,
+                            ["cinema", "bar", "park"])
     random_person = Person(
         sample_coordinates,
-        [0, 1, 6, 8, ["cinema", "bar", "park"]],
-        sample_nodes,
+        attributes,
+        sample_locations,
     )
-    assert random_person.main_employment == 1
+    assert random_person.main_occupation == 1
 
 
-def test_person_cafe_places(sample_coordinates, sample_nodes):
+def test_person_cafe_places(sample_coordinates, sample_locations):
     """Test one place from cafe_places attribute is actual cafe"""
+    attributes = Attributes("nothing", "nothing", 2, 7,
+                            ["cafe", "cinema", "park"])
     random_person = Person(
         sample_coordinates,
-        [0, 0, 2, 7, ["cafe", "cinema", "park"]],
-        sample_nodes,
+        attributes,
+        sample_locations,
     )
     cafe_place = (
         random_person.cafe_places[0][0],
         random_person.cafe_places[0][1],
     )
-    assert cafe_place in sample_nodes["cafe"]
+    assert cafe_place in sample_locations["cafe"]
 
 
-def test_person_office_address(sample_coordinates, sample_nodes):
+def test_person_office_address(sample_coordinates, sample_locations):
     """Test person going to work office_address"""
+    attributes = Attributes("nothing", "work", 6, 7,
+                            ["cafe", "cinema", "park"])
     random_person = Person(
         sample_coordinates,
-        [0, 1, 6, 7, ["cafe", "cinema", "park"]],
-        sample_nodes,
+        attributes,
+        sample_locations,
     )
     office_address = (
         random_person.office_address[0],
         random_person.office_address[1],
     )
-    assert office_address in sample_nodes["office"]
+    assert office_address in sample_locations["office"]
 
 
-def test_person_office_days(sample_coordinates, sample_nodes):
+def test_person_office_days(sample_coordinates, sample_locations):
     """Test person going to work office_address"""
+    attributes = Attributes("nothing", "work", 6, 7,
+                            ["cafe", "bar", "park"])
     random_person = Person(
         sample_coordinates,
-        [0, 1, 6, 7, ["cafe", "bar", "park"]],
-        sample_nodes,
+        attributes,
+        sample_locations,
     )
     assert len(random_person.office_days) <= 5
