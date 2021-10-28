@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from forest.bonsai.simulate_gps_data import (bounding_box,
-    get_basic_path, get_path, Attributes, Person)
+    get_basic_path, get_path, Vehicle, Occupation, Attributes, Person)
 from forest.jasmine.data2mobmat import great_circle_dist
 
 
@@ -420,7 +420,7 @@ def test_person_main_employment(sample_coordinates, sample_locations):
                             travelling_status=8,
                             preferred_places=["cinema", "bar", "park"])
     random_person = Person(sample_coordinates, attributes, sample_locations)
-    assert random_person.main_occupation == 1
+    assert random_person.attributes.main_occupation == 1
 
 
 def test_person_cafe_places(sample_coordinates, sample_locations):

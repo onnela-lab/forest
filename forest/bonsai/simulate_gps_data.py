@@ -204,7 +204,7 @@ class Attributes:
         """
 
         self.vehicle = vehicle.value
-        self.main_occupation = occupation.value
+        self.main_occupation = main_occupation.value
         self.active_status = active_status
         self.travelling_status = travelling_status
         self.preferred_places = preferred_places
