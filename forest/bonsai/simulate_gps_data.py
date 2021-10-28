@@ -166,6 +166,7 @@ def bounding_box(center: Tuple[float, float], radius: int) -> Tuple:
 
 class Vehicle(Enum):
     """This class enumerates vehicle for attributes"""
+
     NONE = 0
     CAR = 1
     BICYCLE = 2
@@ -173,6 +174,7 @@ class Vehicle(Enum):
 
 class Occupation(Enum):
     """This class enumerates occupation for attributes"""
+
     NONE = 0
     WORK = 1
     STUDIES = 2
@@ -260,7 +262,9 @@ class Person:
 
                 self.office_address = local_places[employment_str][i]
 
-                no_office_days = np.random.binomial(5, self.attributes.active_status / 10)
+                no_office_days = np.random.binomial(
+                    5, self.attributes.active_status / 10
+                )
                 self.office_days = np.random.choice(
                     range(5), no_office_days, replace=False
                 )
@@ -343,7 +347,8 @@ class Person:
         # if travelling status high, preferred locations
         # will be the ones that are further away
         travelling_status_norm = (self.attributes.travelling_status ** 2) / (
-            self.attributes.travelling_status ** 2 + (10 - self.attributes.travelling_status) ** 2
+            self.attributes.travelling_status ** 2
+            + (10 - self.attributes.travelling_status) ** 2
         )
         for act in self.possible_destinations:
             act_places = getattr(self, act + "_places_ordered").copy()
@@ -391,7 +396,9 @@ class Person:
 
         if self.attributes.main_employment > 0 and self.office_address != "":
             no_office_days = np.random.binomial(5, active_status / 10)
-            self.office_days = np.random.choice(range(5), no_office_days, replace=False)
+            self.office_days = np.random.choice(
+                range(5), no_office_days, replace=False
+            )
             self.office_days.sort()
 
     def update_preferred_exits(self, exit_code: str):
@@ -433,7 +440,7 @@ class Person:
                               update: bool = True) -> Tuple[str, tuple]:
         """This function samples through the possible actions for the person,
         depending on his attributes and the time.
-        
+
         Args:
             t_s: float, current time in seconds
             update: boolean, to update preferrences
@@ -441,7 +448,6 @@ class Person:
             selected_action_decoded: str, selected action to perform
             selected_location: tuple, selected location's coordinates
         """
-
 
         time_now = t_s % (24 * 60 * 60)
         hr_now = time_now / (60 * 60)
@@ -519,7 +525,7 @@ class Person:
     ) -> Tuple[np.ndarray, str]:
         """This function uses the openrouteservice api to produce the path
         from person's house to destination and back.
-        
+
         Args:
             destination: tuple, coordinates for destination
             origin: tuple, coordinates for origin
@@ -552,8 +558,7 @@ class Person:
         if coords_str in self.trips.keys():
             path = self.trips[coords_str]
         else:
-            path, _ = get_path( origin, destination,
-                                transport, api_key)
+            path, _ = get_path(origin, destination, transport, api_key)
             path = get_basic_path(path, transport)
 
             self.trips[coords_str] = path
@@ -563,7 +568,7 @@ class Person:
     def choose_action(self, t_s: float, day_now: int, update: bool = True
     ) -> Tuple[str, Tuple[float, float], list, str]:
         """This function decides action for person to take.
-        
+
         Args:
             t_s: int, current time in seconds
             day_now: int, day of the week
@@ -580,9 +585,11 @@ class Person:
             # if it is a weekday and working/studying
             # wake up between 8am and 9am
             if day_now < 5 and self.attributes.main_employment > 0:
-                return ("p", self.house_address, [8 * 3600, 9 * 3600], "home_morning")
+                return ("p", self.house_address,
+                        [8 * 3600, 9 * 3600], "home_morning")
             # else wake up between 8am and 12pm
-            return ("p", self.house_address, [8 * 3600, 12 * 3600], "home_morning")
+            return ("p", self.house_address,
+                    [8 * 3600, 12 * 3600], "home_morning")
 
         # if haven't yet been to office today
         if not self.office_today:
@@ -591,11 +598,13 @@ class Person:
             # if today is office day go to office
             # work for 7 to 9 hours
             if day_now in self.office_days:
-                return ("fpf", self.office_address, [7 * 3600, 9 * 3600], "office")
+                return ("fpf", self.office_address,
+                        [7 * 3600, 9 * 3600], "office")
             # if today is not office day
             # work for 7 to 9 hours from home
             elif day_now < 5:
-                return ("p", self.house_address, [7 * 3600, 9 * 3600], "office_home")
+                return ("p", self.house_address,
+                        [7 * 3600, 9 * 3600], "office_home")
 
         # otherwise choose to do something in the free time
         preferred_exit, location = self.choose_preferred_exit(t_s, update)
@@ -612,7 +621,8 @@ class Person:
                     "home_night",
                 )
             # otherwise stay for half an hour to 2 hours and then decide again
-            return ("p", self.house_address, [0.5 * 3600, 2 * 3600], preferred_exit)
+            return ("p", self.house_address,
+                    [0.5 * 3600, 2 * 3600], preferred_exit)
         # if deciding to stay at home for the night
         elif preferred_exit == "home_night":
             return (
@@ -628,8 +638,10 @@ class Person:
             "fpf",
             location,
             [
-                0.5 * 3600 + 1.5 * 3600 * (self.attributes.active_status - 1) / 9,
-                1 * 3600 + 1.5 * 3600 * (self.attributes.active_status - 1) / 9,
+                0.5 * 3600
+                + 1.5 * 3600 * (self.attributes.active_status - 1) / 9,
+                1 * 3600
+                + 1.5 * 3600 * (self.attributes.active_status - 1) / 9,
             ],
             preferred_exit,
         )
