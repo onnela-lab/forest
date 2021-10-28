@@ -235,7 +235,7 @@ class Person:
         self.attributes = attributes
         # used to update preferred exits in a day if already
         # visited
-        self.preferred_exits_today = self.attributes.preferred_places.copy()
+        self.preferred_places_today = self.attributes.preferred_places.copy()
         self.office_today = False
         # this will hold the coordinates of paths
         # to each location visited
@@ -260,7 +260,7 @@ class Person:
                         range(len(local_places[employment_str])), 1
                     )[0]
 
-                self.office_address = local_places[employment_str][i]
+                self.office_coordinates = local_places[employment_str][i]
 
                 no_office_days = np.random.binomial(
                     5, self.attributes.active_status / 10
@@ -270,10 +270,10 @@ class Person:
                 )
                 self.office_days.sort()
             else:
-                self.office_address = (0, 0)
+                self.office_coordinates = (0, 0)
                 self.office_days = np.array([])
         else:
-            self.office_address = (0, 0)
+            self.office_coordinates = (0, 0)
             self.office_days = np.array([])
 
         # define favorite places
@@ -338,8 +338,8 @@ class Person:
             )
 
         # remove all exits which have no places nearby
-        possible_exits2 = self.possible_destinations.copy()
-        for act in possible_exits2:
+        possible_destinations2 = self.possible_destinations.copy()
+        for act in possible_destinations2:
             if len(getattr(self, act + "_places")) == 0:
                 self.possible_destinations.remove(act)
 
@@ -369,12 +369,12 @@ class Person:
             travelling_status: 0-10 | int indicating new travelling_status
         """
 
-        setattr(self, "attributes.travelling_status", travelling_status)
+        self.attributes.travelling_status = travelling_status
 
         travelling_status_norm = (travelling_status ** 2) / (
             travelling_status ** 2 + (10 - travelling_status) ** 2
         )
-        for act in self.possible_exits:
+        for act in self.possible_destinations:
             act_places = getattr(self, act + "_places_ordered").copy()
 
             places = []
@@ -392,16 +392,16 @@ class Person:
             active_status: 0-10 | int indicating new travelling_status
         """
 
-        setattr(self, "attributes.active_status", active_status)
+        self.attributes.active_status = active_status
 
-        if self.attributes.main_employment > 0 and self.office_address != "":
+        if self.attributes.main_occupation > 0 and self.office_coordinates != "":
             no_office_days = np.random.binomial(5, active_status / 10)
             self.office_days = np.random.choice(
                 range(5), no_office_days, replace=False
             )
             self.office_days.sort()
 
-    def update_preferred_exits(self, exit_code: str):
+    def update_preferred_places(self, exit_code: str):
         """This function updates the set of preferred exits for the day,
         after an action has been performed.
 
@@ -409,31 +409,31 @@ class Person:
             exit_code: str, representing the action which was performed.
         """
 
-        if exit_code in self.preferred_exits_today:
-            index_of_code = self.preferred_exits_today.index(exit_code)
+        if exit_code in self.preferred_places_today:
+            index_of_code = self.preferred_places_today.index(exit_code)
             # if exit chosen is the least favorite for the day
             # replace it with a random amenity from the rest of the
             # possible exits
-            if index_of_code == (len(self.preferred_exits_today) - 1):
+            if index_of_code == (len(self.preferred_places_today) - 1):
                 probs = np.array(
                     [
-                        0 if c in self.preferred_exits_today else 1
-                        for c in self.possible_exits
+                        0 if c in self.preferred_places_today else 1
+                        for c in self.possible_destinations
                     ]
                 )
                 probs = probs / sum(probs)
-                self.preferred_exits_today[-1] = np.random.choice(
-                    self.possible_exits, 1, p=probs.tolist()
+                self.preferred_places_today[-1] = np.random.choice(
+                    self.possible_destinations, 1, p=probs.tolist()
                 )[0]
             else:
                 # if exit selected is not the least preferred
                 # switch positions with the next one
                 (
-                    self.preferred_exits_today[index_of_code],
-                    self.preferred_exits_today[index_of_code + 1],
+                    self.preferred_places_today[index_of_code],
+                    self.preferred_places_today[index_of_code + 1],
                 ) = (
-                    self.preferred_exits_today[index_of_code + 1],
-                    self.preferred_exits_today[index_of_code],
+                    self.preferred_places_today[index_of_code + 1],
+                    self.preferred_places_today[index_of_code],
                 )
 
     def choose_preferred_exit(self, t_s: float,
@@ -461,17 +461,17 @@ class Person:
         # too early in the morning so no action
         # should be taken
         if hr_now < 9 + active_coef:
-            return "home", self.house_address
+            return "home", self.home_coordinates
         elif hr_now > 22 - active_coef:
-            return "home_night", self.house_address
+            return "home_night", self.home_coordinates
 
         # probability of staying at home regardless the time
         probs_of_staying_home = [1 - self.attributes.active_status / 10,
                                 self.attributes.active_status / 10]
         if np.random.choice([0, 1], 1, p=probs_of_staying_home)[0] == 0:
-            return "home", self.house_address
+            return "home", self.home_coordinates
 
-        possible_exits2 = self.possible_exits.copy()
+        possible_destinations2 = self.possible_destinations.copy()
 
         actions = []
         probabilities = []
@@ -479,17 +479,17 @@ class Person:
         # the first amenity is 2 times more likely to incur
         # than the second and 6 times more likely than the third
         ratios = [6, 3, 1]
-        for i, _ in enumerate(self.preferred_exits_today):
-            preferred_action = self.preferred_exits_today[i]
-            if preferred_action in possible_exits2:
+        for i, _ in enumerate(self.preferred_places_today):
+            preferred_action = self.preferred_places_today[i]
+            if preferred_action in possible_destinations2:
                 actions.append(preferred_action)
                 probabilities.append(ratios[i])
-                possible_exits2.remove(preferred_action)
+                possible_destinations2.remove(preferred_action)
 
         # for all the remaining amenities
         # the first ameity is 24 times more likely to occur
-        for act in possible_exits2:
-            if act not in self.preferred_exits_today:
+        for act in possible_destinations2:
+            if act not in self.preferred_places_today:
                 actions.append(act)
                 probabilities.append(0.25)
 
@@ -499,7 +499,7 @@ class Person:
         selected_action = np.random.choice(actions, 1, p=probabilities)[0]
 
         if update:
-            self.update_preferred_exits(selected_action)
+            self.update_preferred_places(selected_action)
 
         # after amenity has been selected, a location for that amenity
         # needs to be selected as well.
@@ -517,7 +517,7 @@ class Person:
 
     def end_of_day_reset(self):
         """Reset preferred exits of the day. To run when a day ends"""
-        self.preferred_exits_today = self.preferred_exits
+        self.preferred_places_today = self.attributes.preferred_places
         self.office_today = False
 
     def calculate_trip(self, origin: Tuple,
@@ -584,11 +584,11 @@ class Person:
         if time_now == 0:
             # if it is a weekday and working/studying
             # wake up between 8am and 9am
-            if day_now < 5 and self.attributes.main_employment > 0:
-                return ("p", self.house_address,
+            if day_now < 5 and self.attributes.main_occupation > 0:
+                return ("p", self.home_coordinates,
                         [8 * 3600, 9 * 3600], "home_morning")
             # else wake up between 8am and 12pm
-            return ("p", self.house_address,
+            return ("p", self.home_coordinates,
                     [8 * 3600, 12 * 3600], "home_morning")
 
         # if haven't yet been to office today
@@ -598,12 +598,12 @@ class Person:
             # if today is office day go to office
             # work for 7 to 9 hours
             if day_now in self.office_days:
-                return ("fpf", self.office_address,
+                return ("fpf", self.office_coordinates,
                         [7 * 3600, 9 * 3600], "office")
             # if today is not office day
             # work for 7 to 9 hours from home
             elif day_now < 5:
-                return ("p", self.house_address,
+                return ("p", self.home_coordinates,
                         [7 * 3600, 9 * 3600], "office_home")
 
         # otherwise choose to do something in the free time
@@ -616,18 +616,18 @@ class Person:
             if time_now + 2 * 3600 > 24 * 3600 - 1:
                 return (
                     "p_night",
-                    self.house_address,
+                    self.home_coordinates,
                     [24 * 3600 - time_now, 24 * 3600 - time_now],
                     "home_night",
                 )
             # otherwise stay for half an hour to 2 hours and then decide again
-            return ("p", self.house_address,
+            return ("p", self.home_coordinates,
                     [0.5 * 3600, 2 * 3600], preferred_exit)
         # if deciding to stay at home for the night
         elif preferred_exit == "home_night":
             return (
                 "p_night",
-                self.house_address,
+                self.home_coordinates,
                 [24 * 3600 - time_now, 24 * 3600 - time_now],
                 preferred_exit,
             )

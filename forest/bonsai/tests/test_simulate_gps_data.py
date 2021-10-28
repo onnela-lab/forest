@@ -446,11 +446,11 @@ def test_person_office_address(sample_coordinates, sample_locations):
                             travelling_status=7,
                             preferred_places=["cafe", "cinema", "park"])
     random_person = Person(sample_coordinates, attributes, sample_locations)
-    office_address = (
-        random_person.office_address[0],
-        random_person.office_address[1],
+    office_coordinates = (
+        random_person.office_coordinates[0],
+        random_person.office_coordinates[1],
     )
-    assert office_address in sample_locations["office"]
+    assert office_coordinates in sample_locations["office"]
 
 
 def test_person_office_days(sample_coordinates, sample_locations):
@@ -462,3 +462,166 @@ def test_person_office_days(sample_coordinates, sample_locations):
                             preferred_places=["cafe", "bar", "park"])
     random_person = Person(sample_coordinates, attributes, sample_locations)
     assert len(random_person.office_days) <= 5
+
+
+@pytest.fixture()
+def sample_person(sample_coordinates, sample_locations):
+    attributes = Attributes(
+        vehicle=Vehicle.NONE,
+        main_occupation=Occupation.WORK,
+        active_status=6,
+        travelling_status=7,
+        preferred_places=["cafe", "bar", "park"],
+    )
+    return Person(sample_coordinates, attributes, sample_locations)
+
+
+def test_set_travelling_status(sample_person):
+    sample_person.set_travelling_status(5)
+    assert sample_person.attributes.travelling_status == 5
+
+
+def test_set_active_status(sample_person):
+    sample_person.set_active_status(2)
+    assert sample_person.attributes.active_status == 2
+
+
+def test_update_preferred_places_case_first_option(sample_person):
+    """Test changing preferred exits change first to second"""
+    sample_person.update_preferred_places("cafe")
+    assert sample_person.preferred_places_today == ["bar", "cafe", "park"]
+
+
+def test_update_preferred_places_case_last_option(sample_person):
+    """Test changing preferred exits remove last"""
+    sample_person.update_preferred_places("park")
+    assert "park" not in sample_person.preferred_places_today
+
+
+def test_update_preferred_places_case_no_option(sample_person):
+    """Test changing preferred exits when selected exit not in preferred"""
+    sample_person.update_preferred_places("not_an_option")
+    assert (
+        sample_person.preferred_places_today
+        == sample_person.attributes.preferred_places
+    )
+
+
+def test_choose_preferred_exit_morning_home(sample_person):
+    """Test choosing preferred exit early in the morning"""
+    preferred_exit, location = sample_person.choose_preferred_exit(0)
+    assert (
+        preferred_exit == "home" and location == sample_person.home_coordinates
+    )
+
+
+def test_choose_preferred_exit_night_home(sample_person):
+    """Test choosing preferred exit late in the night"""
+    preferred_exit, location = sample_person.choose_preferred_exit(
+        24 * 3600 - 1
+    )
+    assert (
+        preferred_exit == "home_night"
+        and location == sample_person.home_coordinates
+    )
+
+
+def test_choose_preferred_exit_random_exit(sample_person):
+    """Test choosing preferred exit random time"""
+    preferred_exit, location = sample_person.choose_preferred_exit(12 * 3600)
+    possible_destinations = sample_person.possible_destinations + [
+        "home",
+        "home_night",
+    ]
+    assert preferred_exit in possible_destinations
+
+
+def test_end_of_day_reset(sample_person):
+    """Test end of day reset of preferred exits"""
+    sample_person.update_preferred_places("cafe")
+    sample_person.end_of_day_reset()
+    assert (
+        sample_person.attributes.preferred_places
+        == sample_person.preferred_places_today
+    )
+
+
+def test_choose_action_day_home_action(sample_person):
+    """Test choosing action early at home"""
+
+    action, _, _, _ = sample_person.choose_action(0, 0)
+    assert action == "p"
+
+
+def test_choose_action_day_home_location(sample_person):
+    """Test choosing action early at home"""
+    _, location, _, _ = sample_person.choose_action(0, 0)
+    assert location == sample_person.home_coordinates
+
+
+def test_choose_action_day_home_exit(sample_person):
+    """Test choosing action early at home"""
+    _, _, _, exit_chosen = sample_person.choose_action(0, 0)
+    assert exit_chosen == "home_morning"
+
+
+def test_choose_action_day_night_action(sample_person):
+    """Test choosing action late at home"""
+    # already gone to office
+    sample_person.office_today = True
+    action, _, _, _ = sample_person.choose_action(23.5 * 3600, 2)
+    assert action == "p_night"
+
+
+def test_choose_action_day_night_location(sample_person):
+    """Test choosing action late at home"""
+    # already gone to office
+    sample_person.office_today = True
+    _, location, _, _ = sample_person.choose_action(23.5 * 3600, 2)
+    assert location == sample_person.home_coordinates
+
+
+def test_choose_action_day_night_exit(sample_person):
+    """Test choosing action late at home"""
+    # already gone to office
+    sample_person.office_today = True
+    _, _, _, exit_chosen = sample_person.choose_action(23.5 * 3600, 2)
+    assert exit_chosen == "home_night"
+
+
+def test_choose_action_simple_case_actions(sample_person):
+    """Test choosing action late at home"""
+    action, _, _, _ = sample_person.choose_action(15 * 3600, 2)
+    assert action in ["p", "p_night", "fpf"]
+
+
+def test_choose_action_office_code(sample_person):
+    """Test going to office"""
+    _, _, _, exit_chosen = sample_person.choose_action(15 * 3600, 2)
+    assert exit_chosen in ["office_home", "office"]
+
+
+def test_choose_action_office_location(sample_person):
+    """Test going to office"""
+    _, location, _, _ = sample_person.choose_action(15 * 3600, 2)
+    assert location in [
+        sample_person.home_coordinates,
+        sample_person.office_coordinates,
+    ]
+
+
+def test_choose_action_after_work(sample_person):
+    """Test choosing action random time"""
+    # already gone to office
+    sample_person.office_today = True
+    _, _, _, exit_chosen = sample_person.choose_action(15 * 3600, 2)
+    assert (
+        exit_chosen
+        in ["home_morning", "home_night"] + sample_person.possible_destinations
+    )
+
+
+def test_choose_action_simple_case_times(sample_person):
+    """Test choosing action random time"""
+    _, _, times, _ = sample_person.choose_action(15 * 3600, 2)
+    assert times[1] >= times[0]
