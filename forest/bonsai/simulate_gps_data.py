@@ -3,10 +3,10 @@ Module to simulate realistic GPS trajectories
 of a number of people anywhere in the world.
 """
 
+from enum import Enum
 import os
 import time
-from enum import Enum
-from typing import Tuple
+from typing import Dict, Tuple
 
 import numpy as np
 import openrouteservice
@@ -166,16 +166,16 @@ def bounding_box(center: Tuple[float, float], radius: int) -> Tuple:
 
 class Vehicle(Enum):
     """This class enumerates vehicle for attributes"""
-    nothing = 0
-    car = 1
-    bicycle = 2
+    NONE = 0
+    CAR = 1
+    BICYCLE = 2
 
 
 class Occupation(Enum):
     """This class enumerates occupation for attributes"""
-    nothing = 0
-    work = 1
-    studies = 2
+    NONE = 0
+    WORK = 1
+    STUDIES = 2
 
 
 class Attributes:
@@ -183,18 +183,16 @@ class Attributes:
     to create an instance of a person"""
 
     def __init__(self,
-                 vehicle: str,
-                 main_occupation: str,
+                 vehicle: Vehicle,
+                 main_occupation: Occupation,
                  active_status: int,
                  travelling_status: int,
-                 preferred_places: list[str, str, str]):
+                 preferred_places: list):
         """This function sets the personality attributes
 
         Args:
-            vehicle in ['nothing', 'car', 'bicycle']
-                used for distances and time of flights
-             main_occupation in ['nothing', 'work', 'studies']
-                used for routine action in weekdays
+            vehicle used for distances and time of flights
+            main_occupation used for routine action in weekdays
             active_status = 0-10
                 used for probability in free time to take an action
                 or stay home
@@ -205,8 +203,8 @@ class Attributes:
                 where x1-x3 are amenities (str)
         """
 
-        self.vehicle = Vehicle[vehicle].value
-        self.main_occupation = Occupation[main_occupation].value
+        self.vehicle = vehicle.value
+        self.main_occupation = occupation.value
         self.active_status = active_status
         self.travelling_status = travelling_status
         self.preferred_places = preferred_places
@@ -219,7 +217,7 @@ class Person:
     def __init__(self,
                  home_coordinates: Tuple[float, float],
                  attributes: Attributes,
-                 local_places: dict):
+                 local_places: Dict):
         """This function sets the basic attributes and information
         to be used of the person.
 
@@ -232,27 +230,22 @@ class Person:
         """
 
         self.home_coordinates = home_coordinates
-        self.vehicle = attributes.vehicle
-        self.main_occupation = attributes.main_occupation
-        self.active_status = attributes.active_status
-        self.travelling_status = attributes.travelling_status
-        self.preferred_places = attributes.preferred_places
+        self.attributes = attributes
         # used to update preferred exits in a day if already
         # visited
-        self.preferred_exits_today = self.preferred_places.copy()
+        self.preferred_exits_today = self.attributes.preferred_places.copy()
         self.office_today = False
         # this will hold the coordinates of paths
         # to each location visited
-        self.trips = {}
+        self.trips: Dict[list] = {}
 
         # if employed/student find a place nearby to visit
         # for work or studies
         # also set which days within the week to visit it
         # depending on active status
-        if self.main_occupation in [1, 2]:
-            if self.main_occupation == 1:
-                employment_str = "office"
-            elif self.main_occupation == 2:
+        if self.attributes.main_occupation in [1, 2]:
+            employment_str = "office"
+            if self.attributes.main_occupation == 2:
                 employment_str = "university"
 
             if len(local_places[employment_str]) != 0:
@@ -267,15 +260,17 @@ class Person:
 
                 self.office_address = local_places[employment_str][i]
 
-                no_office_days = np.random.binomial(5, self.active_status / 10)
+                no_office_days = np.random.binomial(5, self.attributes.active_status / 10)
                 self.office_days = np.random.choice(
                     range(5), no_office_days, replace=False
                 )
                 self.office_days.sort()
             else:
-                self.office_address = ""
+                self.office_address = (0, 0)
+                self.office_days = np.array([])
         else:
-            self.office_days = []
+            self.office_address = (0, 0)
+            self.office_days = np.array([])
 
         # define favorite places
         self.possible_destinations = [
@@ -347,8 +342,8 @@ class Person:
         # order preferred places by travelling_status
         # if travelling status high, preferred locations
         # will be the ones that are further away
-        travelling_status_norm = (self.travelling_status ** 2) / (
-            self.travelling_status ** 2 + (10 - self.travelling_status) ** 2
+        travelling_status_norm = (self.attributes.travelling_status ** 2) / (
+            self.attributes.travelling_status ** 2 + (10 - self.attributes.travelling_status) ** 2
         )
         for act in self.possible_destinations:
             act_places = getattr(self, act + "_places_ordered").copy()

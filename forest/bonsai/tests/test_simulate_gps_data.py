@@ -414,25 +414,23 @@ def sample_locations():
 
 
 def test_person_main_employment(sample_coordinates, sample_locations):
-    attributes = Attributes("nothing", "work", 6, 8,
-                            ["cinema", "bar", "park"])
-    random_person = Person(
-        sample_coordinates,
-        attributes,
-        sample_locations,
-    )
+    attributes = Attributes(vehicle=Vehicle.NONE,
+                            main_occupation=Occupation.WORK,
+                            active_status=6,
+                            travelling_status=8,
+                            preferred_places=["cinema", "bar", "park"])
+    random_person = Person(sample_coordinates, attributes, sample_locations)
     assert random_person.main_occupation == 1
 
 
 def test_person_cafe_places(sample_coordinates, sample_locations):
     """Test one place from cafe_places attribute is actual cafe"""
-    attributes = Attributes("nothing", "nothing", 2, 7,
-                            ["cafe", "cinema", "park"])
-    random_person = Person(
-        sample_coordinates,
-        attributes,
-        sample_locations,
-    )
+    attributes = Attributes(vehicle=Vehicle.NONE,
+                            main_occupation=Occupation.NONE,
+                            active_status=2,
+                            travelling_status=7,
+                            preferred_places=["cafe", "cinema", "park"])
+    random_person = Person(sample_coordinates, attributes, sample_locations)
     cafe_place = (
         random_person.cafe_places[0][0],
         random_person.cafe_places[0][1],
@@ -442,13 +440,12 @@ def test_person_cafe_places(sample_coordinates, sample_locations):
 
 def test_person_office_address(sample_coordinates, sample_locations):
     """Test person going to work office_address"""
-    attributes = Attributes("nothing", "work", 6, 7,
-                            ["cafe", "cinema", "park"])
-    random_person = Person(
-        sample_coordinates,
-        attributes,
-        sample_locations,
-    )
+    attributes = Attributes(vehicle=Vehicle.NONE,
+                            main_occupation=Occupation.WORK,
+                            active_status=6,
+                            travelling_status=7,
+                            preferred_places=["cafe", "cinema", "park"])
+    random_person = Person(sample_coordinates, attributes, sample_locations)
     office_address = (
         random_person.office_address[0],
         random_person.office_address[1],
@@ -458,11 +455,10 @@ def test_person_office_address(sample_coordinates, sample_locations):
 
 def test_person_office_days(sample_coordinates, sample_locations):
     """Test person going to work office_address"""
-    attributes = Attributes("nothing", "work", 6, 7,
-                            ["cafe", "bar", "park"])
-    random_person = Person(
-        sample_coordinates,
-        attributes,
-        sample_locations,
-    )
+    attributes = Attributes(vehicle=Vehicle.NONE,
+                            main_occupation=Occupation.WORK,
+                            active_status=6,
+                            travelling_status=7,
+                            preferred_places=["cafe", "bar", "park"])
+    random_person = Person(sample_coordinates, attributes, sample_locations)
     assert len(random_person.office_days) <= 5
