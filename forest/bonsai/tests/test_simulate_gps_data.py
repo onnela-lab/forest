@@ -420,7 +420,7 @@ def test_person_main_employment(sample_coordinates, sample_locations):
                             travelling_status=8,
                             preferred_places=["cinema", "bar", "park"])
     random_person = Person(sample_coordinates, attributes, sample_locations)
-    assert random_person.attributes.main_occupation == 1
+    assert random_person.attributes.main_occupation == "office"
 
 
 def test_person_cafe_places(sample_coordinates, sample_locations):
@@ -549,62 +549,62 @@ def test_end_of_day_reset(sample_person):
 def test_choose_action_day_home_action(sample_person):
     """Test choosing action early at home"""
 
-    action, _, _, _ = sample_person.choose_action(0, 0)
-    assert action == "p"
+    action = sample_person.choose_action(0, 0)
+    assert action.action == "p"
 
 
 def test_choose_action_day_home_location(sample_person):
     """Test choosing action early at home"""
-    _, location, _, _ = sample_person.choose_action(0, 0)
-    assert location == sample_person.home_coordinates
+    action = sample_person.choose_action(0, 0)
+    assert action.destination_coordinates == sample_person.home_coordinates
 
 
 def test_choose_action_day_home_exit(sample_person):
     """Test choosing action early at home"""
-    _, _, _, exit_chosen = sample_person.choose_action(0, 0)
-    assert exit_chosen == "home_morning"
+    action = sample_person.choose_action(0, 0)
+    assert action.preferred_exit == "home_morning"
 
 
 def test_choose_action_day_night_action(sample_person):
     """Test choosing action late at home"""
     # already gone to office
     sample_person.office_today = True
-    action, _, _, _ = sample_person.choose_action(23.5 * 3600, 2)
-    assert action == "p_night"
+    action = sample_person.choose_action(23.5 * 3600, 2)
+    assert action.action == "p_night"
 
 
 def test_choose_action_day_night_location(sample_person):
     """Test choosing action late at home"""
     # already gone to office
     sample_person.office_today = True
-    _, location, _, _ = sample_person.choose_action(23.5 * 3600, 2)
-    assert location == sample_person.home_coordinates
+    action = sample_person.choose_action(23.5 * 3600, 2)
+    assert action.destination_coordinates == sample_person.home_coordinates
 
 
 def test_choose_action_day_night_exit(sample_person):
     """Test choosing action late at home"""
     # already gone to office
     sample_person.office_today = True
-    _, _, _, exit_chosen = sample_person.choose_action(23.5 * 3600, 2)
-    assert exit_chosen == "home_night"
+    action = sample_person.choose_action(23.5 * 3600, 2)
+    assert action.preferred_exit == "home_night"
 
 
 def test_choose_action_simple_case_actions(sample_person):
     """Test choosing action late at home"""
-    action, _, _, _ = sample_person.choose_action(15 * 3600, 2)
-    assert action in ["p", "p_night", "fpf"]
+    action = sample_person.choose_action(15 * 3600, 2)
+    assert action.action in ["p", "fpf"]
 
 
 def test_choose_action_office_code(sample_person):
     """Test going to office"""
-    _, _, _, exit_chosen = sample_person.choose_action(15 * 3600, 2)
-    assert exit_chosen in ["office_home", "office"]
+    action = sample_person.choose_action(15 * 3600, 2)
+    assert action.preferred_exit in ["office_home", "office"]
 
 
 def test_choose_action_office_location(sample_person):
     """Test going to office"""
-    _, location, _, _ = sample_person.choose_action(15 * 3600, 2)
-    assert location in [
+    action = sample_person.choose_action(15 * 3600, 2)
+    assert action.destination_coordinates in [
         sample_person.home_coordinates,
         sample_person.office_coordinates,
     ]
@@ -614,14 +614,13 @@ def test_choose_action_after_work(sample_person):
     """Test choosing action random time"""
     # already gone to office
     sample_person.office_today = True
-    _, _, _, exit_chosen = sample_person.choose_action(15 * 3600, 2)
+    action = sample_person.choose_action(15 * 3600, 2)
     assert (
-        exit_chosen
-        in ["home_morning", "home_night"] + sample_person.possible_destinations
+        action.preferred_exit in ["home"] + sample_person.possible_destinations
     )
 
 
 def test_choose_action_simple_case_times(sample_person):
     """Test choosing action random time"""
-    _, _, times, _ = sample_person.choose_action(15 * 3600, 2)
-    assert times[1] >= times[0]
+    action = sample_person.choose_action(15 * 3600, 2)
+    assert action.duration[1] >= action.duration[0]
