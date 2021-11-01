@@ -566,7 +566,7 @@ class Person:
         return path, transport
 
     def choose_action(self, t_s: float, day_now: int, update: bool = True
-    ) -> Tuple[str, Tuple[float, float], list, str]:
+    ) -> Action:
         """This function decides action for person to take.
 
         Args:
