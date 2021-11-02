@@ -414,18 +414,18 @@ def sample_locations():
 
 
 def test_person_main_employment(sample_coordinates, sample_locations):
-    attributes = Attributes(vehicle=Vehicle.NONE,
+    attributes = Attributes(vehicle=Vehicle.BUS,
                             main_occupation=Occupation.WORK,
                             active_status=6,
                             travelling_status=8,
                             preferred_places=["cinema", "bar", "park"])
     random_person = Person(sample_coordinates, attributes, sample_locations)
-    assert random_person.attributes.main_occupation == "office"
+    assert random_person.attributes.main_occupation == Occupation.WORK
 
 
 def test_person_cafe_places(sample_coordinates, sample_locations):
     """Test one place from cafe_places attribute is actual cafe"""
-    attributes = Attributes(vehicle=Vehicle.NONE,
+    attributes = Attributes(vehicle=Vehicle.BUS,
                             main_occupation=Occupation.NONE,
                             active_status=2,
                             travelling_status=7,
@@ -440,7 +440,7 @@ def test_person_cafe_places(sample_coordinates, sample_locations):
 
 def test_person_office_address(sample_coordinates, sample_locations):
     """Test person going to work office_address"""
-    attributes = Attributes(vehicle=Vehicle.NONE,
+    attributes = Attributes(vehicle=Vehicle.BUS,
                             main_occupation=Occupation.WORK,
                             active_status=6,
                             travelling_status=7,
@@ -455,7 +455,7 @@ def test_person_office_address(sample_coordinates, sample_locations):
 
 def test_person_office_days(sample_coordinates, sample_locations):
     """Test person going to work office_address"""
-    attributes = Attributes(vehicle=Vehicle.NONE,
+    attributes = Attributes(vehicle=Vehicle.BUS,
                             main_occupation=Occupation.WORK,
                             active_status=6,
                             travelling_status=7,
@@ -467,7 +467,7 @@ def test_person_office_days(sample_coordinates, sample_locations):
 @pytest.fixture()
 def sample_person(sample_coordinates, sample_locations):
     attributes = Attributes(
-        vehicle=Vehicle.NONE,
+        vehicle=Vehicle.BUS,
         main_occupation=Occupation.WORK,
         active_status=6,
         travelling_status=7,

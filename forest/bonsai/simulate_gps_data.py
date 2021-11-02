@@ -158,15 +158,15 @@ def bounding_box(center: Tuple[float, float], radius: int) -> Tuple:
         around the coordinates provided
     """
     lat, lon = center
-    EARTH_RADIUS = 6371  # kilometers
-    lat_const = (radius / (1000 * EARTH_RADIUS)) * (180 / np.pi)
+    earth_radius = 6371  # kilometers
+    lat_const = (radius / (1000 * earth_radius)) * (180 / np.pi)
     lon_const = lat_const / np.cos(lat * np.pi / 180)
     return lat - lat_const, lon - lon_const, lat + lat_const, lon + lon_const
 
 
 class Vehicle(Enum):
     """This class enumerates vehicle for attributes"""
-    NONE = "bus"
+    BUS = "bus"
     CAR = "car"
     BICYCLE = "bicycle"
 
@@ -178,50 +178,45 @@ class Occupation(Enum):
     SCHOOL = "university"
 
 
+@dataclass
 class Attributes:
     """This class holds the attributes needed
-    to create an instance of a person"""
-    def __init__(self,
-                 vehicle: Vehicle,
-                 main_occupation: Occupation,
-                 active_status: int,
-                 travelling_status: int,
-                 preferred_places: list):
-        """This function sets the personality attributes
+    to create an instance of a person
 
-        Args:
-            vehicle used for distances and time of flights
-            main_occupation used for routine action in weekdays
-            active_status = 0-10
-                used for probability in free time to take an action
-                or stay home
-            travelling status = 0-10
-                used to derive amount of distance travelled
-            preferred_places  = [x1, x2, x3]
-                used to sample action when free time
-                where x1-x3 are amenities (str)
-        """
-        self.vehicle = vehicle.value
-        self.main_occupation = main_occupation.value
-        self.active_status = active_status
-        self.travelling_status = travelling_status
-        self.preferred_places = preferred_places
+    Args:
+        vehicle used for distances and time of flights
+        main_occupation used for routine action in weekdays
+        active_status = 0-10
+            used for probability in free time to take an action
+            or stay home
+        travelling status = 0-10
+            used to derive amount of distance travelled
+        preferred_places  = [x1, x2, x3]
+            used to sample action when free time
+            where x1-x3 are amenities (str)
+    """
+    vehicle: Vehicle
+    main_occupation: Occupation
+    active_status: int
+    travelling_status: int
+    preferred_places: list
 
 
 @dataclass
 class Action:
     """Class containing potential actions for a Person.
-    
+
     Args:
         action: str, 'p', 'p_night' or 'fpf' indicating pause, pause
              for the night or flight-pause-flight
         destination_coordinates: tuple, destination's coordinates
-        duration: list, contains [minimum, maximum] duration of pause in seconds
+        duration: list, contains [minimum, maximum] duration of pause
+            in seconds
         preferred_exit: str, exit code
     """
     action: str
     destination_coordinates: Tuple[float, float]
-    duration: list
+    duration: list[float]
     preferred_exit: str
 
 
@@ -233,7 +228,7 @@ class Person:
         self,
         home_coordinates: Tuple[float, float],
         attributes: Attributes,
-        local_places: Dict,
+        local_places: Dict[str, list],
     ):
         """This function sets the basic attributes and information
         to be used of the person.
@@ -253,28 +248,30 @@ class Person:
         self.office_today = False
         # this will hold the coordinates of paths
         # to each location visited
-        self.trips: Dict[list] = {}
+        self.trips: Dict[str, list] = {}
 
         # if employed/student find a place nearby to visit
         # for work or studies
         # also set which days within the week to visit it
         # depending on active status
-        if self.attributes.main_occupation != "":
-
-            if len(local_places[self.attributes.main_occupation]) != 0:
+        if self.attributes.main_occupation != Occupation.NONE:
+            main_occupation_locations = local_places[
+                self.attributes.main_occupation.value
+            ]
+            if len(main_occupation_locations) != 0:
                 i = np.random.choice(
-                    range(len(local_places[self.attributes.main_occupation])),
+                    range(len(main_occupation_locations)),
                     1,
                 )[0]
 
                 while (
-                    local_places[self.attributes.main_occupation][i] == home_coordinates
+                    main_occupation_locations[i] == home_coordinates
                 ):
                     i = np.random.choice(
-                        range(len(local_places[self.attributes.main_occupation])), 1
+                        range(len(main_occupation_locations)), 1
                     )[0]
 
-                self.office_coordinates = local_places[self.attributes.main_occupation][
+                self.office_coordinates = main_occupation_locations[
                     i
                 ]
 
@@ -307,7 +304,8 @@ class Person:
         # these will be considered the 3 favorite places to go
         # 3 was chosen arbitrarily since people usually follow the
         # same patterns and go out mostly in the same places
-        # order in the list of 3 matters, with order be of decreasing preference
+        # order in the list of 3 matters, with order be of decreasing
+        # preference
         for possible_exit in self.possible_destinations:
             # if there are more than 3 sets of coordinates for an amenity
             # select 3 at random, else select all of them as preferred
@@ -405,7 +403,10 @@ class Person:
 
         self.attributes.active_status = active_status
 
-        if self.attributes.main_occupation != "" and self.office_coordinates != (0, 0):
+        if (
+            self.attributes.main_occupation != Occupation.NONE
+            and self.office_coordinates != (0, 0)
+        ):
             no_office_days = np.random.binomial(5, active_status / 10)
             self.office_days = np.random.choice(
                 range(5), no_office_days, replace=False
@@ -448,7 +449,8 @@ class Person:
                 )
 
     def choose_preferred_exit(self, t_s: float,
-                              update: bool = True) -> Tuple[str, tuple]:
+                              update: bool = True
+                              ) -> Tuple[str, Tuple[float, float]]:
         """This function samples through the possible actions for the person,
         depending on his attributes and the time.
 
@@ -479,7 +481,7 @@ class Person:
         else:
             # probability of staying at home regardless the time
             probs_of_staying_home = [1 - self.attributes.active_status / 10,
-                                self.attributes.active_status / 10]
+                                     self.attributes.active_status / 10]
             if np.random.choice([0, 1], 1, p=probs_of_staying_home)[0] == 0:
                 return "home", self.home_coordinates
 
@@ -533,7 +535,7 @@ class Person:
 
     def calculate_trip(self, origin: Tuple[float, float],
                        destination: Tuple[float, float], api_key: str
-    ) -> Tuple[np.ndarray, str]:
+                       ) -> Tuple[np.ndarray, str]:
         """This function uses the openrouteservice api to produce the path
         from person's house to destination and back.
 
@@ -552,7 +554,7 @@ class Person:
         if distance <= 1000:
             transport = "foot"
         else:
-            transport = self.attributes.vehicle
+            transport = self.attributes.vehicle.value
 
         coords_str = f"{origin[0]}_{origin[1]}_{destination[0]}_{destination[1]}"
         if coords_str in self.trips.keys():
@@ -566,12 +568,13 @@ class Person:
         return path, transport
 
     def choose_action(self, t_s: float, day_now: int, update: bool = True
-    ) -> Action:
+                      ) -> Action:
         """This function decides action for person to take.
 
         Args:
             t_s: int, current time in seconds
             day_now: int, day of the week
+            update: bool, to update preferrences and office day
         Returns:
             Action dataclass
         """
@@ -580,7 +583,10 @@ class Person:
         if time_now == 0:
             # if it is a weekday and working/studying
             # wake up between 8am and 9am
-            if day_now < 5 and self.attributes.main_occupation != "":
+            if (
+                day_now < 5
+                and self.attributes.main_occupation != Occupation.NONE
+            ):
                 return Action(
                     "p",
                     self.home_coordinates,
