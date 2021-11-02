@@ -80,7 +80,7 @@ Dictionary of power state events.
     The numeric <code> does not appear in raw Beiwe data.  These are intended
     to provide a convenient & consistent encoding for variable levels.
 '''
-POWER_EVENTS = {'Android': {}, 'iOS': {}}
+POWER_EVENTS = {'Android': {}, 'iOS': {}}  # type: ignore
 with open(DOCPATHS['power_events.csv']) as f:
     next(f) # skip header row
     for line in f:

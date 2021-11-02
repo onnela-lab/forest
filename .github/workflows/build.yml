@@ -14,5 +14,9 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.6
+      - name: Install dev dependecies
+        run: pip install -r requirements.txt
+      - name: Run static type checking
+        run: mypy forest
       - name: Run tests
         run: python -m unittest tests/imports.py
