@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 import os
 import time
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 import openrouteservice
@@ -178,6 +178,13 @@ class Occupation(Enum):
     SCHOOL = "university"
 
 
+class ActionType(Enum):
+    """This class enumerates action type for action"""
+    PAUSE = "p"
+    PAUSE_NIGHT = "p_night"
+    FLIGHT_PAUSE_FLIGHT = "fpf"
+
+
 @dataclass
 class Attributes:
     """This class holds the attributes needed
@@ -207,16 +214,16 @@ class Action:
     """Class containing potential actions for a Person.
 
     Args:
-        action: str, 'p', 'p_night' or 'fpf' indicating pause, pause
+        action: ActionType, indicating pause, pause
              for the night or flight-pause-flight
         destination_coordinates: tuple, destination's coordinates
         duration: list, contains [minimum, maximum] duration of pause
             in seconds
         preferred_exit: str, exit code
     """
-    action: str
+    action: ActionType
     destination_coordinates: Tuple[float, float]
-    duration: list[float]
+    duration: List[float]
     preferred_exit: str
 
 
@@ -224,12 +231,10 @@ class Person:
     """This class represents a person
     whose trajectories we want to simulate."""
 
-    def __init__(
-        self,
-        home_coordinates: Tuple[float, float],
-        attributes: Attributes,
-        local_places: Dict[str, list],
-    ):
+    def __init__(self,
+                 home_coordinates: Tuple[float, float],
+                 attributes: Attributes,
+                 local_places: Dict[str, list]):
         """This function sets the basic attributes and information
         to be used of the person.
 
@@ -248,7 +253,7 @@ class Person:
         self.office_today = False
         # this will hold the coordinates of paths
         # to each location visited
-        self.trips: Dict[str, list] = {}
+        self.trips: Dict[str, np.ndarray] = {}
 
         # if employed/student find a place nearby to visit
         # for work or studies
@@ -264,16 +269,12 @@ class Person:
                     1,
                 )[0]
 
-                while (
-                    main_occupation_locations[i] == home_coordinates
-                ):
+                while (main_occupation_locations[i] == home_coordinates):
                     i = np.random.choice(
                         range(len(main_occupation_locations)), 1
                     )[0]
 
-                self.office_coordinates = main_occupation_locations[
-                    i
-                ]
+                self.office_coordinates = main_occupation_locations[i]
 
                 no_office_days = np.random.binomial(
                     5, self.attributes.active_status / 10
@@ -300,25 +301,24 @@ class Person:
             "fitness",
         ]
 
-        # for a certain amenity select 3 locations for each amenity randomly
+        # for a certain venue select 3 locations for each venue randomly
         # these will be considered the 3 favorite places to go
         # 3 was chosen arbitrarily since people usually follow the
         # same patterns and go out mostly in the same places
         # order in the list of 3 matters, with order be of decreasing
         # preference
         for possible_exit in self.possible_destinations:
-            # if there are more than 3 sets of coordinates for an amenity
+            # if there are more than 3 sets of coordinates for an venue
             # select 3 at random, else select all of them as preferred
             if len(local_places[possible_exit]) > 3:
                 random_places = np.random.choice(
                     range(len(local_places[possible_exit])), 3, replace=False
                 ).tolist()
                 places_selected = [
-                    (place[0], place[1])
-                    for place in np.array(local_places[possible_exit])[
+                    tuple(place) for place in np.array(local_places[possible_exit])[
                         random_places
                     ]
-                    if (place[0], place[1]) != home_coordinates
+                    if tuple(place) != home_coordinates
                 ]
                 setattr(self, possible_exit + "_places", places_selected)
             else:
@@ -326,9 +326,8 @@ class Person:
                     self,
                     possible_exit + "_places",
                     [
-                        (place[0], place[1])
-                        for place in local_places[possible_exit]
-                        if (place[0], place[1]) != home_coordinates
+                        tuple(place) for place in local_places[possible_exit]
+                        if tuple(place) != home_coordinates
                     ],
                 )
             # calculate distances of selected places from home
@@ -424,7 +423,7 @@ class Person:
         if exit_code in self.preferred_places_today:
             index_of_code = self.preferred_places_today.index(exit_code)
             # if exit chosen is the least favorite for the day
-            # replace it with a random amenity from the rest of the
+            # replace it with a random venue from the rest of the
             # possible exits
             if index_of_code == (len(self.preferred_places_today) - 1):
                 probs = np.array(
@@ -448,14 +447,14 @@ class Person:
                     self.preferred_places_today[index_of_code],
                 )
 
-    def choose_preferred_exit(self, t_s: float,
+    def choose_preferred_exit(self, current_time: float,
                               update: bool = True
                               ) -> Tuple[str, Tuple[float, float]]:
         """This function samples through the possible actions for the person,
         depending on his attributes and the time.
 
         Args:
-            t_s: float, current time in seconds
+            current_time: float, current time in seconds
             update: boolean, to update preferrences
         Returns:
             tuple of string and tuple:
@@ -463,8 +462,8 @@ class Person:
                 tuple, selected location's coordinates
         """
 
-        time_now = t_s % (24 * 60 * 60)
-        hr_now = time_now / (60 * 60)
+        seconds_of_day = current_time % (24 * 60 * 60)
+        hour_of_day = seconds_of_day / (60 * 60)
 
         # active_coef represents hours of inactivity
         # the larger the active status the smaller the active_coef
@@ -474,9 +473,9 @@ class Person:
 
         # too early in the morning so no action
         # should be taken
-        if hr_now < 9 + active_coef:
+        if hour_of_day < 9 + active_coef:
             return "home", self.home_coordinates
-        elif hr_now > 22 - active_coef:
+        elif hour_of_day > 22 - active_coef:
             return "home_night", self.home_coordinates
         else:
             # probability of staying at home regardless the time
@@ -490,7 +489,7 @@ class Person:
         actions = []
         probabilities = np.array([])
         # ratios on how probable each exit is to happen
-        # the first amenity is 2 times more likely to incur
+        # the first venue is 2 times more likely to incur
         # than the second and 6 times more likely than the third
         ratios = [6., 3., 1.]
         for i, _ in enumerate(self.preferred_places_today):
@@ -514,7 +513,7 @@ class Person:
         if update:
             self.update_preferred_places(selected_action)
 
-        # after amenity has been selected, a location for that amenity
+        # after venue has been selected, a location for that venue
         # needs to be selected as well.
         action_locations = getattr(self, selected_action + "_places")
         ratios2 = ratios[: len(action_locations)]
@@ -567,39 +566,33 @@ class Person:
 
         return path, transport
 
-    def choose_action(self, t_s: float, day_now: int, update: bool = True
+    def choose_action(self, current_time: float, day_of_week: int, update: bool = True
                       ) -> Action:
         """This function decides action for person to take.
 
         Args:
-            t_s: int, current time in seconds
-            day_now: int, day of the week
+            current_time: int, current time in seconds
+            day_of_week: int, day of the week
             update: bool, to update preferrences and office day
         Returns:
             Action dataclass
         """
-        time_now = t_s % (24 * 60 * 60)
+        seconds_of_day = current_time % (24 * 60 * 60)
 
-        if time_now == 0:
+        if seconds_of_day == 0:
             # if it is a weekday and working/studying
             # wake up between 8am and 9am
-            if (
-                day_now < 5
-                and self.attributes.main_occupation != Occupation.NONE
-            ):
-                return Action(
-                    "p",
-                    self.home_coordinates,
-                    [8 * 3600, 9 * 3600],
-                    "home_morning",
-                )
+            if (day_of_week < 5
+                and self.attributes.main_occupation != Occupation.NONE):
+                return Action(ActionType.PAUSE,
+                              self.home_coordinates,
+                              [8 * 3600, 9 * 3600],
+                              "home_morning")
             # else wake up between 8am and 12pm
-            return Action(
-                "p",
-                self.home_coordinates,
-                [8 * 3600, 12 * 3600],
-                "home_morning",
-            )
+            return Action(ActionType.PAUSE,
+                          self.home_coordinates,
+                          [8 * 3600, 12 * 3600],
+                          "home_morning")
 
         # if haven't yet been to office today
         if not self.office_today:
@@ -607,66 +600,54 @@ class Person:
                 self.office_today = not self.office_today
             # if today is office day go to office
             # work for 7 to 9 hours
-            if day_now in self.office_days:
-                return Action(
-                    "fpf",
-                    self.office_coordinates,
-                    [7 * 3600, 9 * 3600],
-                    "office",
-                )
+            if day_of_week in self.office_days:
+                return Action(ActionType.FLIGHT_PAUSE_FLIGHT,
+                              self.office_coordinates,
+                              [7 * 3600, 9 * 3600],
+                              "office")
             # if today is not office day
             # work for 7 to 9 hours from home
-            elif day_now < 5:
-                return Action(
-                    "p",
-                    self.home_coordinates,
-                    [7 * 3600, 9 * 3600],
-                    "office_home",
-                )
+            elif day_of_week < 5:
+                return Action(ActionType.PAUSE,
+                              self.home_coordinates,
+                              [7 * 3600, 9 * 3600],
+                              "office_home")
 
         # otherwise choose to do something in the free time
-        preferred_exit, location = self.choose_preferred_exit(t_s, update)
+        preferred_exit, location = self.choose_preferred_exit(current_time, update)
 
         # if chosen to stay home
         if preferred_exit == "home":
             # if after 10pm and chosen to stay home
             # stay for the night until next day
-            if time_now + 2 * 3600 > 24 * 3600 - 1:
-                return Action(
-                    "p_night",
-                    self.home_coordinates,
-                    [24 * 3600 - time_now, 24 * 3600 - time_now],
-                    "home_night",
-                )
+            if seconds_of_day + 2 * 3600 > 24 * 3600 - 1:
+                return Action(ActionType.PAUSE_NIGHT,
+                              self.home_coordinates,
+                              [24 * 3600 - seconds_of_day, 24 * 3600 - seconds_of_day],
+                              "home_night")
             # otherwise stay for half an hour to 2 hours and then decide again
-            return Action(
-                "p",
-                self.home_coordinates,
-                [0.5 * 3600, 2 * 3600],
-                preferred_exit,
-            )
+            return Action(ActionType.PAUSE,
+                          self.home_coordinates,
+                          [0.5 * 3600, 2 * 3600],
+                          preferred_exit)
         # if deciding to stay at home for the night
         elif preferred_exit == "home_night":
-            return Action(
-                "p_night",
-                self.home_coordinates,
-                [24 * 3600 - time_now, 24 * 3600 - time_now],
-                preferred_exit,
-            )
+            return Action(ActionType.PAUSE_NIGHT,
+                          self.home_coordinates,
+                          [24 * 3600 - seconds_of_day, 24 * 3600 - seconds_of_day],
+                          preferred_exit)
         # otherwise go to the location specified
         # spend from half an hour to 2.5 hours depending
         # on active status
-        return Action(
-            "fpf",
-            location,
-            [
-                0.5 * 3600
-                + 1.5 * 3600 * (self.attributes.active_status - 1) / 9,
-                1 * 3600
-                + 1.5 * 3600 * (self.attributes.active_status - 1) / 9,
-            ],
-            preferred_exit,
-        )
+        return Action(ActionType.FLIGHT_PAUSE_FLIGHT,
+                      location,
+                      [
+                          0.5 * 3600
+                          + 1.5 * 3600 * (self.attributes.active_status - 1) / 9,
+                          1 * 3600
+                          + 1.5 * 3600 * (self.attributes.active_status - 1) / 9,
+                      ],
+                      preferred_exit)
 
 
 def gen_basic_traj(l_s, l_e, vehicle, t_s):

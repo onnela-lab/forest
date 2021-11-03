@@ -4,7 +4,8 @@ import numpy as np
 import pytest
 
 from forest.bonsai.simulate_gps_data import (bounding_box,
-    get_basic_path, get_path, Vehicle, Occupation, Attributes, Person)
+    get_basic_path, get_path, Vehicle, Occupation, ActionType, Attributes,
+    Person)
 from forest.jasmine.data2mobmat import great_circle_dist
 
 
@@ -466,13 +467,11 @@ def test_person_office_days(sample_coordinates, sample_locations):
 
 @pytest.fixture()
 def sample_person(sample_coordinates, sample_locations):
-    attributes = Attributes(
-        vehicle=Vehicle.BUS,
-        main_occupation=Occupation.WORK,
-        active_status=6,
-        travelling_status=7,
-        preferred_places=["cafe", "bar", "park"],
-    )
+    attributes = Attributes(vehicle=Vehicle.BUS,
+                            main_occupation=Occupation.WORK,
+                            active_status=6,
+                            travelling_status=7,
+                            preferred_places=["cafe", "bar", "park"])
     return Person(sample_coordinates, attributes, sample_locations)
 
 
@@ -550,7 +549,7 @@ def test_choose_action_day_home_action(sample_person):
     """Test choosing action early at home"""
 
     action = sample_person.choose_action(0, 0)
-    assert action.action == "p"
+    assert action.action == ActionType.PAUSE
 
 
 def test_choose_action_day_home_location(sample_person):
@@ -570,7 +569,7 @@ def test_choose_action_day_night_action(sample_person):
     # already gone to office
     sample_person.office_today = True
     action = sample_person.choose_action(23.5 * 3600, 2)
-    assert action.action == "p_night"
+    assert action.action == ActionType.PAUSE_NIGHT
 
 
 def test_choose_action_day_night_location(sample_person):
@@ -592,7 +591,9 @@ def test_choose_action_day_night_exit(sample_person):
 def test_choose_action_simple_case_actions(sample_person):
     """Test choosing action late at home"""
     action = sample_person.choose_action(15 * 3600, 2)
-    assert action.action in ["p", "fpf"]
+    assert action.action in [
+        ActionType.PAUSE_NIGHT, ActionType.FLIGHT_PAUSE_FLIGHT
+    ]
 
 
 def test_choose_action_office_code(sample_person):
