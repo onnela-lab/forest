@@ -187,8 +187,7 @@ class ActionType(Enum):
 
 @dataclass
 class Attributes:
-    """This class holds the attributes needed
-    to create an instance of a person
+    """This class holds the attributes needed to create an instance of a person
 
     Args:
         vehicle used for distances and time of flights
@@ -228,9 +227,7 @@ class Action:
 
 
 class Person:
-    """This class represents a person
-    whose trajectories we want to simulate."""
-
+    """This class represents a person whose trajectories we want to simulate"""
     def __init__(self,
                  home_coordinates: Tuple[float, float],
                  attributes: Attributes,
@@ -245,7 +242,6 @@ class Person:
                 of amenities near house
 
         """
-
         self.home_coordinates = home_coordinates
         self.attributes = attributes
         # used to update preferred exits in a day if already visited
@@ -265,11 +261,10 @@ class Person:
             ]
             if len(main_occupation_locations) != 0:
                 i = np.random.choice(
-                    range(len(main_occupation_locations)),
-                    1,
+                    range(len(main_occupation_locations)), 1,
                 )[0]
 
-                while (main_occupation_locations[i] == home_coordinates):
+                while main_occupation_locations[i] == home_coordinates:
                     i = np.random.choice(
                         range(len(main_occupation_locations)), 1
                     )[0]
@@ -315,7 +310,8 @@ class Person:
                     range(len(local_places[possible_exit])), 3, replace=False
                 ).tolist()
                 places_selected = [
-                    tuple(place) for place in np.array(local_places[possible_exit])[
+                    tuple(place)
+                    for place in np.array(local_places[possible_exit])[
                         random_places
                     ]
                     if tuple(place) != home_coordinates
@@ -499,8 +495,8 @@ class Person:
                 probabilities = np.append(probabilities, ratios[i])
                 possible_destinations2.remove(preferred_action)
 
-        # for all the remaining amenities
-        # the first ameity is 24 times more likely to occur
+        # for all the remaining venues the first venue is 24 times more likely
+        # to occur
         for act in possible_destinations2:
             if act not in self.preferred_places_today:
                 actions.append(act)
@@ -555,7 +551,8 @@ class Person:
         else:
             transport = self.attributes.vehicle.value
 
-        coords_str = f"{origin[0]}_{origin[1]}_{destination[0]}_{destination[1]}"
+        coords_str = \
+            f"{origin[0]}_{origin[1]}_{destination[0]}_{destination[1]}"
         if coords_str in self.trips.keys():
             path = self.trips[coords_str]
         else:
@@ -566,14 +563,14 @@ class Person:
 
         return path, transport
 
-    def choose_action(self, current_time: float, day_of_week: int, update: bool = True
-                      ) -> Action:
+    def choose_action(self, current_time: float, day_of_week: int,
+                      update: bool = True) -> Action:
         """This function decides action for person to take.
 
         Args:
             current_time: int, current time in seconds
             day_of_week: int, day of the week
-            update: bool, to update preferrences and office day
+            update: bool, to update preferences and office day
         Returns:
             Action dataclass
         """
@@ -583,7 +580,7 @@ class Person:
             # if it is a weekday and working/studying
             # wake up between 8am and 9am
             if (day_of_week < 5
-                and self.attributes.main_occupation != Occupation.NONE):
+                    and self.attributes.main_occupation != Occupation.NONE):
                 return Action(ActionType.PAUSE,
                               self.home_coordinates,
                               [8 * 3600, 9 * 3600],
@@ -614,8 +611,8 @@ class Person:
                               "office_home")
 
         # otherwise choose to do something in the free time
-        preferred_exit, location = self.choose_preferred_exit(current_time, update)
-
+        preferred_exit, location = self.choose_preferred_exit(current_time,
+                                                              update)
         # if chosen to stay home
         if preferred_exit == "home":
             # if after 10pm and chosen to stay home
@@ -623,7 +620,8 @@ class Person:
             if seconds_of_day + 2 * 3600 > 24 * 3600 - 1:
                 return Action(ActionType.PAUSE_NIGHT,
                               self.home_coordinates,
-                              [24 * 3600 - seconds_of_day, 24 * 3600 - seconds_of_day],
+                              [24 * 3600 - seconds_of_day,
+                               24 * 3600 - seconds_of_day],
                               "home_night")
             # otherwise stay for half an hour to 2 hours and then decide again
             return Action(ActionType.PAUSE,
@@ -634,19 +632,18 @@ class Person:
         elif preferred_exit == "home_night":
             return Action(ActionType.PAUSE_NIGHT,
                           self.home_coordinates,
-                          [24 * 3600 - seconds_of_day, 24 * 3600 - seconds_of_day],
+                          [24 * 3600 - seconds_of_day,
+                           24 * 3600 - seconds_of_day],
                           preferred_exit)
         # otherwise go to the location specified
         # spend from half an hour to 2.5 hours depending
         # on active status
         return Action(ActionType.FLIGHT_PAUSE_FLIGHT,
                       location,
-                      [
-                          0.5 * 3600
-                          + 1.5 * 3600 * (self.attributes.active_status - 1) / 9,
-                          1 * 3600
-                          + 1.5 * 3600 * (self.attributes.active_status - 1) / 9,
-                      ],
+                      [0.5 * 3600
+                       + 1.5 * 3600 * (self.attributes.active_status - 1) / 9,
+                       1 * 3600
+                       + 1.5 * 3600 * (self.attributes.active_status - 1) / 9],
                       preferred_exit)
 
 
