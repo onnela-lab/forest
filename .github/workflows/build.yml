@@ -16,6 +16,8 @@ jobs:
           python-version: 3.6
       - name: Install dev dependecies
         run: pip install -r requirements.txt
+      - name: Run code style checking
+        run: flake8
       - name: Run static type checking
         run: mypy forest
       - name: Run tests
