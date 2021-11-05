@@ -1,12 +1,15 @@
 from setuptools import setup, find_namespace_packages
 
-requires = ['numpy',
-            'pandas',
-            'scipy',
-            'holidays',  # poplar
-            'pytz',  # jasmine, poplar
-            'timezonefinder',  # poplar
-            ]
+requires = [
+    'dataclasses',
+    'numpy',
+    'openrouteservice',
+    'pandas',
+    'scipy',
+    'holidays',  # poplar
+    'pytz',  # jasmine, poplar
+    'timezonefinder',  # poplar
+]
 
 package_data = {'': ['*.csv', '*.json']}
 
