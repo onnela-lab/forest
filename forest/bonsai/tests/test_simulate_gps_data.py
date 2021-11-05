@@ -4,7 +4,8 @@ import numpy as np
 import pytest
 
 from forest.bonsai.simulate_gps_data import (bounding_box,
-    get_basic_path, get_path)
+    get_basic_path, get_path, Vehicle, Occupation, ActionType, Attributes,
+    Person)
 from forest.jasmine.data2mobmat import great_circle_dist
 
 
@@ -283,7 +284,7 @@ def random_path(directions1, coords1, coords2):
     # path returned from running get_path function
     # starting from coords1 and ending on coords2
     # with car as transport
-    coordinates = directions1['features'][0]['geometry']['coordinates']
+    coordinates = directions1["features"][0]["geometry"]["coordinates"]
     path_coordinates = [[coord[1], coord[0]] for coord in coordinates]
 
     # sometimes if exact coordinates of location are not in a road
@@ -349,3 +350,278 @@ def test_bounding_box_simple_case(sample_coordinates):
 def test_zero_meters_bounding_box(sample_coordinates):
     bbox = bounding_box(sample_coordinates, 0)
     assert bbox[0] == bbox[2] and bbox[1] == bbox[3]
+
+
+@pytest.fixture(scope="session")
+def sample_locations():
+    """All nodes of preferred categories around sample_coordinates"""
+    return {
+        "cafe": [
+            (51.4730335, -2.5868174),
+            (51.4503187, -2.6000677),
+            (51.4542379, -2.5957399),
+            (51.4566122, -2.6049184),
+            (51.4491962, -2.597486),
+            (51.4513174, -2.5778401),
+        ],
+        "bar": [
+            (51.4592495, -2.6111314),
+            (51.4588478, -2.6106816),
+            (51.4531018, -2.5981952),
+            (51.4499107, -2.5808118),
+            (51.4511935, -2.5924017),
+            (51.4497689, -2.5973878),
+            (51.4532564, -2.592465),
+        ],
+        "restaurant": [
+            (51.4587343, -2.6110204),
+            (51.4555718, -2.6198581),
+            (51.4515447, -2.5852328),
+            (51.4564397, -2.589893),
+            (51.4564159, -2.5899766),
+            (51.4593627, -2.5916202),
+            (51.4544069, -2.5940264),
+            (51.4590668, -2.5915499),
+        ],
+        "cinema": [
+            (51.4589416, -2.5860582),
+            (51.4513069, -2.5982655),
+            (51.4611435, -2.5933154),
+            (51.4561455, -2.5967294),
+            (51.4629542, -2.6096249),
+            (51.4517717, -2.598108),
+            (51.4566839, -2.5915285),
+        ],
+        "park": [
+            (51.4609571, -2.5855459),
+            (51.4679187, -2.598686),
+            (51.4426429, -2.6014811),
+            (51.4405893, -2.5954815),
+            (51.4721951, -2.576308),
+        ],
+        "dance": [(51.4573642, -2.6177539)],
+        "fitness": [
+            (51.4541587, -2.5899168),
+            (51.4559791, -2.5917542),
+            (51.4516719, -2.5799672),
+            (51.4566176, -2.5695463),
+        ],
+        "office": [
+            (51.4566176, -2.5695463),
+            (51.4561455, -2.5967294),
+        ],
+        "university": [],
+    }
+
+
+def test_person_main_employment(sample_coordinates, sample_locations):
+    attributes = Attributes(vehicle=Vehicle.BUS,
+                            main_occupation=Occupation.WORK,
+                            active_status=6,
+                            travelling_status=8,
+                            preferred_places=["cinema", "bar", "park"])
+    random_person = Person(sample_coordinates, attributes, sample_locations)
+    assert random_person.attributes.main_occupation == Occupation.WORK
+
+
+def test_person_cafe_places(sample_coordinates, sample_locations):
+    """Test one place from cafe_places attribute is actual cafe"""
+    attributes = Attributes(vehicle=Vehicle.BUS,
+                            main_occupation=Occupation.NONE,
+                            active_status=2,
+                            travelling_status=7,
+                            preferred_places=["cafe", "cinema", "park"])
+    random_person = Person(sample_coordinates, attributes, sample_locations)
+    cafe_place = (
+        random_person.cafe_places[0][0],
+        random_person.cafe_places[0][1],
+    )
+    assert cafe_place in sample_locations["cafe"]
+
+
+def test_person_office_address(sample_coordinates, sample_locations):
+    """Test person going to work office_address"""
+    attributes = Attributes(vehicle=Vehicle.BUS,
+                            main_occupation=Occupation.WORK,
+                            active_status=6,
+                            travelling_status=7,
+                            preferred_places=["cafe", "cinema", "park"])
+    random_person = Person(sample_coordinates, attributes, sample_locations)
+    office_coordinates = (
+        random_person.office_coordinates[0],
+        random_person.office_coordinates[1],
+    )
+    assert office_coordinates in sample_locations["office"]
+
+
+def test_person_office_days(sample_coordinates, sample_locations):
+    """Test person going to work office_address"""
+    attributes = Attributes(vehicle=Vehicle.BUS,
+                            main_occupation=Occupation.WORK,
+                            active_status=6,
+                            travelling_status=7,
+                            preferred_places=["cafe", "bar", "park"])
+    random_person = Person(sample_coordinates, attributes, sample_locations)
+    assert len(random_person.office_days) <= 5
+
+
+@pytest.fixture()
+def sample_person(sample_coordinates, sample_locations):
+    attributes = Attributes(vehicle=Vehicle.BUS,
+                            main_occupation=Occupation.WORK,
+                            active_status=6,
+                            travelling_status=7,
+                            preferred_places=["cafe", "bar", "park"])
+    return Person(sample_coordinates, attributes, sample_locations)
+
+
+def test_set_travelling_status(sample_person):
+    sample_person.set_travelling_status(5)
+    assert sample_person.attributes.travelling_status == 5
+
+
+def test_set_active_status(sample_person):
+    sample_person.set_active_status(2)
+    assert sample_person.attributes.active_status == 2
+
+
+def test_update_preferred_places_case_first_option(sample_person):
+    """Test changing preferred exits change first to second"""
+    sample_person.update_preferred_places("cafe")
+    assert sample_person.preferred_places_today == ["bar", "cafe", "park"]
+
+
+def test_update_preferred_places_case_last_option(sample_person):
+    """Test changing preferred exits remove last"""
+    sample_person.update_preferred_places("park")
+    assert "park" not in sample_person.preferred_places_today
+
+
+def test_update_preferred_places_case_no_option(sample_person):
+    """Test changing preferred exits when selected exit not in preferred"""
+    sample_person.update_preferred_places("not_an_option")
+    assert (
+        sample_person.preferred_places_today
+        == sample_person.attributes.preferred_places
+    )
+
+
+def test_choose_preferred_exit_morning_home(sample_person):
+    """Test choosing preferred exit early in the morning"""
+    preferred_exit, location = sample_person.choose_preferred_exit(0)
+    assert (
+        preferred_exit == "home" and location == sample_person.home_coordinates
+    )
+
+
+def test_choose_preferred_exit_night_home(sample_person):
+    """Test choosing preferred exit late in the night"""
+    preferred_exit, location = sample_person.choose_preferred_exit(
+        24 * 3600 - 1
+    )
+    assert (
+        preferred_exit == "home_night"
+        and location == sample_person.home_coordinates
+    )
+
+
+def test_choose_preferred_exit_random_exit(sample_person):
+    """Test choosing preferred exit random time"""
+    preferred_exit, location = sample_person.choose_preferred_exit(12 * 3600)
+    possible_destinations = sample_person.possible_destinations + [
+        "home",
+        "home_night",
+    ]
+    assert preferred_exit in possible_destinations
+
+
+def test_end_of_day_reset(sample_person):
+    """Test end of day reset of preferred exits"""
+    sample_person.update_preferred_places("cafe")
+    sample_person.end_of_day_reset()
+    assert (
+        sample_person.attributes.preferred_places
+        == sample_person.preferred_places_today
+    )
+
+
+def test_choose_action_day_home_action(sample_person):
+    """Test choosing action early at home"""
+
+    action = sample_person.choose_action(0, 0)
+    assert action.action == ActionType.PAUSE
+
+
+def test_choose_action_day_home_location(sample_person):
+    """Test choosing action early at home"""
+    action = sample_person.choose_action(0, 0)
+    assert action.destination_coordinates == sample_person.home_coordinates
+
+
+def test_choose_action_day_home_exit(sample_person):
+    """Test choosing action early at home"""
+    action = sample_person.choose_action(0, 0)
+    assert action.preferred_exit == "home_morning"
+
+
+def test_choose_action_day_night_action(sample_person):
+    """Test choosing action late at home"""
+    # already gone to office
+    sample_person.office_today = True
+    action = sample_person.choose_action(23.5 * 3600, 2)
+    assert action.action == ActionType.PAUSE_NIGHT
+
+
+def test_choose_action_day_night_location(sample_person):
+    """Test choosing action late at home"""
+    # already gone to office
+    sample_person.office_today = True
+    action = sample_person.choose_action(23.5 * 3600, 2)
+    assert action.destination_coordinates == sample_person.home_coordinates
+
+
+def test_choose_action_day_night_exit(sample_person):
+    """Test choosing action late at home"""
+    # already gone to office
+    sample_person.office_today = True
+    action = sample_person.choose_action(23.5 * 3600, 2)
+    assert action.preferred_exit == "home_night"
+
+
+def test_choose_action_simple_case_actions(sample_person):
+    """Test choosing action late at home"""
+    action = sample_person.choose_action(15 * 3600, 2)
+    assert action.action in [
+        ActionType.PAUSE_NIGHT, ActionType.FLIGHT_PAUSE_FLIGHT
+    ]
+
+
+def test_choose_action_office_code(sample_person):
+    """Test going to office"""
+    action = sample_person.choose_action(15 * 3600, 2)
+    assert action.preferred_exit in ["office_home", "office"]
+
+
+def test_choose_action_office_location(sample_person):
+    """Test going to office"""
+    action = sample_person.choose_action(15 * 3600, 2)
+    assert action.destination_coordinates in [
+        sample_person.home_coordinates,
+        sample_person.office_coordinates,
+    ]
+
+
+def test_choose_action_after_work(sample_person):
+    """Test choosing action random time"""
+    # already gone to office
+    sample_person.office_today = True
+    action = sample_person.choose_action(15 * 3600, 2)
+    assert (
+        action.preferred_exit in ["home"] + sample_person.possible_destinations
+    )
+
+
+def test_choose_action_simple_case_times(sample_person):
+    """Test choosing action random time"""
+    action = sample_person.choose_action(15 * 3600, 2)
+    assert action.duration[1] >= action.duration[0]

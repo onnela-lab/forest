@@ -3,9 +3,11 @@ Module to simulate realistic GPS trajectories
 of a number of people anywhere in the world.
 """
 
+from dataclasses import dataclass
+from enum import Enum
 import os
 import time
-from typing import Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 import openrouteservice
@@ -34,8 +36,8 @@ restaurant = [42.3679,-71.1089]
 R = 6.371*10**6
 
 
-def get_path(start: Tuple[float, float], end: Tuple[float, float], transport: str,
-             api_key: str) -> Tuple[np.ndarray, float]:
+def get_path(start: Tuple[float, float], end: Tuple[float, float],
+             transport: str, api_key: str) -> Tuple[np.ndarray, float]:
     """Calculates paths between sets of coordinates
 
     This function takes 2 sets of coordinates and
@@ -55,7 +57,7 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float], transport: st
         path_coordinates: 2d numpy array containing [lat,lon] of route
         distance: distance of trip in meters
     Raises:
-        RuntimeError: An error when openrouteservice does not 
+        RuntimeError: An error when openrouteservice does not
             return coordinates of route as expected
     """
 
@@ -125,7 +127,6 @@ def get_basic_path(path: np.ndarray, transport: str) -> np.ndarray:
         # transport is car
         # higher speed thus capturing less locations
         length = 2 + distance // 400
-        
 
     if length >= len(path):
         basic_path = path
@@ -157,10 +158,493 @@ def bounding_box(center: Tuple[float, float], radius: int) -> Tuple:
         around the coordinates provided
     """
     lat, lon = center
-    EARTH_RADIUS = 6371 # kilometers
-    lat_const = (radius / (1000 * EARTH_RADIUS)) * (180 / np.pi)
+    earth_radius = 6371  # kilometers
+    lat_const = (radius / (1000 * earth_radius)) * (180 / np.pi)
     lon_const = lat_const / np.cos(lat * np.pi / 180)
     return lat - lat_const, lon - lon_const, lat + lat_const, lon + lon_const
+
+
+class Vehicle(Enum):
+    """This class enumerates vehicle for attributes"""
+    BUS = "bus"
+    CAR = "car"
+    BICYCLE = "bicycle"
+
+
+class Occupation(Enum):
+    """This class enumerates occupation for attributes"""
+    NONE = ""
+    WORK = "office"
+    SCHOOL = "university"
+
+
+class ActionType(Enum):
+    """This class enumerates action type for action"""
+    PAUSE = "p"
+    PAUSE_NIGHT = "p_night"
+    FLIGHT_PAUSE_FLIGHT = "fpf"
+
+
+@dataclass
+class Attributes:
+    """This class holds the attributes needed to create an instance of a person
+
+    Args:
+        vehicle used for distances and time of flights
+        main_occupation used for routine action in weekdays
+        active_status = 0-10
+            used for probability in free time to take an action
+            or stay home
+        travelling status = 0-10
+            used to derive amount of distance travelled
+        preferred_places  = [x1, x2, x3]
+            used to sample action when free time
+            where x1-x3 are amenities (str)
+    """
+    vehicle: Vehicle
+    main_occupation: Occupation
+    active_status: int
+    travelling_status: int
+    preferred_places: list
+
+
+@dataclass
+class Action:
+    """Class containing potential actions for a Person.
+
+    Args:
+        action: ActionType, indicating pause, pause
+             for the night or flight-pause-flight
+        destination_coordinates: tuple, destination's coordinates
+        duration: list, contains [minimum, maximum] duration of pause
+            in seconds
+        preferred_exit: str, exit code
+    """
+    action: ActionType
+    destination_coordinates: Tuple[float, float]
+    duration: List[float]
+    preferred_exit: str
+
+
+class Person:
+    """This class represents a person whose trajectories we want to simulate"""
+    def __init__(self,
+                 home_coordinates: Tuple[float, float],
+                 attributes: Attributes,
+                 local_places: Dict[str, list]):
+        """This function sets the basic attributes and information
+        to be used of the person.
+
+        Args:
+            home_coordinates: tuple, coordinates of primary home
+            attributes: Attributes class, consists of various information
+            local_places: dictionary, contains overpass nodes
+                of amenities near house
+
+        """
+        self.home_coordinates = home_coordinates
+        self.attributes = attributes
+        # used to update preferred exits in a day if already visited
+        self.preferred_places_today = self.attributes.preferred_places.copy()
+        self.office_today = False
+        # this will hold the coordinates of paths
+        # to each location visited
+        self.trips: Dict[str, np.ndarray] = {}
+
+        # if employed/student find a place nearby to visit
+        # for work or studies
+        # also set which days within the week to visit it
+        # depending on active status
+        if self.attributes.main_occupation != Occupation.NONE:
+            main_occupation_locations = local_places[
+                self.attributes.main_occupation.value
+            ]
+            if len(main_occupation_locations) != 0:
+                i = np.random.choice(
+                    range(len(main_occupation_locations)), 1,
+                )[0]
+
+                while main_occupation_locations[i] == home_coordinates:
+                    i = np.random.choice(
+                        range(len(main_occupation_locations)), 1
+                    )[0]
+
+                self.office_coordinates = main_occupation_locations[i]
+
+                no_office_days = np.random.binomial(
+                    5, self.attributes.active_status / 10
+                )
+                self.office_days = np.random.choice(
+                    range(5), no_office_days, replace=False
+                )
+                self.office_days.sort()
+            else:
+                self.office_coordinates = (0, 0)
+                self.office_days = np.array([])
+        else:
+            self.office_coordinates = (0, 0)
+            self.office_days = np.array([])
+
+        # define favorite places
+        self.possible_destinations = [
+            "cafe",
+            "bar",
+            "restaurant",
+            "park",
+            "cinema",
+            "dance",
+            "fitness",
+        ]
+
+        # for a certain venue select 3 locations for each venue randomly
+        # these will be considered the 3 favorite places to go
+        # 3 was chosen arbitrarily since people usually follow the
+        # same patterns and go out mostly in the same places
+        # order in the list of 3 matters, with order be of decreasing
+        # preference
+        for possible_exit in self.possible_destinations:
+            # if there are more than 3 sets of coordinates for an venue
+            # select 3 at random, else select all of them as preferred
+            if len(local_places[possible_exit]) > 3:
+                random_places = np.random.choice(
+                    range(len(local_places[possible_exit])), 3, replace=False
+                ).tolist()
+                places_selected = [
+                    tuple(place)
+                    for place in np.array(local_places[possible_exit])[
+                        random_places
+                    ]
+                    if tuple(place) != home_coordinates
+                ]
+                setattr(self, possible_exit + "_places", places_selected)
+            else:
+                setattr(
+                    self,
+                    possible_exit + "_places",
+                    [
+                        tuple(place) for place in local_places[possible_exit]
+                        if tuple(place) != home_coordinates
+                    ],
+                )
+            # calculate distances of selected places from home
+            # create a list of the locations ordered by distance
+            distances = [
+                great_circle_dist(*home_coordinates, *place)
+                for place in getattr(self, possible_exit + "_places")
+            ]
+            order = np.argsort(distances)
+            setattr(
+                self,
+                possible_exit + "_places_ordered",
+                np.array(getattr(self, possible_exit + "_places"))[
+                    order
+                ].tolist(),
+            )
+
+        # remove all exits which have no places nearby
+        possible_destinations2 = self.possible_destinations.copy()
+        for act in possible_destinations2:
+            if len(getattr(self, act + "_places")) == 0:
+                self.possible_destinations.remove(act)
+
+        # order preferred places by travelling_status
+        # if travelling status high, preferred locations
+        # will be the ones that are further away
+        travelling_status_norm = (self.attributes.travelling_status ** 2) / (
+            self.attributes.travelling_status ** 2
+            + (10 - self.attributes.travelling_status) ** 2
+        )
+        for act in self.possible_destinations:
+            act_places = getattr(self, act + "_places_ordered").copy()
+
+            places = []
+            for i in range(len(act_places) - 1, -1, -1):
+                index = np.random.binomial(i, travelling_status_norm)
+                places.append(act_places[index])
+                del act_places[index]
+
+            setattr(self, act + "_places", places)
+
+    def set_travelling_status(self, travelling_status: int):
+        """Update preferred locations of exits
+        depending on new travelling status.
+
+        Args:
+            travelling_status: 0-10 | int indicating new travelling_status
+        """
+
+        self.attributes.travelling_status = travelling_status
+
+        travelling_status_norm = (travelling_status ** 2) / (
+            travelling_status ** 2 + (10 - travelling_status) ** 2
+        )
+        for act in self.possible_destinations:
+            act_places = getattr(self, act + "_places_ordered").copy()
+
+            places = []
+            for i in range(len(act_places) - 1, -1, -1):
+                index = np.random.binomial(i, travelling_status_norm)
+                places.append(act_places[index])
+                del act_places[index]
+
+            setattr(self, act + "_places", places)
+
+    def set_active_status(self, active_status: int):
+        """Update active status.
+
+        Args:
+        active_status: 0-10 | int indicating new travelling_status
+        """
+
+        self.attributes.active_status = active_status
+
+        if (
+            self.attributes.main_occupation != Occupation.NONE
+            and self.office_coordinates != (0, 0)
+        ):
+            no_office_days = np.random.binomial(5, active_status / 10)
+            self.office_days = np.random.choice(
+                range(5), no_office_days, replace=False
+            )
+            self.office_days.sort()
+
+    def update_preferred_places(self, exit_code: str):
+        """This function updates the set of preferred exits for the day,
+        after an action has been performed.
+
+        Args:
+            exit_code: str, representing the action which was performed.
+        """
+
+        if exit_code in self.preferred_places_today:
+            index_of_code = self.preferred_places_today.index(exit_code)
+            # if exit chosen is the least favorite for the day
+            # replace it with a random venue from the rest of the
+            # possible exits
+            if index_of_code == (len(self.preferred_places_today) - 1):
+                probs = np.array(
+                    [
+                        0 if c in self.preferred_places_today else 1
+                        for c in self.possible_destinations
+                    ]
+                )
+                probs = probs / sum(probs)
+                self.preferred_places_today[-1] = np.random.choice(
+                    self.possible_destinations, 1, p=probs.tolist()
+                )[0]
+            else:
+                # if exit selected is not the least preferred
+                # switch positions with the next one
+                (
+                    self.preferred_places_today[index_of_code],
+                    self.preferred_places_today[index_of_code + 1],
+                ) = (
+                    self.preferred_places_today[index_of_code + 1],
+                    self.preferred_places_today[index_of_code],
+                )
+
+    def choose_preferred_exit(self, current_time: float,
+                              update: bool = True
+                              ) -> Tuple[str, Tuple[float, float]]:
+        """This function samples through the possible actions for the person,
+        depending on his attributes and the time.
+
+        Args:
+            current_time: float, current time in seconds
+            update: boolean, to update preferrences
+        Returns:
+            tuple of string and tuple:
+                str, selected action to perform
+                tuple, selected location's coordinates
+        """
+
+        seconds_of_day = current_time % (24 * 60 * 60)
+        hour_of_day = seconds_of_day / (60 * 60)
+
+        # active_coef represents hours of inactivity
+        # the larger the active status the smaller the active_coef
+        # the less hours of inactivity
+        # active_coef is in between [0, 2.5]
+        active_coef = (10 - self.attributes.active_status) / 4
+
+        # too early in the morning so no action
+        # should be taken
+        if hour_of_day < 9 + active_coef:
+            return "home", self.home_coordinates
+        elif hour_of_day > 22 - active_coef:
+            return "home_night", self.home_coordinates
+        else:
+            # probability of staying at home regardless the time
+            probs_of_staying_home = [1 - self.attributes.active_status / 10,
+                                     self.attributes.active_status / 10]
+            if np.random.choice([0, 1], 1, p=probs_of_staying_home)[0] == 0:
+                return "home", self.home_coordinates
+
+        possible_destinations2 = self.possible_destinations.copy()
+
+        actions = []
+        probabilities = np.array([])
+        # ratios on how probable each exit is to happen
+        # the first venue is 2 times more likely to incur
+        # than the second and 6 times more likely than the third
+        ratios = [6., 3., 1.]
+        for i, _ in enumerate(self.preferred_places_today):
+            preferred_action = self.preferred_places_today[i]
+            if preferred_action in possible_destinations2:
+                actions.append(preferred_action)
+                probabilities = np.append(probabilities, ratios[i])
+                possible_destinations2.remove(preferred_action)
+
+        # for all the remaining venues the first venue is 24 times more likely
+        # to occur
+        for act in possible_destinations2:
+            if act not in self.preferred_places_today:
+                actions.append(act)
+                probabilities = np.append(probabilities, 0.25)
+
+        probabilities = probabilities / sum(probabilities)
+
+        selected_action = np.random.choice(actions, 1, p=probabilities)[0]
+
+        if update:
+            self.update_preferred_places(selected_action)
+
+        # after venue has been selected, a location for that venue
+        # needs to be selected as well.
+        action_locations = getattr(self, selected_action + "_places")
+        ratios2 = ratios[: len(action_locations)]
+        probabilities2 = np.array(ratios2)
+        probabilities2 = probabilities2 / sum(probabilities2)
+
+        selected_location_index = np.random.choice(
+            range(len(action_locations)), 1, p=probabilities2
+        )[0]
+        selected_location = action_locations[selected_location_index]
+
+        return selected_action, selected_location
+
+    def end_of_day_reset(self):
+        """Reset preferred exits of the day. To run when a day ends"""
+        self.preferred_places_today = self.attributes.preferred_places
+        self.office_today = False
+
+    def calculate_trip(self, origin: Tuple[float, float],
+                       destination: Tuple[float, float], api_key: str
+                       ) -> Tuple[np.ndarray, str]:
+        """This function uses the openrouteservice api to produce the path
+        from person's house to destination and back.
+
+        Args:
+            destination: tuple, coordinates for destination
+            origin: tuple, coordinates for origin
+            api_key: str, openrouteservice api key
+        Returns:
+            path: 2d numpy array, containing [lat,lon]
+                of route from origin to destination
+            transport: str, means of transport
+        """
+
+        distance = great_circle_dist(*origin, *destination)
+        # if very short distance do not take any vehicle (less than 1km)
+        if distance <= 1000:
+            transport = "foot"
+        else:
+            transport = self.attributes.vehicle.value
+
+        coords_str = \
+            f"{origin[0]}_{origin[1]}_{destination[0]}_{destination[1]}"
+        if coords_str in self.trips.keys():
+            path = self.trips[coords_str]
+        else:
+            path, _ = get_path(origin, destination, transport, api_key)
+            path = get_basic_path(path, transport)
+
+            self.trips[coords_str] = path
+
+        return path, transport
+
+    def choose_action(self, current_time: float, day_of_week: int,
+                      update: bool = True) -> Action:
+        """This function decides action for person to take.
+
+        Args:
+            current_time: int, current time in seconds
+            day_of_week: int, day of the week
+            update: bool, to update preferences and office day
+        Returns:
+            Action dataclass
+        """
+        seconds_of_day = current_time % (24 * 60 * 60)
+
+        if seconds_of_day == 0:
+            # if it is a weekday and working/studying
+            # wake up between 8am and 9am
+            if (day_of_week < 5
+                    and self.attributes.main_occupation != Occupation.NONE):
+                return Action(ActionType.PAUSE,
+                              self.home_coordinates,
+                              [8 * 3600, 9 * 3600],
+                              "home_morning")
+            # else wake up between 8am and 12pm
+            return Action(ActionType.PAUSE,
+                          self.home_coordinates,
+                          [8 * 3600, 12 * 3600],
+                          "home_morning")
+
+        # if haven't yet been to office today
+        if not self.office_today:
+            if update:
+                self.office_today = not self.office_today
+            # if today is office day go to office
+            # work for 7 to 9 hours
+            if day_of_week in self.office_days:
+                return Action(ActionType.FLIGHT_PAUSE_FLIGHT,
+                              self.office_coordinates,
+                              [7 * 3600, 9 * 3600],
+                              "office")
+            # if today is not office day
+            # work for 7 to 9 hours from home
+            elif day_of_week < 5:
+                return Action(ActionType.PAUSE,
+                              self.home_coordinates,
+                              [7 * 3600, 9 * 3600],
+                              "office_home")
+
+        # otherwise choose to do something in the free time
+        preferred_exit, location = self.choose_preferred_exit(current_time,
+                                                              update)
+        # if chosen to stay home
+        if preferred_exit == "home":
+            # if after 10pm and chosen to stay home
+            # stay for the night until next day
+            if seconds_of_day + 2 * 3600 > 24 * 3600 - 1:
+                return Action(ActionType.PAUSE_NIGHT,
+                              self.home_coordinates,
+                              [24 * 3600 - seconds_of_day,
+                               24 * 3600 - seconds_of_day],
+                              "home_night")
+            # otherwise stay for half an hour to 2 hours and then decide again
+            return Action(ActionType.PAUSE,
+                          self.home_coordinates,
+                          [0.5 * 3600, 2 * 3600],
+                          preferred_exit)
+        # if deciding to stay at home for the night
+        elif preferred_exit == "home_night":
+            return Action(ActionType.PAUSE_NIGHT,
+                          self.home_coordinates,
+                          [24 * 3600 - seconds_of_day,
+                           24 * 3600 - seconds_of_day],
+                          preferred_exit)
+        # otherwise go to the location specified
+        # spend from half an hour to 2.5 hours depending
+        # on active status
+        return Action(ActionType.FLIGHT_PAUSE_FLIGHT,
+                      location,
+                      [0.5 * 3600
+                       + 1.5 * 3600 * (self.attributes.active_status - 1) / 9,
+                       1 * 3600
+                       + 1.5 * 3600 * (self.attributes.active_status - 1) / 9],
+                      preferred_exit)
 
 
 def gen_basic_traj(l_s, l_e, vehicle, t_s):
