@@ -3,9 +3,10 @@
 import numpy as np
 import pytest
 
-from forest.bonsai.simulate_gps_data import (bounding_box,
-    get_basic_path, get_path, Vehicle, Occupation, ActionType, Attributes,
-    Person)
+from forest.bonsai.simulate_gps_data import (
+    bounding_box, get_basic_path, get_path, Vehicle, Occupation, ActionType,
+    Attributes, Person
+)
 from forest.jasmine.data2mobmat import great_circle_dist
 
 
@@ -58,7 +59,8 @@ def directions1():
                                     "distance": 246.5,
                                     "duration": 63.9,
                                     "type": 1,
-                                    "instruction": "Turn right onto Upper Maudlin Street, B4051",
+                                    "instruction": "Turn right onto Upper "
+                                                   "Maudlin Street, B4051",
                                     "name": "Upper Maudlin Street, B4051",
                                     "way_points": [3, 26],
                                 },
@@ -66,7 +68,8 @@ def directions1():
                                     "distance": 62.3,
                                     "duration": 9.0,
                                     "type": 1,
-                                    "instruction": "Turn right onto Saint Michaels Hill",
+                                    "instruction": "Turn right onto Saint "
+                                                   "Michaels Hill",
                                     "name": "Saint Michaels Hill",
                                     "way_points": [26, 31],
                                 },
@@ -74,7 +77,8 @@ def directions1():
                                     "distance": 603.8,
                                     "duration": 85.9,
                                     "type": 12,
-                                    "instruction": "Keep left onto Saint Michaels Hill",
+                                    "instruction": "Keep left onto Saint "
+                                                   "Michaels Hill",
                                     "name": "Saint Michaels Hill",
                                     "way_points": [31, 63],
                                 },
@@ -82,7 +86,8 @@ def directions1():
                                     "distance": 466.5,
                                     "duration": 60.2,
                                     "type": 0,
-                                    "instruction": "Turn left onto Tyndalls Park Road",
+                                    "instruction": "Turn left onto Tyndalls "
+                                                   "Park Road",
                                     "name": "Tyndalls Park Road",
                                     "way_points": [63, 81],
                                 },
@@ -90,7 +95,8 @@ def directions1():
                                     "distance": 244.4,
                                     "duration": 44.2,
                                     "type": 0,
-                                    "instruction": "Turn left onto Whiteladies Road, A4018",
+                                    "instruction": "Turn left onto "
+                                                   "Whiteladies Road, A4018",
                                     "name": "Whiteladies Road, A4018",
                                     "way_points": [81, 99],
                                 },
@@ -98,7 +104,8 @@ def directions1():
                                     "distance": 11.2,
                                     "duration": 2.7,
                                     "type": 0,
-                                    "instruction": "Turn left onto Queen's Avenue",
+                                    "instruction": "Turn left onto Queen's "
+                                                   "Avenue",
                                     "name": "Queen's Avenue",
                                     "way_points": [99, 100],
                                 },
@@ -106,7 +113,8 @@ def directions1():
                                     "distance": 0.0,
                                     "duration": 0.0,
                                     "type": 10,
-                                    "instruction": "Arrive at Queen's Avenue, on the right",
+                                    "instruction": "Arrive at Queen's Avenue, "
+                                                   "on the right",
                                     "name": "-",
                                     "way_points": [100, 100],
                                 },
