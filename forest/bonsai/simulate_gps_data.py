@@ -680,7 +680,7 @@ def gen_basic_traj(
         float, total distance travelled
     """
     traj_list = []
-    [lat_s, lon_s] = l_s
+    lat_s, lon_s = l_s
     if vehicle == "walk":
         spd_range = [1.2, 1.6]
     elif vehicle == "bike":
@@ -700,10 +700,10 @@ def gen_basic_traj(
         traveled = traveled + mov
         t_e = t_s + r_time
         ratio = traveled / distance
-        [lat_e, lon_e] = [
+        lat_e, lon_e = (
             ratio * l_e[0] + (1 - ratio) * l_s[0],
             ratio * l_e[1] + (1 - ratio) * l_s[1],
-        ]
+        )
         for i in range(r_time):
             newline = [
                 t_s + i + 1,
@@ -730,7 +730,8 @@ def gen_basic_traj(
 
 
 def gen_basic_pause(
-    l_s: Tuple[float], t_s: float, t_e_range: List[float], t_diff_range: List[float]
+    l_s: Tuple[float], t_s: float, t_e_range: List[float] | None,
+    t_diff_range: List[float] | None
 ) -> np.ndarray:
     """
     This function generates basic trajectories for a pause.\n
@@ -775,7 +776,7 @@ def gen_route_traj(route: list, vehicle: str, t_s: float) -> Tuple[np.ndarray, f
         numpy.ndarray, containing the trajectories
         float, total distance travelled
     """
-    total_d = 0
+    total_d = 0.
     traj = np.zeros((1, 3))
     for i in range(len(route) - 1):
         l_s = route[i]
