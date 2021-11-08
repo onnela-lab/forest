@@ -571,6 +571,7 @@ class Person:
                             "Openroute service failed to return path."
                             )
                     else:
+                        time.sleep(30)
                         continue
 
             path = get_basic_path(path, transport)
