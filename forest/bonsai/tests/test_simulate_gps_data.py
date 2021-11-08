@@ -3,10 +3,11 @@
 import numpy as np
 import pytest
 
-from forest.bonsai.simulate_gps_data import (bounding_box,
-    get_basic_path, get_path, Vehicle, Occupation, ActionType,
-    Attributes, Person, gen_basic_traj, gen_basic_pause,
-    gen_route_traj)
+from forest.bonsai.simulate_gps_data import (
+    bounding_box, get_basic_path, get_path, Vehicle, Occupation,
+    ActionType, Attributes, Person, gen_basic_traj, gen_basic_pause,
+    gen_route_traj
+    )
 from forest.jasmine.data2mobmat import great_circle_dist
 
 
@@ -600,7 +601,8 @@ def test_choose_action_simple_case_actions(sample_person):
     """Test choosing action afternoon"""
     action = sample_person.choose_action(15 * 3600, 2)
     assert action.action in [
-        ActionType.PAUSE_NIGHT, ActionType.FLIGHT_PAUSE_FLIGHT, ActionType.PAUSE
+        ActionType.PAUSE_NIGHT, ActionType.FLIGHT_PAUSE_FLIGHT,
+        ActionType.PAUSE
     ]
 
 
@@ -669,7 +671,7 @@ def test_gen_basic_pause_t_e_range(random_path):
     assert traj[-1, 0] >= 10 and traj[-1, 0] <= 100
 
 
-def test_gen_basic_pause_t_e_range(random_path):
+def test_gen_basic_pause_t_diff_range(random_path):
     """Test basic pause generation times with t_diff_range"""
     traj = gen_basic_pause(
         random_path[0], 100, t_e_range=None, t_diff_range=[10, 100]
