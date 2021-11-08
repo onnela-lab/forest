@@ -664,18 +664,17 @@ class Person:
                       preferred_exit)
 
 
-def gen_basic_traj(
-    l_s: Tuple[float, float], l_e: Tuple[float, float], vehicle: str, t_s: float
-) -> Tuple[np.ndarray, float]:
-    """
-    This function generates basic trajectories between 2 points.\n
+def gen_basic_traj(l_s: Tuple[float, float], l_e: Tuple[float, float],
+                   vehicle: str, t_s: float) -> Tuple[np.ndarray, float]:
+    """This function generates basic trajectories between 2 points.
+
     Args:
         l_s: tuple, coordinates of start point
         l_e: tuple, coordinates of end point
         vehicle: str, means of transportation,
         can be one of the following: (car, bus, walk, bike)
         t_s: float, starting time
-    Return:
+    Returns:
         numpy.ndarray, containing the trajectories
         float, total distance travelled
     """
@@ -694,7 +693,10 @@ def gen_basic_traj(
         r_spd = np.random.uniform(spd_range[0], spd_range[1], 1)[0]
         r_time = int(np.around(np.random.uniform(30, 120, 1), 0))
         mov = r_spd * r_time
-        if traveled + mov > distance or distance - traveled - mov < spd_range[1]:
+        if (
+            traveled + mov > distance
+            or distance - traveled - mov < spd_range[1]
+        ):
             mov = distance - traveled
             r_time = int(np.around(mov / r_spd, 0))
         traveled = traveled + mov
@@ -722,17 +724,19 @@ def gen_basic_traj(
                 traj_list.append(newline)
             t_s = t_e
     traj_array = np.array(traj_list)
-    err_lat = np.random.normal(loc=0.0, scale=2 * 1e-5, size=traj_array.shape[0])
-    err_lon = np.random.normal(loc=0.0, scale=2 * 1e-5, size=traj_array.shape[0])
+    err_lat = np.random.normal(loc=0.0, scale=2 * 1e-5,
+                               size=traj_array.shape[0])
+    err_lon = np.random.normal(loc=0.0, scale=2 * 1e-5,
+                               size=traj_array.shape[0])
     traj_array[:, 1] = traj_array[:, 1] + err_lat
     traj_array[:, 2] = traj_array[:, 2] + err_lon
     return traj_array, distance
 
 
-def gen_basic_pause(
-    l_s: Tuple[float, float], t_s: float, t_e_range: Union[List[float], None],
-    t_diff_range: Union[List[float], None]
-) -> np.ndarray:
+def gen_basic_pause(l_s: Tuple[float, float], t_s: float,
+                    t_e_range: Union[List[float], None],
+                    t_diff_range: Union[List[float], None]
+                    ) -> np.ndarray:
     """
     This function generates basic trajectories for a pause.\n
     Args:
@@ -745,13 +749,19 @@ def gen_basic_pause(
     """
     traj_list = []
     if t_e_range is None:
-        r_time = int(
-            np.around(np.random.uniform(t_diff_range[0], t_diff_range[1], 1), 0)
-        )
+        if len(t_diff_range) == 2:
+            r_time = int(
+                np.around(
+                    np.random.uniform(t_diff_range[0], t_diff_range[1], 1), 0
+                    )
+            )
     else:
-        r_time = int(
-            np.around(np.random.uniform(t_e_range[0], t_e_range[1], 1), 0) - t_s
-        )
+        if len(t_e_range) == 2:
+            r_time = int(
+                np.around(
+                    np.random.uniform(t_e_range[0], t_e_range[1], 1), 0
+                    ) - t_s
+            )
     std = 1 * 1e-5
     for i in range(r_time):
         newline = [t_s + i + 1, l_s[0], l_s[1]]
@@ -764,7 +774,8 @@ def gen_basic_pause(
     return traj_array
 
 
-def gen_route_traj(route: list, vehicle: str, t_s: float) -> Tuple[np.ndarray, float]:
+def gen_route_traj(route: list, vehicle: str,
+                   t_s: float) -> Tuple[np.ndarray, float]:
     """
     This function generates basic trajectories between multiple points.\n
     Args:
