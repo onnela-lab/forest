@@ -3,10 +3,10 @@
 import numpy as np
 import pytest
 
-from forest.bonsai.simulate_gps_data import (
-    bounding_box, get_basic_path, get_path, Vehicle, Occupation, ActionType,
-    Attributes, Person
-)
+from forest.bonsai.simulate_gps_data import (bounding_box,
+    get_basic_path, get_path, Vehicle, Occupation, ActionType,
+    Attributes, Person, gen_basic_traj, gen_basic_pause,
+    gen_route_traj)
 from forest.jasmine.data2mobmat import great_circle_dist
 
 
@@ -597,10 +597,10 @@ def test_choose_action_day_night_exit(sample_person):
 
 
 def test_choose_action_simple_case_actions(sample_person):
-    """Test choosing action late at home"""
+    """Test choosing action afternoon"""
     action = sample_person.choose_action(15 * 3600, 2)
     assert action.action in [
-        ActionType.PAUSE_NIGHT, ActionType.FLIGHT_PAUSE_FLIGHT
+        ActionType.PAUSE_NIGHT, ActionType.FLIGHT_PAUSE_FLIGHT, ActionType.PAUSE
     ]
 
 
@@ -633,3 +633,63 @@ def test_choose_action_simple_case_times(sample_person):
     """Test choosing action random time"""
     action = sample_person.choose_action(15 * 3600, 2)
     assert action.duration[1] >= action.duration[0]
+
+
+def test_gen_basic_traj_cols(random_path):
+    """Test basic trajectory generation columns"""
+    traj, _ = gen_basic_traj(random_path[0], random_path[-1], "car", 0)
+    assert traj.shape[1] == 3
+
+
+def test_gen_basic_traj_distance(random_path):
+    """Test basic trajectory generation distance"""
+    _, dist = gen_basic_traj(random_path[0], random_path[-1], "foot", 100)
+    assert dist == great_circle_dist(*random_path[0], *random_path[-1])
+
+
+def test_gen_basic_traj_time(random_path):
+    """Test basic trajectory generation starting time"""
+    traj, _ = gen_basic_traj(random_path[0], random_path[-1], "car", 155)
+    assert traj[0, 0] == 156
+
+
+def test_gen_basic_pause_location(random_path):
+    """Test basic pause generation location"""
+    traj = gen_basic_pause(
+        random_path[0], 0, t_e_range=[10, 100], t_diff_range=None
+    )
+    assert list(np.round(traj[0, 1:], 4)) == list(np.round(random_path[0], 4))
+
+
+def test_gen_basic_pause_t_e_range(random_path):
+    """Test basic pause generation times with t_e_range"""
+    traj = gen_basic_pause(
+        random_path[0], 4, t_e_range=[10, 100], t_diff_range=None
+    )
+    assert traj[-1, 0] >= 10 and traj[-1, 0] <= 100
+
+
+def test_gen_basic_pause_t_e_range(random_path):
+    """Test basic pause generation times with t_diff_range"""
+    traj = gen_basic_pause(
+        random_path[0], 100, t_e_range=None, t_diff_range=[10, 100]
+    )
+    assert traj[-1, 0] - traj[0, 0] >= 10 and traj[-1, 0] - traj[0, 0] <= 100
+
+
+def test_gen_route_traj_shape(random_path):
+    """Test route generation shape is correct"""
+    traj, _ = gen_route_traj(random_path, "car", 0)
+    assert traj.shape[1] == 3 and traj.shape[0] >= len(random_path)
+
+
+def test_gen_route_traj_distance(random_path):
+    """Test route generation distance is correct"""
+    _, dist = gen_route_traj(random_path, "car", 0)
+    assert dist >= great_circle_dist(*random_path[0], *random_path[-1])
+
+
+def test_gen_route_traj_time(random_path):
+    """Test route generation ending time is correct"""
+    traj, _ = gen_route_traj(random_path, "car", 155)
+    assert traj[-1, 0] >= traj[0, 0]
