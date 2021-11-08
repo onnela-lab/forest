@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 import os
 import time
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import openrouteservice
@@ -665,7 +665,7 @@ class Person:
 
 
 def gen_basic_traj(
-    l_s: Tuple[float], l_e: Tuple[float], vehicle: str, t_s: float
+    l_s: Tuple[float, float], l_e: Tuple[float, float], vehicle: str, t_s: float
 ) -> Tuple[np.ndarray, float]:
     """
     This function generates basic trajectories between 2 points.\n
@@ -730,8 +730,8 @@ def gen_basic_traj(
 
 
 def gen_basic_pause(
-    l_s: Tuple[float], t_s: float, t_e_range: List[float] | None,
-    t_diff_range: List[float] | None
+    l_s: Tuple[float, float], t_s: float, t_e_range: Union[List[float], None],
+    t_diff_range: Union[List[float], None]
 ) -> np.ndarray:
     """
     This function generates basic trajectories for a pause.\n
