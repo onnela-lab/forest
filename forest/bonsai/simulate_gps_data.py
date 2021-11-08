@@ -748,14 +748,14 @@ def gen_basic_pause(l_s: Tuple[float, float], t_s: float,
         numpy.ndarray, containing the trajectories
     """
     traj_list = []
-    if t_e_range is None:
+    if t_e_range is None and t_diff_range is not None:
         if len(t_diff_range) == 2:
             r_time = int(
                 np.around(
                     np.random.uniform(t_diff_range[0], t_diff_range[1], 1), 0
                     )
             )
-    else:
+    elif t_e_range is not None and t_diff_range is None:
         if len(t_e_range) == 2:
             r_time = int(
                 np.around(
