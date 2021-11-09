@@ -567,9 +567,7 @@ class Person:
                         )
                 except RuntimeError:
                     if try_no == 2:
-                        raise RuntimeError(
-                            "Openroute service failed to return path."
-                            )
+                        raise
                     else:
                         time.sleep(30)
                         continue
