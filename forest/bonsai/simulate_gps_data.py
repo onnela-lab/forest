@@ -680,7 +680,7 @@ def gen_basic_traj(location_start: Tuple[float, float],
         float, total distance travelled
     """
     traj_list = []
-    lattitude_start, longitude_start = location_start
+    latitude_start, longitude_start = location_start
     if vehicle == Vehicle.FOOT:
         speed_range = [1.2, 1.6]
     elif vehicle == Vehicle.BICYCLE:
@@ -703,20 +703,20 @@ def gen_basic_traj(location_start: Tuple[float, float],
         traveled = traveled + mov
         time_end = time_start + random_time
         ratio = traveled / distance
-        lattitude_end, longitude_end = (
+        latitude_end, longitude_end = (
             ratio * location_end[0] + (1 - ratio) * location_start[0],
             ratio * location_end[1] + (1 - ratio) * location_start[1],
         )
         for i in range(random_time):
             newline = [
                 time_start + i + 1,
-                (i + 1) / random_time * lattitude_end
-                + (random_time - i - 1) / random_time * lattitude_start,
+                (i + 1) / random_time * latitude_end
+                + (random_time - i - 1) / random_time * latitude_start,
                 (i + 1) / random_time * longitude_end
                 + (random_time - i - 1) / random_time * longitude_start,
             ]
             traj_list.append(newline)
-        lattitude_start = lattitude_end
+        latitude_start = latitude_end
         longitude_start = longitude_end
         time_start = time_end
         if traveled < distance and vehicle == Vehicle.BUS:
@@ -725,7 +725,7 @@ def gen_basic_traj(location_start: Tuple[float, float],
             for i in range(random_time):
                 newline = [
                     time_start + i + 1,
-                    lattitude_start, longitude_start
+                    latitude_start, longitude_start
                     ]
                 traj_list.append(newline)
             time_start = time_end
