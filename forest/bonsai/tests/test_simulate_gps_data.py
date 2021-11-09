@@ -639,19 +639,21 @@ def test_choose_action_simple_case_times(sample_person):
 
 def test_gen_basic_traj_cols(random_path):
     """Test basic trajectory generation columns"""
-    traj, _ = gen_basic_traj(random_path[0], random_path[-1], "car", 0)
+    traj, _ = gen_basic_traj(random_path[0], random_path[-1], Vehicle.CAR, 0)
     assert traj.shape[1] == 3
 
 
 def test_gen_basic_traj_distance(random_path):
     """Test basic trajectory generation distance"""
-    _, dist = gen_basic_traj(random_path[0], random_path[-1], "foot", 100)
+    _, dist = gen_basic_traj(
+        random_path[0], random_path[-1], Vehicle.FOOT, 100
+        )
     assert dist == great_circle_dist(*random_path[0], *random_path[-1])
 
 
 def test_gen_basic_traj_time(random_path):
     """Test basic trajectory generation starting time"""
-    traj, _ = gen_basic_traj(random_path[0], random_path[-1], "car", 155)
+    traj, _ = gen_basic_traj(random_path[0], random_path[-1], Vehicle.CAR, 155)
     assert traj[0, 0] == 156
 
 
@@ -681,17 +683,17 @@ def test_gen_basic_pause_t_diff_range(random_path):
 
 def test_gen_route_traj_shape(random_path):
     """Test route generation shape is correct"""
-    traj, _ = gen_route_traj(random_path, "car", 0)
+    traj, _ = gen_route_traj(random_path, Vehicle.CAR, 0)
     assert traj.shape[1] == 3 and traj.shape[0] >= len(random_path)
 
 
 def test_gen_route_traj_distance(random_path):
     """Test route generation distance is correct"""
-    _, dist = gen_route_traj(random_path, "car", 0)
+    _, dist = gen_route_traj(random_path, Vehicle.CAR, 0)
     assert dist >= great_circle_dist(*random_path[0], *random_path[-1])
 
 
 def test_gen_route_traj_time(random_path):
     """Test route generation ending time is correct"""
-    traj, _ = gen_route_traj(random_path, "car", 155)
+    traj, _ = gen_route_traj(random_path, Vehicle.CAR, 155)
     assert traj[-1, 0] >= traj[0, 0]
