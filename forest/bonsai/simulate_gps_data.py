@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 import os
 import time
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import openrouteservice
@@ -169,6 +169,7 @@ class Vehicle(Enum):
     BUS = "bus"
     CAR = "car"
     BICYCLE = "bicycle"
+    FOOT = "foot"
 
 
 class Occupation(Enum):
@@ -542,6 +543,9 @@ class Person:
             path: 2d numpy array, containing [lat,lon]
                 of route from origin to destination
             transport: str, means of transport
+        Raises:
+            RuntimeError: An error when openrouteservice does not
+                return coordinates of route as expected after 3 tries
         """
 
         distance = great_circle_dist(*origin, *destination)
@@ -556,10 +560,21 @@ class Person:
         if coords_str in self.trips.keys():
             path = self.trips[coords_str]
         else:
-            path, _ = get_path(origin, destination, transport, api_key)
-            path = get_basic_path(path, transport)
-
-            self.trips[coords_str] = path
+            for try_no in range(3):
+                try:
+                    path, _ = get_path(
+                        origin, destination, transport, api_key
+                        )
+                except RuntimeError:
+                    if try_no == 2:
+                        raise
+                    else:
+                        time.sleep(30)
+                        continue
+                else:
+                    path = get_basic_path(path, transport)
+                    self.trips[coords_str] = path
+                    break
 
         return path, transport
 
@@ -647,82 +662,167 @@ class Person:
                       preferred_exit)
 
 
-def gen_basic_traj(l_s, l_e, vehicle, t_s):
-    traj_list = []
-    [lat_s, lon_s] = l_s
-    if vehicle == 'walk':
-        spd_range = [1.2, 1.6]
-    elif vehicle == 'bike':
-        spd_range = [7, 11]
-    else:
-        spd_range = [10, 14]
-    d = great_circle_dist(l_s[0],l_s[1],l_e[0],l_e[1])
-    traveled = 0
-    t_e = t_s
-    while traveled < d:
-        r_spd = np.random.uniform(spd_range[0], spd_range[1], 1)[0]
-        r_time = int(np.around(np.random.uniform(30, 120, 1), 0))
-        mov = r_spd*r_time
-        if traveled + mov > d or d - traveled - mov < spd_range[1]:
-            mov = d - traveled
-            r_time = int(np.around(mov/r_spd,0))
-        traveled = traveled + mov
-        t_e = t_s + r_time
-        ratio = traveled/d
-        ## temp = ratio*l_e + (1-ratio)*l_s
-        [lat_e, lon_e] = [ratio*l_e[0] + (1-ratio)*l_s[0], ratio*l_e[1] + (1-ratio)*l_s[1]]
-        for i in range(r_time):
-            newline = [t_s+i+1, (i+1)/r_time*lat_e+(r_time-i-1)/r_time*lat_s,
-                (i+1)/r_time*lon_e+(r_time-i-1)/r_time*lon_s]
-            traj_list.append(newline)
-        lat_s = lat_e; lon_s = lon_e; t_s = t_e
-        if traveled < d and vehicle == 'bus':
-            r_time = int(np.around(np.random.uniform(20, 60, 1),0))
-            t_e = t_s + r_time
-            for i in range(r_time):
-                newline = [t_s+i+1, lat_s, lon_s]
-                traj_list.append(newline)
-            t_s = t_e
-    traj_array = np.array(traj_list)
-    err_lat = np.random.normal(loc=0.0, scale= 2*1e-5, size= traj_array.shape[0])
-    err_lon = np.random.normal(loc=0.0, scale= 2*1e-5, size= traj_array.shape[0])
-    traj_array[:,1] = traj_array[:,1] + err_lat
-    traj_array[:,2] = traj_array[:,2] + err_lon
-    return traj_array, d
+def gen_basic_traj(location_start: Tuple[float, float],
+                   location_end: Tuple[float, float],
+                   vehicle: Vehicle, time_start: float
+                   ) -> Tuple[np.ndarray, float]:
+    """This function generates basic trajectories between 2 points.
 
-def gen_basic_pause(l_s, t_s, t_e_range, t_diff_range):
+    Args:
+        location_start: tuple, coordinates of start point
+        location_end: tuple, coordinates of end point
+        vehicle: Vehicle, means of transportation,
+        time_start: float, starting time
+    Returns:
+        numpy.ndarray, containing the trajectories
+        float, total distance travelled
+    """
     traj_list = []
-    if t_e_range is None:
-        r_time = int(np.around(np.random.uniform(t_diff_range[0], t_diff_range[1], 1), 0))
+    latitude_start, longitude_start = location_start
+    if vehicle == Vehicle.FOOT:
+        speed_range = [1.2, 1.6]
+    elif vehicle == Vehicle.BICYCLE:
+        speed_range = [7, 11]
     else:
-        r_time = int(np.around(np.random.uniform(t_e_range[0], t_e_range[1], 1), 0) - t_s)
-    std = 1*1e-5
-    for i in range(r_time):
-        newline = [t_s+i+1, l_s[0], l_s[1]]
+        speed_range = [10, 14]
+    distance = great_circle_dist(*location_start, *location_end)
+    traveled = 0
+    time_end = time_start
+    while traveled < distance:
+        random_speed = np.random.uniform(speed_range[0], speed_range[1], 1)[0]
+        random_time = int(np.around(np.random.uniform(30, 120, 1), 0))
+        mov = random_speed * random_time
+        if (
+            traveled + mov > distance
+            or distance - traveled - mov < speed_range[1]
+        ):
+            mov = distance - traveled
+            random_time = int(np.around(mov / random_speed, 0))
+        traveled = traveled + mov
+        time_end = time_start + random_time
+        ratio = traveled / distance
+        latitude_end, longitude_end = (
+            ratio * location_end[0] + (1 - ratio) * location_start[0],
+            ratio * location_end[1] + (1 - ratio) * location_start[1],
+        )
+        for i in range(random_time):
+            newline = [
+                time_start + i + 1,
+                (i + 1) / random_time * latitude_end
+                + (random_time - i - 1) / random_time * latitude_start,
+                (i + 1) / random_time * longitude_end
+                + (random_time - i - 1) / random_time * longitude_start,
+            ]
+            traj_list.append(newline)
+        latitude_start = latitude_end
+        longitude_start = longitude_end
+        time_start = time_end
+        if traveled < distance and vehicle == Vehicle.BUS:
+            random_time = int(np.around(np.random.uniform(20, 60, 1), 0))
+            time_end = time_start + random_time
+            for i in range(random_time):
+                newline = [
+                    time_start + i + 1,
+                    latitude_start, longitude_start
+                    ]
+                traj_list.append(newline)
+            time_start = time_end
+    traj_array = np.array(traj_list)
+    err_lat = np.random.normal(loc=0.0, scale=2 * 1e-5,
+                               size=traj_array.shape[0])
+    err_lon = np.random.normal(loc=0.0, scale=2 * 1e-5,
+                               size=traj_array.shape[0])
+    traj_array[:, 1] = traj_array[:, 1] + err_lat
+    traj_array[:, 2] = traj_array[:, 2] + err_lon
+    return traj_array, distance
+
+
+def gen_basic_pause(location_start: Tuple[float, float], time_start: float,
+                    t_e_range: Union[List[float], None],
+                    t_diff_range: Union[List[float], None]
+                    ) -> np.ndarray:
+    """This function generates basic trajectories for a pause.
+
+    Args:
+        location_start: tuple, coordinates of pause location
+        time_start: float, starting time
+        t_e_range: list, limits of ending time (None if t_diff_range used)
+        t_diff_range: list, limits of duration (None if t_e_range used)
+    Returns:
+        numpy.ndarray, containing the trajectories
+    Raises:
+        ValueError: if both t_e_range and t_diff_range are None
+        ValueError: if t_e_range is not None and does not have 2 elements
+        ValueError: if t_diff_range is not None and does not have 2 elements
+    """
+    traj_list = []
+    if t_e_range is None and t_diff_range is not None:
+        if len(t_diff_range) == 2:
+            random_time = int(
+                np.around(
+                    np.random.uniform(t_diff_range[0], t_diff_range[1], 1), 0
+                    )
+            )
+        else:
+            raise ValueError("t_diff_range should be a list of length 2")
+    elif t_e_range is not None and t_diff_range is None:
+        if len(t_e_range) == 2:
+            random_time = int(
+                np.around(
+                    np.random.uniform(t_e_range[0], t_e_range[1], 1), 0
+                    ) - time_start
+            )
+        else:
+            raise ValueError("t_e_range must be a list of length 2")
+    else:
+        raise ValueError("Either t_e_range or t_diff_range should be None")
+    std = 1 * 1e-5
+    for i in range(random_time):
+        newline = [time_start + i + 1, location_start[0], location_start[1]]
         traj_list.append(newline)
     traj_array = np.array(traj_list)
-    err_lat = np.random.normal(loc=0.0, scale= std, size= traj_array.shape[0])
-    err_lon = np.random.normal(loc=0.0, scale= std, size= traj_array.shape[0])
-    traj_array[:,1] = traj_array[:,1] + err_lat
-    traj_array[:,2] = traj_array[:,2] + err_lon
+    err_lat = np.random.normal(loc=0.0, scale=std, size=traj_array.shape[0])
+    err_lon = np.random.normal(loc=0.0, scale=std, size=traj_array.shape[0])
+    traj_array[:, 1] = traj_array[:, 1] + err_lat
+    traj_array[:, 2] = traj_array[:, 2] + err_lon
     return traj_array
 
-def gen_route_traj(route, vehicle, t_s):
-    total_d = 0
-    traj = np.zeros((1,3))
-    for i in range(len(route)-1):
-        l_s = route[i]
-        l_e = route[i+1]
-        trip, d = gen_basic_traj(l_s, l_e, vehicle, t_s)
-        total_d = total_d + d
-        t_s = trip[-1,0]
-        traj = np.vstack((traj,trip))
-        if (i+1)!=len(route)-1 and vehicle=='bus':
-            trip = gen_basic_pause(l_e, t_s, None, [5,120])
-            t_s = trip[-1,0]
-            traj = np.vstack((traj,trip))
-    traj = traj[1:,:]
-    return traj, total_d
+
+def gen_route_traj(route: list, vehicle: Vehicle,
+                   time_start: float) -> Tuple[np.ndarray, float]:
+    """
+    This function generates basic trajectories between multiple points.
+    Args:
+        route: list, contains coordinates of multiple locations
+        vehicle: Vehicle, means of transportation,
+        time_start: float, starting time
+    Return:
+        numpy.ndarray, containing the trajectories
+        float, total distance travelled
+    """
+    total_distance = 0.
+    traj = np.zeros((1, 3))
+    for i in range(len(route) - 1):
+        location_start = route[i]
+        location_end = route[i + 1]
+        try:
+            trip, distance = gen_basic_traj(
+                location_start, location_end, vehicle, time_start
+                )
+        except IndexError:
+            route[i + 1] = location_start
+            continue
+        total_distance += distance
+        time_start = trip[-1, 0]
+        traj = np.vstack((traj, trip))
+        # generate pause if vehicle is bus for bus stop waiting time
+        if (i + 1) != len(route) - 1 and vehicle == Vehicle.BUS:
+            trip = gen_basic_pause(location_end, time_start, None, [5, 120])
+            time_start = trip[-1, 0]
+            traj = np.vstack((traj, trip))
+    traj = traj[1:, :]
+    return traj, total_distance
+
 
 def gtraj_with_regular_visits(day):
     total_d = 0
