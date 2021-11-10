@@ -1,12 +1,14 @@
 """Tests for simulate_gps_data module"""
 
+import datetime
+
 import numpy as np
 import pytest
 
 from forest.bonsai.simulate_gps_data import (
     bounding_box, get_basic_path, get_path, Vehicle, Occupation,
     ActionType, Attributes, Person, gen_basic_traj, gen_basic_pause,
-    gen_route_traj
+    gen_route_traj, gen_all_traj
     )
 from forest.jasmine.data2mobmat import great_circle_dist
 
@@ -697,3 +699,107 @@ def test_gen_route_traj_time(random_path):
     """Test route generation ending time is correct"""
     traj, _ = gen_route_traj(random_path, Vehicle.CAR, 155)
     assert traj[-1, 0] >= traj[0, 0]
+
+
+def mock_get_path(start, end, transport, api_key):
+    """Mock get_path function"""
+    return np.array([start, end]), great_circle_dist(*start, *end)
+
+
+def test_gen_all_traj_len(sample_person, sample_locations, mocker):
+    """Testing length of trajectories"""
+    mocker.patch(
+        "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
+    )
+    traj, _, _ = gen_all_traj(
+        home_coordinates=sample_person.home_coordinates,
+        attributes=sample_person.attributes,
+        switches={},
+        all_nodes=sample_locations,
+        start_date=datetime.date(2021, 10, 1),
+        end_date=datetime.date(2021, 10, 5),
+        api_key="mock_api_key",
+        )
+    assert traj.shape[0] == 4 * 24 * 3600
+
+
+def test_gen_all_traj_time(sample_person, sample_locations, mocker):
+    """Testing time is increasing"""
+
+    mocker.patch(
+        "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
+    )
+    traj, _, _ = gen_all_traj(
+        home_coordinates=sample_person.home_coordinates,
+        attributes=sample_person.attributes,
+        switches={},
+        all_nodes=sample_locations,
+        start_date=datetime.date(2021, 10, 1),
+        end_date=datetime.date(2021, 10, 5),
+        api_key="mock_api_key",
+        )
+    assert np.all(np.diff(traj[:, 0]) > 0)
+
+
+def test_gen_all_traj_consistent_values(
+    sample_person, sample_locations, mocker
+    ):
+    """Testing consistent lattitude, longitude values"""
+    mocker.patch(
+        "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
+    )
+    traj, _, _ = gen_all_traj(
+        home_coordinates=sample_person.home_coordinates,
+        attributes=sample_person.attributes,
+        switches={},
+        all_nodes=sample_locations,
+        start_date=datetime.date(2021, 10, 1),
+        end_date=datetime.date(2021, 10, 5),
+        api_key="mock_api_key",
+        )
+
+    distances = []
+    for i in range(len(traj) - 1):
+        distances.append(
+            great_circle_dist(traj[i, 1], traj[i, 2],
+            traj[i + 1, 1], traj[i + 1, 2])
+        )
+    assert np.max(distances) <= 100
+
+
+def test_gen_all_traj_time_at_home(sample_person, sample_locations, mocker):
+    """Test home time in normal range"""
+    mocker.patch(
+        "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
+    )
+    _, home_time_list, _ = gen_all_traj(
+        home_coordinates=sample_person.home_coordinates,
+        attributes=sample_person.attributes,
+        switches={},
+        all_nodes=sample_locations,
+        start_date=datetime.date(2021, 10, 1),
+        end_date=datetime.date(2021, 10, 5),
+        api_key="mock_api_key",
+        )
+
+    home_time_list = np.array(home_time_list)
+    assert np.all(home_time_list >= 0) and np.all(home_time_list <= 24 * 3600)
+
+
+def test_gen_all_traj_dist_travelled(sample_person, sample_locations, mocker):
+    """Test distance travelled in normal range"""
+    mocker.patch(
+        "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
+    )
+    _, _, total_d_list = gen_all_traj(
+        home_coordinates=sample_person.home_coordinates,
+        attributes=sample_person.attributes,
+        switches={},
+        all_nodes=sample_locations,
+        start_date=datetime.date(2021, 10, 1),
+        end_date=datetime.date(2021, 10, 5),
+        api_key="mock_api_key",
+        )
+
+    total_d_list = np.array(total_d_list)
+    assert np.all(total_d_list >= 0)
