@@ -743,7 +743,7 @@ def test_gen_all_traj_time(sample_person, sample_locations, mocker):
 
 def test_gen_all_traj_consistent_values(
     sample_person, sample_locations, mocker
-    ):
+):
     """Testing consistent lattitude, longitude values"""
     mocker.patch(
         "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
@@ -762,7 +762,7 @@ def test_gen_all_traj_consistent_values(
     for i in range(len(traj) - 1):
         distances.append(
             great_circle_dist(traj[i, 1], traj[i, 2],
-            traj[i + 1, 1], traj[i + 1, 2])
+                              traj[i + 1, 1], traj[i + 1, 2])
         )
     assert np.max(distances) <= 100
 
