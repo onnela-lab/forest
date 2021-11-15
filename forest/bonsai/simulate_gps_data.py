@@ -20,8 +20,30 @@ from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 R = 6.371*10**6
 
 
+class Vehicle(Enum):
+    """This class enumerates vehicle for attributes"""
+    BUS = "bus"
+    CAR = "car"
+    BICYCLE = "bicycle"
+    FOOT = "foot"
+
+
+class Occupation(Enum):
+    """This class enumerates occupation for attributes"""
+    NONE = ""
+    WORK = "office"
+    SCHOOL = "university"
+
+
+class ActionType(Enum):
+    """This class enumerates action type for action"""
+    PAUSE = "p"
+    PAUSE_NIGHT = "p_night"
+    FLIGHT_PAUSE_FLIGHT = "fpf"
+
+
 def get_path(start: Tuple[float, float], end: Tuple[float, float],
-             transport: str, api_key: str) -> Tuple[np.ndarray, float]:
+             transport: Vehicle, api_key: str) -> Tuple[np.ndarray, float]:
     """Calculates paths between sets of coordinates
 
     This function takes 2 sets of coordinates and
@@ -33,8 +55,6 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
         start: coordinates of start point (lat, lon)
         end: coordinates of end point (lat, lon)
         transport: means of transportation,
-            can be one of the following:
-            (car, bus, foot, bicycle)
         api_key: api key collected from
             https://openrouteservice.org/dev/#/home
     Returns:
@@ -53,17 +73,21 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
         return (np.array([[lat1, lon1], [lat2, lon2]]),
                 distance)
 
-    if transport in ("car", "bus"):
-        transport = "driving-car"
-    elif transport == "foot":
-        transport = "foot-walking"
-    elif transport == "bicycle":
-        transport = "cycling-regular"
+    if transport in (Vehicle.CAR, Vehicle.BUS):
+        transport2 = "driving-car"
+    elif transport.value == Vehicle.FOOT:
+        transport2 = "foot-walking"
+    elif transport.value == Vehicle.BICYCLE:
+        transport2 = "cycling-regular"
+    else:
+        transport2 = ""
     client = openrouteservice.Client(key=api_key)
     coords = ((lon1, lat1), (lon2, lat2))
 
     try:
-        routes = client.directions(coords, profile=transport, format="geojson")
+        routes = client.directions(
+            coords, profile=transport2, format="geojson"
+            )
     except Exception:
         raise RuntimeError(
             "Openrouteservice did not return proper trajectories."
@@ -84,26 +108,26 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
     return np.array(path_coordinates), distance
 
 
-def get_basic_path(path: np.ndarray, transport: str) -> np.ndarray:
+def get_basic_path(path: np.ndarray, transport: Vehicle) -> np.ndarray:
     """Subsets paths depending on transport for optimisation.
 
     This function takes a path from get_path() function and subsets it
     to a specific number of nodes.
     Args:
         path: 2d numpy array
-        transport: str
+        transport: Vehicle
     Returns:
         subset of original path that represents the flight
     """
 
     distance = great_circle_dist(
-        path[0][1], path[0][0], path[-1][1], path[-1][0]
+        *path[0], *path[-1]
     )
 
-    if transport in ["foot", "bicycle"]:
+    if transport in [Vehicle.FOOT, Vehicle.BICYCLE]:
         # slower speed thus capturing more locations
         length = 2 + distance // 200
-    elif transport == 'bus':
+    elif transport == Vehicle.BUS:
         # higher speed thus capturing less locations
         # bus route start and end +2
         length = 4 + distance // 400
@@ -146,28 +170,6 @@ def bounding_box(center: Tuple[float, float], radius: int) -> Tuple:
     lat_const = (radius / (1000 * earth_radius)) * (180 / np.pi)
     lon_const = lat_const / np.cos(lat * np.pi / 180)
     return lat - lat_const, lon - lon_const, lat + lat_const, lon + lon_const
-
-
-class Vehicle(Enum):
-    """This class enumerates vehicle for attributes"""
-    BUS = "bus"
-    CAR = "car"
-    BICYCLE = "bicycle"
-    FOOT = "foot"
-
-
-class Occupation(Enum):
-    """This class enumerates occupation for attributes"""
-    NONE = ""
-    WORK = "office"
-    SCHOOL = "university"
-
-
-class ActionType(Enum):
-    """This class enumerates action type for action"""
-    PAUSE = "p"
-    PAUSE_NIGHT = "p_night"
-    FLIGHT_PAUSE_FLIGHT = "fpf"
 
 
 @dataclass
@@ -547,7 +549,7 @@ class Person:
             for try_no in range(3):
                 try:
                     path, _ = get_path(
-                        origin, destination, transport.value, api_key
+                        origin, destination, transport, api_key
                         )
                 except RuntimeError:
                     if try_no == 2:
@@ -556,7 +558,7 @@ class Person:
                         time.sleep(30)
                         continue
                 else:
-                    path = get_basic_path(path, transport.value)
+                    path = get_basic_path(path, transport)
                     self.trips[coords_str] = path
                     break
 
@@ -808,20 +810,14 @@ def gen_route_traj(route: list, vehicle: Vehicle,
     return traj, total_distance
 
 
-def gen_all_traj(home_coordinates: Tuple[float, float], attributes: Attributes,
-                 switches: Dict[str, int], all_nodes: dict,
+def gen_all_traj(person: Person, switches: Dict[str, int],
                  start_date: datetime.date, end_date: datetime.date,
                  api_key: str) -> Tuple[np.ndarray, List[int], List[float]]:
     """Generates trajectories for a single person.
 
     Args:
-        home_coordinates: (tuple) indicating the house address
-            of the person to generate
-        attributes: (Attributes class) contains the attributes
-            required to generate a Person class
         switches: (dictionary) contains changes of attributes
             in between the simulation
-        all_nodes: (dictionary) contains all locations of
         all amenities around the house address
         start_date: (datetime.date object) start date of trajectories
         end_date: (datetime.date object) end date of trajectories,
@@ -841,7 +837,6 @@ def gen_all_traj(home_coordinates: Tuple[float, float], attributes: Attributes,
         ValueError: if no offices around person's house address
     """
 
-    person = Person(home_coordinates, attributes, all_nodes)
     if len(person.possible_destinations) < 4:
         raise ValueError("Not enough possible destinations")
     if (
@@ -886,9 +881,7 @@ def gen_all_traj(home_coordinates: Tuple[float, float], attributes: Attributes,
             person.set_active_status(val_active_change)
 
         current_weekdate = current_date.weekday()
-        action = person.choose_action(
-            t_s, current_weekdate
-        )
+        action = person.choose_action(t_s, current_weekdate)
 
         if action.action == ActionType.PAUSE:
 
