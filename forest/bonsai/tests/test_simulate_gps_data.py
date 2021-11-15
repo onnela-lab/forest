@@ -259,7 +259,9 @@ def test_get_path_starting_latitude(coords1, coords2, directions1, mocker):
         "openrouteservice.Client.directions", return_value=directions1
     )
     assert (
-        get_path(coords1, coords2, Vehicle.CAR, "mock_api_key")[0][0][0] == 51.458498
+        get_path(
+            coords1, coords2, Vehicle.CAR, "mock_api_key"
+            )[0][0][0] == 51.458498
     )
 
 
@@ -315,7 +317,7 @@ def test_get_basic_path_simple_case(random_path):
     basic_random_path = get_basic_path(random_path, Vehicle.CAR)
     boolean_matrix = basic_random_path == np.array(
         [
-            [51.458498, -2.59638 ],
+            [51.458498, -2.59638],
             [51.457491, -2.598454],
             [51.461726, -2.603109],
             [51.457619, -2.608466],
