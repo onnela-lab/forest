@@ -981,6 +981,7 @@ def remove_data(
         obs_data: (numpy.ndarray) contains the trajectories of the on period.
     """
     sample_dur = int(np.around(60 * cycle * (1 - percentage), 0))
+    index_all = np.array([])
     for i in range(day):
         start = int(np.around(np.random.uniform(0, 60 * cycle, 1), 0))
         start += 86400 * i
@@ -999,7 +1000,7 @@ def remove_data(
     return obs_data
 
 
-def prepare_data(
+def prepares_data(
     obs: np.ndarray, timestamp_s: int, tz_str: str
 ) -> pd.DataFrame:
     """Perpares the data in a dataframe.
@@ -1021,7 +1022,7 @@ def prepare_data(
     new[:, 3] = obs[:, 2]
     new[:, 4] = 0
     new[:, 5] = 20
-    new = pd.DataFrame(
+    return pd.DataFrame(
         new,
         columns=[
             "timestamp",
@@ -1032,21 +1033,6 @@ def prepare_data(
             "accuracy",
         ],
     )
-    return new
-
-
-def int2str(h: int) -> str:
-    """Converts numbers to 2 digit strings.
-
-    Args:
-        h: (int)
-    Returns:
-        str of h, 2 digit minimum
-    """
-    if h < 10:
-        return str(0) + str(h)
-    else:
-        return str(h)
 
 
 def sim_GPS_data(cycle,p,data_folder):
@@ -1068,12 +1054,12 @@ def sim_GPS_data(cycle,p,data_folder):
         print("distance(km): ", all_D)
         print("hometime(hr): ", all_T)
         obs = remove_data(all_traj,cycle,p,14)
-        obs_pd = prepare_data(obs)
+        obs_pd = prepares_data(obs)
         for i in range(14):
             for j in range(24):
                 s_lower = s+i*24*60*60*1000+j*60*60*1000
                 s_upper = s+i*24*60*60*1000+(j+1)*60*60*1000
                 temp = obs_pd[(obs_pd["timestamp"]>=s_lower)&(obs_pd["timestamp"]<s_upper)]
                 [y,m,d,h,mins,sec] = stamp2datetime(s_lower/1000,"UTC")
-                filename = str(y)+"-"+int2str(m)+"-"+int2str(d)+" "+int2str(h)+"_00_00.csv"
+                filename = f"{y}-{m:0>2}-{d:0>2}-{h:0>2}_00_00.csv"
                 temp.to_csv(data_folder+"/user_"+str(user+1)+"/gps/"+filename,index = False)
