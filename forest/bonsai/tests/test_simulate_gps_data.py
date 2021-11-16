@@ -8,7 +8,7 @@ import pytest
 from forest.bonsai.simulate_gps_data import (
     bounding_box, get_basic_path, get_path, Vehicle, Occupation,
     ActionType, Attributes, Person, gen_basic_traj, gen_basic_pause,
-    gen_route_traj, gen_all_traj
+    gen_route_traj, gen_all_traj, remove_data, prepare_data,
     )
 from forest.jasmine.data2mobmat import great_circle_dist
 
@@ -794,3 +794,45 @@ def test_gen_all_traj_dist_travelled(sample_person, mocker):
 
     total_d_list = np.array(total_d_list)
     assert np.all(total_d_list >= 0)
+
+
+@pytest.fixture()
+def generated_trajectory(sample_person, mocker):
+    mocker.patch(
+        "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
+    )
+    traj, _, _ = gen_all_traj(
+        person=sample_person,
+        switches={},
+        start_date=datetime.date(2021, 10, 1),
+        end_date=datetime.date(2021, 10, 5),
+        api_key="mock_api_key",
+        )
+
+    return traj
+
+
+def test_remove_data_len(generated_trajectory):
+    """Test length of data with removed observations"""
+
+    obs_data = remove_data(generated_trajectory, 15, .8, 4)
+    assert len(obs_data) <= .3 * len(generated_trajectory)
+
+
+def test_prepare_data_shape(generated_trajectory):
+    """Test shape of prepared dataset"""
+
+    obs_data = remove_data(generated_trajectory, 15, .8, 4)
+    final_data = prepare_data(obs_data, 0, "UTC")
+    assert final_data.shape[0] == len(obs_data) and final_data.shape[1] == 6
+
+
+def test_prepare_data_timezones(generated_trajectory):
+    """Test times from different timezones"""
+
+    obs_data = remove_data(generated_trajectory, 15, .8, 4)
+    final_data = prepare_data(obs_data, 0, "Etc/GMT+1")
+    boolean_series = (
+        final_data['timestamp'] == final_data['UTC time'] + 3600000
+        )
+    assert sum(boolean_series) == len(boolean_series)

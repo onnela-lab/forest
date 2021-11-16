@@ -966,54 +966,74 @@ def gen_all_traj(person: Person, switches: Dict[str, int],
     return traj, home_time_list, total_d_list
 
 
-## cycle is minute
-def remove_data(full_data,cycle,p,day):
-    ## keep the first and last 10 minutes,on-off-on-off,cycle=on+off,p=off/cycle
-    sample_dur = int(np.around(60*cycle*(1-p),0))
+def remove_data(
+    full_data: np.ndarray, cycle: int, percentage: float, day: int
+) -> np.ndarray:
+    """Only keeps observed data from simulated trajectories
+    depending on cycle and percentage.
+
+    Args:
+        full_data: (numpy.ndarray) contains the complete trajectories
+        cycle: (int) on_period + off_period of observations, in minutes
+        percentage: (float) off_period/cycle, in between 0 and 1
+        day: (int) number of days in full_data
+    Returns:
+        obs_data: (numpy.ndarray) contains the trajectories of the on period.
+    """
+    sample_dur = int(np.around(60 * cycle * (1 - percentage), 0))
+    index_all = np.array([])
     for i in range(day):
-        start = int(np.around(np.random.uniform(0, 60*cycle, 1),0))+86400*i
+        start = int(np.around(np.random.uniform(0, 60 * cycle, 1), 0))
+        start += 86400 * i
         index_cycle = np.arange(start, start + sample_dur)
         if i == 0:
             index_all = index_cycle
-        while index_all[-1]< 86400*(i+1):
-            index_cycle = index_cycle + cycle*60
+        while index_all[-1] < 86400 * (i + 1):
+            index_cycle = index_cycle + cycle * 60
             index_all = np.concatenate((index_all, index_cycle))
-        index_all = index_all[index_all<86400*(i+1)]
-    index_all = np.concatenate((np.arange(600),index_all, np.arange(86400*day-600,86400*day)))
+        index_all = index_all[index_all < 86400 * (i + 1)]
+    index_all = np.concatenate(
+        (np.arange(600), index_all, np.arange(86400 * day - 600, 86400 * day))
+    )
     index_all = np.unique(index_all)
-    obs_data = full_data[index_all,:]
+    obs_data = full_data[index_all, :]
     return obs_data
 
-def prepare_data(obs):
-    s = datetime2stamp([2020,8,24,0,0,0],'America/New_York')
-    new = np.zeros((obs.shape[0],6))
-    new[:,0] = (obs[:,0] + s)*1000
-    new[:,1] = 0
-    new[:,2] = obs[:,1]
-    new[:,3] = obs[:,2]
-    new[:,4] = 0
-    new[:,5] = 20
-    new = pd.DataFrame(new,columns=['timestamp','UTC time','latitude',
-            'longitude','altitude','accuracy'])
-    return(new)
 
-def impute2second(traj):
-    secondwise = []
-    for i in range(traj.shape[0]):
-        for j in np.arange(int(traj[i,3]),int(traj[i,6])):
-            ratio = (j-traj[i,3])/(traj[i,6]-traj[i,3])
-            lat = ratio*traj[i,1]+(1-ratio)*traj[i,4]
-            lon = ratio*traj[i,2]+(1-ratio)*traj[i,5]
-            newline = [int(j-traj[0,3]), lat, lon]
-            secondwise.append(newline)
-    secondwise = np.array(secondwise)
-    return secondwise
+def prepare_data(
+    obs: np.ndarray, timestamp_s: int, tz_str: str
+) -> pd.DataFrame:
+    """Prepares the data in a dataframe.
 
-def int2str(h):
-    if h<10:
-        return str(0)+str(h)
-    else:
-        return str(h)
+    Args:
+        obs: (numpy.ndarray) observed trajectories.
+        timestamp_s: (int) timestamp of starting day
+        tz_str: (str) timezone
+    Returns:
+        new: (pandas.DataFrame) final dataframe of simulated gps data.
+    """
+    utc_start = stamp2datetime(timestamp_s, tz_str)
+    utc_start_stamp = datetime2stamp(utc_start, "UTC")
+
+    new = np.zeros((obs.shape[0], 6))
+    new[:, 0] = (obs[:, 0] + timestamp_s) * 1000
+    new[:, 1] = (obs[:, 0] + utc_start_stamp) * 1000
+    new[:, 2] = obs[:, 1]
+    new[:, 3] = obs[:, 2]
+    new[:, 4] = 0
+    new[:, 5] = 20
+    return pd.DataFrame(
+        new,
+        columns=[
+            "timestamp",
+            "UTC time",
+            "latitude",
+            "longitude",
+            "altitude",
+            "accuracy",
+        ],
+    )
+
 
 def sim_GPS_data(cycle,p,data_folder):
     ## only two parameters
@@ -1041,5 +1061,5 @@ def sim_GPS_data(cycle,p,data_folder):
                 s_upper = s+i*24*60*60*1000+(j+1)*60*60*1000
                 temp = obs_pd[(obs_pd["timestamp"]>=s_lower)&(obs_pd["timestamp"]<s_upper)]
                 [y,m,d,h,mins,sec] = stamp2datetime(s_lower/1000,"UTC")
-                filename = str(y)+"-"+int2str(m)+"-"+int2str(d)+" "+int2str(h)+"_00_00.csv"
+                filename = f"{y}-{m:0>2}-{d:0>2}-{h:0>2}_00_00.csv"
                 temp.to_csv(data_folder+"/user_"+str(user+1)+"/gps/"+filename,index = False)
