@@ -8,7 +8,7 @@ import pytest
 from forest.bonsai.simulate_gps_data import (
     bounding_box, get_basic_path, get_path, Vehicle, Occupation,
     ActionType, Attributes, Person, gen_basic_traj, gen_basic_pause,
-    gen_route_traj, gen_all_traj, remove_data, prepares_data,
+    gen_route_traj, gen_all_traj, remove_data, prepare_data,
     )
 from forest.jasmine.data2mobmat import great_circle_dist
 
@@ -819,19 +819,19 @@ def test_remove_data_len(generated_trajectory):
     assert len(obs_data) <= .3 * len(generated_trajectory)
 
 
-def test_prepares_data_shape(generated_trajectory):
+def test_prepare_data_shape(generated_trajectory):
     """Test shape of prepared dataset"""
 
     obs_data = remove_data(generated_trajectory, 15, .8, 4)
-    final_data = prepares_data(obs_data, 0, "UTC")
+    final_data = prepare_data(obs_data, 0, "UTC")
     assert final_data.shape[0] == len(obs_data) and final_data.shape[1] == 6
 
 
-def test_prepares_data_timezones(generated_trajectory):
+def test_prepare_data_timezones(generated_trajectory):
     """Test times from different timezones"""
 
     obs_data = remove_data(generated_trajectory, 15, .8, 4)
-    final_data = prepares_data(obs_data, 0, "Etc/GMT+1")
+    final_data = prepare_data(obs_data, 0, "Etc/GMT+1")
     boolean_series = (
         final_data['timestamp'] == final_data['UTC time'] + 3600000
         )

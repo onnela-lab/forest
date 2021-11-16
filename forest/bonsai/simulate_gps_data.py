@@ -1000,10 +1000,10 @@ def remove_data(
     return obs_data
 
 
-def prepares_data(
+def prepare_data(
     obs: np.ndarray, timestamp_s: int, tz_str: str
 ) -> pd.DataFrame:
-    """Perpares the data in a dataframe.
+    """Prepares the data in a dataframe.
 
     Args:
         obs: (numpy.ndarray) observed trajectories.
@@ -1054,7 +1054,7 @@ def sim_GPS_data(cycle,p,data_folder):
         print("distance(km): ", all_D)
         print("hometime(hr): ", all_T)
         obs = remove_data(all_traj,cycle,p,14)
-        obs_pd = prepares_data(obs)
+        obs_pd = prepare_data(obs)
         for i in range(14):
             for j in range(24):
                 s_lower = s+i*24*60*60*1000+j*60*60*1000
