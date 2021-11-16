@@ -120,9 +120,7 @@ def get_basic_path(path: np.ndarray, transport: Vehicle) -> np.ndarray:
         subset of original path that represents the flight
     """
 
-    distance = great_circle_dist(
-        *path[0], *path[-1]
-    )
+    distance = great_circle_dist(*path[0], *path[-1])
 
     if transport in [Vehicle.FOOT, Vehicle.BICYCLE]:
         # slower speed thus capturing more locations
