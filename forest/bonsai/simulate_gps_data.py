@@ -3,6 +3,7 @@ Module to simulate realistic GPS trajectories
 of a number of people anywhere in the world.
 """
 
+import datetime
 from dataclasses import dataclass
 from enum import Enum
 import os
@@ -16,28 +17,33 @@ import pandas as pd
 from forest.jasmine.data2mobmat import great_circle_dist
 from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
-b_start = [42.3696, -71.1131]
-home_g = [42.3678, -71.1138]
-home_e = [42.3646, -71.1128]
-hmart = [42.3651, -71.1027]
-gym = [42.3712, -71.1197]
-mit = [42.3589, -71.0992]
-turn1 = [42.3473, -71.0877]
-turn2 = [42.3433, -71.1025]
-turn3 = [42.3389, -71.1073]
-turn4 = [42.3641, -71.1181]
-turn5 = [42.3526, -71.1106]
-turn6 = [42.3609, -71.0708]
-b_end = [42.3370, -71.1073]
-hsph = [42.3356, -71.1038]
-work = [42.3444, -71.1135]
-movie = [42.3524, -71.0645]
-restaurant = [42.3679,-71.1089]
 R = 6.371*10**6
 
 
+class Vehicle(Enum):
+    """This class enumerates vehicle for attributes"""
+    BUS = "bus"
+    CAR = "car"
+    BICYCLE = "bicycle"
+    FOOT = "foot"
+
+
+class Occupation(Enum):
+    """This class enumerates occupation for attributes"""
+    NONE = ""
+    WORK = "office"
+    SCHOOL = "university"
+
+
+class ActionType(Enum):
+    """This class enumerates action type for action"""
+    PAUSE = "p"
+    PAUSE_NIGHT = "p_night"
+    FLIGHT_PAUSE_FLIGHT = "fpf"
+
+
 def get_path(start: Tuple[float, float], end: Tuple[float, float],
-             transport: str, api_key: str) -> Tuple[np.ndarray, float]:
+             transport: Vehicle, api_key: str) -> Tuple[np.ndarray, float]:
     """Calculates paths between sets of coordinates
 
     This function takes 2 sets of coordinates and
@@ -49,8 +55,6 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
         start: coordinates of start point (lat, lon)
         end: coordinates of end point (lat, lon)
         transport: means of transportation,
-            can be one of the following:
-            (car, bus, foot, bicycle)
         api_key: api key collected from
             https://openrouteservice.org/dev/#/home
     Returns:
@@ -69,17 +73,21 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
         return (np.array([[lat1, lon1], [lat2, lon2]]),
                 distance)
 
-    if transport in ("car", "bus"):
-        transport = "driving-car"
-    elif transport == "foot":
-        transport = "foot-walking"
-    elif transport == "bicycle":
-        transport = "cycling-regular"
+    if transport in (Vehicle.CAR, Vehicle.BUS):
+        transport2 = "driving-car"
+    elif transport.value == Vehicle.FOOT:
+        transport2 = "foot-walking"
+    elif transport.value == Vehicle.BICYCLE:
+        transport2 = "cycling-regular"
+    else:
+        transport2 = ""
     client = openrouteservice.Client(key=api_key)
     coords = ((lon1, lat1), (lon2, lat2))
 
     try:
-        routes = client.directions(coords, profile=transport, format="geojson")
+        routes = client.directions(
+            coords, profile=transport2, format="geojson"
+            )
     except Exception:
         raise RuntimeError(
             "Openrouteservice did not return proper trajectories."
@@ -100,26 +108,24 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
     return np.array(path_coordinates), distance
 
 
-def get_basic_path(path: np.ndarray, transport: str) -> np.ndarray:
+def get_basic_path(path: np.ndarray, transport: Vehicle) -> np.ndarray:
     """Subsets paths depending on transport for optimisation.
 
     This function takes a path from get_path() function and subsets it
     to a specific number of nodes.
     Args:
         path: 2d numpy array
-        transport: str
+        transport: Vehicle
     Returns:
         subset of original path that represents the flight
     """
 
-    distance = great_circle_dist(
-        path[0][1], path[0][0], path[-1][1], path[-1][0]
-    )
+    distance = great_circle_dist(*path[0], *path[-1])
 
-    if transport in ["foot", "bicycle"]:
+    if transport in [Vehicle.FOOT, Vehicle.BICYCLE]:
         # slower speed thus capturing more locations
         length = 2 + distance // 200
-    elif transport == 'bus':
+    elif transport == Vehicle.BUS:
         # higher speed thus capturing less locations
         # bus route start and end +2
         length = 4 + distance // 400
@@ -162,28 +168,6 @@ def bounding_box(center: Tuple[float, float], radius: int) -> Tuple:
     lat_const = (radius / (1000 * earth_radius)) * (180 / np.pi)
     lon_const = lat_const / np.cos(lat * np.pi / 180)
     return lat - lat_const, lon - lon_const, lat + lat_const, lon + lon_const
-
-
-class Vehicle(Enum):
-    """This class enumerates vehicle for attributes"""
-    BUS = "bus"
-    CAR = "car"
-    BICYCLE = "bicycle"
-    FOOT = "foot"
-
-
-class Occupation(Enum):
-    """This class enumerates occupation for attributes"""
-    NONE = ""
-    WORK = "office"
-    SCHOOL = "university"
-
-
-class ActionType(Enum):
-    """This class enumerates action type for action"""
-    PAUSE = "p"
-    PAUSE_NIGHT = "p_night"
-    FLIGHT_PAUSE_FLIGHT = "fpf"
 
 
 @dataclass
@@ -531,7 +515,7 @@ class Person:
 
     def calculate_trip(self, origin: Tuple[float, float],
                        destination: Tuple[float, float], api_key: str
-                       ) -> Tuple[np.ndarray, str]:
+                       ) -> Tuple[np.ndarray, Vehicle]:
         """This function uses the openrouteservice api to produce the path
         from person's house to destination and back.
 
@@ -542,7 +526,7 @@ class Person:
         Returns:
             path: 2d numpy array, containing [lat,lon]
                 of route from origin to destination
-            transport: str, means of transport
+            transport: Vehicle, means of transport
         Raises:
             RuntimeError: An error when openrouteservice does not
                 return coordinates of route as expected after 3 tries
@@ -551,9 +535,9 @@ class Person:
         distance = great_circle_dist(*origin, *destination)
         # if very short distance do not take any vehicle (less than 1km)
         if distance <= 1000:
-            transport = "foot"
+            transport = Vehicle.FOOT
         else:
-            transport = self.attributes.vehicle.value
+            transport = self.attributes.vehicle
 
         coords_str = \
             f"{origin[0]}_{origin[1]}_{destination[0]}_{destination[1]}"
@@ -790,13 +774,13 @@ def gen_basic_pause(location_start: Tuple[float, float], time_start: float,
 
 def gen_route_traj(route: list, vehicle: Vehicle,
                    time_start: float) -> Tuple[np.ndarray, float]:
-    """
-    This function generates basic trajectories between multiple points.
+    """This function generates basic trajectories between multiple points.
+
     Args:
         route: list, contains coordinates of multiple locations
         vehicle: Vehicle, means of transportation,
         time_start: float, starting time
-    Return:
+    Returns:
         numpy.ndarray, containing the trajectories
         float, total distance travelled
     """
@@ -824,209 +808,163 @@ def gen_route_traj(route: list, vehicle: Vehicle,
     return traj, total_distance
 
 
-def gtraj_with_regular_visits(day):
-    total_d = 0
-    dur = np.random.uniform(15,40,1)[0]
-    t_s = (day-1) * 24 * 60 * 60
-    traj = np.zeros((1,3))
-    traj[0,0] = t_s
-    traj[0,1] = home_g[0]
-    traj[0,2] = home_g[1]
-    home_morning = gen_basic_pause(home_g, t_s, None, [7.5*3600, 8.5*3600])
-    t0 = home_morning[-1,0]-home_morning[0,0]
-    traj = np.vstack((traj,home_morning))
-    t_s = home_morning[-1,0]
-    home2gym,d = gen_route_traj([home_g, b_start, gym], 'walk', t_s)
-    total_d = total_d + d
-    traj = np.vstack((traj,home2gym))
-    t_s = home2gym[-1,0]
-    workout = gen_basic_pause(gym, t_s, None, [dur*60, dur*60])
-    traj = np.vstack((traj,workout))
-    t_s = workout[-1,0]
-    gym2bus,d = gen_basic_traj(gym, b_start, 'walk', t_s)
-    total_d = total_d + d
-    traj = np.vstack((traj,gym2bus))
-    t_s = gym2bus[-1,0]
-    waitbus = gen_basic_pause(b_start, t_s, None, [3*60, 6*60])
-    traj = np.vstack((traj,waitbus))
-    t_s = waitbus[-1,0]
-    bus_time = t_s
-    onbus,d = gen_route_traj([b_start,hmart,mit,turn1,turn2,turn3,b_end], 'bus', t_s)
-    total_d = total_d + d
-    traj = np.vstack((traj,onbus))
-    t_s = onbus[-1,0]
-    bus2hsph,d = gen_basic_traj(b_end, hsph, 'walk', t_s)
-    total_d = total_d + d
-    traj = np.vstack((traj,bus2hsph))
-    t_s = bus2hsph[-1,0]
-    athsph = gen_basic_pause(hsph, t_s, None, [5*3600, 6*3600])
-    traj = np.vstack((traj,athsph))
-    t_s = athsph[-1,0]
-    hsph2bus,d = gen_basic_traj(hsph, b_end, 'walk', t_s)
-    total_d = total_d + d
-    traj = np.vstack((traj,hsph2bus))
-    t_s = hsph2bus[-1,0]
-    waitbus = gen_basic_pause(b_end, t_s, None, [3*60, 6*60])
-    traj = np.vstack((traj,waitbus))
-    t_s = waitbus[-1,0]
-    onbus,d = gen_route_traj([b_end,turn3,turn2,turn1,mit,hmart,b_start], 'bus', t_s)
-    total_d = total_d + d
-    traj = np.vstack((traj,onbus))
-    t_s = onbus[-1,0]
-    bus2home,d = gen_basic_traj(b_start, home_g, 'walk', t_s)
-    total_d = total_d + d
-    traj = np.vstack((traj,bus2home))
-    t_s = bus2home[-1,0]
-    home_night = gen_basic_pause(home_g, t_s, [day*24*60*60-1, day*24*60*60-1], None)
-    t1 = home_night[-1,0]-home_night[0,0]
-    total_d = total_d + d
-    traj = np.vstack((traj,home_night))
-    return traj, total_d/1000, (t0+t1)/3600
+def gen_all_traj(person: Person, switches: Dict[str, int],
+                 start_date: datetime.date, end_date: datetime.date,
+                 api_key: str) -> Tuple[np.ndarray, List[int], List[float]]:
+    """Generates trajectories for a single person.
 
-def gtraj_with_one_visit(day):
-    total_d = 0
-    dur = np.random.uniform(15,40,1)[0]
-    t_s = (day-1) * 24 * 60 * 60
-    traj = np.zeros((1,3))
-    traj[0,0] = t_s
-    traj[0,1] = home_g[0]
-    traj[0,2] = home_g[1]
-    home_morning = gen_basic_pause(home_g, t_s, None, [9*3600, 9.5*3600])
-    t0 = home_morning[-1,0]-home_morning[0,0]
-    traj = np.vstack((traj,home_morning))
-    t_s = home_morning[-1,0]
-    home2bus,d = gen_basic_traj(home_g, b_start, 'walk', t_s)
-    total_d = total_d + d
-    traj = np.vstack((traj,home2bus))
-    t_s = home2bus[-1,0]
-    waitbus = gen_basic_pause(b_start, t_s, None, [3*60, 6*60])
-    traj = np.vstack((traj,waitbus))
-    t_s = waitbus[-1,0]
-    onbus,d = gen_route_traj([b_start,hmart,mit], 'bus', t_s)
-    total_d = total_d + d
-    traj = np.vstack((traj,onbus))
-    t_s = onbus[-1,0]
-    atmit = gen_basic_pause(mit, t_s, None, [2.5*3600, 3*3600])
-    traj = np.vstack((traj,atmit))
-    t_s = atmit[-1,0]
-    mit2hmart,d = gen_basic_traj(mit, hmart, 'walk', t_s)
-    total_d = total_d + d
-    traj = np.vstack((traj,mit2hmart))
-    t_s = mit2hmart[-1,0]
-    hmart_time = t_s
-    athmart = gen_basic_pause(hmart, t_s, None, [15*60, 25*60])
-    traj = np.vstack((traj,athmart))
-    t_s = athmart[-1,0]
-    hmart2home,d = gen_route_traj([hmart,b_start,home_g], 'walk', t_s)
-    total_d = total_d + d
-    traj = np.vstack((traj,hmart2home))
-    t_s = hmart2home[-1,0]
-    home_afternoon = gen_basic_pause(home_g, t_s, None, [4*3600, 5*3600])
-    t1 = home_afternoon[-1,0]-home_afternoon[0,0]
-    traj = np.vstack((traj,home_afternoon))
-    t_s = home_afternoon[-1,0]
-    home2movie,d = gen_route_traj([home_g,b_start,hmart,mit,turn1,movie], 'bus', t_s)
-    total_d = total_d + d
-    traj = np.vstack((traj,home2movie))
-    t_s = home2movie[-1,0]
-    atmovie = gen_basic_pause(movie, t_s, None, [dur*60, dur*60])
-    traj = np.vstack((traj,atmovie))
-    t_s = atmovie[-1,0]
-    movie2home,d = gen_route_traj([movie,turn1,mit,hmart,b_start,home_g], 'bus', t_s)
-    total_d = total_d + d
-    traj = np.vstack((traj,movie2home))
-    t_s = movie2home[-1,0]
-    home_night = gen_basic_pause(home_g, t_s, [day*24*60*60-1, day*24*60*60-1], None)
-    t2 = home_night[-1,0]-home_night[0,0]
-    traj = np.vstack((traj,home_night))
-    return traj, total_d/1000, (t0+t1+t2)/3600
+    Args:
+        switches: (dictionary) contains changes of attributes
+            in between the simulation
+        all amenities around the house address
+        start_date: (datetime.date object) start date of trajectories
+        end_date: (datetime.date object) end date of trajectories,
+            end date is not included in the trajectories
+        api_key: (str) api key for open route service
+    Returns:
+        traj: (numpy.ndarray) contains the gps trajectories of a single person,
+        first column is time, second column is lattitude
+            and third column is longitude
+        home_time_list: (list) contains the time spent
+            at home each day in seconds
+        total_d_list: (list) contains the total distance
+            travelled each day in meters
+    Raises:
+        ValueError: if possible destinations around the house address
+            are less than 4
+        ValueError: if no offices around person's house address
+    """
 
-def gtraj_random(day):
-    total_d = 0
-    t_s = (day-1) * 24 * 60 * 60
-    traj = np.zeros((1,3))
-    traj[0,0] = t_s
-    traj[0,1] = home_g[0]
-    traj[0,2] = home_g[1]
-    home_morning = gen_basic_pause(home_g, t_s, None, [9*3600, 9.5*3600])
-    t0 = home_morning[-1,0]-home_morning[0,0]
-    traj = np.vstack((traj,home_morning))
-    t_s = home_morning[-1,0]
-    randnum = np.random.randint(0,3,1)
-    if randnum == 0:
-        home2bus,d = gen_basic_traj(home_g, b_start, 'walk', t_s)
-        total_d = total_d + d
-        traj = np.vstack((traj,home2bus))
-        t_s = home2bus[-1,0]
-        waitbus = gen_basic_pause(b_start, t_s, None, [3*60, 6*60])
-        traj = np.vstack((traj,waitbus))
-        t_s = waitbus[-1,0]
-        onbus, d = gen_route_traj([b_start,hmart,mit], 'bus', t_s)
-        total_d = total_d + d
-        traj = np.vstack((traj,onbus))
-        t_s = onbus[-1,0]
-        atmit = gen_basic_pause(mit, t_s, None, [2.5*3600, 3*3600])
-        traj = np.vstack((traj,atmit))
-        t_s = atmit[-1,0]
-        mit2hmart,d = gen_basic_traj(mit, hmart, 'walk', t_s)
-        total_d = total_d + d
-        traj = np.vstack((traj,mit2hmart))
-        t_s = mit2hmart[-1,0]
-        hmart_time = t_s
-        athmart = gen_basic_pause(hmart, t_s, None, [15*60, 25*60])
-        traj = np.vstack((traj,athmart))
-        t_s = athmart[-1,0]
-        hmart2home,d = gen_route_traj([hmart,b_start,home_g], 'walk', t_s)
-        total_d = total_d + d
-        traj = np.vstack((traj,hmart2home))
-        t_s = hmart2home[-1,0]
-    if randnum == 1:
-        home2hmart,d = gen_route_traj([home_g,b_start,hmart], 'walk', t_s)
-        total_d = total_d + d
-        traj = np.vstack((traj,home2hmart))
-        t_s = home2hmart[-1,0]
-        athmart = gen_basic_pause(hmart, t_s, None, [15*60, 25*60])
-        traj = np.vstack((traj,athmart))
-        t_s = athmart[-1,0]
-        hmart2res,d = gen_basic_traj(hmart, restaurant, 'walk', t_s)
-        total_d = total_d + d
-        traj = np.vstack((traj,hmart2res))
-        t_s = hmart2res[-1,0]
-        atres = gen_basic_pause(restaurant, t_s, None, [45*60, 60*60])
-        traj = np.vstack((traj,atres))
-        t_s = atres[-1,0]
-        res2home,d = gen_route_traj([restaurant,b_start,home_g], 'walk', t_s)
-        total_d = total_d + d
-        traj = np.vstack((traj,res2home))
-        t_s = res2home[-1,0]
-    if randnum == 2:
-        home2home,d = gen_route_traj([home_g,b_start,gym,turn4,home_g], 'walk', t_s)
-        total_d = total_d + d
-        traj = np.vstack((traj,home2home))
-        t_s = home2home[-1,0]
-    home_night = gen_basic_pause(home_g, t_s, [day*24*60*60-1, day*24*60*60-1], None)
-    t1 = home_night[-1,0]-home_night[0,0]
-    traj = np.vstack((traj,home_night))
-    return traj, total_d/1000, (t0+t1)/3600
+    if len(person.possible_destinations) < 4:
+        raise ValueError("Not enough possible destinations")
+    if (
+        person.attributes.main_occupation != Occupation.NONE
+        and person.office_coordinates == (0, 0)
+    ):
+        raise ValueError("No office coordinates")
 
-def gen_all_traj():
-    all_D = []
-    all_T = []
-    gtraj,D,T = gtraj_with_regular_visits(1)
-    all_D.append(D)
-    all_T.append(T)
-    all_gtraj = gtraj
-    for i in np.arange(2,15):
-        if sum(np.array([3,5,8,10,12]==i))==1:
-            gtraj,D,T = gtraj_with_regular_visits(i)
-        elif i == 2:
-            gtraj,D,T = gtraj_with_one_visit(i)
-        else:
-            gtraj,D,T = gtraj_random(i)
-        all_gtraj = np.vstack((all_gtraj,gtraj))
-        all_D.append(D)
-        all_T.append(T)
-    return all_gtraj,all_D,all_T
+    val_active_change = -1
+    time_active_change = -1
+    val_travel_change = -1
+    time_travel_change = -1
+    if len(switches.keys()) != 0:
+        for key in switches.keys():
+            key_list = key.split("-")
+            if key_list[0] == "active_status":
+                time_active_change = int(key_list[1]) - 1
+                val_active_change = switches[key]
+            elif key_list[0] == "travelling_status":
+                time_travel_change = int(key_list[1]) - 1
+                val_travel_change = switches[key]
+
+    current_date = start_date
+
+    t_s = 0
+    traj = np.zeros((1, 3))
+    traj[0, 0] = t_s
+    traj[0, 1] = person.home_coordinates[0]
+    traj[0, 2] = person.home_coordinates[1]
+
+    home_time = 0
+    total_d = 0.
+
+    home_time_list = []
+    total_d_list = []
+
+    while current_date < end_date:
+
+        if t_s == time_travel_change * 24 * 3600:
+            person.set_travelling_status(val_travel_change)
+        if t_s == time_active_change * 24 * 3600:
+            person.set_active_status(val_active_change)
+
+        current_weekdate = current_date.weekday()
+        action = person.choose_action(t_s, current_weekdate)
+
+        if action.action == ActionType.PAUSE:
+
+            res = gen_basic_pause(
+                action.destination_coordinates, t_s, None, action.duration
+                )
+
+            if action.destination_coordinates == person.home_coordinates:
+                home_time += res[-1, 0] - res[0, 0] + 1
+
+            traj = np.vstack((traj, res))
+            t_s = res[-1, 0]
+
+        elif action.action == ActionType.FLIGHT_PAUSE_FLIGHT:
+            d_temp = 0.
+
+            go_path, transport = person.calculate_trip(
+                person.home_coordinates, action.destination_coordinates,
+                api_key
+            )
+            return_path, _ = person.calculate_trip(
+                action.destination_coordinates, person.home_coordinates,
+                api_key
+            )
+
+            # Flight 1
+            res1, distance1 = gen_route_traj(go_path.tolist(), transport, t_s)
+            t_s1 = res1[-1, 0]
+            traj1 = res1
+            d_temp += distance1
+
+            # Pause
+            res2 = gen_basic_pause(
+                action.destination_coordinates, t_s1, None, action.duration
+                )
+            t_s2 = res2[-1, 0]
+            traj2 = np.vstack((traj1, res2))
+
+            # Flight 2
+            res3, distance3 = gen_route_traj(
+                return_path.tolist(), transport, t_s2
+                )
+            t_s3 = res3[-1, 0]
+            traj3 = np.vstack((traj2, res3))
+            d_temp += distance3
+
+            dates_passed_in_hrs = (current_date - start_date).days * 24 * 3600
+            if t_s3 - dates_passed_in_hrs < 24 * 3600:
+                t_s = t_s3
+                traj = np.vstack((traj, traj3))
+                total_d += d_temp
+            else:
+                # pause
+                res = gen_basic_pause(
+                    person.home_coordinates, t_s, None, [15 * 60, 30 * 60]
+                )
+                home_time += res[-1, 0] - res[0, 0] + 1
+                t_s = res[-1, 0]
+                traj = np.vstack((traj, res))
+
+        elif action.action == ActionType.PAUSE_NIGHT:
+            if action.duration[0] + action.duration[1] != 0:
+                res = gen_basic_pause(
+                    action.destination_coordinates, t_s, None, action.duration
+                    )
+
+                if action.destination_coordinates == person.home_coordinates:
+                    home_time += res[-1, 0] - res[0, 0] + 1
+
+                traj = np.vstack((traj, res))
+                t_s = res[-1, 0]
+
+            current_date += datetime.timedelta(days=1)
+            person.end_of_day_reset()
+
+            home_time_list.append(home_time)
+            total_d_list.append(total_d)
+
+            home_time = 0
+            total_d = 0
+
+    traj = traj[:-1, :]
+
+    return traj, home_time_list, total_d_list
+
 
 ## cycle is minute
 def remove_data(full_data,cycle,p,day):
