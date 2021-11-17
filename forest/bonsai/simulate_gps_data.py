@@ -18,7 +18,15 @@ from forest.jasmine.data2mobmat import great_circle_dist
 from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
 R = 6.371*10**6
-
+possible_exits_list = [
+    "cafe",
+    "bar",
+    "restaurant",
+    "park",
+    "cinema",
+    "dance",
+    "fitness",
+]
 
 class Vehicle(Enum):
     """This class enumerates vehicle for attributes"""
@@ -1033,6 +1041,111 @@ def prepare_data(
             "accuracy",
         ],
     )
+
+
+def process_attributes(
+    attributes: Dict[str, Dict], key: str, user: int
+) -> Tuple[Attributes, Dict[str, int]]:
+    """Preprocesses the attributes of each person.
+
+    Args:
+        attributes: (dictionary) contains attributes of each person,
+            loaded from json file.
+        key: (str) a key from attributes.keys()
+        user: (int) number of user
+    Returns:
+        attrs: Attributes class for a user
+        switches: (dictionary) contains possible changes of attributes
+            in between of simulation
+    Raises:
+        KeyError: if vehicle is not in possible vehicles
+        KeyError: if main_employment is not in possible occupations
+        ValueError: if active_status is not between 0 and 10
+        ValueError: if travelling_status is not between 0 and 10
+        KeyError: if an exit from possible_exits is not in possible_exits_list
+    """
+    switches = {}
+
+    if "vehicle" in attributes[key].keys():
+        try:
+            vehicle = Vehicle[attributes[key]["vehicle"].upper()]
+        except KeyError:
+            raise KeyError(
+                f"For User {user} vehicle was not in {[v.value for v in Vehicle][1:]}"
+            )
+    else:
+        # exclude bus
+        vehicle = np.random.choice(list(Vehicle)[1:])
+
+    if "main_employment" in attributes[key].keys():
+        try:
+            main_employment = Occupation[
+                attributes[key]["main_employment"].upper()
+            ]
+        except KeyError:
+            raise KeyError(
+                f"For User {user} occupation was not in {[v.value for v in Occupation]}"
+            )
+    else:
+        main_employment = np.random.choice(list(Occupation))
+
+    if "active_status" in attributes[key].keys():
+        if attributes[key]["active_status"] in range(11):
+            active_status = attributes[key]["active_status"]
+        else:
+            raise ValueError(
+                f"For User {user} active_status was not in between 0-10"
+            )
+    else:
+        active_status = np.random.choice(range(11))
+
+    if "travelling_status" in attributes[key].keys():
+        if attributes[key]["travelling_status"] in range(11):
+            travelling_status = attributes[key]["travelling_status"]
+        else:
+            raise ValueError(
+                f"For User {user} travelling_status was not in between 0-10"
+            )
+    else:
+        travelling_status = np.random.choice(range(11))
+
+    if "preferred_exits" in attributes[key].keys():
+
+        for possible_exit in attributes[key]["preferred_exits"]:
+            if possible_exit not in possible_exits_list:
+                KeyError(
+                    f"For User {user} exit {possible_exit} is not in {possible_exits_list}"
+                )
+
+        preferred_exits = attributes[key]["preferred_exits"]
+        possible_exits2 = [
+            x for x in possible_exits_list if x not in preferred_exits
+        ]
+
+        random_exits = np.random.choice(
+            possible_exits2, 3 - len(preferred_exits), replace=False
+        ).tolist()
+        for choice in random_exits:
+            preferred_exits.append(choice)
+    else:
+        preferred_exits = np.random.choice(
+            possible_exits_list, 3, replace=False
+        ).tolist()
+
+    attrs = Attributes(
+        vehicle=vehicle,
+        main_occupation=main_employment,
+        active_status=active_status,
+        travelling_status=travelling_status,
+        preferred_places=preferred_exits,
+    )
+
+    for x in attributes[key].keys():
+        key_list = x.split("-")
+        if len(key_list) == 2:
+            switches[x] = attributes[key][x]
+
+    return attrs, switches
 
 
 def sim_GPS_data(cycle,p,data_folder):

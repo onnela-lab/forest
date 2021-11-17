@@ -9,6 +9,7 @@ from forest.bonsai.simulate_gps_data import (
     bounding_box, get_basic_path, get_path, Vehicle, Occupation,
     ActionType, Attributes, Person, gen_basic_traj, gen_basic_pause,
     gen_route_traj, gen_all_traj, remove_data, prepare_data,
+    process_attributes,
     )
 from forest.jasmine.data2mobmat import great_circle_dist
 
@@ -836,3 +837,68 @@ def test_prepare_data_timezones(generated_trajectory):
         final_data['timestamp'] == final_data['UTC time'] + 3600000
         )
     assert sum(boolean_series) == len(boolean_series)
+
+
+@pytest.fixture(scope="session")
+def sample_attributes():
+    """Sample attributes"""
+    return {
+            "User 1":
+            {
+                "main_employment": "none",
+                "vehicle": "car",
+                "travelling_status": 10,
+                "active_status": 0
+            },
+
+            "Users 2-4":
+            {
+                "main_employment": "student",
+                "vehicle": "bicycle",
+                "travelling_status": 8,
+                "active_status": 8,
+                "active_status-16": 2
+            },
+
+            "User 5":
+            {
+                "main_employment": "work",
+                "vehicle": "foot",
+                "travelling_status": 9,
+                "travelling_status-20": 1,
+                "preferred_exits": ["cafe", "bar", "cinema"]
+            }
+        }
+
+
+def test_process_attributes_user_missing_args(sample_attributes):
+    """Test processing attributes with missing arguments"""
+
+    key = "User 1"
+    user = 1
+    attrs, _ = process_attributes(sample_attributes, key, user)
+    assert len(attrs.preferred_places) == 3
+
+
+def test_process_attributes_arguments_correct(sample_attributes):
+    """Test that given arguments are processed correctly"""
+
+    key = "User 5"
+    user = 5
+    attrs, _ = process_attributes(sample_attributes, key, user)
+    assert (
+        attrs.travelling_status == 9
+        and attrs.preferred_places == ["cafe", "bar", "cinema"]
+        )
+
+
+def test_process_attributes_switch(sample_attributes):
+    """Test processing attributes with switch of behavior"""
+
+    key = "User 5"
+    user = 5
+    _, switches = process_attributes(sample_attributes, key, user)
+    assert (
+        list(switches.keys())[0] == "travelling_status-20"
+        and list(switches.values())[0] == 1
+    )
