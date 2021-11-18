@@ -480,7 +480,9 @@ def test_process_attributes_arguments_correct(sample_attributes):
         )
 
 
-def test_person_main_employment(sample_coordinates, sample_locations, sample_attributes):
+def test_person_main_employment(
+    sample_coordinates, sample_locations, sample_attributes
+):
     key = "User 5"
     user = 5
     attributes = Attributes(sample_attributes, key, user)
@@ -488,7 +490,9 @@ def test_person_main_employment(sample_coordinates, sample_locations, sample_att
     assert random_person.attributes.main_occupation == Occupation.WORK
 
 
-def test_person_cafe_places(sample_coordinates, sample_locations, sample_attributes):
+def test_person_cafe_places(
+    sample_coordinates, sample_locations, sample_attributes
+):
     """Test one place from cafe_places attribute is actual cafe"""
     key = "User 5"
     user = 5
@@ -501,7 +505,9 @@ def test_person_cafe_places(sample_coordinates, sample_locations, sample_attribu
     assert cafe_place in sample_locations["cafe"]
 
 
-def test_person_office_address(sample_coordinates, sample_locations, sample_attributes):
+def test_person_office_address(
+    sample_coordinates, sample_locations, sample_attributes
+):
     """Test person going to work office_address"""
     key = "User 5"
     user = 5
@@ -514,7 +520,9 @@ def test_person_office_address(sample_coordinates, sample_locations, sample_attr
     assert office_coordinates in sample_locations["office"]
 
 
-def test_person_office_days(sample_coordinates, sample_locations, sample_attributes):
+def test_person_office_days(
+    sample_coordinates, sample_locations, sample_attributes
+):
     """Test person going to work office_address"""
     key = "User 5"
     user = 5
