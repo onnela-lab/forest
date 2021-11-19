@@ -18,6 +18,8 @@ from forest.jasmine.data2mobmat import great_circle_dist
 from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
 R = 6.371*10**6
+ACTIVE_STATUS_LIST = range(11)
+TRAVELLING_STATUS_LIST = range(11)
 
 
 class PossibleExits(Enum):
@@ -41,7 +43,7 @@ class Vehicle(Enum):
 
 class Occupation(Enum):
     """This class enumerates occupation for attributes"""
-    NONE = ""
+    NONE = "none"
     WORK = "office"
     SCHOOL = "university"
 
@@ -208,34 +210,34 @@ class Attributes:
             ValueError: if an exit from possible_exits is not correct type
         """
         if vehicle is not None:
-            self.vehicle = Vehicle[vehicle.upper()]
+            self.vehicle = Vehicle(vehicle)
         else:
             # exclude bus
             self.vehicle = np.random.choice(list(Vehicle)[1:])
 
         if main_employment is not None:
-            self.main_occupation = Occupation[main_employment.upper()]
+            self.main_occupation = Occupation(main_employment)
         else:
             self.main_occupation = np.random.choice(list(Occupation))
 
         if active_status is not None:
-            if active_status not in range(11):
+            if active_status not in ACTIVE_STATUS_LIST:
                 raise ValueError("active_status must be between 0 and 10")
             self.active_status = int(active_status)
         else:
-            self.active_status = np.random.choice(range(11))
+            self.active_status = np.random.choice(ACTIVE_STATUS_LIST)
 
         if travelling_status is not None:
-            if travelling_status not in range(11):
+            if travelling_status not in TRAVELLING_STATUS_LIST:
                 raise ValueError("travelling_status must be between 0 and 10")
             self.travelling_status = int(travelling_status)
         else:
-            self.travelling_status = np.random.choice(range(11))
+            self.travelling_status = np.random.choice(TRAVELLING_STATUS_LIST)
 
         if preferred_places is not None:
             self.preferred_places = []
             for possible_exit in preferred_places:
-                possible_exit2 = PossibleExits[possible_exit.upper()]
+                possible_exit2 = PossibleExits(possible_exit)
                 self.preferred_places.append(possible_exit2)
 
             possible_exits2 = [

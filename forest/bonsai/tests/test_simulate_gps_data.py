@@ -441,7 +441,7 @@ def sample_attributes():
 
             "Users 2-4":
             {
-                "main_employment": "student",
+                "main_employment": "university",
                 "vehicle": "bicycle",
                 "travelling_status": 8,
                 "active_status": 8,
@@ -450,7 +450,7 @@ def sample_attributes():
 
             "User 5":
             {
-                "main_employment": "work",
+                "main_employment": "office",
                 "vehicle": "foot",
                 "travelling_status": 9,
                 "travelling_status-20": 1,
