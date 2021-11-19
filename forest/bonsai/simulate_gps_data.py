@@ -187,11 +187,13 @@ class Attributes:
     """This class holds the attributes needed to create an instance of a
     Person class"""
 
-    def __init__(self, vehicle: Optional[str] = None,
+    def __init__(self,
+                 vehicle: Optional[str] = None,
                  main_employment: Optional[str] = None,
                  active_status: Optional[int] = None,
                  travelling_status: Optional[int] = None,
-                 preferred_places: Optional[List[str]] = None, **kwargs):
+                 preferred_places: Optional[List[str]] = None,
+                 **kwargs):
         """Error check and generate missing data for attributes
 
         Args:
