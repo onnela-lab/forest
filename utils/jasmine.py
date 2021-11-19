@@ -28,8 +28,9 @@ beiwe_id = None
 parameters = None
 all_memory_dict = None
 all_BV_set = None
+quality_threshold = None
 
 os.makedirs(summary_data_path, exist_ok=True)
 gps_stats_main(args.raw_data_path, summary_data_path, tz_str, option,
                save_traj, time_start, time_end, beiwe_id, parameters,
-               all_memory_dict, all_BV_set)
+               all_memory_dict, all_BV_set,quality_threshold=quality_threshold)

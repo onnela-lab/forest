@@ -206,7 +206,7 @@ def gps_quality_check(study_folder, ID):
     return quality_check
 
 def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_start = None, time_end = None, beiwe_id = None,
-    parameters = None, all_memory_dict = None, all_BV_set=None):
+    parameters = None, all_memory_dict = None, all_BV_set=None, quality_threshold=None):
     """
     This the main function to do the GPS imputation. It calls every function defined before.
     Args:   study_folder, string, the path of the study folder
@@ -228,6 +228,9 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_
             and a record csv file to show which users are processed, from when to when
             and logger csv file to show warnings and bugs during the run
     """
+    
+    quality_threshold = quality_threshold if quality_threshold is not None else 0.4
+    
     if os.path.exists(output_folder)==False:
         os.mkdir(output_folder)
 
@@ -264,6 +267,7 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_
             os.mkdir(output_folder+"/hourly")
         if os.path.exists(output_folder+"/daily")==False:
             os.mkdir(output_folder+"/daily")
+
     if save_traj == True:
         if os.path.exists(output_folder+"/trajectory")==False:
             os.mkdir(output_folder+"/trajectory")
@@ -274,7 +278,7 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_
             try:
                 ## data quality check
                 quality = gps_quality_check(study_folder, ID)
-                if quality>0.6:
+                if quality > quality_threshold:
                     ## read data
                     sys.stdout.write("Read in the csv files ..." + '\n')
                     data, stamp_start, stamp_end = read_data(ID, study_folder, "gps", tz_str, time_start, time_end)
