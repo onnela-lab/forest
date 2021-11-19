@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from enum import Enum
 import os
 import time
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import openrouteservice
@@ -18,15 +18,17 @@ from forest.jasmine.data2mobmat import great_circle_dist
 from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
 R = 6.371*10**6
-POSSIBLE_EXITS_LIST = [
-    "cafe",
-    "bar",
-    "restaurant",
-    "park",
-    "cinema",
-    "dance",
-    "fitness",
-]
+
+
+class PossibleExits(Enum):
+    """This class enumerates possible exits for attributes"""
+    CAFE = "cafe"
+    BAR = "bar"
+    RESTAURANT = "restaurant"
+    PARK = "park"
+    CINEMA = "cinema"
+    DANCE = "dance"
+    FITNESS = "fitness"
 
 
 class Vehicle(Enum):
@@ -180,91 +182,64 @@ def bounding_box(center: Tuple[float, float], radius: int) -> Tuple:
 
 
 class Attributes:
-    """This class holds the attributes needed to create an instance of a person
+    """This class holds the attributes needed to create an instance of a
+    Person class"""
 
-    Args:
-        vehicle used for distances and time of flights
-        main_occupation used for routine action in weekdays
-        active_status = 0-10
-            used for probability in free time to take an action
-            or stay home
-        travelling status = 0-10
-            used to derive amount of distance travelled
-        preferred_places  = [x1, x2, x3]
-            used to sample action when free time
-            where x1-x3 are amenities (str)
-    """
-    def __init__(self, attributes_dict: Dict[str, Dict], key: str, user: int):
+    def __init__(self, vehicle: Optional[str] = None,
+                 main_employment: Optional[str] = None,
+                 active_status: Optional[int] = None,
+                 travelling_status: Optional[int] = None,
+                 preferred_places: Optional[List[str]] = None, **kwargs):
         """Error check and generate missing data for attributes
 
         Args:
-            attributes_dict: dictionary of attributes, json file
-            key: key of user in json file
-            user: user id
+            vehicle: used for distances and time of flights
+            main_occupation: used for routine action in weekdays
+            active_status: used for probability in free time to take an action
+                or stay home
+            travelling status: used to derive amount of distance travelled
+            preferred_places :used to sample action when free time
+                where x1-x3 are amenities (str)
         Raises:
-            KeyError: if vehicle is not in possible vehicles
-            KeyError: if main_employment is not in possible occupations
+            ValueError: for incorrect vehicle type
+            ValueError: for incorrect main_employment type
             ValueError: if active_status is not between 0 and 10
             ValueError: if travelling_status is not between 0 and 10
-            KeyError: if an exit from possible_exits is not in
-                POSSIBLE_EXITS_LIST
+            ValueError: if an exit from possible_exits is not correct type
         """
-        if "vehicle" in attributes_dict[key].keys():
-            try:
-                self.vehicle = Vehicle[attributes_dict[key]["vehicle"].upper()]
-            except KeyError:
-                raise KeyError(
-                    f"For User {user} vehicle was not in {[v.value for v in Vehicle][1:]}"
-                )
+        if vehicle is not None:
+            self.vehicle = Vehicle[vehicle.upper()]
         else:
             # exclude bus
             self.vehicle = np.random.choice(list(Vehicle)[1:])
 
-        if "main_employment" in attributes_dict[key].keys():
-            try:
-                self.main_occupation = Occupation[
-                    attributes_dict[key]["main_employment"].upper()
-                ]
-            except KeyError:
-                raise KeyError(
-                    f"For User {user} occupation was not in {[v.value for v in Occupation]}"
-                )
+        if main_employment is not None:
+            self.main_occupation = Occupation[main_employment.upper()]
         else:
             self.main_occupation = np.random.choice(list(Occupation))
 
-        if "active_status" in attributes_dict[key].keys():
-            if attributes_dict[key]["active_status"] in range(11):
-                self.active_status = attributes_dict[key]["active_status"]
-            else:
-                raise ValueError(
-                    f"For User {user} active_status was not in between 0-10"
-                )
+        if active_status is not None:
+            if active_status not in range(11):
+                raise ValueError("active_status must be between 0 and 10")
+            self.active_status = int(active_status)
         else:
             self.active_status = np.random.choice(range(11))
 
-        if "travelling_status" in attributes_dict[key].keys():
-            if attributes_dict[key]["travelling_status"] in range(11):
-                self.travelling_status = attributes_dict[
-                    key
-                ]["travelling_status"]
-            else:
-                raise ValueError(
-                    f"For User {user} travelling_status was not in between 0-10"
-                )
+        if travelling_status is not None:
+            if travelling_status not in range(11):
+                raise ValueError("travelling_status must be between 0 and 10")
+            self.travelling_status = int(travelling_status)
         else:
             self.travelling_status = np.random.choice(range(11))
 
-        if "preferred_exits" in attributes_dict[key].keys():
+        if preferred_places is not None:
+            self.preferred_places = []
+            for possible_exit in preferred_places:
+                possible_exit2 = PossibleExits[possible_exit.upper()]
+                self.preferred_places.append(possible_exit2)
 
-            for possible_exit in attributes_dict[key]["preferred_exits"]:
-                if possible_exit not in POSSIBLE_EXITS_LIST:
-                    KeyError(
-                        f"For User {user} exit {possible_exit} is not in {POSSIBLE_EXITS_LIST}"
-                    )
-
-            self.preferred_places = attributes_dict[key]["preferred_exits"]
             possible_exits2 = [
-                x for x in POSSIBLE_EXITS_LIST
+                x for x in PossibleExits
                 if x not in self.preferred_places
             ]
 
@@ -275,7 +250,7 @@ class Attributes:
                 self.preferred_places.append(choice)
         else:
             self.preferred_places = np.random.choice(
-                POSSIBLE_EXITS_LIST, 3, replace=False
+                list(PossibleExits), 3, replace=False
             ).tolist()
 
 
@@ -357,7 +332,7 @@ class Person:
             self.office_days = np.array([])
 
         # define favorite places
-        self.possible_destinations = POSSIBLE_EXITS_LIST
+        self.possible_destinations = list(PossibleExits)
 
         # for a certain venue select 3 locations for each venue randomly
         # these will be considered the 3 favorite places to go
@@ -368,24 +343,26 @@ class Person:
         for possible_exit in self.possible_destinations:
             # if there are more than 3 sets of coordinates for an venue
             # select 3 at random, else select all of them as preferred
-            if len(local_places[possible_exit]) > 3:
+            if len(local_places[possible_exit.value]) > 3:
                 random_places = np.random.choice(
-                    range(len(local_places[possible_exit])), 3, replace=False
+                    range(len(local_places[possible_exit.value])),
+                    3, replace=False,
                 ).tolist()
                 places_selected = [
                     tuple(place)
-                    for place in np.array(local_places[possible_exit])[
+                    for place in np.array(local_places[possible_exit.value])[
                         random_places
                     ]
                     if tuple(place) != home_coordinates
                 ]
-                setattr(self, possible_exit + "_places", places_selected)
+                setattr(self, possible_exit.value + "_places", places_selected)
             else:
                 setattr(
                     self,
-                    possible_exit + "_places",
+                    possible_exit.value + "_places",
                     [
-                        tuple(place) for place in local_places[possible_exit]
+                        tuple(place) for place
+                        in local_places[possible_exit.value]
                         if tuple(place) != home_coordinates
                     ],
                 )
@@ -393,13 +370,13 @@ class Person:
             # create a list of the locations ordered by distance
             distances = [
                 great_circle_dist(*home_coordinates, *place)
-                for place in getattr(self, possible_exit + "_places")
+                for place in getattr(self, possible_exit.value + "_places")
             ]
             order = np.argsort(distances)
             setattr(
                 self,
-                possible_exit + "_places_ordered",
-                np.array(getattr(self, possible_exit + "_places"))[
+                possible_exit.value + "_places_ordered",
+                np.array(getattr(self, possible_exit.value + "_places"))[
                     order
                 ].tolist(),
             )
@@ -407,7 +384,7 @@ class Person:
         # remove all exits which have no places nearby
         possible_destinations2 = self.possible_destinations.copy()
         for act in possible_destinations2:
-            if len(getattr(self, act + "_places")) == 0:
+            if len(getattr(self, act.value + "_places")) == 0:
                 self.possible_destinations.remove(act)
 
         # order preferred places by travelling_status
@@ -418,7 +395,7 @@ class Person:
             + (10 - self.attributes.travelling_status) ** 2
         )
         for act in self.possible_destinations:
-            act_places = getattr(self, act + "_places_ordered").copy()
+            act_places = getattr(self, act.value + "_places_ordered").copy()
 
             places = []
             for i in range(len(act_places) - 1, -1, -1):
@@ -426,7 +403,7 @@ class Person:
                 places.append(act_places[index])
                 del act_places[index]
 
-            setattr(self, act + "_places", places)
+            setattr(self, act.value + "_places", places)
 
     def set_travelling_status(self, travelling_status: int):
         """Update preferred locations of exits
@@ -442,7 +419,7 @@ class Person:
             travelling_status ** 2 + (10 - travelling_status) ** 2
         )
         for act in self.possible_destinations:
-            act_places = getattr(self, act + "_places_ordered").copy()
+            act_places = getattr(self, act.value + "_places_ordered").copy()
 
             places = []
             for i in range(len(act_places) - 1, -1, -1):
@@ -450,7 +427,7 @@ class Person:
                 places.append(act_places[index])
                 del act_places[index]
 
-            setattr(self, act + "_places", places)
+            setattr(self, act.value + "_places", places)
 
     def set_active_status(self, active_status: int):
         """Update active status.
@@ -471,7 +448,7 @@ class Person:
             )
             self.office_days.sort()
 
-    def update_preferred_places(self, exit_code: str):
+    def update_preferred_places(self, exit_code: PossibleExits):
         """This function updates the set of preferred exits for the day,
         after an action has been performed.
 
@@ -574,7 +551,7 @@ class Person:
 
         # after venue has been selected, a location for that venue
         # needs to be selected as well.
-        action_locations = getattr(self, selected_action + "_places")
+        action_locations = getattr(self, selected_action.value + "_places")
         ratios2 = ratios[: len(action_locations)]
         probabilities2 = np.array(ratios2)
         probabilities2 = probabilities2 / sum(probabilities2)

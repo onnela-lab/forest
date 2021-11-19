@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from forest.bonsai.simulate_gps_data import (
-    bounding_box, get_basic_path, get_path, Vehicle, Occupation,
+    bounding_box, get_basic_path, get_path, PossibleExits, Vehicle, Occupation,
     ActionType, Attributes, Person, gen_basic_traj, gen_basic_pause,
     gen_route_traj, gen_all_traj, remove_data, prepare_data,
     process_switches,
@@ -454,7 +454,7 @@ def sample_attributes():
                 "vehicle": "foot",
                 "travelling_status": 9,
                 "travelling_status-20": 1,
-                "preferred_exits": ["cafe", "bar", "cinema"]
+                "preferred_places": ["cafe", "bar", "cinema"]
             }
         }
 
@@ -462,30 +462,29 @@ def sample_attributes():
 def test_attributes_user_missing_args(sample_attributes):
     """Test processing attributes with missing arguments"""
 
-    key = "User 1"
-    user = 1
-    attrs = Attributes(sample_attributes, key, user)
+    user_attrs = sample_attributes["User 1"]
+    attrs = Attributes(**user_attrs)
     assert len(attrs.preferred_places) == 3
 
 
 def test_process_attributes_arguments_correct(sample_attributes):
     """Test that given arguments are processed correctly"""
 
-    key = "User 5"
-    user = 5
-    attrs = Attributes(sample_attributes, key, user)
+    user_attrs = sample_attributes["User 5"]
+    attrs = Attributes(**user_attrs)
     assert (
         attrs.travelling_status == 9
-        and attrs.preferred_places == ["cafe", "bar", "cinema"]
+        and attrs.preferred_places == [
+            PossibleExits.CAFE, PossibleExits.BAR, PossibleExits.CINEMA
+            ]
         )
 
 
 def test_person_main_employment(
     sample_coordinates, sample_locations, sample_attributes
 ):
-    key = "User 5"
-    user = 5
-    attributes = Attributes(sample_attributes, key, user)
+    user_attrs = sample_attributes["User 5"]
+    attributes = Attributes(**user_attrs)
     random_person = Person(sample_coordinates, attributes, sample_locations)
     assert random_person.attributes.main_occupation == Occupation.WORK
 
@@ -494,9 +493,8 @@ def test_person_cafe_places(
     sample_coordinates, sample_locations, sample_attributes
 ):
     """Test one place from cafe_places attribute is actual cafe"""
-    key = "User 5"
-    user = 5
-    attributes = Attributes(sample_attributes, key, user)
+    user_attrs = sample_attributes["User 5"]
+    attributes = Attributes(**user_attrs)
     random_person = Person(sample_coordinates, attributes, sample_locations)
     cafe_place = (
         random_person.cafe_places[0][0],
@@ -509,9 +507,8 @@ def test_person_office_address(
     sample_coordinates, sample_locations, sample_attributes
 ):
     """Test person going to work office_address"""
-    key = "User 5"
-    user = 5
-    attributes = Attributes(sample_attributes, key, user)
+    user_attrs = sample_attributes["User 5"]
+    attributes = Attributes(**user_attrs)
     random_person = Person(sample_coordinates, attributes, sample_locations)
     office_coordinates = (
         random_person.office_coordinates[0],
@@ -524,18 +521,16 @@ def test_person_office_days(
     sample_coordinates, sample_locations, sample_attributes
 ):
     """Test person going to work office_address"""
-    key = "User 5"
-    user = 5
-    attributes = Attributes(sample_attributes, key, user)
+    user_attrs = sample_attributes["User 5"]
+    attributes = Attributes(**user_attrs)
     random_person = Person(sample_coordinates, attributes, sample_locations)
     assert len(random_person.office_days) <= 5
 
 
 @pytest.fixture()
 def sample_person(sample_coordinates, sample_locations, sample_attributes):
-    key = "User 5"
-    user = 5
-    attributes = Attributes(sample_attributes, key, user)
+    user_attrs = sample_attributes["User 5"]
+    attributes = Attributes(**user_attrs)
     return Person(sample_coordinates, attributes, sample_locations)
 
 
@@ -551,23 +546,16 @@ def test_set_active_status(sample_person):
 
 def test_update_preferred_places_case_first_option(sample_person):
     """Test changing preferred exits change first to second"""
-    sample_person.update_preferred_places("cafe")
-    assert sample_person.preferred_places_today == ["bar", "cafe", "cinema"]
+    sample_person.update_preferred_places(PossibleExits.CAFE)
+    assert sample_person.preferred_places_today == [
+        PossibleExits.BAR, PossibleExits.CAFE, PossibleExits.CINEMA
+        ]
 
 
 def test_update_preferred_places_case_last_option(sample_person):
     """Test changing preferred exits remove last"""
-    sample_person.update_preferred_places("cinema")
-    assert "park" not in sample_person.preferred_places_today
-
-
-def test_update_preferred_places_case_no_option(sample_person):
-    """Test changing preferred exits when selected exit not in preferred"""
-    sample_person.update_preferred_places("not_an_option")
-    assert (
-        sample_person.preferred_places_today
-        == sample_person.attributes.preferred_places
-    )
+    sample_person.update_preferred_places(PossibleExits.CINEMA)
+    assert PossibleExits.CINEMA not in sample_person.preferred_places_today
 
 
 def test_choose_preferred_exit_morning_home(sample_person):
@@ -601,7 +589,7 @@ def test_choose_preferred_exit_random_exit(sample_person):
 
 def test_end_of_day_reset(sample_person):
     """Test end of day reset of preferred exits"""
-    sample_person.update_preferred_places("cafe")
+    sample_person.update_preferred_places(PossibleExits.CAFE)
     sample_person.end_of_day_reset()
     assert (
         sample_person.attributes.preferred_places
