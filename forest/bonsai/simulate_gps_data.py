@@ -7,12 +7,16 @@ import datetime
 from dataclasses import dataclass
 from enum import Enum
 import os
+import requests
+import sys
 import time
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import openrouteservice
+import overpy
 import pandas as pd
+from timezonefinder import TimezoneFinder
 
 from forest.jasmine.data2mobmat import great_circle_dist
 from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
@@ -88,9 +92,9 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
 
     if transport in (Vehicle.CAR, Vehicle.BUS):
         transport2 = "driving-car"
-    elif transport.value == Vehicle.FOOT:
+    elif transport == Vehicle.FOOT:
         transport2 = "foot-walking"
-    elif transport.value == Vehicle.BICYCLE:
+    elif transport == Vehicle.BICYCLE:
         transport2 = "cycling-regular"
     else:
         transport2 = ""
@@ -1117,31 +1121,241 @@ def process_switches(
     return switches
 
 
-def sim_GPS_data(cycle,p,data_folder):
-    ## only two parameters
-    ## cycle is the sum of on-cycle and off_cycle, unit is minute
-    ## p is the missing rate, in other words, the proportion of off_cycle, should be within [0,1]
-    ## it returns a pandas dataframe with only observations from on_cycles, which mimics the real data file
-    ## the data are the trajectories over two weeks, sampled at 1Hz, with an obvious activity pattern
-    s = datetime2stamp([2020,8,24,0,0,0],'America/New_York')*1000
-    if os.path.exists(data_folder)==False:
+def sim_gps_data(
+    N: int,
+    location: str,
+    start_date: list[int],
+    end_date: list[int],
+    cycle: int,
+    percentage: float,
+    api_key: str,
+    data_folder: str,
+    attributes_dir: str = None,
+):
+    """Generates gps trajectories.
+    
+    Args:
+        N: (int) number of people to simulate
+        location: (str) indicating country and city to simulate at,
+            format "Country_2_letter_ISO_code/City_Name"
+        start_date: (list) start date of trajectories,
+            format  [year, month, day]
+        end_date: (list) end date of trajectories,
+            end date is not included in the trajectories,
+            format [year, month, day]
+        cycle: (int) the sum of on-cycle and off_cycle,
+            unit is minute
+        percentage: (float) the missing rate, in other words,
+            the proportion of off_cycle, should be within [0,1]
+        api_key: (str), api key for open route service
+            https://openrouteservice.org/
+        data_folder: (str) directory to save trajectories
+        attributes_dir: (str) directory to json file
+            containing attributes for each user, optional
+    """
+
+    sys.stdout.write("Loading Attributes...\n")
+    attributes_dictionary = {}
+    switches_dictionary = {}
+
+    if attributes_dir is not None:
+        with open(attributes_dir, encoding="utf-8") as json_file:
+            attributes = json.load(json_file)
+
+        for key in attributes.keys():
+            users = re.search(r"[0-9]*-?[0-9]+", key).group(0).split("-")
+            if len(users) == 0:
+                raise ValueError(f"Wrong format in attributes.json on {key}")
+            elif len(users) == 1:
+                user = int(users[0])
+                attrs = Attributes(**attributes[key])
+                switches = process_switches(attributes, key)
+                attributes_dictionary[user] = attrs
+                switches_dictionary[user] = switches
+            else:
+                for user in range(int(users[0]), int(users[1]) + 1):
+                    attrs = Attributes(**attributes[key])
+                    switches = process_switches(attributes, key)
+                    attributes_dictionary[user] = attrs
+                    switches_dictionary[user] = switches
+
+    for user in range(1, N + 1):
+        if user not in attributes_dictionary.keys():
+            attributes_dictionary[user] = Attributes()
+        if user not in switches_dictionary.keys():
+            switches_dictionary[user] = {}
+
+    sys.stdout.write("Gathering Addresses...\n")
+    try:
+        location_ctr = location.split("/")[0]
+        location_city = location.split("/")[1]
+    except IndexError:
+        raise IndexError("Location provided did not have the correct format.")
+
+    api = overpy.Overpass()
+
+    overpy_query = """
+    [out:json];
+    area["ISO3166-1"="{}"][admin_level=2] -> .country;
+    area["name"="{}"] -> .city;
+    node(area.country)(area.city)["addr:street"];
+    out center {};
+    """.format(
+        location_ctr, location_city, str(150)
+    )
+
+    for try_no in range(4):
+        if try_no == 3:
+            raise RuntimeError("Too many Overpass requests in a short time. Please try again in a minute.")
+        try:
+            r = api.query(overpy_query)
+            break
+        except (overpy.exception.OverpassTooManyRequests, overpy.exception.OverpassGatewayTimeout):
+            time.sleep(30)
+
+    try:
+        index = np.random.choice(range(len(r.nodes)), 100, replace=False)
+    except ValueError:
+        raise RuntimeError("Overpass query came back empty. Check that the location argument, ISO code and city name, did not have any misspellings.")
+
+    nodes = np.array(r.nodes)[index]
+
+    location_coords = (float(nodes[0].lat), float(nodes[0].lon))
+
+    obj = TimezoneFinder()
+    tz_str = obj.timezone_at(lng=location_coords[1], lat=location_coords[0])
+
+    start_date = datetime.date(*start_date)
+    end_date = datetime.date(*end_date)
+    no_of_days = (end_date - start_date).days
+
+    timestamp_s = (
+        datetime2stamp(
+            [start_date.year, start_date.month, start_date.day, 0, 0, 0], tz_str
+        )
+        * 1000
+    )
+
+    if os.path.exists(data_folder) is False:
         os.mkdir(data_folder)
-    for user in range(2):
-        if os.path.exists(data_folder+"/user_"+str(user+1))==False:
-            os.mkdir(data_folder+"/user_"+str(user+1))
-        if os.path.exists(data_folder+"/user_"+str(user+1)+"/gps")==False:
-            os.mkdir(data_folder+"/user_"+str(user+1)+"/gps")
-        all_traj,all_D,all_T = gen_all_traj()
-        print("User_"+str(user+1))
-        print("distance(km): ", all_D)
-        print("hometime(hr): ", all_T)
-        obs = remove_data(all_traj,cycle,p,14)
-        obs_pd = prepare_data(obs)
-        for i in range(14):
+
+    user = 0
+    ind = 0
+    sys.stdout.write("Starting to generate trajectories...\n")
+    while user < N:
+
+        house_address = (float(nodes[ind].lat), float(nodes[ind].lon))
+        house_area = bounding_box(house_address, 2000)
+
+        attrs = attributes_dictionary[user + 1]
+        q_employment = ""
+        if attrs.main_occupation == Occupation.WORK:
+            q_employment = f'node{house_area}["office"];'
+        elif attrs.main_occupation == Occupation.SCHOOL:
+            house_area2 = bounding_box(house_address, 3000)
+            q_employment = f'node{house_area2}["amenity"="university"];\n\t\t\tway{house_area2}["amenity"="university"]'
+            
+
+        overpy_query2 = """
+        [out:json];
+        (
+            node{0}["amenity"="cafe"];
+            node{0}["amenity"="bar"];
+            node{0}["amenity"="restaurant"];
+            node{0}["amenity"="cinema"];
+            node{0}["leisure"="park"];
+            node{0}["leisure"="dance"];
+            node{0}["leisure"="fitness_centre"];
+            way{0}["amenity"="cafe"];
+            way{0}["amenity"="bar"];
+            way{0}["amenity"="restaurant"];
+            way{0}["amenity"="cinema"];
+            way{0}["leisure"="park"];
+            way{0}["leisure"="dance"];
+            way{0}["leisure"="fitness_centre"];
+            {1}
+        );
+        out center;
+        """.format(
+            house_area, q_employment
+        )
+
+        overpass_url = "http://overpass-api.de/api/interpreter"
+
+        for try_no in range(4):
+            if try_no == 3:
+                raise RuntimeError("Too many Overpass requests in a short time. Please try again in a minute.")
+            try:
+                r = api.query(overpy_query2)
+                break
+            except (overpy.exception.OverpassTooManyRequests, overpy.exception.OverpassGatewayTimeout):
+                time.sleep(60)
+
+        all_nodes = {}
+        for place in list(PossibleExits):
+            all_nodes[place.value] = []
+        all_nodes["office"] = []
+        all_nodes["university"] = []
+
+        for element in r.nodes + r.ways:
+            if element._type_value == "node":
+                lon = float(element.lon)
+                lat = float(element.lat)
+            elif element._type_value == "way":
+                lon = float(element.center_lon)
+                lat = float(element.center_lat)
+
+            if "office" in element.tags:
+                all_nodes["office"].append((lat, lon))
+
+            if "amenity" in element.tags:
+                for key in all_nodes.keys():
+                    if element.tags["amenity"] == key:
+                        all_nodes[key].append((lat, lon))
+            elif "leisure" in element.tags:
+                for key in all_nodes.keys():
+                    if element.tags["leisure"] == key:
+                        all_nodes[key].append((lat, lon))
+
+        pathdir = data_folder + "/user_" + str(user + 1)
+        if os.path.exists(pathdir) is False:
+            os.mkdir(pathdir)
+        if os.path.exists(pathdir + "/gps") is False:
+            os.mkdir(pathdir + "/gps")
+
+        person = Person(house_address, attrs, all_nodes)
+        all_traj, all_T, all_D = gen_all_traj(
+            person,
+            switches_dictionary[user + 1],
+            start_date,
+            end_date,
+            api_key,
+        )
+        if len(all_traj) == 0:
+            ind += 1
+            continue
+        all_D = np.array(all_D) / 1000
+        all_T = np.array(all_T) / 3600
+
+        sys.stdout.write(f"User_{user + 1}\n")
+        sys.stdout.write(f"	distance(km): {all_D.tolist()}\n")
+        sys.stdout.write(f"	hometime(hr): {all_T.tolist()}\n")
+        obs = remove_data(all_traj, cycle, percentage, no_of_days)
+        obs_pd = prepare_data(obs, timestamp_s / 1000, tz_str)
+        for i in range(no_of_days):
             for j in range(24):
-                s_lower = s+i*24*60*60*1000+j*60*60*1000
-                s_upper = s+i*24*60*60*1000+(j+1)*60*60*1000
-                temp = obs_pd[(obs_pd["timestamp"]>=s_lower)&(obs_pd["timestamp"]<s_upper)]
-                [y,m,d,h,mins,sec] = stamp2datetime(s_lower/1000,"UTC")
+                s_lower = timestamp_s + i * 24 * 60 * 60 * 1000
+                s_lower += j * 60 * 60 * 1000
+                s_upper = s_lower + 60 * 60 * 1000
+                temp = obs_pd[
+                    ((obs_pd["timestamp"] >= s_lower) & (obs_pd["timestamp"] < s_upper))
+                ]
+                [y, m, d, h, _, _] = stamp2datetime(s_lower / 1000, "UTC")
                 filename = f"{y}-{m:0>2}-{d:0>2}-{h:0>2}_00_00.csv"
-                temp.to_csv(data_folder+"/user_"+str(user+1)+"/gps/"+filename,index = False)
+                temp.to_csv(
+                    pathdir + "/gps/" + filename,
+                    index=False,
+                )
+
+        user += 1
+        ind += 1
