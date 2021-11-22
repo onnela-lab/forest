@@ -6,7 +6,9 @@ of a number of people anywhere in the world.
 import datetime
 from dataclasses import dataclass
 from enum import Enum
+import json
 import os
+import re
 import requests
 import sys
 import time
@@ -1124,16 +1126,16 @@ def process_switches(
 def sim_gps_data(
     N: int,
     location: str,
-    start_date: list[int],
-    end_date: list[int],
+    start_date: List[int],
+    end_date: List[int],
     cycle: int,
     percentage: float,
     api_key: str,
     data_folder: str,
-    attributes_dir: str = None,
+    attributes_dir: Optional[str] = None,
 ):
     """Generates gps trajectories.
-    
+
     Args:
         N: (int) number of people to simulate
         location: (str) indicating country and city to simulate at,
@@ -1152,6 +1154,11 @@ def sim_gps_data(
         data_folder: (str) directory to save trajectories
         attributes_dir: (str) directory to json file
             containing attributes for each user, optional
+    Raises:
+        ValueError: if attributes.json is not in the correct format
+        ValueError: if location is not in the correct format
+        RuntimeError: if too many Overpass queries are made
+        ValueError: if Overpass query fails
     """
 
     sys.stdout.write("Loading Attributes...\n")
@@ -1163,10 +1170,11 @@ def sim_gps_data(
             attributes = json.load(json_file)
 
         for key in attributes.keys():
-            users = re.search(r"[0-9]*-?[0-9]+", key).group(0).split("-")
-            if len(users) == 0:
+            match = re.search(r"[0-9]*-?[0-9]+", key)
+            if match is None:
                 raise ValueError(f"Wrong format in attributes.json on {key}")
-            elif len(users) == 1:
+            users = match.group(0).split("-")
+            if len(users) == 1:
                 user = int(users[0])
                 attrs = Attributes(**attributes[key])
                 switches = process_switches(attributes, key)
@@ -1187,10 +1195,9 @@ def sim_gps_data(
 
     sys.stdout.write("Gathering Addresses...\n")
     try:
-        location_ctr = location.split("/")[0]
-        location_city = location.split("/")[1]
-    except IndexError:
-        raise IndexError("Location provided did not have the correct format.")
+        location_ctr, location_city = location.split("/")
+    except ValueError:
+        raise ValueError("Location provided did not have the correct format.")
 
     api = overpy.Overpass()
 
@@ -1206,17 +1213,24 @@ def sim_gps_data(
 
     for try_no in range(4):
         if try_no == 3:
-            raise RuntimeError("Too many Overpass requests in a short time. Please try again in a minute.")
+            raise RuntimeError(
+                "Too many Overpass requests in a short time. Please try again in a minute."
+                )
         try:
             r = api.query(overpy_query)
             break
-        except (overpy.exception.OverpassTooManyRequests, overpy.exception.OverpassGatewayTimeout):
+        except (
+            overpy.exception.OverpassTooManyRequests,
+            overpy.exception.OverpassGatewayTimeout
+        ):
             time.sleep(30)
 
     try:
         index = np.random.choice(range(len(r.nodes)), 100, replace=False)
     except ValueError:
-        raise RuntimeError("Overpass query came back empty. Check that the location argument, ISO code and city name, did not have any misspellings.")
+        raise ValueError(
+            "Overpass query came back empty. Check the location argument, ISO code and city name, for any misspellings."
+            )
 
     nodes = np.array(r.nodes)[index]
 
@@ -1225,13 +1239,14 @@ def sim_gps_data(
     obj = TimezoneFinder()
     tz_str = obj.timezone_at(lng=location_coords[1], lat=location_coords[0])
 
-    start_date = datetime.date(*start_date)
-    end_date = datetime.date(*end_date)
-    no_of_days = (end_date - start_date).days
+    start_datetime = datetime.date(*start_date)
+    end_datetime = datetime.date(*end_date)
+    no_of_days = (end_datetime - start_datetime).days
 
     timestamp_s = (
         datetime2stamp(
-            [start_date.year, start_date.month, start_date.day, 0, 0, 0], tz_str
+            [start_datetime.year, start_datetime.month, start_datetime.day, 0, 0, 0],
+            tz_str
         )
         * 1000
     )
@@ -1254,7 +1269,6 @@ def sim_gps_data(
         elif attrs.main_occupation == Occupation.SCHOOL:
             house_area2 = bounding_box(house_address, 3000)
             q_employment = f'node{house_area2}["amenity"="university"];\n\t\t\tway{house_area2}["amenity"="university"]'
-            
 
         overpy_query2 = """
         [out:json];
@@ -1284,14 +1298,19 @@ def sim_gps_data(
 
         for try_no in range(4):
             if try_no == 3:
-                raise RuntimeError("Too many Overpass requests in a short time. Please try again in a minute.")
+                raise RuntimeError(
+                    "Too many Overpass requests in a short time. Please try again in a minute."
+                    )
             try:
                 r = api.query(overpy_query2)
                 break
-            except (overpy.exception.OverpassTooManyRequests, overpy.exception.OverpassGatewayTimeout):
+            except (
+                overpy.exception.OverpassTooManyRequests,
+                overpy.exception.OverpassGatewayTimeout
+            ):
                 time.sleep(60)
 
-        all_nodes = {}
+        all_nodes: Dict[str, list] = {}
         for place in list(PossibleExits):
             all_nodes[place.value] = []
         all_nodes["office"] = []
@@ -1327,19 +1346,19 @@ def sim_gps_data(
         all_traj, all_T, all_D = gen_all_traj(
             person,
             switches_dictionary[user + 1],
-            start_date,
-            end_date,
+            start_datetime,
+            end_datetime,
             api_key,
         )
         if len(all_traj) == 0:
             ind += 1
             continue
-        all_D = np.array(all_D) / 1000
-        all_T = np.array(all_T) / 3600
+        all_D_array = np.array(all_D) / 1000
+        all_T_array = np.array(all_T) / 3600
 
         sys.stdout.write(f"User_{user + 1}\n")
-        sys.stdout.write(f"	distance(km): {all_D.tolist()}\n")
-        sys.stdout.write(f"	hometime(hr): {all_T.tolist()}\n")
+        sys.stdout.write(f"	distance(km): {all_D_array.tolist()}\n")
+        sys.stdout.write(f"	hometime(hr): {all_T_array.tolist()}\n")
         obs = remove_data(all_traj, cycle, percentage, no_of_days)
         obs_pd = prepare_data(obs, timestamp_s / 1000, tz_str)
         for i in range(no_of_days):
@@ -1348,7 +1367,10 @@ def sim_gps_data(
                 s_lower += j * 60 * 60 * 1000
                 s_upper = s_lower + 60 * 60 * 1000
                 temp = obs_pd[
-                    ((obs_pd["timestamp"] >= s_lower) & (obs_pd["timestamp"] < s_upper))
+                    (
+                        (obs_pd["timestamp"] >= s_lower)
+                        & (obs_pd["timestamp"] < s_upper)
+                    )
                 ]
                 [y, m, d, h, _, _] = stamp2datetime(s_lower / 1000, "UTC")
                 filename = f"{y}-{m:0>2}-{d:0>2}-{h:0>2}_00_00.csv"
