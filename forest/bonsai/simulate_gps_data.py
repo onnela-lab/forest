@@ -9,7 +9,6 @@ from enum import Enum
 import json
 import os
 import re
-import requests
 import sys
 import time
 from typing import Dict, List, Optional, Tuple, Union
