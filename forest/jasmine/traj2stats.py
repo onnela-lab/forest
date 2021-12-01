@@ -222,6 +222,8 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_
             beiwe_id: a list of beiwe IDs
             parameters: hyperparameters in functions, recommend to set it to none (by default)
             all_memory_dict and all_BV_set are dictionaries from previous run (none if it's the first time)
+            quality_threshold: more-or-less a percentage value expressed as a floating point of the 
+            fraction of data required for a summary to be created.
     Return: write summary stats as csv for each user during the specified period
             and imputed trajectory if required
             and memory objects (all_memory_dict and all_BV_set) as pickle files for future use
