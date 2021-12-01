@@ -128,13 +128,13 @@ def aggregate_surveys(study_dir):
         all_data.append(read_and_aggregate(study_dir, u, 'survey_timings'))
 
     # Collapse all users into one file and drop duplicates
-    all_data = pd.concat(all_data, axis=0, ignore_index=False).drop_duplicates()
+    all_data = pd.concat(all_data, axis=0, ignore_index=False).drop_duplicates().sort_values(['survey id', 'beiwe_id', 'timestamp'])
 
-    # FIX EVENT FIELDS    
+    # FIX EVENT FIELDS
     # Ensure there is an 'event' field (They're won't be one if all users are Android)
     if 'event' not in all_data.columns:
         all_data['event'] = None
-    # Move Android evens from the question id field to the event field
+    # Move Android events from the question id field to the event field
     all_data.event = all_data.apply(
         lambda row: row['question id'] if row['question id'] in ['Survey first rendered and displayed to user',
                                                                  'User hit submit'] else row['event'], axis=1)
@@ -150,20 +150,28 @@ def aggregate_surveys(study_dir):
     all_data['question index'] = all_data.apply(
         lambda row: 1 if ((row['question id'] != row['question id lag'])) else 0, axis=1)
     all_data['question index'] = all_data.groupby(['survey id', 'beiwe_id'])['question index'].cumsum()
-
     del all_data['question id lag']
 
     # Add a survey instance ID that is tied to the submit line
     all_data['surv_inst_flg'] = 0
-    all_data.loc[all_data.event == 'submitted', ['surv_inst_flg']] = 1
+    all_data.loc[(all_data.event == 'submitted') | (all_data.event == 'User hit submit') | (all_data.event == 'notified'), ['surv_inst_flg']] = 1
     all_data['surv_inst_flg'] = all_data['surv_inst_flg'].shift(1)
-    # If a change of survey occurs without a submit flg, flag the new line 
+    # If a change of survey occurs without a submit flg, flag the new line
     all_data['survey_prev'] = all_data['survey id'].shift(1)
     all_data.loc[all_data['survey_prev'] != all_data['survey id'], ['surv_inst_flg']] = 1
-    all_data['surv_inst_flg'] = np.cumsum(all_data['surv_inst_flg'])
-    all_data.loc[all_data.surv_inst_flg.isna(), ['surv_inst_flg']] = 0
-
     del all_data['survey_prev']
+
+    # If 'Survey first rendered and displayed to user', also considered a new survey
+    all_data.loc[all_data['event'] == 'Survey first rendered and displayed to user', ['surv_inst_flg']] = 1
+
+    # if a survey has a gap greater than 5 hours, consider it two surveys
+    all_data['time_prev'] = all_data['UTC time'].shift(1)
+    all_data['time_diff'] = all_data['UTC time'] - all_data['time_prev']
+    # Splitting up surveys where there appears to be a time gap or no submit line.
+    all_data.loc[all_data.time_diff > datetime.timedelta(hours = 2), ['surv_inst_flg']] = 1
+
+    all_data['surv_inst_flg'] = all_data.groupby(['survey id', 'beiwe_id'])['surv_inst_flg'].cumsum()
+    all_data.loc[all_data.surv_inst_flg.isna(), ['surv_inst_flg']] = 0
 
     # OUTPUT AGGREGATE
     return all_data.reset_index(drop=True)
@@ -276,7 +284,7 @@ def aggregate_surveys_config(study_dir, config_path, study_tz=None):
     config_surveys = parse_surveys(config_path)
     agg_data = aggregate_surveys(study_dir)
 
-    # Merge data together and add configuration survey ID to all lines 
+    # Merge data together and add configuration survey ID to all lines
     df_merged = agg_data.merge(config_surveys[['config_id', 'question_id']], how='left', left_on='question id',
                                right_on='question_id').drop(['question_id'], axis=1)
     df_merged['config_id_update'] = df_merged['config_id'].fillna(method='ffill')
@@ -286,7 +294,7 @@ def aggregate_surveys_config(study_dir, config_path, study_tz=None):
 
     del df_merged['config_id_update']
 
-    # Mark submission lines 
+    # Mark submission lines
     df_merged['submit_line'] = df_merged.apply(lambda row: 1 if row['event'] in ['User hit submit', 'submitted'] else 0,
                                                axis=1)
 
@@ -334,7 +342,7 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
     Created on Thu Jan 28 11:34:23 2021
 
     @author: DEBEU
-    
+
     Parameters
     ----------
     person_ids : list of beiwe_ids to .
@@ -346,18 +354,18 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
     Returns
     -------
     Record with beiwe_id / phone_os / date_hour / start_time / end_time.
-    For iOS users: 
+    For iOS users:
         start_time = time of 'present' of first question
         end_time = time of 'submitted'
-    For Android 
+    For Android
         start_time = ....
         end_time = ....
-        
+
     Assumes
     -------
     Operating system-specific difference in registration of survey timings
     That a survey with survey_id is not triggered more than once an hour
-    
+
 
     """
     record = np.array(['beiwe_id', 'phone_os', 'date_hour', 'start_time', 'end_time']).reshape(1, 5)
