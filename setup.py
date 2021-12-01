@@ -8,7 +8,8 @@ requires = [
     'scipy',
     'holidays',  # poplar
     'pytz',  # jasmine, poplar
-    'timezonefinder',  # poplar
+    'timezonefinder',  # poplar, bonsai
+    'overpy',  # bonsai
 ]
 
 package_data = {'': ['*.csv', '*.json']}

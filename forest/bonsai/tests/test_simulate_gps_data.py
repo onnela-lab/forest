@@ -3,13 +3,14 @@
 import datetime
 
 import numpy as np
+import overpy
 import pytest
 
 from forest.bonsai.simulate_gps_data import (
     bounding_box, get_basic_path, get_path, PossibleExits, Vehicle, Occupation,
     ActionType, Attributes, Person, gen_basic_traj, gen_basic_pause,
     gen_route_traj, gen_all_traj, remove_data, prepare_data,
-    process_switches,
+    process_switches, load_attributes, sim_gps_data
     )
 from forest.jasmine.data2mobmat import great_circle_dist
 
@@ -423,7 +424,9 @@ def sample_locations():
             (51.4566176, -2.5695463),
             (51.4561455, -2.5967294),
         ],
-        "university": [],
+        "university": [
+            (51.4566176, -2.5695463),
+        ],
     }
 
 
@@ -887,3 +890,99 @@ def test_process_switches(sample_attributes):
         list(switches.keys())[0] == "travelling_status-20"
         and list(switches.values())[0] == 1
     )
+
+
+def test_load_attributes_nusers(sample_attributes):
+    """Test loading attributes for n users"""
+
+    attrs, _ = load_attributes(sample_attributes)
+    assert len(attrs) == 5
+
+
+def test_load_attributes_attributes(sample_attributes):
+    """Test attributes are loaded correctly"""
+
+    attrs, _ = load_attributes(sample_attributes)
+    assert attrs[2].travelling_status == 8
+
+
+def test_load_attributes_switches(sample_attributes):
+    """Test switches are loaded correctly"""
+
+    _, switches = load_attributes(sample_attributes)
+    assert switches[5]["travelling_status-20"] == 1
+
+
+@pytest.fixture()
+def sample_addresses():
+    nodes = [overpy.Node for i in range(3)]
+    nodes[0].lat = 51.442651
+    nodes[0].lon = -2.5592400
+    nodes[1].lat = 51.4563846
+    nodes[1].lon = -2.5557025
+    nodes[2].lat = 51.4620606
+    nodes[2].lon = -2.5234743
+    return np.array(nodes)
+
+
+def test_sim_gps_data_times(
+    sample_addresses, sample_locations, sample_attributes, mocker
+):
+    """Test timestamp of simulated trajectories"""
+
+    mocker.patch(
+        "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
+    )
+    mocker.patch(
+        "forest.bonsai.simulate_gps_data.generate_addresses",
+        return_value=sample_addresses
+    )
+    mocker.patch(
+        "forest.bonsai.simulate_gps_data.generate_nodes",
+        return_value=sample_locations
+    )
+    data = sim_gps_data(
+        n_persons=1,
+        location="GB/Bristol",
+        start_date=datetime.date(2021, 10, 1),
+        end_date=datetime.date(2021, 10, 5),
+        api_key="mock_api_key",
+        cycle=15,
+        percentage=.8,
+        attributes_dict=sample_attributes,
+        )
+    list_of_time_differences = []
+    for i in range(1, data.shape[0]):
+        list_of_time_differences.append(
+            data.timestamp[i] - data.timestamp[i-1]
+        )
+    assert np.all(np.array(list_of_time_differences) > 0)
+
+
+def test_sim_gps_data_multiple_people(
+    sample_addresses, sample_locations, sample_attributes, mocker
+):
+    """Test timestamp of simulated trajectories"""
+
+    mocker.patch(
+        "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
+    )
+    mocker.patch(
+        "forest.bonsai.simulate_gps_data.generate_addresses",
+        return_value=sample_addresses
+    )
+    mocker.patch(
+        "forest.bonsai.simulate_gps_data.generate_nodes",
+        return_value=sample_locations
+    )
+    data = sim_gps_data(
+        n_persons=3,
+        location="GB/Bristol",
+        start_date=datetime.date(2021, 10, 1),
+        end_date=datetime.date(2021, 10, 5),
+        api_key="mock_api_key",
+        cycle=15,
+        percentage=.8,
+        attributes_dict=sample_attributes,
+        )
+    assert len(np.unique(data.user)) == 3
