@@ -6,10 +6,8 @@ of a number of people anywhere in the world.
 import datetime
 from dataclasses import dataclass
 from enum import Enum
-import json
 import os
 import re
-import requests
 import sys
 import time
 from typing import Dict, List, Optional, Tuple, Union
@@ -17,6 +15,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 import openrouteservice
 import pandas as pd
+import requests
 from timezonefinder import TimezoneFinder
 
 from forest.jasmine.data2mobmat import great_circle_dist
@@ -25,7 +24,7 @@ from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 R = 6.371*10**6
 ACTIVE_STATUS_LIST = range(11)
 TRAVELLING_STATUS_LIST = range(11)
-OVERPASS_URL = "http://overpass-api.de/api/interpreter"
+OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
 
 class PossibleExits(Enum):
@@ -1161,9 +1160,7 @@ def load_attributes(
     return attributes_dictionary, switches_dictionary
 
 
-def generate_addresses(
-    country: str, city: str
-) -> np.ndarray:
+def generate_addresses(country: str, city: str) -> np.ndarray:
     """Generates multiple addresses.
 
     Args:
@@ -1184,19 +1181,14 @@ def generate_addresses(
     out center 150;
     """
 
-    for try_no in range(4):
-        response = requests.get(
+    response = requests.get(
             OVERPASS_URL,
             params={"data": overpy_query}, timeout=5 * 60
         )
-        if try_no == 3:
-            raise RuntimeError(
-                "Too many Overpass requests in a short time. Please try again in a minute."
-                )
-        elif response.status_code == 200:
-            break
-        else:
-            time.sleep(30)
+    if response.status_code != 200:
+        raise RuntimeError(
+            f"Overpass API returned error {response.status_code}"
+            )
 
     res = response.json()
     try:
@@ -1205,12 +1197,14 @@ def generate_addresses(
         )
     except ValueError:
         raise ValueError(
-            "Overpass query came back empty. Check the location argument, ISO code and city name, for any misspellings."
+            """
+            Overpass query came back empty.
+            Check the location argument, ISO code,
+            and city name, for any misspellings.
+            """
             )
 
-    nodes = np.array(res["elements"])[index]
-
-    return nodes
+    return np.array(res["elements"])[index]
 
 
 def generate_nodes(
@@ -1235,7 +1229,10 @@ def generate_nodes(
     if employment == Occupation.WORK:
         q_employment = f'node{house_area}["office"];'
     elif employment == Occupation.SCHOOL:
-        q_employment = f'node{house_area2}["amenity"="university"];\n\t\t\tway{house_area2}["amenity"="university"]'
+        q_employment = f"""
+        node{house_area2}["amenity"="university"];
+        way{house_area2}["amenity"="university"]
+        """
 
     overpy_query2 = f"""
     [out:json];
@@ -1259,18 +1256,13 @@ def generate_nodes(
     out center;
     """
 
-    for try_no in range(4):
-        response = requests.get(
+    response = requests.get(
             OVERPASS_URL, params={"data": overpy_query2}, timeout=5 * 60
         )
-        if try_no == 3:
-            raise RuntimeError(
-                "Too many Overpass requests in a short time. Please try again in a minute."
-                )
-        elif response.status_code == 200:
-            break
-        else:
-            time.sleep(60)
+    if response.status_code != 200:
+        raise RuntimeError(
+            f"Overpass API returned error {response.status_code}"
+            )
 
     res = response.json()
 
@@ -1284,7 +1276,7 @@ def generate_nodes(
         if element["type"] == "node":
             lon = element["lon"]
             lat = element["lat"]
-        elif element["type"] == "way":
+        else:
             lon = element["center"]["lon"]
             lat = element["center"]["lat"]
 
@@ -1360,7 +1352,8 @@ def sim_gps_data(
     try:
         location_ctr, location_city = location.split("/")
     except ValueError:
-        raise ValueError("Location provided did not have the correct format.")
+        sys.stderr.write("Location provided did not have the correct format.")
+        raise
 
     nodes = generate_addresses(location_ctr, location_city)
 
@@ -1401,7 +1394,7 @@ def sim_gps_data(
         all_nodes = generate_nodes(house_address, attrs.main_occupation)
 
         person = Person(house_address, attrs, all_nodes)
-        all_traj, all_T, all_D = gen_all_traj(
+        all_traj, all_times, all_distances = gen_all_traj(
             person,
             switches_dictionary[user + 1],
             start_date,
@@ -1411,8 +1404,8 @@ def sim_gps_data(
         if len(all_traj) == 0:
             ind += 1
             continue
-        all_D_array = np.array(all_D) / 1000
-        all_T_array = np.array(all_T) / 3600
+        all_D_array = np.array(all_distances) / 1000
+        all_T_array = np.array(all_times) / 3600
 
         sys.stdout.write(f"User_{user + 1}\n")
         sys.stdout.write(f"	distance(km): {all_D_array.tolist()}\n")
