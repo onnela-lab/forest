@@ -3,7 +3,6 @@
 import datetime
 
 import numpy as np
-import overpy
 import pytest
 
 from forest.bonsai.simulate_gps_data import (
@@ -414,7 +413,7 @@ def sample_locations():
             (51.4721951, -2.576308),
         ],
         "dance": [(51.4573642, -2.6177539)],
-        "fitness": [
+        "fitness_centre": [
             (51.4541587, -2.5899168),
             (51.4559791, -2.5917542),
             (51.4516719, -2.5799672),
@@ -915,14 +914,45 @@ def test_load_attributes_switches(sample_attributes):
 
 @pytest.fixture()
 def sample_addresses():
-    nodes = [overpy.Node for i in range(3)]
-    nodes[0].lat = 51.442651
-    nodes[0].lon = -2.5592400
-    nodes[1].lat = 51.4563846
-    nodes[1].lon = -2.5557025
-    nodes[2].lat = 51.4620606
-    nodes[2].lon = -2.5234743
-    return np.array(nodes)
+    return np.array(
+        [
+            {
+                'type': 'node',
+                'id': 633398631,
+                'lat': 51.4633148,
+                'lon': -2.514987,
+                'tags': {
+                    'addr:city': 'Kingswood',
+                    'addr:housenumber': '317',
+                    'addr:postcode': 'BS15 1AP',
+                    'addr:street': 'Two Mill Hill Road'
+                }
+            },
+            {
+                'type': 'node',
+                'id': 2145836593,
+                'lat': 51.4429197,
+                'lon': -2.5568646,
+                'tags': {
+                    'addr:housenumber': '19',
+                    'addr:street': 'Churchill Road',
+                    'building': 'house',
+                    'source': 'survey'
+                }
+            },
+            {
+                'type': 'node',
+                'id': 2009828204,
+                'lat': 51.4918339,
+                'lon': -2.6172631,
+                'tags': {
+                    'addr:housenumber': '39',
+                    'addr:street': 'Cambridge Crescent'
+                }
+            },
+           ],
+        dtype=object
+    )
 
 
 def test_sim_gps_data_times(

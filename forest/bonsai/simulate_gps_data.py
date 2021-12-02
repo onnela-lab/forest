@@ -9,13 +9,13 @@ from enum import Enum
 import json
 import os
 import re
+import requests
 import sys
 import time
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import openrouteservice
-import overpy
 import pandas as pd
 from timezonefinder import TimezoneFinder
 
@@ -25,6 +25,7 @@ from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 R = 6.371*10**6
 ACTIVE_STATUS_LIST = range(11)
 TRAVELLING_STATUS_LIST = range(11)
+OVERPASS_URL = "http://overpass-api.de/api/interpreter"
 
 
 class PossibleExits(Enum):
@@ -35,7 +36,7 @@ class PossibleExits(Enum):
     PARK = "park"
     CINEMA = "cinema"
     DANCE = "dance"
-    FITNESS = "fitness"
+    FITNESS = "fitness_centre"
 
 
 class Vehicle(Enum):
@@ -1148,28 +1149,24 @@ def load_attributes(
             raise ValueError(f"Wrong format in attributes.json on {key}")
         users = match.group(0).split("-")
         if len(users) == 1:
-            user = int(users[0])
+            up_to = int(users[0])
+        else:
+            up_to = int(users[1])
+        for user in range(int(users[0]), up_to + 1):
             attrs = Attributes(**attributes[key])
             switches = process_switches(attributes, key)
             attributes_dictionary[user] = attrs
             switches_dictionary[user] = switches
-        else:
-            for user in range(int(users[0]), int(users[1]) + 1):
-                attrs = Attributes(**attributes[key])
-                switches = process_switches(attributes, key)
-                attributes_dictionary[user] = attrs
-                switches_dictionary[user] = switches
 
     return attributes_dictionary, switches_dictionary
 
 
 def generate_addresses(
-    api: overpy.Overpass, country: str, city: str
+    country: str, city: str
 ) -> np.ndarray:
     """Generates multiple addresses.
 
     Args:
-        api: (overpy.Overpass) overpass api
         country: (str) country of the persons
         city: (str) city of the persons
     Returns:
@@ -1188,40 +1185,41 @@ def generate_addresses(
     """
 
     for try_no in range(4):
+        response = requests.get(
+            OVERPASS_URL,
+            params={"data": overpy_query}, timeout=5 * 60
+        )
         if try_no == 3:
             raise RuntimeError(
                 "Too many Overpass requests in a short time. Please try again in a minute."
                 )
-        try:
-            r = api.query(overpy_query)
+        elif response.status_code == 200:
             break
-        except (
-            overpy.exception.OverpassTooManyRequests,
-            overpy.exception.OverpassGatewayTimeout
-        ):
+        else:
             time.sleep(30)
 
+    res = response.json()
     try:
-        index = np.random.choice(range(len(r.nodes)), 100, replace=False)
+        index = np.random.choice(
+            range(len(res["elements"])), 100, replace=False
+        )
     except ValueError:
         raise ValueError(
             "Overpass query came back empty. Check the location argument, ISO code and city name, for any misspellings."
             )
 
-    nodes = np.array(r.nodes)[index]
+    nodes = np.array(res["elements"])[index]
 
     return nodes
 
 
 def generate_nodes(
-    api: overpy.Overpass,
     house_address: Tuple[float, float],
     employment: Occupation
 ) -> Dict[str, List[Tuple[float, float]]]:
     """Generates multiple amenities coordinates.
 
     Args:
-        api: (overpy.Overpass) overpass api
         house_address: (tuple) coordinates of the house
         employment: (Occupation) occupation of the person
     Returns:
@@ -1262,18 +1260,19 @@ def generate_nodes(
     """
 
     for try_no in range(4):
+        response = requests.get(
+            OVERPASS_URL, params={"data": overpy_query2}, timeout=5 * 60
+        )
         if try_no == 3:
             raise RuntimeError(
                 "Too many Overpass requests in a short time. Please try again in a minute."
                 )
-        try:
-            r = api.query(overpy_query2)
+        elif response.status_code == 200:
             break
-        except (
-            overpy.exception.OverpassTooManyRequests,
-            overpy.exception.OverpassGatewayTimeout
-        ):
+        else:
             time.sleep(60)
+
+    res = response.json()
 
     all_nodes: Dict[str, list] = {}
     for place in list(PossibleExits):
@@ -1281,24 +1280,24 @@ def generate_nodes(
     all_nodes["office"] = []
     all_nodes["university"] = []
 
-    for element in r.nodes + r.ways:
-        if element._type_value == "node":
-            lon = float(element.lon)
-            lat = float(element.lat)
-        elif element._type_value == "way":
-            lon = float(element.center_lon)
-            lat = float(element.center_lat)
+    for element in res["elements"]:
+        if element["type"] == "node":
+            lon = element["lon"]
+            lat = element["lat"]
+        elif element["type"] == "way":
+            lon = element["center"]["lon"]
+            lat = element["center"]["lat"]
 
-        if "office" in element.tags:
+        if "office" in element["tags"]:
             all_nodes["office"].append((lat, lon))
 
-        if "amenity" in element.tags:
+        if "amenity" in element["tags"]:
             for key in all_nodes.keys():
-                if element.tags["amenity"] == key:
+                if element["tags"]["amenity"] == key:
                     all_nodes[key].append((lat, lon))
-        elif "leisure" in element.tags:
+        elif "leisure" in element["tags"]:
             for key in all_nodes.keys():
-                if element.tags["leisure"] == key:
+                if element["tags"]["leisure"] == key:
                     all_nodes[key].append((lat, lon))
 
     return all_nodes
@@ -1363,12 +1362,10 @@ def sim_gps_data(
     except ValueError:
         raise ValueError("Location provided did not have the correct format.")
 
-    api = overpy.Overpass()
-
-    nodes = generate_addresses(api, location_ctr, location_city)
+    nodes = generate_addresses(location_ctr, location_city)
 
     # find timezone of city
-    location_coords = (float(nodes[0].lat), float(nodes[0].lon))
+    location_coords = (float(nodes[0]['lat']), float(nodes[0]['lon']))
 
     obj = TimezoneFinder()
     tz_str = obj.timezone_at(lng=location_coords[1], lat=location_coords[0])
@@ -1398,10 +1395,10 @@ def sim_gps_data(
     sys.stdout.write("Starting to generate trajectories...\n")
     while user < n_persons:
 
-        house_address = (float(nodes[ind].lat), float(nodes[ind].lon))
+        house_address = (float(nodes[ind]['lat']), float(nodes[ind]['lon']))
         attrs = attributes_dictionary[user + 1]
 
-        all_nodes = generate_nodes(api, house_address, attrs.main_occupation)
+        all_nodes = generate_nodes(house_address, attrs.main_occupation)
 
         person = Person(house_address, attrs, all_nodes)
         all_traj, all_T, all_D = gen_all_traj(
