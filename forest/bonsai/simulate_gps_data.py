@@ -1182,7 +1182,7 @@ def generate_addresses(country: str, city: str) -> np.ndarray:
 
     response = requests.get(
             OVERPASS_URL,
-            params={"data": overpy_query}, timeout=5 * 60
+            params={"data": overpy_query}, timeout=60
         )
     response.raise_for_status()
 
