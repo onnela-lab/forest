@@ -231,7 +231,7 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_
             and logger csv file to show warnings and bugs during the run
     """
     
-    quality_threshold = quality_threshold if quality_threshold is not None else 0.4
+    quality_threshold = quality_threshold if quality_threshold is not None else 0.05
     
     if os.path.exists(output_folder)==False:
         os.mkdir(output_folder)
