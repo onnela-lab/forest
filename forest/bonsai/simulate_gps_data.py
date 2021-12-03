@@ -6,7 +6,6 @@ of a number of people anywhere in the world.
 import datetime
 from dataclasses import dataclass
 from enum import Enum
-import os
 import re
 import sys
 import time
