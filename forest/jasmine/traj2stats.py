@@ -1,14 +1,67 @@
+"""Module used to impute missing data, by combining functions defined in other
+modules and calculate summary statistics of imputed trajectories.
+"""
+
 import os
-import sys
 import pickle
+import sys
+import time
+from typing import Tuple
+from functools import partial
+
 import numpy as np
 import pandas as pd
-from ..poplar.legacy.common_funcs import (stamp2datetime, datetime2stamp,
-                                          read_data, write_all_summaries)
-from .data2mobmat import (great_circle_dist, pairwise_great_circle_dist,
-                          GPS2MobMat, InferMobMat)
-from .mobmat2traj import num_sig_places, locate_home, ImputeGPS, Imp2traj
-from .sogp_gps import BV_select
+import pyproj
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
+from shapely.ops import transform
+
+from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
+                                               stamp2datetime,
+                                               write_all_summaries)
+from forest.jasmine.data2mobmat import (GPS2MobMat, InferMobMat,
+                                        great_circle_dist,
+                                        pairwise_great_circle_dist)
+from forest.jasmine.mobmat2traj import (Imp2traj, ImputeGPS, locate_home,
+                                        num_sig_places)
+from forest.jasmine.sogp_gps import BV_select
+
+
+def transform_point_to_circle(coords: Tuple[float, float], radius: int
+) -> Polygon:
+    """This function transforms a set of cooordinates to a shapely
+    circle with a provided radius.
+
+    Args:
+        coords: tuple, (lattitude, longitude)
+        radius: float, in meters
+    Returns:
+        shapely polygon of a circle
+    """
+
+    lat, lon = coords
+
+    local_azimuthal_projection = (
+        f"+proj=aeqd +R=6371000 +units=m +lat_0={lat} +lon_0={lon}"
+    )
+    wgs84_to_aeqd = partial(
+        pyproj.transform,
+        pyproj.Proj("+proj=longlat +datum=WGS84 +no_defs"),
+        pyproj.Proj(local_azimuthal_projection),
+    )
+    aeqd_to_wgs84 = partial(
+        pyproj.transform,
+        pyproj.Proj(local_azimuthal_projection),
+        pyproj.Proj("+proj=longlat +datum=WGS84 +no_defs"),
+    )
+
+    center = Point(*coords)
+    point_transformed = transform(wgs84_to_aeqd, center)
+    buffer = point_transformed.buffer(radius)
+    circle_poly = transform(aeqd_to_wgs84, buffer)
+
+    return circle_poly
+
 
 def gps_summaries(traj,tz_str,option):
     """
