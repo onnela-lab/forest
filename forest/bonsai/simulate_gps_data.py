@@ -1180,10 +1180,8 @@ def generate_addresses(country: str, city: str) -> np.ndarray:
     out center 150;
     """
 
-    response = requests.get(
-            OVERPASS_URL,
-            params={"data": overpy_query}, timeout=60
-        )
+    response = requests.get(OVERPASS_URL, params={"data": overpy_query},
+                            timeout=60)
     response.raise_for_status()
 
     res = response.json()
@@ -1192,13 +1190,11 @@ def generate_addresses(country: str, city: str) -> np.ndarray:
             range(len(res["elements"])), 100, replace=False
         )
     except ValueError:
-        raise ValueError(
-            (
-                "Overpass query came back empty. "
-                + "Check the location argument, ISO code, "
-                + "and city name, for any misspellings."
-            )
+        sys.stderr.write(
+            "Overpass query came back empty. Check the location argument, ISO "
+            "code, and city name, for any misspellings."
         )
+        raise
 
     return np.array(res["elements"])[index]
 
@@ -1252,9 +1248,8 @@ def generate_nodes(
     out center;
     """
 
-    response = requests.get(
-            OVERPASS_URL, params={"data": overpy_query2}, timeout=60
-        )
+    response = requests.get(OVERPASS_URL, params={"data": overpy_query2},
+                            timeout=60)
     response.raise_for_status()
 
     res = response.json()
