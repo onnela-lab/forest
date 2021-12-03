@@ -1185,10 +1185,7 @@ def generate_addresses(country: str, city: str) -> np.ndarray:
             OVERPASS_URL,
             params={"data": overpy_query}, timeout=5 * 60
         )
-    if response.status_code != 200:
-        raise RuntimeError(
-            f"Overpass API returned error {response.status_code}"
-            )
+    response.raise_for_status()
 
     res = response.json()
     try:
@@ -1197,12 +1194,12 @@ def generate_addresses(country: str, city: str) -> np.ndarray:
         )
     except ValueError:
         raise ValueError(
-            """
-            Overpass query came back empty.
-            Check the location argument, ISO code,
-            and city name, for any misspellings.
-            """
+            (
+                "Overpass query came back empty. "
+                + "Check the location argument, ISO code, "
+                + "and city name, for any misspellings."
             )
+        )
 
     return np.array(res["elements"])[index]
 
@@ -1257,12 +1254,9 @@ def generate_nodes(
     """
 
     response = requests.get(
-            OVERPASS_URL, params={"data": overpy_query2}, timeout=5 * 60
+            OVERPASS_URL, params={"data": overpy_query2}, timeout=60
         )
-    if response.status_code != 200:
-        raise RuntimeError(
-            f"Overpass API returned error {response.status_code}"
-            )
+    response.raise_for_status()
 
     res = response.json()
 
@@ -1404,12 +1398,12 @@ def sim_gps_data(
         if len(all_traj) == 0:
             ind += 1
             continue
-        all_D_array = np.array(all_distances) / 1000
-        all_T_array = np.array(all_times) / 3600
+        all_distances_array = np.array(all_distances) / 1000
+        all_times_array = np.array(all_times) / 3600
 
         sys.stdout.write(f"User_{user + 1}\n")
-        sys.stdout.write(f"	distance(km): {all_D_array.tolist()}\n")
-        sys.stdout.write(f"	hometime(hr): {all_T_array.tolist()}\n")
+        sys.stdout.write(f"	distance(km): {all_distances_array.tolist()}\n")
+        sys.stdout.write(f"	hometime(hr): {all_times_array.tolist()}\n")
         obs = remove_data(all_traj, cycle, percentage, no_of_days)
         obs_pd = prepare_data(obs, timestamp_s / 1000, tz_str)
         obs_pd['user'] = user + 1
