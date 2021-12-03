@@ -6,13 +6,16 @@ of a number of people anywhere in the world.
 import datetime
 from dataclasses import dataclass
 from enum import Enum
-import os
+import re
+import sys
 import time
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import openrouteservice
 import pandas as pd
+import requests
+from timezonefinder import TimezoneFinder
 
 from forest.jasmine.data2mobmat import great_circle_dist
 from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
@@ -20,6 +23,7 @@ from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 R = 6.371*10**6
 ACTIVE_STATUS_LIST = range(11)
 TRAVELLING_STATUS_LIST = range(11)
+OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
 
 class PossibleExits(Enum):
@@ -30,7 +34,7 @@ class PossibleExits(Enum):
     PARK = "park"
     CINEMA = "cinema"
     DANCE = "dance"
-    FITNESS = "fitness"
+    FITNESS = "fitness_centre"
 
 
 class Vehicle(Enum):
@@ -88,9 +92,9 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
 
     if transport in (Vehicle.CAR, Vehicle.BUS):
         transport2 = "driving-car"
-    elif transport.value == Vehicle.FOOT:
+    elif transport == Vehicle.FOOT:
         transport2 = "foot-walking"
-    elif transport.value == Vehicle.BICYCLE:
+    elif transport == Vehicle.BICYCLE:
         transport2 = "cycling-regular"
     else:
         transport2 = ""
@@ -1117,31 +1121,289 @@ def process_switches(
     return switches
 
 
-def sim_GPS_data(cycle,p,data_folder):
-    ## only two parameters
-    ## cycle is the sum of on-cycle and off_cycle, unit is minute
-    ## p is the missing rate, in other words, the proportion of off_cycle, should be within [0,1]
-    ## it returns a pandas dataframe with only observations from on_cycles, which mimics the real data file
-    ## the data are the trajectories over two weeks, sampled at 1Hz, with an obvious activity pattern
-    s = datetime2stamp([2020,8,24,0,0,0],'America/New_York')*1000
-    if os.path.exists(data_folder)==False:
-        os.mkdir(data_folder)
-    for user in range(2):
-        if os.path.exists(data_folder+"/user_"+str(user+1))==False:
-            os.mkdir(data_folder+"/user_"+str(user+1))
-        if os.path.exists(data_folder+"/user_"+str(user+1)+"/gps")==False:
-            os.mkdir(data_folder+"/user_"+str(user+1)+"/gps")
-        all_traj,all_D,all_T = gen_all_traj()
-        print("User_"+str(user+1))
-        print("distance(km): ", all_D)
-        print("hometime(hr): ", all_T)
-        obs = remove_data(all_traj,cycle,p,14)
-        obs_pd = prepare_data(obs)
-        for i in range(14):
-            for j in range(24):
-                s_lower = s+i*24*60*60*1000+j*60*60*1000
-                s_upper = s+i*24*60*60*1000+(j+1)*60*60*1000
-                temp = obs_pd[(obs_pd["timestamp"]>=s_lower)&(obs_pd["timestamp"]<s_upper)]
-                [y,m,d,h,mins,sec] = stamp2datetime(s_lower/1000,"UTC")
-                filename = f"{y}-{m:0>2}-{d:0>2}-{h:0>2}_00_00.csv"
-                temp.to_csv(data_folder+"/user_"+str(user+1)+"/gps/"+filename,index = False)
+def load_attributes(
+    attributes: Dict[str, Dict],
+) -> Tuple[Dict[int, Attributes], Dict[int, Dict[str, int]]]:
+    """Loads the attributes of each person.
+
+    Args:
+        attributes: Dictionary of attributes of each person,
+            loaded from json file.
+    Returns:
+        attributes: (dictionary) contains attributes of each person,
+            loaded from json file.
+        switches: (dictionary) contains possible changes of attributes
+            in between of simulation
+    Raises:
+        ValueError: if the format of the json file is not correct.
+    """
+
+    attributes_dictionary: Dict[int, Attributes] = {}
+    switches_dictionary: Dict[int, Dict[str, int]] = {}
+
+    for key in attributes.keys():
+        match = re.search(r"[0-9]*-?[0-9]+", key)
+        if match is None:
+            raise ValueError(f"Wrong format in attributes.json on {key}")
+        users = match.group(0).split("-")
+        if len(users) == 1:
+            up_to = int(users[0])
+        else:
+            up_to = int(users[1])
+        for user in range(int(users[0]), up_to + 1):
+            attrs = Attributes(**attributes[key])
+            switches = process_switches(attributes, key)
+            attributes_dictionary[user] = attrs
+            switches_dictionary[user] = switches
+
+    return attributes_dictionary, switches_dictionary
+
+
+def generate_addresses(country: str, city: str) -> np.ndarray:
+    """Generates multiple addresses.
+
+    Args:
+        country: (str) country of the persons
+        city: (str) city of the persons
+    Returns:
+        addresses: (np.ndarray) contains address coordinates of each person
+    Raises:
+        RuntimeError: if the api raises error for too many tries
+        ValueError: if the api returns no results
+    """
+
+    overpy_query = f"""
+    [out:json];
+    area["ISO3166-1"="{country}"][admin_level=2] -> .country;
+    area["name"="{city}"] -> .city;
+    node(area.country)(area.city)["addr:street"];
+    out center 150;
+    """
+
+    response = requests.get(OVERPASS_URL, params={"data": overpy_query},
+                            timeout=60)
+    response.raise_for_status()
+
+    res = response.json()
+    try:
+        index = np.random.choice(
+            range(len(res["elements"])), 100, replace=False
+        )
+    except ValueError:
+        sys.stderr.write(
+            "Overpass query came back empty. Check the location argument, ISO "
+            "code, and city name, for any misspellings."
+        )
+        raise
+
+    return np.array(res["elements"])[index]
+
+
+def generate_nodes(
+    house_address: Tuple[float, float],
+    employment: Occupation
+) -> Dict[str, List[Tuple[float, float]]]:
+    """Generates multiple amenities coordinates.
+
+    Args:
+        house_address: (tuple) coordinates of the house
+        employment: (Occupation) occupation of the person
+    Returns:
+        nodes: (dictionary) contains coordinates of each amenity
+    Raises:
+        RuntimeError: if the api raises error for too many tries
+    """
+
+    house_area = bounding_box(house_address, 2000)
+    house_area2 = bounding_box(house_address, 3000)
+
+    q_employment = ""
+    if employment == Occupation.WORK:
+        q_employment = f'node{house_area}["office"];'
+    elif employment == Occupation.SCHOOL:
+        q_employment = f"""
+        node{house_area2}["amenity"="university"];
+        way{house_area2}["amenity"="university"]
+        """
+
+    overpy_query2 = f"""
+    [out:json];
+    (
+        node{house_area}["amenity"="cafe"];
+        node{house_area}["amenity"="bar"];
+        node{house_area}["amenity"="restaurant"];
+        node{house_area}["amenity"="cinema"];
+        node{house_area}["leisure"="park"];
+        node{house_area}["leisure"="dance"];
+        node{house_area}["leisure"="fitness_centre"];
+        way{house_area}["amenity"="cafe"];
+        way{house_area}["amenity"="bar"];
+        way{house_area}["amenity"="restaurant"];
+        way{house_area}["amenity"="cinema"];
+        way{house_area}["leisure"="park"];
+        way{house_area}["leisure"="dance"];
+        way{house_area}["leisure"="fitness_centre"];
+        {q_employment}
+    );
+    out center;
+    """
+
+    response = requests.get(OVERPASS_URL, params={"data": overpy_query2},
+                            timeout=60)
+    response.raise_for_status()
+
+    res = response.json()
+
+    all_nodes: Dict[str, list] = {}
+    for place in list(PossibleExits):
+        all_nodes[place.value] = []
+    all_nodes["office"] = []
+    all_nodes["university"] = []
+
+    for element in res["elements"]:
+        if element["type"] == "node":
+            lon = element["lon"]
+            lat = element["lat"]
+        else:
+            lon = element["center"]["lon"]
+            lat = element["center"]["lat"]
+
+        if "office" in element["tags"]:
+            all_nodes["office"].append((lat, lon))
+
+        if "amenity" in element["tags"]:
+            for key in all_nodes.keys():
+                if element["tags"]["amenity"] == key:
+                    all_nodes[key].append((lat, lon))
+        elif "leisure" in element["tags"]:
+            for key in all_nodes.keys():
+                if element["tags"]["leisure"] == key:
+                    all_nodes[key].append((lat, lon))
+
+    return all_nodes
+
+
+def sim_gps_data(
+    n_persons: int,
+    location: str,
+    start_date: datetime.date,
+    end_date: datetime.date,
+    cycle: int,
+    percentage: float,
+    api_key: str,
+    attributes_dict: Optional[Dict[str, Dict]] = None,
+) -> pd.DataFrame:
+    """Generates gps trajectories.
+
+    Args:
+        n_persons: (int) number of people to simulate
+        location: (str) indicating country and city to simulate at,
+            format "Country_2_letter_ISO_code/City_Name"
+        start_date: (datetime.date) start date of trajectories
+        end_date: (datetime.date) end date of trajectories,
+            end date is not included in the trajectories
+        cycle: (int) the sum of on-cycle and off_cycle,
+            unit is minute
+        percentage: (float) the missing rate, in other words,
+            the proportion of off_cycle, should be within [0,1]
+        api_key: (str), api key for open route service
+            https://openrouteservice.org/
+        attributes_dict: (dictionary) containing attributes
+            for each user, optional
+    Returns:
+        gps_data: (pandas.DataFrame) contains gps trajectories
+            for each person
+    Raises:
+        ValueError: if attributes.json is not in the correct format
+        ValueError: if location is not in the correct format
+        RuntimeError: if too many Overpass queries are made
+        ValueError: if Overpass query fails
+    """
+
+    sys.stdout.write("Loading Attributes...\n")
+
+    if attributes_dict is None:
+        attributes_dictionary: Dict[int, Attributes] = {}
+        switches_dictionary: Dict[int, Dict[str, int]] = {}
+    else:
+        attributes_dictionary, switches_dictionary = load_attributes(
+            attributes_dict
+        )
+
+    for user in range(1, n_persons + 1):
+        if user not in attributes_dictionary.keys():
+            attributes_dictionary[user] = Attributes()
+        if user not in switches_dictionary.keys():
+            switches_dictionary[user] = {}
+
+    sys.stdout.write("Gathering Addresses...\n")
+    try:
+        location_ctr, location_city = location.split("/")
+    except ValueError:
+        sys.stderr.write("Location provided did not have the correct format.")
+        raise
+
+    nodes = generate_addresses(location_ctr, location_city)
+
+    # find timezone of city
+    location_coords = (float(nodes[0]['lat']), float(nodes[0]['lon']))
+
+    obj = TimezoneFinder()
+    tz_str = obj.timezone_at(lng=location_coords[1], lat=location_coords[0])
+
+    no_of_days = (end_date - start_date).days
+
+    timestamp_s = (
+        datetime2stamp(
+            [start_date.year, start_date.month, start_date.day, 0, 0, 0],
+            tz_str
+        )
+        * 1000
+    )
+
+    user = 0
+    ind = 0
+    gps_data = pd.DataFrame(columns=[
+        "user",
+        "timestamp",
+        "UTC time",
+        "latitude",
+        "longitude",
+        "altitude",
+        "accuracy",
+        ]
+    )
+    sys.stdout.write("Starting to generate trajectories...\n")
+    while user < n_persons:
+
+        house_address = (float(nodes[ind]['lat']), float(nodes[ind]['lon']))
+        attrs = attributes_dictionary[user + 1]
+
+        all_nodes = generate_nodes(house_address, attrs.main_occupation)
+
+        person = Person(house_address, attrs, all_nodes)
+        all_traj, all_times, all_distances = gen_all_traj(
+            person,
+            switches_dictionary[user + 1],
+            start_date,
+            end_date,
+            api_key,
+        )
+        if len(all_traj) == 0:
+            ind += 1
+            continue
+        all_distances_array = np.array(all_distances) / 1000
+        all_times_array = np.array(all_times) / 3600
+
+        sys.stdout.write(f"User_{user + 1}\n")
+        sys.stdout.write(f"	distance(km): {all_distances_array.tolist()}\n")
+        sys.stdout.write(f"	hometime(hr): {all_times_array.tolist()}\n")
+        obs = remove_data(all_traj, cycle, percentage, no_of_days)
+        obs_pd = prepare_data(obs, timestamp_s / 1000, tz_str)
+        obs_pd['user'] = user + 1
+        gps_data = gps_data.append(obs_pd)
+
+        user += 1
+        ind += 1
+
+    return gps_data
