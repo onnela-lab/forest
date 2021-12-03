@@ -1,6 +1,5 @@
 [flake8]
 exclude =
-    forest/bonsai/simulate_gps_data.py,
     forest/bonsai/simulate_log_data.py,
     forest/jasmine,
     forest/poplar,
