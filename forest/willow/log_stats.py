@@ -97,7 +97,6 @@ def comm_logs_summaries(ID:str, df_text, df_call, stamp_start, stamp_end, tz_str
                   num_uniq_mis_call, total_time_in_call, total_time_out_call, num_s, num_r, num_mms_s, num_mms_r, num_s_tel,
                   num_r_tel, total_char_s, total_char_r]
         summary_stats.append(newline)
-    summary_stats = np.array(summary_stats)
     if option == 'daily':
         stats_pdframe = pd.DataFrame(summary_stats, columns=['year', 'month', 'day','num_in_call', 'num_out_call', 'num_mis_call',
                 'num_in_caller', 'num_out_caller','num_mis_caller', 'total_mins_in_call', 'total_mins_out_call',
