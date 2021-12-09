@@ -5,7 +5,6 @@ modules and calculate summary statistics of imputed trajectories.
 import os
 import pickle
 import sys
-from typing import Tuple
 from functools import partial
 
 import numpy as np
