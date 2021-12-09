@@ -5,7 +5,6 @@ modules and calculate summary statistics of imputed trajectories.
 import os
 import pickle
 import sys
-import time
 from typing import Tuple
 from functools import partial
 
@@ -27,19 +26,18 @@ from forest.jasmine.mobmat2traj import (Imp2traj, ImputeGPS, locate_home,
 from forest.jasmine.sogp_gps import BV_select
 
 
-def transform_point_to_circle(coords: Tuple[float, float], radius: int
-) -> Polygon:
+def transform_point_to_circle(lat: float, lon: float, radius: int
+                              ) -> Polygon:
     """This function transforms a set of cooordinates to a shapely
     circle with a provided radius.
 
     Args:
-        coords: tuple, (lattitude, longitude)
+        lat: float, latitude of the center of the circle
+        lon: float, longitude of the center of the circle
         radius: float, in meters
     Returns:
         shapely polygon of a circle
     """
-
-    lat, lon = coords
 
     local_azimuthal_projection = (
         f"+proj=aeqd +R=6371000 +units=m +lat_0={lat} +lon_0={lon}"
@@ -55,12 +53,10 @@ def transform_point_to_circle(coords: Tuple[float, float], radius: int
         pyproj.Proj("+proj=longlat +datum=WGS84 +no_defs"),
     )
 
-    center = Point(*coords)
+    center = Point(lat, lon)
     point_transformed = transform(wgs84_to_aeqd, center)
     buffer = point_transformed.buffer(radius)
-    circle_poly = transform(aeqd_to_wgs84, buffer)
-
-    return circle_poly
+    return transform(aeqd_to_wgs84, buffer)
 
 
 def gps_summaries(traj,tz_str,option):
