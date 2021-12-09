@@ -119,7 +119,7 @@ def gps_summaries(traj,tz_str,option):
                 sd_p_dur = 0
             if option=="hourly":
                 if obs_dur==0:
-                    summary_stats.append([year,month,day,hour,0,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan])
+                    summary_stats.append([year,month,day,hour,0,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA])
                 else:
                     summary_stats.append([year,month,day,hour,obs_dur/60, time_at_home/60,dist_traveled, max_dist_home,
                                           total_flight_time/60, av_f_len,sd_f_len,av_f_dur/60,sd_f_dur/60,
@@ -152,13 +152,13 @@ def gps_summaries(traj,tz_str,option):
                     D = pairwise_great_circle_dist(temp[:,[1,2]])
                     diameter = max(D)
                 if obs_dur == 0:
-                    summary_stats.append([year,month,day,0,0,0,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan])
+                    summary_stats.append([year,month,day,0,0,0,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA])
                 else:
                     summary_stats.append([year,month,day,obs_dur/3600, obs_day/3600, obs_night/3600,time_at_home/3600,dist_traveled/1000,max_dist_home/1000,
                                          radius/1000, diameter/1000, num_sig, entropy,
                                          total_flight_time/3600, av_f_len/1000,sd_f_len/1000,av_f_dur/3600,sd_f_dur/3600,
                                          total_pause_time/3600, av_p_dur/3600, sd_p_dur/3600])
-        summary_stats = pd.DataFrame(np.array(summary_stats))
+        summary_stats = pd.DataFrame(summary_stats)
         if option == "hourly":
             summary_stats.columns = ["year","month","day","hour","obs_duration","home_time","dist_traveled","max_dist_home",
                                      "total_flight_time","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration",
