@@ -6,11 +6,11 @@ requires = [
     'numpy',
     'openrouteservice',
     'pandas',
-    'pyproj', # jasmine
+    'pyproj',  # jasmine
     'pytz',  # jasmine, poplar
     'requests',  # bonsai
     'scipy',
-    'shapely', # jasmine
+    'shapely',  # jasmine
     'timezonefinder',  # poplar, bonsai
 ]
 
