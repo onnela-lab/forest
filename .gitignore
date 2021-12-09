@@ -3,3 +3,6 @@ __pycache__/
 
 # IntelliJ project files
 .idea
+
+# for installing Forest in editable mode when developing
+forest.egg-info/
