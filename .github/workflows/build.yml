@@ -21,7 +21,7 @@ jobs:
       - name: Run code style checking
         run: flake8
       - name: Run static type checking
-        run: mypy forest
+        run: mypy -p forest
       - name: Run legacy tests
         run: python -m unittest tests/imports.py
       - name: Run pytest suite
