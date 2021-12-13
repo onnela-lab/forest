@@ -2,27 +2,32 @@
 modules and calculate summary statistics of imputed trajectories.
 """
 
+from functools import partial
 import os
 import pickle
 import sys
-from functools import partial
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
 import pyproj
+import requests
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
 
-from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
-                                               stamp2datetime,
-                                               write_all_summaries)
+from forest.bonsai.simulate_gps_data import bounding_box
 from forest.jasmine.data2mobmat import (GPS2MobMat, InferMobMat,
                                         great_circle_dist,
                                         pairwise_great_circle_dist)
 from forest.jasmine.mobmat2traj import (Imp2traj, ImputeGPS, locate_home,
                                         num_sig_places)
 from forest.jasmine.sogp_gps import BV_select
+from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
+                                               stamp2datetime,
+                                               write_all_summaries)
+
+OVERPASS_URL = "http://overpass-api.de/api/interpreter"
 
 
 def transform_point_to_circle(lat: float, lon: float, radius: int
@@ -56,6 +61,85 @@ def transform_point_to_circle(lat: float, lon: float, radius: int
     point_transformed = transform(wgs84_to_aeqd, center)
     buffer = point_transformed.buffer(radius)
     return transform(aeqd_to_wgs84, buffer)
+
+
+def get_nearby_locations(traj: np.ndarray
+                         ) -> Tuple[dict, dict, dict]:
+    """This function returns a dictionary of nearby locations,
+    a dictionary of nearby locations' names, and a dictionary of
+    nearby locations' coordinates.
+
+    Args:
+        traj: numpy array, trajectory
+    Returns:
+        nearby_locations: dictionary, nearby locations
+        nearby_locations_name: dictionary, nearby locations' names
+        nearby_locations_coord: dictionary, nearby locations' coordinates
+    Raises:
+        RuntimeError: if the query to Overpass API fails
+    """
+
+    pause_vec = traj[traj[:, 0] == 2]
+    lat: List[float] = []
+    lon: List[float] = []
+    for row in pause_vec:
+        if len(lat) == 0:
+            lat.append(row[1])
+            lon.append(row[2])
+        # only add locations that are far away (> 1km)
+        elif (
+            np.min(great_circle_dist(*row[1:3], np.array(lat), np.array(lon)))
+            > 1000
+        ):
+            lat.append(row[1])
+            lon.append(row[2])
+
+    query = "[out:json];\n("
+
+    for i, _ in enumerate(lat):
+        bbox = bounding_box((lat[i], lon[i]), 1000)
+
+        query += f"""
+        \tnode{bbox}['leisure'];
+        \tway{bbox}['leisure'];
+        \tnode{bbox}['amenity'];
+        \tway{bbox}['amenity'];"""
+
+    query += "\n);\nout geom qt;"
+
+    response = requests.get(OVERPASS_URL, params={"data": query}, timeout=60)
+    response.raise_for_status()
+
+    res = response.json()
+    ids: Dict[str, int] = {}
+    locations: Dict[int, List[List[float]]] = {}
+    tags: Dict[int, Dict[str, str]] = {}
+
+    for element in res["elements"]:
+
+        element_id = element["id"]
+
+        if "amenity" in element["tags"]:
+            if element["tags"]["amenity"] not in ids.keys():
+                ids[element["tags"]["amenity"]] = [element_id]
+            else:
+                ids[element["tags"]["amenity"]].append(element_id)
+        elif "leisure" in element["tags"]:
+            if element["tags"]["leisure"] not in ids.keys():
+                ids[element["tags"]["leisure"]] = [element_id]
+            else:
+                ids[element["tags"]["leisure"]].append(element_id)
+
+        if element["type"] == "node":
+            locations[element_id] = [[element["lat"], element["lon"]]]
+        elif element["type"] == "way":
+            locations[element_id] = [
+                [x["lat"], x["lon"]] for x in element["geometry"]
+            ]
+
+        tags[element_id] = element["tags"]
+
+    return ids, locations, tags
 
 
 def gps_summaries(traj,tz_str,option):
