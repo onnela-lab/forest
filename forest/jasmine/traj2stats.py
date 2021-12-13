@@ -88,7 +88,12 @@ def get_nearby_locations(traj: np.ndarray
             lon.append(row[2])
         # only add locations that are far away (> 1km)
         elif (
-            np.min(great_circle_dist(*row[1:3], np.array(lat), np.array(lon)))
+            np.min(
+                    [
+                        great_circle_dist(*row[1:3], lat[i], lon[i])
+                        for i in range(len(lat))
+                    ]
+                )
             > 1000
         ):
             lat.append(row[1])
@@ -111,7 +116,7 @@ def get_nearby_locations(traj: np.ndarray
     response.raise_for_status()
 
     res = response.json()
-    ids: Dict[str, int] = {}
+    ids: Dict[str, List[int]] = {}
     locations: Dict[int, List[List[float]]] = {}
     tags: Dict[int, Dict[str, str]] = {}
 
