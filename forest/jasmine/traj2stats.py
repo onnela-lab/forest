@@ -63,8 +63,7 @@ def transform_point_to_circle(lat: float, lon: float, radius: int
     return transform(aeqd_to_wgs84, buffer)
 
 
-def get_nearby_locations(traj: np.ndarray
-                         ) -> Tuple[dict, dict, dict]:
+def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
     """This function returns a dictionary of nearby locations,
     a dictionary of nearby locations' names, and a dictionary of
     nearby locations' coordinates.
@@ -72,37 +71,31 @@ def get_nearby_locations(traj: np.ndarray
     Args:
         traj: numpy array, trajectory
     Returns:
-        nearby_locations: dictionary, nearby locations
-        nearby_locations_name: dictionary, nearby locations' names
-        nearby_locations_coord: dictionary, nearby locations' coordinates
+        ids: dictionary, contains nearby locations' ids
+        locations: dictionary, contains nearby locations' coordinates
+        tags: dictionary, contains nearby locations' tags
     Raises:
         RuntimeError: if the query to Overpass API fails
     """
 
     pause_vec = traj[traj[:, 0] == 2]
-    lat: List[float] = []
-    lon: List[float] = []
+    latitudes: List[float] = []
+    longitudes: List[float] = []
     for row in pause_vec:
-        if len(lat) == 0:
-            lat.append(row[1])
-            lon.append(row[2])
-        # only add locations that are far away (> 1km)
-        elif (
-            np.min(
-                    [
-                        great_circle_dist(*row[1:3], lat[i], lon[i])
-                        for i in range(len(lat))
-                    ]
-                )
-            > 1000
-        ):
-            lat.append(row[1])
-            lon.append(row[2])
+        minimum_distance = np.min([
+            great_circle_dist(row[1], row[2], lat, lon)
+            for lat, lon in zip(latitudes, longitudes)
+            ])
+        # only add coordinates to the list if they are not too close
+        # with the other coordinates in the list or if the list is empty
+        if len(latitudes) == 0 or minimum_distance > 1000:
+            latitudes.append(row[1])
+            longitudes.append(row[2])
 
     query = "[out:json];\n("
 
-    for i, _ in enumerate(lat):
-        bbox = bounding_box((lat[i], lon[i]), 1000)
+    for lat, lon in zip(latitudes, longitudes):
+        bbox = bounding_box((lat, lon), 1000)
 
         query += f"""
         \tnode{bbox}['leisure'];
