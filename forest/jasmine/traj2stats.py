@@ -249,7 +249,7 @@ def gps_summaries(traj,tz_str,option):
                 sd_p_dur = 0
             if option=="hourly":
                 if obs_dur==0:
-                    summary_stats.append([year,month,day,hour,0,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan])
+                    summary_stats.append([year,month,day,hour,0,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA])
                 else:
                     summary_stats.append([year,month,day,hour,obs_dur/60, time_at_home/60,dist_traveled, max_dist_home,
                                           total_flight_time/60, av_f_len,sd_f_len,av_f_dur/60,sd_f_dur/60,
@@ -282,13 +282,13 @@ def gps_summaries(traj,tz_str,option):
                     D = pairwise_great_circle_dist(temp[:,[1,2]])
                     diameter = max(D)
                 if obs_dur == 0:
-                    summary_stats.append([year,month,day,0,0,0,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan])
+                    summary_stats.append([year,month,day,0,0,0,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA])
                 else:
                     summary_stats.append([year,month,day,obs_dur/3600, obs_day/3600, obs_night/3600,time_at_home/3600,dist_traveled/1000,max_dist_home/1000,
                                          radius/1000, diameter/1000, num_sig, entropy,
                                          total_flight_time/3600, av_f_len/1000,sd_f_len/1000,av_f_dur/3600,sd_f_dur/3600,
                                          total_pause_time/3600, av_p_dur/3600, sd_p_dur/3600])
-        summary_stats = pd.DataFrame(np.array(summary_stats))
+        summary_stats = pd.DataFrame(summary_stats)
         if option == "hourly":
             summary_stats.columns = ["year","month","day","hour","obs_duration","home_time","dist_traveled","max_dist_home",
                                      "total_flight_time","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration",
@@ -336,7 +336,7 @@ def gps_quality_check(study_folder, ID):
     return quality_check
 
 def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_start = None, time_end = None, beiwe_id = None,
-    parameters = None, all_memory_dict = None, all_BV_set=None):
+    parameters = None, all_memory_dict = None, all_BV_set=None, quality_threshold=None):
     """
     This the main function to do the GPS imputation. It calls every function defined before.
     Args:   study_folder, string, the path of the study folder
@@ -352,12 +352,17 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_
             beiwe_id: a list of beiwe IDs
             parameters: hyperparameters in functions, recommend to set it to none (by default)
             all_memory_dict and all_BV_set are dictionaries from previous run (none if it's the first time)
+            quality_threshold: more-or-less a percentage value expressed as a floating point of the 
+            fraction of data required for a summary to be created.
     Return: write summary stats as csv for each user during the specified period
             and imputed trajectory if required
             and memory objects (all_memory_dict and all_BV_set) as pickle files for future use
             and a record csv file to show which users are processed, from when to when
             and logger csv file to show warnings and bugs during the run
     """
+    
+    quality_threshold = quality_threshold if quality_threshold is not None else 0.05
+    
     if os.path.exists(output_folder)==False:
         os.mkdir(output_folder)
 
@@ -394,6 +399,7 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_
             os.mkdir(output_folder+"/hourly")
         if os.path.exists(output_folder+"/daily")==False:
             os.mkdir(output_folder+"/daily")
+
     if save_traj == True:
         if os.path.exists(output_folder+"/trajectory")==False:
             os.mkdir(output_folder+"/trajectory")
@@ -404,7 +410,7 @@ def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_
             try:
                 ## data quality check
                 quality = gps_quality_check(study_folder, ID)
-                if quality>0.6:
+                if quality > quality_threshold:
                     ## read data
                     sys.stdout.write("Read in the csv files ..." + '\n')
                     data, stamp_start, stamp_end = read_data(ID, study_folder, "gps", tz_str, time_start, time_end)
