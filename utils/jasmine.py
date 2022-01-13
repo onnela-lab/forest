@@ -10,13 +10,14 @@ import os
 from forest.jasmine.traj2stats import gps_stats_main
 
 parser = argparse.ArgumentParser()
-parser.add_argument("raw_data_path", help="path to the folder with raw data",
-                    type=str)
-parser.add_argument("summary_data_path", help="path to the output folder",
-                    type=str)
-parser.add_argument("quality_threshold",
-                    help="a quality threshold for data worth reporting, value between 0 and 1",
-                    type=float, default=0.4)
+parser.add_argument("raw_data_path", type=str,
+                    help="path to the folder with raw data")
+parser.add_argument("summary_data_path", type=str,
+                    help="path to the output folder")
+parser.add_argument(
+    "quality_threshold", type=float, default=0.4,
+    help="a quality threshold for data worth reporting, value between 0 and 1"
+)
 args = parser.parse_args()
 
 summary_data_path = os.path.join(args.summary_data_path, "gps")
