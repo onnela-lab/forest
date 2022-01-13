@@ -82,16 +82,13 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
     latitudes: List[float] = []
     longitudes: List[float] = []
     for row in pause_vec:
-        distances = [
+        minimum_distance = np.min([
             great_circle_dist(row[1], row[2], lat, lon)
             for lat, lon in zip(latitudes, longitudes)
-            ]
+            ])
         # only add coordinates to the list if they are not too close
         # with the other coordinates in the list or if the list is empty
-        if len(latitudes) == 0:
-            latitudes.append(row[1])
-            longitudes.append(row[2])
-        elif np.min(distances) > 1000:
+        if len(latitudes) == 0 or minimum_distance > 1000:
             latitudes.append(row[1])
             longitudes.append(row[2])
 
@@ -186,7 +183,7 @@ def gps_summaries(
             discovering places near him in pauses
         place_point_radius, float, radius of place's circle
             when place is returned as centre coordinates from osm
-    Return:
+    Returns:
         a pd dataframe, with each row as an hour/day,
             and each col as a feature/stat
         a dictionary, contains log of tags of all locations visited
