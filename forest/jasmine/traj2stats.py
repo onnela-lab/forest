@@ -171,17 +171,17 @@ def gps_summaries(
         option: 'daily' or 'hourly'
         places_of_interest: list of amenities or leisure places to watch,
             keywords as used in openstreetmaps
-        save_log, bool, True if you want to output a log of locations
+        save_log: bool, True if you want to output a log of locations
             visited and their tags
-        threshold, int, time spent in a pause needs to exceed the threshold
+        threshold: int, time spent in a pause needs to exceed the threshold
             to be placed in the log
             only if save_log True, in minutes
-        split_day_night, bool, True if you want to split all metrics to
+        split_day_night: bool, True if you want to split all metrics to
             datetime and nighttime patterns
             only for daily option
-        person_point_radius, float, radius of the person's circle when
+        person_point_radius: float, radius of the person's circle when
             discovering places near him in pauses
-        place_point_radius, float, radius of place's circle
+        place_point_radius: float, radius of place's circle
             when place is returned as centre coordinates from osm
     Returns:
         a pd dataframe, with each row as an hour/day,
@@ -190,11 +190,18 @@ def gps_summaries(
             from openstreetmap
     Raises:
         RuntimeError: if the query to Overpass API fails
+        ValueError: if option argument is not 'hourly' or 'daily'
     """
+
+    if option not in ["hourly", "daily"]:
+        raise ValueError("option must be 'hourly' or 'daily'")
 
     if option == "hourly":
         split_day_night = False
 
+    ids = {}
+    locations = {}
+    tags = {}
     if places_of_interest is not None or save_log:
         ids, locations, tags = get_nearby_locations(traj)
 
@@ -215,8 +222,7 @@ def gps_summaries(
         # (if it ends at 2019-3-8 11 o'clock, then 11 shouldn't be included)
         window = 60 * 60
         no_windows = (end_stamp - start_stamp) // window
-
-    if option == "daily":
+    else:
         # find starting and ending time
         sys.stdout.write("Calculating the daily summary stats...\n")
         time_list = stamp2datetime(traj[0, 3], tz_str)
@@ -245,6 +251,10 @@ def gps_summaries(
         # and the ending point of the first traj >start_time
         index_rows = (traj[:, 3] < end_time) * (traj[:, 6] > start_time)
 
+        start_time2 = 0
+        end_time2 = 0
+        stop1 = 0
+        stop2 = 0
         if split_day_night:
             current_time_list2 = current_time_list.copy()
             current_time_list3 = current_time_list.copy()
@@ -275,8 +285,7 @@ def gps_summaries(
                 index_rows = index1 + index2
 
         if sum(index_rows) == 0 and split_day_night:
-            res = [year, month, day]
-            res += [0 for _ in range(18)]
+            res = [year, month, day] + [0 for _ in range(18)]
             if places_of_interest is not None:
                 res += [0 for _ in range(2 * len(places_of_interest) + 1)]
             summary_stats.append(res)
@@ -404,6 +413,8 @@ def gps_summaries(
                             -1,
                         ] += (row[6] - row[3]) / 60
 
+            all_place_times = []
+            all_place_times_adjusted = []
             if places_of_interest is not None:
                 all_place_times = [
                     0 for _ in range(len(places_of_interest) + 1)
@@ -468,24 +479,22 @@ def gps_summaries(
                             + "\n"
                         )
                     if row[2] >= threshold:
-                        for location_index, _ in enumerate(locations.keys()):
-                            element_id = list(locations.keys())[location_index]
-                            values = list(locations.values())[location_index]
-
-                            if len(values) == 1:
+                        for place_id, place_coordinates in locations:
+                            if len(place_coordinates) == 1:
                                 if (
                                     great_circle_dist(
                                         row[0], row[1],
-                                        values[0][0], values[0][1],
+                                        place_coordinates[0][0],
+                                        place_coordinates[0][1],
                                     )
                                     < place_point_radius
                                 ):
-                                    log_tags_temp.append(tags[element_id])
-                            elif len(values) >= 3:
-                                polygon = Polygon(values)
+                                    log_tags_temp.append(tags[place_id])
+                            elif len(place_coordinates) >= 3:
+                                polygon = Polygon(place_coordinates)
                                 point = Point(row[0], row[1])
                                 if polygon.contains(point):
-                                    log_tags_temp.append(tags[element_id])
+                                    log_tags_temp.append(tags[place_id])
 
         if len(flight_d_vec) > 0:
             av_f_len = np.mean(flight_d_vec)
@@ -553,7 +562,7 @@ def gps_summaries(
                 log_tags[f"{day}/{month}/{year} {hour}:00"] = log_tags_temp
 
                 summary_stats.append(res)
-        if option == "daily":
+        else:
             hours = []
             for j in range(temp.shape[0]):
                 time_list = stamp2datetime(
@@ -595,8 +604,8 @@ def gps_summaries(
             if temp.shape[0] == 1:
                 diameter = 0
             else:
-                D = pairwise_great_circle_dist(temp[:, [1, 2]])
-                diameter = max(D)
+                diameters = pairwise_great_circle_dist(temp[:, [1, 2]])
+                diameter = max(diameters)
             if obs_dur == 0:
                 res = [
                     year,
@@ -697,7 +706,7 @@ def gps_summaries(
                 + places_of_interest2
                 + places_of_interest3
             )
-        if option == "daily":
+        else:
             summary_stats_df.columns = (
                 [
                     "year",
@@ -760,7 +769,7 @@ def gps_summaries(
                     + places_of_interest3
                 )
             )
-        if option == "daily":
+        else:
             summary_stats_df = pd.DataFrame(
                 columns=(
                     [
