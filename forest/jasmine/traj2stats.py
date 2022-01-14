@@ -199,9 +199,9 @@ def gps_summaries(
     if option == "hourly":
         split_day_night = False
 
-    ids = {}
-    locations = {}
-    tags = {}
+    ids: Dict[str, List[int]] = {}
+    locations: Dict[int, List[List[float]]] = {}
+    tags: Dict[int, Dict[str, str]] = {}
     if places_of_interest is not None or save_log:
         ids, locations, tags = get_nearby_locations(traj)
 
@@ -315,15 +315,15 @@ def gps_summaries(
                 temp[0, 6] = t1_temp
             else:
                 if split_day_night and i % 2 != 0:
-                    t0_temp = [start_time, end_time2]
-                    t1_temp = [start_time2, end_time]
+                    t0_temp_l = [start_time, end_time2]
+                    t1_temp_l = [start_time2, end_time]
                     start_temp = [0, stop2]
                     end_temp = [stop1, -1]
                     for j in range(2):
-                        p0 = (temp[start_temp[j], 6] - t0_temp[j]) / (
+                        p0 = (temp[start_temp[j], 6] - t0_temp_l[j]) / (
                             temp[start_temp[j], 6] - temp[start_temp[j], 3]
                         )
-                        p1 = (t1_temp[j] - temp[end_temp[j], 3]) / (
+                        p1 = (t1_temp_l[j] - temp[end_temp[j], 3]) / (
                             temp[end_temp[j], 6] - temp[end_temp[j], 3]
                         )
                         temp[start_temp[j], 1] = (1 - p0) * temp[
@@ -332,14 +332,14 @@ def gps_summaries(
                         temp[start_temp[j], 2] = (1 - p0) * temp[
                             start_temp[j], 5
                         ] + p0 * temp[start_temp[j], 2]
-                        temp[start_temp[j], 3] = t0_temp[j]
+                        temp[start_temp[j], 3] = t0_temp_l[j]
                         temp[end_temp[j], 4] = (1 - p1) * temp[
                             end_temp[j], 1
                         ] + p1 * temp[end_temp[j], 4]
                         temp[end_temp[j], 5] = (1 - p1) * temp[
                             end_temp[j], 2
                         ] + p1 * temp[end_temp[j], 5]
-                        temp[end_temp[j], 6] = t1_temp[j]
+                        temp[end_temp[j], 6] = t1_temp_l[j]
                 else:
                     p0 = (temp[0, 6] - t0_temp) / (temp[0, 6] - temp[0, 3])
                     p1 = (
@@ -479,7 +479,7 @@ def gps_summaries(
                             + "\n"
                         )
                     if row[2] >= threshold:
-                        for place_id, place_coordinates in locations:
+                        for place_id, place_coordinates in locations.items():
                             if len(place_coordinates) == 1:
                                 if (
                                     great_circle_dist(
