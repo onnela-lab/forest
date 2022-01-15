@@ -522,21 +522,21 @@ def gps_summaries(
                     day,
                     hour,
                     0,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
                 ]
                 if places_of_interest is not None:
                     for p in range(2 * len(places_of_interest) + 1):
-                        res.append(np.nan)
+                        res.append(pd.NA)
                 summary_stats.append(res)
                 log_tags[f"{day}/{month}/{year} {hour}:00"] = []
             else:
@@ -616,25 +616,25 @@ def gps_summaries(
                     0,
                     0,
                     0,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
-                    np.nan,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
                 ]
                 if places_of_interest is not None:
                     for p in range(2 * len(places_of_interest) + 1):
-                        res.append(np.nan)
+                        res.append(pd.NA)
                 summary_stats.append(res)
                 log_tags[f"{day}/{month}/{year}"] = []
             else:
