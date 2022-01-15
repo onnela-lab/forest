@@ -64,14 +64,18 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
           if time_start is None and time_end is None: then it reads all the available files
           if time_start is None and time_end is given, then it reads all the files before the given time
           if time_start is given and time_end is None, then it reads all the files after the given time
+          if identifiers files are present and the earliest identifiers registration timestamp occurred
+            after the provided time_start (or if time_start is None) then that identifier timestamp
+            will be used instead.
     return: a panda dataframe of the datastream (not for accelerometer data!) and corresponding starting/ending timestamp (UTC),
             you can convert it to numpy array as needed
-            For accelerometer data, intsead of a panda dataframe, it returns a list of filenames
-            The reason is the volumn of accelerometer data is too large, we need to process it on the fly:
+            For accelerometer data, instead of a panda dataframe, it returns a list of filenames
+            The reason is the volume of accelerometer data is too large, we need to process it on the fly:
             read one csv file, process one, not wait until all the csv's are imported (that may be too large in memory!)
     """
     df = pd.DataFrame()
-    stamp_start = 1e12 ; stamp_end = 0
+    stamp_start = 1e12
+    stamp_end = 0
     folder_path = study_folder + "/" + ID +  "/" + str(datastream)
     ## if text folder exists, call folder must exists
     if not os.path.exists(study_folder + "/" + ID):
@@ -98,6 +102,8 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
             stamp_start = stamp_start1
         else:
             stamp_start2 = datetime2stamp(time_start,tz_str)
+            # only allow data after the participant registered (this condition may be violated under
+            # test conditions of the beiwe backend.)
             stamp_start = max(stamp_start1,stamp_start2)
         ##Last hour: look at all the subject's directories (except survey) and find the latest date for each directory
         directories = os.listdir(study_folder + "/" + ID)
@@ -111,8 +117,9 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
         if time_end == None:
             stamp_end = stamp_end1
         else:
-            stamp_end2 =  datetime2stamp(time_end,tz_str)
+            stamp_end2 = datetime2stamp(time_end,tz_str)
             stamp_end = min(stamp_end1,stamp_end2)
+
         ## extract the filenames in range
         files_in_range = filenames[(filestamps>=stamp_start)*(filestamps<stamp_end)]
         if len(files_in_range) == 0:
@@ -127,6 +134,7 @@ def read_data(ID:str, study_folder: str, datastream:str, tz_str: str, time_start
                         df = hour_data
                     else:
                         df = df.append(hour_data,ignore_index=True)
+    
     if datastream == "accelerometer":
         return files_in_range, stamp_start, stamp_end
     else:
