@@ -2,6 +2,7 @@
 modules and calculate summary statistics of imputed trajectories.
 """
 
+from enum import Enum
 from functools import partial
 import os
 import pickle
@@ -28,6 +29,12 @@ from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
                                                write_all_summaries)
 
 OVERPASS_URL = "http://overpass-api.de/api/interpreter"
+
+
+class Frequency(Enum):
+    """This class enumerates possible frequencies for summary data."""
+    HOURLY = "hourly"
+    DAILY = "daily"
 
 
 def transform_point_to_circle(lat: float, lon: float, radius: float
@@ -143,7 +150,7 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
 def gps_summaries(
     traj: np.ndarray,
     tz_str: str,
-    option: str,
+    frequency: Frequency,
     places_of_interest: Union[List[str], None] = None,
     save_log: bool = False,
     threshold: Union[int, None] = None,
@@ -168,7 +175,7 @@ def gps_summaries(
             x1,y1,t1: ending lat,lon,timestamp,
             obs (1 as observed and 0 as imputed)
         tz_str: timezone
-        option: 'daily' or 'hourly'
+        option: Frequency class
         places_of_interest: list of amenities or leisure places to watch,
             keywords as used in openstreetmaps
         save_log: bool, True if you want to output a log of locations
@@ -190,13 +197,9 @@ def gps_summaries(
             from openstreetmap
     Raises:
         RuntimeError: if the query to Overpass API fails
-        ValueError: if option argument is not 'hourly' or 'daily'
     """
 
-    if option not in ["hourly", "daily"]:
-        raise ValueError("option must be 'hourly' or 'daily'")
-
-    if option == "hourly":
+    if frequency == Frequency.HOURLY:
         split_day_night = False
 
     ids: Dict[str, List[int]] = {}
@@ -209,7 +212,7 @@ def gps_summaries(
     home_lat, home_lon = locate_home(obs_traj, tz_str)
     summary_stats: List[List[float]] = []
     log_tags: Dict[str, List[dict]] = {}
-    if option == "hourly":
+    if frequency == Frequency.HOURLY:
         # find starting and ending time
         sys.stdout.write("Calculating the hourly summary stats...\n")
         time_list = stamp2datetime(traj[0, 3], tz_str)
@@ -245,14 +248,15 @@ def gps_summaries(
             i2 = i
         start_time = start_stamp + i2 * window
         end_time = start_stamp + (i2 + 1) * window
+        start_time2 = 0
+        end_time2 = 0
+
         current_time_list = stamp2datetime(start_time, tz_str)
         year, month, day, hour = current_time_list[:4]
         # take a subset, the starting point of the last traj <end_time
         # and the ending point of the first traj >start_time
         index_rows = (traj[:, 3] < end_time) * (traj[:, 6] > start_time)
 
-        start_time2 = 0
-        end_time2 = 0
         stop1 = 0
         stop2 = 0
         if split_day_night:
@@ -416,18 +420,16 @@ def gps_summaries(
             all_place_times = []
             all_place_times_adjusted = []
             if places_of_interest is not None:
-                all_place_times = [
-                    0 for _ in range(len(places_of_interest) + 1)
-                    ]
+                all_place_times = [0] * (len(places_of_interest) + 1)
                 all_place_times_adjusted = all_place_times[:-1]
 
-            for _, row in enumerate(pause_array):
+            for pause in pause_array:
                 if places_of_interest is not None:
                     all_place_probs = [
                         0 for _, _ in enumerate(places_of_interest)
                     ]
                     pause_circle = transform_point_to_circle(
-                        row[0], row[1], person_point_radius
+                        pause[0], pause[1], person_point_radius
                     )
                     add_to_other = True
                     for j, place in enumerate(places_of_interest):
@@ -458,16 +460,16 @@ def gps_summaries(
 
                     # in case of pause not in places of interest
                     if add_to_other:
-                        all_place_times[-1] += row[2] / 60
+                        all_place_times[-1] += pause[2] / 60
                     else:
                         all_place_probs2 = np.array(all_place_probs) / sum(
                             all_place_probs
                         )
                         chosen_type = np.argmax(all_place_probs2)
-                        all_place_times[chosen_type] += row[2] / 60
+                        all_place_times[chosen_type] += pause[2] / 60
                         for h, prob in enumerate(all_place_probs2):
                             all_place_times_adjusted[h] += (
-                                prob * row[2] / 60
+                                prob * pause[2] / 60
                             )
 
                 if save_log:
@@ -478,12 +480,12 @@ def gps_summaries(
                             + " automatically converted to 60min."
                             + "\n"
                         )
-                    if row[2] >= threshold:
+                    if pause[2] >= threshold:
                         for place_id, place_coordinates in locations.items():
                             if len(place_coordinates) == 1:
                                 if (
                                     great_circle_dist(
-                                        row[0], row[1],
+                                        pause[0], pause[1],
                                         place_coordinates[0][0],
                                         place_coordinates[0][1],
                                     )
@@ -492,7 +494,7 @@ def gps_summaries(
                                     log_tags_temp.append(tags[place_id])
                             elif len(place_coordinates) >= 3:
                                 polygon = Polygon(place_coordinates)
-                                point = Point(row[0], row[1])
+                                point = Point(pause[0], pause[1])
                                 if polygon.contains(point):
                                     log_tags_temp.append(tags[place_id])
 
@@ -512,7 +514,7 @@ def gps_summaries(
         else:
             av_p_dur = 0
             sd_p_dur = 0
-        if option == "hourly":
+        if frequency == Frequency.HOURLY:
             if obs_dur == 0:
                 res = [
                     year,
@@ -683,7 +685,7 @@ def gps_summaries(
             places_of_interest3 = [
                 f"{pl}_adjusted" for pl in places_of_interest
             ]
-        if option == "hourly":
+        if frequency == Frequency.HOURLY:
             summary_stats_df.columns = (
                 [
                     "year",
@@ -744,7 +746,7 @@ def gps_summaries(
             places_of_interest3 = [
                 f"{pl}_adjusted" for pl in places_of_interest
             ]
-        if option == "hourly":
+        if frequency == Frequency.HOURLY:
             summary_stats_df = pd.DataFrame(
                 columns=(
                     [
