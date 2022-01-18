@@ -86,16 +86,16 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
     """
 
     pause_vec = traj[traj[:, 0] == 2]
-    latitudes: List[float] = []
-    longitudes: List[float] = []
+    latitudes: List[float] = [pause_vec[0, 1]]
+    longitudes: List[float] = [pause_vec[0, 2]]
     for row in pause_vec:
         minimum_distance = np.min([
             great_circle_dist(row[1], row[2], lat, lon)
             for lat, lon in zip(latitudes, longitudes)
             ])
         # only add coordinates to the list if they are not too close
-        # with the other coordinates in the list or if the list is empty
-        if len(latitudes) == 0 or minimum_distance > 1000:
+        # with the other coordinates in the list
+        if minimum_distance > 1000:
             latitudes.append(row[1])
             longitudes.append(row[2])
 
@@ -217,8 +217,8 @@ def gps_summaries(
         sys.stdout.write("Calculating the hourly summary stats...\n")
         time_list = stamp2datetime(traj[0, 3], tz_str)
         time_list[4:6] = [0, 0]
-        start_stamp = datetime2stamp(time_list, tz_str) + 3600
-        time_list = stamp2datetime(traj[-1, 3], tz_str)
+        start_stamp = datetime2stamp(time_list, tz_str)
+        time_list = stamp2datetime(traj[-1, 6], tz_str)
         time_list[4:6] = [0, 0]
         end_stamp = datetime2stamp(time_list, tz_str)
         # start_time, end_time are exact points
@@ -231,7 +231,7 @@ def gps_summaries(
         time_list = stamp2datetime(traj[0, 3], tz_str)
         time_list[3:6] = [0, 0, 0]
         start_stamp = datetime2stamp(time_list, tz_str)
-        time_list = stamp2datetime(traj[-1, 3], tz_str)
+        time_list = stamp2datetime(traj[-1, 6], tz_str)
         time_list[3:6] = [0, 0, 0]
         end_stamp = datetime2stamp(time_list, tz_str) + 3600 * 24
         # if it starts from 2019-3-8 11 o'clock,
@@ -240,6 +240,9 @@ def gps_summaries(
         no_windows = (end_stamp - start_stamp) // window
         if split_day_night:
             no_windows *= 2
+
+    if no_windows <= 0:
+        raise ValueError("start time and end time are not correct")
 
     for i in range(no_windows):
         if split_day_night:
@@ -298,64 +301,63 @@ def gps_summaries(
         temp = traj[index_rows, :]
         # take a subset which is exactly one hour/day,
         # cut the trajs at two ends proportionally
-        if i2 not in (0, no_windows - 1):
-            if split_day_night and i % 2 == 0:
-                t0_temp = start_time2
-                t1_temp = end_time2
-            else:
-                t0_temp = start_time
-                t1_temp = end_time
+        if split_day_night and i % 2 == 0:
+            t0_temp = start_time2
+            t1_temp = end_time2
+        else:
+            t0_temp = start_time
+            t1_temp = end_time
 
-            if sum(index_rows) == 1:
-                p0 = (t0_temp - temp[0, 3]) / (temp[0, 6] - temp[0, 3])
-                p1 = (t1_temp - temp[0, 3]) / (temp[0, 6] - temp[0, 3])
-                x0, y0 = temp[0, [1, 2]]
-                x1, y1 = temp[0, [4, 5]]
-                temp[0, 1] = (1 - p0) * x0 + p0 * x1
-                temp[0, 2] = (1 - p0) * y0 + p0 * y1
-                temp[0, 3] = t0_temp
-                temp[0, 4] = (1 - p1) * x0 + p1 * x1
-                temp[0, 5] = (1 - p1) * y0 + p1 * y1
-                temp[0, 6] = t1_temp
+        if sum(index_rows) == 1:
+            p0 = (t0_temp - temp[0, 3]) / (temp[0, 6] - temp[0, 3])
+            p1 = (t1_temp - temp[0, 3]) / (temp[0, 6] - temp[0, 3])
+            x0, y0 = temp[0, [1, 2]]
+            x1, y1 = temp[0, [4, 5]]
+            temp[0, 1] = (1 - p0) * x0 + p0 * x1
+            temp[0, 2] = (1 - p0) * y0 + p0 * y1
+            temp[0, 3] = t0_temp
+            temp[0, 4] = (1 - p1) * x0 + p1 * x1
+            temp[0, 5] = (1 - p1) * y0 + p1 * y1
+            temp[0, 6] = t1_temp
+        else:
+            if split_day_night and i % 2 != 0:
+                t0_temp_l = [start_time, end_time2]
+                t1_temp_l = [start_time2, end_time]
+                start_temp = [0, stop2]
+                end_temp = [stop1, -1]
+                for j in range(2):
+                    p0 = (temp[start_temp[j], 6] - t0_temp_l[j]) / (
+                        temp[start_temp[j], 6] - temp[start_temp[j], 3]
+                    )
+                    p1 = (t1_temp_l[j] - temp[end_temp[j], 3]) / (
+                        temp[end_temp[j], 6] - temp[end_temp[j], 3]
+                    )
+                    temp[start_temp[j], 1] = (1 - p0) * temp[
+                        start_temp[j], 4
+                    ] + p0 * temp[start_temp[j], 1]
+                    temp[start_temp[j], 2] = (1 - p0) * temp[
+                        start_temp[j], 5
+                    ] + p0 * temp[start_temp[j], 2]
+                    temp[start_temp[j], 3] = t0_temp_l[j]
+                    temp[end_temp[j], 4] = (1 - p1) * temp[
+                        end_temp[j], 1
+                    ] + p1 * temp[end_temp[j], 4]
+                    temp[end_temp[j], 5] = (1 - p1) * temp[
+                        end_temp[j], 2
+                    ] + p1 * temp[end_temp[j], 5]
+                    temp[end_temp[j], 6] = t1_temp_l[j]
             else:
-                if split_day_night and i % 2 != 0:
-                    t0_temp_l = [start_time, end_time2]
-                    t1_temp_l = [start_time2, end_time]
-                    start_temp = [0, stop2]
-                    end_temp = [stop1, -1]
-                    for j in range(2):
-                        p0 = (temp[start_temp[j], 6] - t0_temp_l[j]) / (
-                            temp[start_temp[j], 6] - temp[start_temp[j], 3]
-                        )
-                        p1 = (t1_temp_l[j] - temp[end_temp[j], 3]) / (
-                            temp[end_temp[j], 6] - temp[end_temp[j], 3]
-                        )
-                        temp[start_temp[j], 1] = (1 - p0) * temp[
-                            start_temp[j], 4
-                        ] + p0 * temp[start_temp[j], 1]
-                        temp[start_temp[j], 2] = (1 - p0) * temp[
-                            start_temp[j], 5
-                        ] + p0 * temp[start_temp[j], 2]
-                        temp[start_temp[j], 3] = t0_temp_l[j]
-                        temp[end_temp[j], 4] = (1 - p1) * temp[
-                            end_temp[j], 1
-                        ] + p1 * temp[end_temp[j], 4]
-                        temp[end_temp[j], 5] = (1 - p1) * temp[
-                            end_temp[j], 2
-                        ] + p1 * temp[end_temp[j], 5]
-                        temp[end_temp[j], 6] = t1_temp_l[j]
-                else:
-                    p0 = (temp[0, 6] - t0_temp) / (temp[0, 6] - temp[0, 3])
-                    p1 = (
-                        (t1_temp - temp[-1, 3])
-                        / (temp[-1, 6] - temp[-1, 3])
-                        )
-                    temp[0, 1] = (1 - p0) * temp[0, 4] + p0 * temp[0, 1]
-                    temp[0, 2] = (1 - p0) * temp[0, 5] + p0 * temp[0, 2]
-                    temp[0, 3] = t0_temp
-                    temp[-1, 4] = (1 - p1) * temp[-1, 1] + p1 * temp[-1, 4]
-                    temp[-1, 5] = (1 - p1) * temp[-1, 2] + p1 * temp[-1, 5]
-                    temp[-1, 6] = t1_temp
+                p0 = (temp[0, 6] - t0_temp) / (temp[0, 6] - temp[0, 3])
+                p1 = (
+                    (t1_temp - temp[-1, 3])
+                    / (temp[-1, 6] - temp[-1, 3])
+                    )
+                temp[0, 1] = (1 - p0) * temp[0, 4] + p0 * temp[0, 1]
+                temp[0, 2] = (1 - p0) * temp[0, 5] + p0 * temp[0, 2]
+                temp[0, 3] = t0_temp
+                temp[-1, 4] = (1 - p1) * temp[-1, 1] + p1 * temp[-1, 4]
+                temp[-1, 5] = (1 - p1) * temp[-1, 2] + p1 * temp[-1, 5]
+                temp[-1, 6] = t1_temp
 
         obs_dur = sum((temp[:, 6] - temp[:, 3])[temp[:, 7] == 1])
         d_home_1 = great_circle_dist(
@@ -735,71 +737,6 @@ def gps_summaries(
                 ]
                 + places_of_interest2
                 + places_of_interest3
-            )
-    else:
-        if places_of_interest is None:
-            places_of_interest2 = []
-            places_of_interest3 = []
-        else:
-            places_of_interest2 = places_of_interest.copy()
-            places_of_interest2.append("other")
-            places_of_interest3 = [
-                f"{pl}_adjusted" for pl in places_of_interest
-            ]
-        if frequency == Frequency.HOURLY:
-            summary_stats_df = pd.DataFrame(
-                columns=(
-                    [
-                        "year",
-                        "month",
-                        "day",
-                        "hour",
-                        "obs_duration",
-                        "home_time",
-                        "dist_traveled",
-                        "max_dist_home",
-                        "total_flight_time",
-                        "av_flight_length",
-                        "sd_flight_length",
-                        "av_flight_duration",
-                        "sd_flight_duration",
-                        "total_pause_time",
-                        "av_pause_duration",
-                        "sd_pause_duration",
-                    ]
-                    + places_of_interest2
-                    + places_of_interest3
-                )
-            )
-        else:
-            summary_stats_df = pd.DataFrame(
-                columns=(
-                    [
-                        "year",
-                        "month",
-                        "day",
-                        "obs_duration",
-                        "obs_day",
-                        "obs_night",
-                        "home_time",
-                        "dist_traveled",
-                        "max_dist_home",
-                        "radius",
-                        "diameter",
-                        "num_sig_places",
-                        "entropy",
-                        "total_flight_time",
-                        "av_flight_length",
-                        "sd_flight_length",
-                        "av_flight_duration",
-                        "sd_flight_duration",
-                        "total_pause_time",
-                        "av_pause_duration",
-                        "sd_pause_duration",
-                    ]
-                    + places_of_interest2
-                    + places_of_interest3
-                )
             )
 
     if split_day_night:
