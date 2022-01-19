@@ -244,6 +244,7 @@ def gps_summaries(
     if no_windows <= 0:
         raise ValueError("start time and end time are not correct")
 
+    summary_stats_df = pd.DataFrame([])
     for i in range(no_windows):
         if split_day_night:
             i2 = i // 2
@@ -292,9 +293,13 @@ def gps_summaries(
                 index_rows = index1 + index2
 
         if sum(index_rows) == 0 and split_day_night:
-            res = [year, month, day] + [0 for _ in range(18)]
+            # if there is no data in the day, then we need to
+            # to add empty rows to the dataframe with 21 columns
+            res = [year, month, day] + [0] * 18
             if places_of_interest is not None:
-                res += [0 for _ in range(2 * len(places_of_interest) + 1)]
+                # add empty data for places of interest
+                # for datetime/nighttime + other
+                res += [0] * (2 * len(places_of_interest) + 1)
             summary_stats.append(res)
             continue
 
@@ -382,8 +387,10 @@ def gps_summaries(
         total_flight_time = sum(flight_t_vec)
         dist_traveled = sum(mov_vec)
         # Locations of importance
+        all_place_times = []
+        all_place_times_adjusted = []
+        log_tags_temp = []
         if places_of_interest is not None or save_log:
-            log_tags_temp = []
             pause_vec = temp[temp[:, 0] == 2]
             pause_array = np.array([])
             for row in pause_vec:
@@ -419,8 +426,6 @@ def gps_summaries(
                             -1,
                         ] += (row[6] - row[3]) / 60
 
-            all_place_times = []
-            all_place_times_adjusted = []
             if places_of_interest is not None:
                 all_place_times = [0] * (len(places_of_interest) + 1)
                 all_place_times_adjusted = all_place_times[:-1]
@@ -677,7 +682,7 @@ def gps_summaries(
                     )
                 else:
                     log_tags[f"{day}/{month}/{year}"] = log_tags_temp
-        summary_stats_df = pd.DataFrame(np.array(summary_stats))
+        summary_stats_df = pd.DataFrame(summary_stats)
         if places_of_interest is None:
             places_of_interest2 = []
             places_of_interest3 = []
