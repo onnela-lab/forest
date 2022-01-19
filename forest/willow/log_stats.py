@@ -16,7 +16,7 @@ def comm_logs_summaries(ID:str, df_text, df_call, stamp_start, stamp_end, tz_str
     summary_stats = []
     [start_year, start_month, start_day, start_hour, start_min, start_sec] = stamp2datetime(stamp_start,tz_str)
     [end_year, end_month, end_day, end_hour, end_min, end_sec] = stamp2datetime(stamp_end,tz_str)
-
+    
     ## determine the starting and ending timestamp again based on the option
     if option == 'hourly':
         table_start = datetime2stamp([start_year, start_month, start_day, start_hour,0,0],tz_str)
@@ -26,7 +26,7 @@ def comm_logs_summaries(ID:str, df_text, df_call, stamp_start, stamp_end, tz_str
         table_start = datetime2stamp((start_year, start_month, start_day, 0,0,0),tz_str)
         table_end = datetime2stamp((end_year, end_month, end_day,0,0,0),tz_str)
         step_size = 3600*24
-
+    
     ## for each chunk, calculate the summary statistics (colmean or count)
     for stamp in np.arange(table_start,table_end+1,step=step_size):
         (year, month, day, hour, minute, second) = stamp2datetime(stamp,tz_str)
@@ -40,7 +40,7 @@ def comm_logs_summaries(ID:str, df_text, df_call, stamp_start, stamp_end, tz_str
                     if np.isnan(m_len[k]):
                         m_len[k]=0
             m_len = m_len.astype(int)
-
+            
             index_s = np.array(temp_text['sent vs received'])=="sent SMS"
             index_r = np.array(temp_text['sent vs received'])=="received SMS"
             send_to_number = np.unique(np.array(temp_text['hashed phone number'])[index_s])
@@ -97,7 +97,6 @@ def comm_logs_summaries(ID:str, df_text, df_call, stamp_start, stamp_end, tz_str
                   num_uniq_mis_call, total_time_in_call, total_time_out_call, num_s, num_r, num_mms_s, num_mms_r, num_s_tel,
                   num_r_tel, total_char_s, total_char_r]
         summary_stats.append(newline)
-    summary_stats = np.array(summary_stats)
     if option == 'daily':
         stats_pdframe = pd.DataFrame(summary_stats, columns=['year', 'month', 'day','num_in_call', 'num_out_call', 'num_mis_call',
                 'num_in_caller', 'num_out_caller','num_mis_caller', 'total_mins_in_call', 'total_mins_out_call',
@@ -107,6 +106,7 @@ def comm_logs_summaries(ID:str, df_text, df_call, stamp_start, stamp_end, tz_str
         stats_pdframe = pd.DataFrame(summary_stats, columns=['year', 'month', 'day','hour','num_in_call', 'num_out_call',
                 'num_mis_call','num_in_caller', 'num_out_caller','num_mis_caller', 'total_mins_in_call', 'total_mins_out_call',
                 'num_s', 'num_r', 'num_mms_s', 'num_mms_r', 'num_s_tel','num_r_tel', 'total_char_s', 'total_char_r'])
+
     return stats_pdframe
 
 # Main function/wrapper should take standard arguments with Beiwe names:
@@ -126,7 +126,7 @@ def log_stats_main(study_folder: str, output_folder:str, tz_str: str,  option: s
             if os.path.isdir(study_folder+"/"+i):
                 id_w_folder.append(i)
         beiwe_id = id_w_folder
-
+    
     if len(beiwe_id)>0:
         for ID in beiwe_id:
             sys.stdout.write('User: '+ ID + '\n')
