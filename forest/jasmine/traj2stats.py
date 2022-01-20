@@ -160,11 +160,11 @@ def gps_summaries(
 ) -> Tuple[pd.DataFrame, dict]:
     """This function derives summary statistics from the imputed trajectories
 
-    If the option is hourly, it returns
+    If the frequency is hourly, it returns
     ["year","month","day","hour","obs_duration","pause_time","flight_time","home_time",
     "max_dist_home", "dist_traveled","av_flight_length","sd_flight_length",
     "av_flight_duration","sd_flight_duration"]
-    if the option is daily, it additionally returns
+    if the frequency is daily, it additionally returns
     ["obs_day","obs_night","radius","diameter","num_sig_places","entropy"]
 
     Args:
@@ -175,7 +175,7 @@ def gps_summaries(
             x1,y1,t1: ending lat,lon,timestamp,
             obs (1 as observed and 0 as imputed)
         tz_str: timezone
-        option: Frequency class
+        frequency: Frequency, the time windows of the summary statistics
         places_of_interest: list of amenities or leisure places to watch,
             keywords as used in openstreetmaps
         save_log: bool, True if you want to output a log of locations
@@ -184,8 +184,8 @@ def gps_summaries(
             to be placed in the log
             only if save_log True, in minutes
         split_day_night: bool, True if you want to split all metrics to
-            datetime and nighttime patterns
-            only for daily option
+            daytime and nighttime patterns
+            only for daily frequency
         person_point_radius: float, radius of the person's circle when
             discovering places near him in pauses
         place_point_radius: float, radius of place's circle
@@ -271,7 +271,7 @@ def gps_summaries(
             start_time2 = datetime2stamp(current_time_list2, tz_str)
             end_time2 = datetime2stamp(current_time_list3, tz_str)
             if i % 2 == 0:
-                # datetime
+                # daytime
                 index_rows = (
                     (traj[:, 3] <= end_time2)
                     * (traj[:, 6] >= start_time2)
@@ -298,7 +298,7 @@ def gps_summaries(
             res = [year, month, day] + [0] * 18
             if places_of_interest is not None:
                 # add empty data for places of interest
-                # for datetime/nighttime + other
+                # for daytime/nighttime + other
                 res += [0] * (2 * len(places_of_interest) + 1)
             summary_stats.append(res)
             continue
@@ -432,9 +432,7 @@ def gps_summaries(
 
             for pause in pause_array:
                 if places_of_interest is not None:
-                    all_place_probs = [
-                        0 for _, _ in enumerate(places_of_interest)
-                    ]
+                    all_place_probs = [0] * len(places_of_interest)
                     pause_circle = transform_point_to_circle(
                         pause[0], pause[1], person_point_radius
                     )
@@ -674,7 +672,7 @@ def gps_summaries(
                 summary_stats.append(res)
                 if split_day_night:
                     if i % 2 == 0:
-                        time_cat = "datetime"
+                        time_cat = "daytime"
                     else:
                         time_cat = "nighttime"
                     log_tags[f"{day}/{month}/{year}, {time_cat}"] = (
@@ -745,7 +743,7 @@ def gps_summaries(
             )
 
     if split_day_night:
-        summary_stats_df_datetime = summary_stats_df[::2].reset_index(
+        summary_stats_df_daytime = summary_stats_df[::2].reset_index(
             drop=True
             )
         summary_stats_df_nighttime = summary_stats_df[1::2].reset_index(
@@ -754,7 +752,7 @@ def gps_summaries(
 
         summary_stats_df2 = pd.concat(
             [
-                summary_stats_df_datetime,
+                summary_stats_df_daytime,
                 summary_stats_df_nighttime.iloc[:, 3:],
             ],
             axis=1,
@@ -762,7 +760,7 @@ def gps_summaries(
         summary_stats_df2.columns = (
             list(summary_stats_df.columns)[:3]
             + [
-                f"{cname}_datetime"
+                f"{cname}_daytime"
                 for cname in list(summary_stats_df.columns)[3:]
             ]
             + [
@@ -772,8 +770,8 @@ def gps_summaries(
         )
         summary_stats_df2 = summary_stats_df2.drop(
             [
-                "obs_day_datetime",
-                "obs_night_datetime",
+                "obs_day_daytime",
+                "obs_night_daytime",
                 "obs_day_nighttime",
                 "obs_night_nighttime",
             ],
@@ -782,7 +780,7 @@ def gps_summaries(
         summary_stats_df2.insert(
             3,
             "obs_duration",
-            summary_stats_df2["obs_duration_datetime"]
+            summary_stats_df2["obs_duration_daytime"]
             + summary_stats_df2["obs_duration_nighttime"],
         )
     else:
