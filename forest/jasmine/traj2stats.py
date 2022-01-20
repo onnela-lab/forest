@@ -2,11 +2,12 @@
 modules and calculate summary statistics of imputed trajectories.
 """
 
+from enum import Enum
 from functools import partial
 import os
 import pickle
 import sys
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -30,7 +31,13 @@ from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
 OVERPASS_URL = "http://overpass-api.de/api/interpreter"
 
 
-def transform_point_to_circle(lat: float, lon: float, radius: int
+class Frequency(Enum):
+    """This class enumerates possible frequencies for summary data."""
+    HOURLY = "hourly"
+    DAILY = "daily"
+
+
+def transform_point_to_circle(lat: float, lon: float, radius: float
                               ) -> Polygon:
     """This function transforms a set of cooordinates to a shapely
     circle with a provided radius.
@@ -79,16 +86,16 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
     """
 
     pause_vec = traj[traj[:, 0] == 2]
-    latitudes: List[float] = []
-    longitudes: List[float] = []
+    latitudes: List[float] = [pause_vec[0, 1]]
+    longitudes: List[float] = [pause_vec[0, 2]]
     for row in pause_vec:
         minimum_distance = np.min([
             great_circle_dist(row[1], row[2], lat, lon)
             for lat, lon in zip(latitudes, longitudes)
             ])
         # only add coordinates to the list if they are not too close
-        # with the other coordinates in the list or if the list is empty
-        if len(latitudes) == 0 or minimum_distance > 1000:
+        # with the other coordinates in the list
+        if minimum_distance > 1000:
             latitudes.append(row[1])
             longitudes.append(row[2])
 
@@ -140,175 +147,647 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
     return ids, locations, tags
 
 
-def gps_summaries(traj,tz_str,option):
+def gps_summaries(
+    traj: np.ndarray,
+    tz_str: str,
+    frequency: Frequency,
+    places_of_interest: Union[List[str], None] = None,
+    save_log: bool = False,
+    threshold: Union[int, None] = None,
+    split_day_night: bool = False,
+    person_point_radius: float = 2,
+    place_point_radius: float = 7.5,
+) -> Tuple[pd.DataFrame, dict]:
+    """This function derives summary statistics from the imputed trajectories
+
+    If the frequency is hourly, it returns
+    ["year","month","day","hour","obs_duration","pause_time","flight_time","home_time",
+    "max_dist_home", "dist_traveled","av_flight_length","sd_flight_length",
+    "av_flight_duration","sd_flight_duration"]
+    if the frequency is daily, it additionally returns
+    ["obs_day","obs_night","radius","diameter","num_sig_places","entropy"]
+
+    Args:
+        traj: 2d array, output from Imp2traj(), which is a n by 8 mat,
+            with headers as [s,x0,y0,t0,x1,y1,t1,obs]
+            where s means status (1 as flight and 0 as pause),
+            x0,y0,t0: starting lat,lon,timestamp,
+            x1,y1,t1: ending lat,lon,timestamp,
+            obs (1 as observed and 0 as imputed)
+        tz_str: timezone
+        frequency: Frequency, the time windows of the summary statistics
+        places_of_interest: list of amenities or leisure places to watch,
+            keywords as used in openstreetmaps
+        save_log: bool, True if you want to output a log of locations
+            visited and their tags
+        threshold: int, time spent in a pause needs to exceed the threshold
+            to be placed in the log
+            only if save_log True, in minutes
+        split_day_night: bool, True if you want to split all metrics to
+            daytime and nighttime patterns
+            only for daily frequency
+        person_point_radius: float, radius of the person's circle when
+            discovering places near him in pauses
+        place_point_radius: float, radius of place's circle
+            when place is returned as centre coordinates from osm
+    Returns:
+        a pd dataframe, with each row as an hour/day,
+            and each col as a feature/stat
+        a dictionary, contains log of tags of all locations visited
+            from openstreetmap
+    Raises:
+        RuntimeError: if the query to Overpass API fails
     """
-    This function derives summary statistics from the imputed trajectories
-    if the option is hourly, it returns ["year","month","day","hour","obs_duration","pause_time","flight_time","home_time",
-    "max_dist_home", "dist_traveled","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration"]
-    if the option is daily, it additionally returns ["obs_day","obs_night","radius","diameter","num_sig_places","entropy"]
-    Args: traj: 2d array, output from Imp2traj(), which is a n by 8 mat, with headers as [s,x0,y0,t0,x1,y1,t1,obs]
-          where s means status (1 as flight and 0 as pause), x0,y0,t0: starting lat,lon,timestamp,
-          x1,y1,t1: ending lat,lon,timestamp,  obs (1 as observed and 0 as imputed)
-          tz_str: timezone
-          option: 'daily' or 'hourly'
-    Return: a pd dataframe, with each row as an hour/day, and each col as a feature/stat
-    """
-    ObsTraj = traj[traj[:,7]==1,:]
-    home_x, home_y = locate_home(ObsTraj,tz_str)
-    summary_stats = []
-    if option == "hourly":
-        ## find starting and ending time
-        sys.stdout.write("Calculating the hourly summary stats..." + '\n')
-        time_list = stamp2datetime(traj[0,3],tz_str)
-        time_list[4]=0; time_list[5]=0
-        start_stamp = datetime2stamp(time_list,tz_str) + 3600
-        time_list = stamp2datetime(traj[-1,3],tz_str)
-        time_list[4]=0; time_list[5]=0
-        end_stamp = datetime2stamp(time_list,tz_str)
-        ## start_time, end_time are exact points (if it ends at 2019-3-8 11 o'clock, then 11 shouldn't be included)
-        window = 60*60
-        h = (end_stamp - start_stamp)//window
 
+    if frequency == Frequency.HOURLY:
+        split_day_night = False
 
-    if option == "daily":
-        ## find starting and ending time
-        sys.stdout.write("Calculating the daily summary stats..." + '\n')
-        time_list = stamp2datetime(traj[0,3],tz_str)
-        time_list[3]=0; time_list[4]=0; time_list[5]=0
-        start_stamp = datetime2stamp(time_list,tz_str)
-        time_list = stamp2datetime(traj[-1,3],tz_str)
-        time_list[3]=0; time_list[4]=0; time_list[5]=0
-        end_stamp = datetime2stamp(time_list,tz_str) + 3600*24
-        ## if it starts from 2019-3-8 11 o'clock, then our daily summary starts from 2019-3-9)
-        window = 60*60*24
-        h = (end_stamp - start_stamp)//window
+    ids: Dict[str, List[int]] = {}
+    locations: Dict[int, List[List[float]]] = {}
+    tags: Dict[int, Dict[str, str]] = {}
+    if places_of_interest is not None or save_log:
+        ids, locations, tags = get_nearby_locations(traj)
 
-    if h>0:
-        for i in range(h):
-            t0 = start_stamp + i*window
-            t1 = start_stamp + (i+1)*window
-            current_time_list = stamp2datetime(t0,tz_str)
-            year = current_time_list[0]
-            month = current_time_list[1]
-            day = current_time_list[2]
-            hour = current_time_list[3]
-            ## take a subset, the starting point of the last traj <t1 and the ending point of the first traj >t0
-            index = (traj[:,3]<t1)*(traj[:,6]>t0)
-            temp = traj[index,:]
-            ## take a subset which is exactly one hour/day, cut the trajs at two ends proportionally
-            if i!=0 and i!=h-1:
-                if sum(index)==1:
-                    p0 = (t0-temp[0,3])/(temp[0,6]-temp[0,3])
-                    p1 = (t1-temp[0,3])/(temp[0,6]-temp[0,3])
-                    x0 = temp[0,1]; x1 = temp[0,4]; y0 = temp[0,2]; y1 = temp[0,5]
-                    temp[0,1] = (1-p0)*x0+p0*x1
-                    temp[0,2] = (1-p0)*y0+p0*y1
-                    temp[0,3] = t0
-                    temp[0,4] = (1-p1)*x0+p1*x1
-                    temp[0,5] = (1-p1)*y0+p1*y1
-                    temp[0,6] = t1
-                else:
-                    p0 = (temp[0,6]-t0)/(temp[0,6]-temp[0,3])
-                    p1 = (t1-temp[-1,3])/(temp[-1,6]-temp[-1,3])
-                    temp[0,1] = (1-p0)*temp[0,4]+p0*temp[0,1]
-                    temp[0,2] = (1-p0)*temp[0,5]+p0*temp[0,2]
-                    temp[0,3] = t0
-                    temp[-1,4] = (1-p1)*temp[-1,1] + p1*temp[-1,4]
-                    temp[-1,5] = (1-p1)*temp[-1,2] + p1*temp[-1,5]
-                    temp[-1,6] = t1
-
-            obs_dur = sum((temp[:,6]-temp[:,3])[temp[:,7]==1])
-            d_home_1 = great_circle_dist(home_x,home_y,temp[:,1],temp[:,2])
-            d_home_2 = great_circle_dist(home_x,home_y,temp[:,4],temp[:,5])
-            d_home = (d_home_1+d_home_2)/2
-            max_dist_home = max(np.concatenate((d_home_1,d_home_2)))
-            time_at_home = sum((temp[:,6]-temp[:,3])[d_home<=50])
-            mov_vec = np.round(great_circle_dist(temp[:,4],temp[:,5],temp[:,1],temp[:,2]),0)
-            flight_d_vec = mov_vec[temp[:,0]==1]
-            pause_d_vec = mov_vec[temp[:,0]==2]
-            flight_t_vec = (temp[:,6]-temp[:,3])[temp[:,0]==1]
-            pause_t_vec = (temp[:,6]-temp[:,3])[temp[:,0]==2]
-            total_pause_time =  sum(pause_t_vec)
-            total_flight_time =  sum(flight_t_vec)
-            dist_traveled = sum(mov_vec)
-            if len(flight_d_vec)>0:
-                av_f_len = np.mean(flight_d_vec)
-                sd_f_len = np.std(flight_d_vec)
-                av_f_dur = np.mean(flight_t_vec)
-                sd_f_dur = np.std(flight_t_vec)
-            else:
-                av_f_len = 0
-                sd_f_len = 0
-                av_f_dur = 0
-                sd_f_dur = 0
-            if len(pause_t_vec)>0:
-                av_p_dur = np.mean(pause_t_vec)
-                sd_p_dur = np.std(pause_t_vec)
-            else:
-                av_p_dur = 0
-                sd_p_dur = 0
-            if option=="hourly":
-                if obs_dur==0:
-                    summary_stats.append([year,month,day,hour,0,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA])
-                else:
-                    summary_stats.append([year,month,day,hour,obs_dur/60, time_at_home/60,dist_traveled, max_dist_home,
-                                          total_flight_time/60, av_f_len,sd_f_len,av_f_dur/60,sd_f_dur/60,
-                                          total_pause_time/60,av_p_dur/60,sd_p_dur/60])
-            if option=="daily":
-                hours = []
-                for i in range(temp.shape[0]):
-                    time_list = stamp2datetime((temp[i,3]+temp[i,6])/2,tz_str)
-                    hours.append(time_list[3])
-                hours = np.array(hours)
-                day_index = (hours>=8)*(hours<=19)
-                night_index = np.logical_not(day_index)
-                day_part = temp[day_index,:]
-                night_part = temp[night_index,:]
-                obs_day = sum((day_part[:,6]-day_part[:,3])[day_part[:,7]==1])
-                obs_night = sum((night_part[:,6]-night_part[:,3])[night_part[:,7]==1])
-                temp_pause = temp[temp[:,0]==2,:]
-                centroid_x = np.dot((temp_pause[:,6]-temp_pause[:,3])/total_pause_time,temp_pause[:,1])
-                centroid_y = np.dot((temp_pause[:,6]-temp_pause[:,3])/total_pause_time,temp_pause[:,2])
-                r_vec = great_circle_dist(centroid_x,centroid_y,temp_pause[:,1],temp_pause[:,2])
-                radius = np.dot((temp_pause[:,6]-temp_pause[:,3])/total_pause_time,r_vec)
-                loc_x,loc_y,num_xy,t_xy = num_sig_places(temp_pause,50)
-                num_sig = sum(np.array(t_xy)/60>15)
-                t_sig = np.array(t_xy)[np.array(t_xy)/60>15]
-                p = t_sig/sum(t_sig)
-                entropy = -sum(p*np.log(p+0.00001))
-                if temp.shape[0]==1:
-                    diameter = 0
-                else:
-                    D = pairwise_great_circle_dist(temp[:,[1,2]])
-                    diameter = max(D)
-                if obs_dur == 0:
-                    summary_stats.append([year,month,day,0,0,0,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA,pd.NA])
-                else:
-                    summary_stats.append([year,month,day,obs_dur/3600, obs_day/3600, obs_night/3600,time_at_home/3600,dist_traveled/1000,max_dist_home/1000,
-                                         radius/1000, diameter/1000, num_sig, entropy,
-                                         total_flight_time/3600, av_f_len/1000,sd_f_len/1000,av_f_dur/3600,sd_f_dur/3600,
-                                         total_pause_time/3600, av_p_dur/3600, sd_p_dur/3600])
-        summary_stats = pd.DataFrame(summary_stats)
-        if option == "hourly":
-            summary_stats.columns = ["year","month","day","hour","obs_duration","home_time","dist_traveled","max_dist_home",
-                                     "total_flight_time","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration",
-                                     "total_pause_time","av_pause_duration","sd_pause_duration"]
-        if option == "daily":
-            summary_stats.columns = ["year","month","day","obs_duration","obs_day","obs_night","home_time","dist_traveled","max_dist_home",
-                                     "radius","diameter","num_sig_places","entropy",
-                                     "total_flight_time","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration",
-                                     "total_pause_time","av_pause_duration","sd_pause_duration"]
+    obs_traj = traj[traj[:, 7] == 1, :]
+    home_lat, home_lon = locate_home(obs_traj, tz_str)
+    summary_stats: List[List[float]] = []
+    log_tags: Dict[str, List[dict]] = {}
+    if frequency == Frequency.HOURLY:
+        # find starting and ending time
+        sys.stdout.write("Calculating the hourly summary stats...\n")
+        time_list = stamp2datetime(traj[0, 3], tz_str)
+        time_list[4:6] = [0, 0]
+        start_stamp = datetime2stamp(time_list, tz_str)
+        time_list = stamp2datetime(traj[-1, 6], tz_str)
+        time_list[4:6] = [0, 0]
+        end_stamp = datetime2stamp(time_list, tz_str)
+        # start_time, end_time are exact points
+        # (if it ends at 2019-3-8 11 o'clock, then 11 shouldn't be included)
+        window = 60 * 60
+        no_windows = (end_stamp - start_stamp) // window
     else:
-        if option == "hourly":
-            summary_stats = pd.DataFrame(columns=["year","month","day","hour","obs_duration","home_time","dist_traveled","max_dist_home",
-                                     "total_flight_time","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration",
-                                     "total_pause_time","av_pause_duration","sd_pause_duration"])
-        if option == "daily":
-            summary_stats = pd.DataFrame(columns=["year","month","day","obs_duration","obs_day","obs_night","home_time","dist_traveled","max_dist_home",
-                                     "radius","diameter","num_sig_places","entropy",
-                                     "total_flight_time","av_flight_length","sd_flight_length","av_flight_duration","sd_flight_duration",
-                                     "total_pause_time","av_pause_duration","sd_pause_duration"])
-    return summary_stats
+        # find starting and ending time
+        sys.stdout.write("Calculating the daily summary stats...\n")
+        time_list = stamp2datetime(traj[0, 3], tz_str)
+        time_list[3:6] = [0, 0, 0]
+        start_stamp = datetime2stamp(time_list, tz_str)
+        time_list = stamp2datetime(traj[-1, 6], tz_str)
+        time_list[3:6] = [0, 0, 0]
+        end_stamp = datetime2stamp(time_list, tz_str) + 3600 * 24
+        # if it starts from 2019-3-8 11 o'clock,
+        # then our daily summary starts from 2019-3-9)
+        window = 60 * 60 * 24
+        no_windows = (end_stamp - start_stamp) // window
+        if split_day_night:
+            no_windows *= 2
+
+    if no_windows <= 0:
+        raise ValueError("start time and end time are not correct")
+
+    summary_stats_df = pd.DataFrame([])
+    for i in range(no_windows):
+        if split_day_night:
+            i2 = i // 2
+        else:
+            i2 = i
+        start_time = start_stamp + i2 * window
+        end_time = start_stamp + (i2 + 1) * window
+        start_time2 = 0
+        end_time2 = 0
+
+        current_time_list = stamp2datetime(start_time, tz_str)
+        year, month, day, hour = current_time_list[:4]
+        # take a subset, the starting point of the last traj <end_time
+        # and the ending point of the first traj >start_time
+        index_rows = (traj[:, 3] < end_time) * (traj[:, 6] > start_time)
+
+        stop1 = 0
+        stop2 = 0
+        if split_day_night:
+            current_time_list2 = current_time_list.copy()
+            current_time_list3 = current_time_list.copy()
+            current_time_list2[3] = 8
+            current_time_list3[3] = 20
+            start_time2 = datetime2stamp(current_time_list2, tz_str)
+            end_time2 = datetime2stamp(current_time_list3, tz_str)
+            if i % 2 == 0:
+                # daytime
+                index_rows = (
+                    (traj[:, 3] <= end_time2)
+                    * (traj[:, 6] >= start_time2)
+                    )
+            else:
+                # nighttime
+                index1 = (
+                    (traj[:, 6] < start_time2)
+                    * (traj[:, 3] < end_time)
+                    * (traj[:, 6] > start_time)
+                )
+                index2 = (
+                    (traj[:, 3] > end_time2)
+                    * (traj[:, 3] < end_time)
+                    * (traj[:, 6] > start_time)
+                )
+                stop1 = sum(index1) - 1
+                stop2 = sum(index1)
+                index_rows = index1 + index2
+
+        if sum(index_rows) == 0 and split_day_night:
+            # if there is no data in the day, then we need to
+            # to add empty rows to the dataframe with 21 columns
+            res = [year, month, day] + [0] * 18
+            if places_of_interest is not None:
+                # add empty data for places of interest
+                # for daytime/nighttime + other
+                res += [0] * (2 * len(places_of_interest) + 1)
+            summary_stats.append(res)
+            continue
+
+        temp = traj[index_rows, :]
+        # take a subset which is exactly one hour/day,
+        # cut the trajs at two ends proportionally
+        if split_day_night and i % 2 == 0:
+            t0_temp = start_time2
+            t1_temp = end_time2
+        else:
+            t0_temp = start_time
+            t1_temp = end_time
+
+        if sum(index_rows) == 1:
+            p0 = (t0_temp - temp[0, 3]) / (temp[0, 6] - temp[0, 3])
+            p1 = (t1_temp - temp[0, 3]) / (temp[0, 6] - temp[0, 3])
+            x0, y0 = temp[0, [1, 2]]
+            x1, y1 = temp[0, [4, 5]]
+            temp[0, 1] = (1 - p0) * x0 + p0 * x1
+            temp[0, 2] = (1 - p0) * y0 + p0 * y1
+            temp[0, 3] = t0_temp
+            temp[0, 4] = (1 - p1) * x0 + p1 * x1
+            temp[0, 5] = (1 - p1) * y0 + p1 * y1
+            temp[0, 6] = t1_temp
+        else:
+            if split_day_night and i % 2 != 0:
+                t0_temp_l = [start_time, end_time2]
+                t1_temp_l = [start_time2, end_time]
+                start_temp = [0, stop2]
+                end_temp = [stop1, -1]
+                for j in range(2):
+                    p0 = (temp[start_temp[j], 6] - t0_temp_l[j]) / (
+                        temp[start_temp[j], 6] - temp[start_temp[j], 3]
+                    )
+                    p1 = (t1_temp_l[j] - temp[end_temp[j], 3]) / (
+                        temp[end_temp[j], 6] - temp[end_temp[j], 3]
+                    )
+                    temp[start_temp[j], 1] = (1 - p0) * temp[
+                        start_temp[j], 4
+                    ] + p0 * temp[start_temp[j], 1]
+                    temp[start_temp[j], 2] = (1 - p0) * temp[
+                        start_temp[j], 5
+                    ] + p0 * temp[start_temp[j], 2]
+                    temp[start_temp[j], 3] = t0_temp_l[j]
+                    temp[end_temp[j], 4] = (1 - p1) * temp[
+                        end_temp[j], 1
+                    ] + p1 * temp[end_temp[j], 4]
+                    temp[end_temp[j], 5] = (1 - p1) * temp[
+                        end_temp[j], 2
+                    ] + p1 * temp[end_temp[j], 5]
+                    temp[end_temp[j], 6] = t1_temp_l[j]
+            else:
+                p0 = (temp[0, 6] - t0_temp) / (temp[0, 6] - temp[0, 3])
+                p1 = (
+                    (t1_temp - temp[-1, 3])
+                    / (temp[-1, 6] - temp[-1, 3])
+                    )
+                temp[0, 1] = (1 - p0) * temp[0, 4] + p0 * temp[0, 1]
+                temp[0, 2] = (1 - p0) * temp[0, 5] + p0 * temp[0, 2]
+                temp[0, 3] = t0_temp
+                temp[-1, 4] = (1 - p1) * temp[-1, 1] + p1 * temp[-1, 4]
+                temp[-1, 5] = (1 - p1) * temp[-1, 2] + p1 * temp[-1, 5]
+                temp[-1, 6] = t1_temp
+
+        obs_dur = sum((temp[:, 6] - temp[:, 3])[temp[:, 7] == 1])
+        d_home_1 = great_circle_dist(
+            home_lat, home_lon, temp[:, 1], temp[:, 2]
+            )
+        d_home_2 = great_circle_dist(
+            home_lat, home_lon, temp[:, 4], temp[:, 5]
+            )
+        d_home = (d_home_1 + d_home_2) / 2
+        max_dist_home = max(np.concatenate((d_home_1, d_home_2)))
+        time_at_home = sum((temp[:, 6] - temp[:, 3])[d_home <= 50])
+        mov_vec = np.round(
+            great_circle_dist(
+                temp[:, 4], temp[:, 5], temp[:, 1], temp[:, 2]
+            ),
+            0,
+        )
+        flight_d_vec = mov_vec[temp[:, 0] == 1]
+        flight_t_vec = (temp[:, 6] - temp[:, 3])[temp[:, 0] == 1]
+        pause_t_vec = (temp[:, 6] - temp[:, 3])[temp[:, 0] == 2]
+        total_pause_time = sum(pause_t_vec)
+        total_flight_time = sum(flight_t_vec)
+        dist_traveled = sum(mov_vec)
+        # Locations of importance
+        all_place_times = []
+        all_place_times_adjusted = []
+        log_tags_temp = []
+        if places_of_interest is not None or save_log:
+            pause_vec = temp[temp[:, 0] == 2]
+            pause_array: np.ndarray = np.array([])
+            for row in pause_vec:
+                if (
+                    great_circle_dist(row[1], row[2], home_lat, home_lon)
+                    > 2*place_point_radius
+                ):
+                    if len(pause_array) == 0:
+                        pause_array = np.array(
+                            [[row[1], row[2], (row[6] - row[3]) / 60]]
+                        )
+                    elif (
+                        np.min(
+                            great_circle_dist(
+                                row[1], row[2],
+                                pause_array[:, 0], pause_array[:, 1],
+                            )
+                        )
+                        > 2*place_point_radius
+                    ):
+                        pause_array = np.append(
+                            pause_array,
+                            [[row[1], row[2], (row[6] - row[3]) / 60]],
+                            axis=0,
+                        )
+                    else:
+                        pause_array[
+                            great_circle_dist(
+                                row[1], row[2],
+                                pause_array[:, 0], pause_array[:, 1],
+                            )
+                            <= 2*place_point_radius,
+                            -1,
+                        ] += (row[6] - row[3]) / 60
+
+            if places_of_interest is not None:
+                all_place_times = [0] * (len(places_of_interest) + 1)
+                all_place_times_adjusted = all_place_times[:-1]
+
+            for pause in pause_array:
+                if places_of_interest is not None:
+                    all_place_probs = [0] * len(places_of_interest)
+                    pause_circle = transform_point_to_circle(
+                        pause[0], pause[1], person_point_radius
+                    )
+                    add_to_other = True
+                    for j, place in enumerate(places_of_interest):
+                        for element_id in ids[place]:
+                            if len(locations[element_id]) == 1:
+                                location_circle = transform_point_to_circle(
+                                    locations[element_id][0][0],
+                                    locations[element_id][0][1],
+                                    place_point_radius,
+                                )
+
+                                intersection_area = pause_circle.intersection(
+                                    location_circle
+                                ).area
+                                if intersection_area > 0:
+                                    all_place_probs[j] += intersection_area
+                                    add_to_other = False
+
+                            elif len(locations[element_id]) >= 3:
+                                polygon = Polygon(locations[element_id])
+
+                                intersection_area = pause_circle.intersection(
+                                    polygon
+                                ).area
+                                if intersection_area > 0:
+                                    all_place_probs[j] += intersection_area
+                                    add_to_other = False
+
+                    # in case of pause not in places of interest
+                    if add_to_other:
+                        all_place_times[-1] += pause[2] / 60
+                    else:
+                        all_place_probs2 = np.array(all_place_probs) / sum(
+                            all_place_probs
+                        )
+                        chosen_type = np.argmax(all_place_probs2)
+                        all_place_times[chosen_type] += pause[2] / 60
+                        for h, prob in enumerate(all_place_probs2):
+                            all_place_times_adjusted[h] += (
+                                prob * pause[2] / 60
+                            )
+
+                if save_log:
+                    if threshold is None:
+                        threshold = 60
+                        sys.stdout.write(
+                            "threshold parameter set to None,"
+                            + " automatically converted to 60min."
+                            + "\n"
+                        )
+                    if pause[2] >= threshold:
+                        for place_id, place_coordinates in locations.items():
+                            if len(place_coordinates) == 1:
+                                if (
+                                    great_circle_dist(
+                                        pause[0], pause[1],
+                                        place_coordinates[0][0],
+                                        place_coordinates[0][1],
+                                    )
+                                    < place_point_radius
+                                ):
+                                    log_tags_temp.append(tags[place_id])
+                            elif len(place_coordinates) >= 3:
+                                polygon = Polygon(place_coordinates)
+                                point = Point(pause[0], pause[1])
+                                if polygon.contains(point):
+                                    log_tags_temp.append(tags[place_id])
+
+        if len(flight_d_vec) > 0:
+            av_f_len = np.mean(flight_d_vec)
+            sd_f_len = np.std(flight_d_vec)
+            av_f_dur = np.mean(flight_t_vec)
+            sd_f_dur = np.std(flight_t_vec)
+        else:
+            av_f_len = 0
+            sd_f_len = 0
+            av_f_dur = 0
+            sd_f_dur = 0
+        if len(pause_t_vec) > 0:
+            av_p_dur = np.mean(pause_t_vec)
+            sd_p_dur = np.std(pause_t_vec)
+        else:
+            av_p_dur = 0
+            sd_p_dur = 0
+        if frequency == Frequency.HOURLY:
+            if obs_dur == 0:
+                res = [
+                    year,
+                    month,
+                    day,
+                    hour,
+                    0,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                ]
+                if places_of_interest is not None:
+                    for p in range(2 * len(places_of_interest) + 1):
+                        res.append(pd.NA)
+                summary_stats.append(res)
+                log_tags[f"{day}/{month}/{year} {hour}:00"] = []
+            else:
+                res = [
+                    year,
+                    month,
+                    day,
+                    hour,
+                    obs_dur / 60,
+                    time_at_home / 60,
+                    dist_traveled,
+                    max_dist_home,
+                    total_flight_time / 60,
+                    av_f_len,
+                    sd_f_len,
+                    av_f_dur / 60,
+                    sd_f_dur / 60,
+                    total_pause_time / 60,
+                    av_p_dur / 60,
+                    sd_p_dur / 60,
+                ]
+                if places_of_interest is not None:
+                    res += all_place_times
+                    res += all_place_times_adjusted
+                log_tags[f"{day}/{month}/{year} {hour}:00"] = log_tags_temp
+
+                summary_stats.append(res)
+        else:
+            hours = []
+            for j in range(temp.shape[0]):
+                time_list = stamp2datetime(
+                    (temp[j, 3] + temp[j, 6]) / 2,
+                    tz_str,
+                    )
+                hours.append(time_list[3])
+            hours_array = np.array(hours)
+            day_index = (hours_array >= 8) * (hours_array <= 19)
+            night_index = np.logical_not(day_index)
+            day_part = temp[day_index, :]
+            night_part = temp[night_index, :]
+            obs_day = sum(
+                (day_part[:, 6] - day_part[:, 3])[day_part[:, 7] == 1]
+            )
+            obs_night = sum(
+                (night_part[:, 6] - night_part[:, 3])[night_part[:, 7] == 1]
+            )
+            temp_pause = temp[temp[:, 0] == 2, :]
+            centroid_x = np.dot(
+                (temp_pause[:, 6] - temp_pause[:, 3]) / total_pause_time,
+                temp_pause[:, 1],
+            )
+            centroid_y = np.dot(
+                (temp_pause[:, 6] - temp_pause[:, 3]) / total_pause_time,
+                temp_pause[:, 2],
+            )
+            r_vec = great_circle_dist(
+                centroid_x, centroid_y, temp_pause[:, 1], temp_pause[:, 2]
+            )
+            radius = np.dot(
+                (temp_pause[:, 6] - temp_pause[:, 3]) / total_pause_time, r_vec
+            )
+            _, _, _, t_xy = num_sig_places(temp_pause, 50)
+            num_sig = sum(np.array(t_xy) / 60 > 15)
+            t_sig = np.array(t_xy)[np.array(t_xy) / 60 > 15]
+            p = t_sig / sum(t_sig)
+            entropy = -sum(p * np.log(p + 0.00001))
+            if temp.shape[0] == 1:
+                diameter = 0
+            else:
+                diameters = pairwise_great_circle_dist(temp[:, [1, 2]])
+                diameter = max(diameters)
+            if obs_dur == 0:
+                res = [
+                    year,
+                    month,
+                    day,
+                    0,
+                    0,
+                    0,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                ]
+                if places_of_interest is not None:
+                    for p in range(2 * len(places_of_interest) + 1):
+                        res.append(pd.NA)
+                summary_stats.append(res)
+                log_tags[f"{day}/{month}/{year}"] = []
+            else:
+                res = [
+                    year,
+                    month,
+                    day,
+                    obs_dur / 3600,
+                    obs_day / 3600,
+                    obs_night / 3600,
+                    time_at_home / 3600,
+                    dist_traveled / 1000,
+                    max_dist_home / 1000,
+                    radius / 1000,
+                    diameter / 1000,
+                    num_sig,
+                    entropy,
+                    total_flight_time / 3600,
+                    av_f_len / 1000,
+                    sd_f_len / 1000,
+                    av_f_dur / 3600,
+                    sd_f_dur / 3600,
+                    total_pause_time / 3600,
+                    av_p_dur / 3600,
+                    sd_p_dur / 3600,
+                ]
+                if places_of_interest is not None:
+                    res += all_place_times
+                    res += all_place_times_adjusted
+                summary_stats.append(res)
+                if split_day_night:
+                    if i % 2 == 0:
+                        time_cat = "daytime"
+                    else:
+                        time_cat = "nighttime"
+                    log_tags[f"{day}/{month}/{year}, {time_cat}"] = (
+                        log_tags_temp
+                    )
+                else:
+                    log_tags[f"{day}/{month}/{year}"] = log_tags_temp
+        summary_stats_df = pd.DataFrame(summary_stats)
+        if places_of_interest is None:
+            places_of_interest2 = []
+            places_of_interest3 = []
+        else:
+            places_of_interest2 = places_of_interest.copy()
+            places_of_interest2.append("other")
+            places_of_interest3 = [
+                f"{pl}_adjusted" for pl in places_of_interest
+            ]
+        if frequency == Frequency.HOURLY:
+            summary_stats_df.columns = (
+                [
+                    "year",
+                    "month",
+                    "day",
+                    "hour",
+                    "obs_duration",
+                    "home_time",
+                    "dist_traveled",
+                    "max_dist_home",
+                    "total_flight_time",
+                    "av_flight_length",
+                    "sd_flight_length",
+                    "av_flight_duration",
+                    "sd_flight_duration",
+                    "total_pause_time",
+                    "av_pause_duration",
+                    "sd_pause_duration",
+                ]
+                + places_of_interest2
+                + places_of_interest3
+            )
+        else:
+            summary_stats_df.columns = (
+                [
+                    "year",
+                    "month",
+                    "day",
+                    "obs_duration",
+                    "obs_day",
+                    "obs_night",
+                    "home_time",
+                    "dist_traveled",
+                    "max_dist_home",
+                    "radius",
+                    "diameter",
+                    "num_sig_places",
+                    "entropy",
+                    "total_flight_time",
+                    "av_flight_length",
+                    "sd_flight_length",
+                    "av_flight_duration",
+                    "sd_flight_duration",
+                    "total_pause_time",
+                    "av_pause_duration",
+                    "sd_pause_duration",
+                ]
+                + places_of_interest2
+                + places_of_interest3
+            )
+
+    if split_day_night:
+        summary_stats_df_daytime = summary_stats_df[::2].reset_index(
+            drop=True
+            )
+        summary_stats_df_nighttime = summary_stats_df[1::2].reset_index(
+            drop=True
+            )
+
+        summary_stats_df2 = pd.concat(
+            [
+                summary_stats_df_daytime,
+                summary_stats_df_nighttime.iloc[:, 3:],
+            ],
+            axis=1,
+        )
+        summary_stats_df2.columns = (
+            list(summary_stats_df.columns)[:3]
+            + [
+                f"{cname}_daytime"
+                for cname in list(summary_stats_df.columns)[3:]
+            ]
+            + [
+                f"{cname}_nighttime"
+                for cname in list(summary_stats_df.columns)[3:]
+            ]
+        )
+        summary_stats_df2 = summary_stats_df2.drop(
+            [
+                "obs_day_daytime",
+                "obs_night_daytime",
+                "obs_day_nighttime",
+                "obs_night_nighttime",
+            ],
+            axis=1,
+        )
+        summary_stats_df2.insert(
+            3,
+            "obs_duration",
+            summary_stats_df2["obs_duration_daytime"]
+            + summary_stats_df2["obs_duration_nighttime"],
+        )
+    else:
+        summary_stats_df2 = summary_stats_df
+
+    return summary_stats_df2, log_tags
+
 
 def gps_quality_check(study_folder, ID):
     """
