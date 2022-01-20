@@ -218,13 +218,13 @@ class Attributes:
         if vehicle is not None:
             self.vehicle = Vehicle(vehicle)
         else:
-            # exclude bus
-            self.vehicle = np.random.choice(list(Vehicle)[1:])
+            self.vehicle = np.random.choice(np.array(
+                [Vehicle.FOOT, Vehicle.BICYCLE, Vehicle.CAR]))
 
         if main_employment is not None:
             self.main_occupation = Occupation(main_employment)
         else:
-            self.main_occupation = np.random.choice(list(Occupation))
+            self.main_occupation = np.random.choice(np.array(Occupation))
 
         if active_status is not None:
             if active_status not in ACTIVE_STATUS_LIST:
@@ -246,11 +246,9 @@ class Attributes:
                 possible_exit2 = PossibleExits(possible_exit)
                 self.preferred_places.append(possible_exit2)
 
-            possible_exits2 = [
-                x for x in PossibleExits
-                if x not in self.preferred_places
-            ]
-
+            possible_exits2 = np.array([x
+                                        for x in PossibleExits
+                                        if x not in self.preferred_places])
             random_exits = np.random.choice(
                 possible_exits2, 3 - len(self.preferred_places), replace=False
             ).tolist()
@@ -258,7 +256,7 @@ class Attributes:
                 self.preferred_places.append(choice)
         else:
             self.preferred_places = np.random.choice(
-                list(PossibleExits), 3, replace=False
+                np.array(PossibleExits), 3, replace=False
             ).tolist()
 
 
@@ -470,16 +468,14 @@ class Person:
             # replace it with a random venue from the rest of the
             # possible exits
             if index_of_code == (len(self.preferred_places_today) - 1):
-                probs = np.array(
-                    [
-                        0 if c in self.preferred_places_today else 1
-                        for c in self.possible_destinations
-                    ]
-                )
+                probs = np.array([
+                    0 if c in self.preferred_places_today else 1
+                    for c in self.possible_destinations
+                ])
                 probs = probs / sum(probs)
                 self.preferred_places_today[-1] = np.random.choice(
-                    self.possible_destinations, 1, p=probs.tolist()
-                )[0]
+                    np.array(self.possible_destinations), p=probs.tolist()
+                )
             else:
                 # if exit selected is not the least preferred
                 # switch positions with the next one
@@ -531,7 +527,7 @@ class Person:
         possible_destinations2 = self.possible_destinations.copy()
 
         actions = []
-        probabilities = np.array([])
+        probabilities: np.ndarray = np.array([])
         # ratios on how probable each exit is to happen
         # the first venue is 2 times more likely to incur
         # than the second and 6 times more likely than the third
@@ -552,7 +548,7 @@ class Person:
 
         probabilities = probabilities / sum(probabilities)
 
-        selected_action = np.random.choice(actions, 1, p=probabilities)[0]
+        selected_action = np.random.choice(np.array(actions), p=probabilities)
 
         if update:
             self.update_preferred_places(selected_action)
@@ -1044,7 +1040,7 @@ def remove_data(
         obs_data: (numpy.ndarray) contains the trajectories of the on period.
     """
     sample_dur = int(np.around(60 * cycle * (1 - percentage), 0))
-    index_all = np.array([])
+    index_all: np.ndarray = np.array([])
     for i in range(day):
         start = int(np.around(np.random.uniform(0, 60 * cycle, 1), 0))
         start += 86400 * i
