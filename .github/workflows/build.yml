@@ -10,10 +10,10 @@ jobs:
     steps:
       - name: Checkout Forest code from GitHub repo
         uses: actions/checkout@v2
-      - name: Set up Python 3.6
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.6
+          python-version: 3.8
       - name: Install Forest
         run: pip install -e .
       - name: Install dev dependecies
