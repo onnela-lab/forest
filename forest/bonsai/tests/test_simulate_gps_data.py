@@ -281,8 +281,8 @@ def test_get_path_distance(coords1, coords2, directions1, mocker):
         "openrouteservice.Client.directions", return_value=directions1
     )
     assert (
-        get_path(coords1, coords2, Vehicle.CAR, "mock_api_key")[1]
-        == 843.0532531565476
+        round(get_path(coords1, coords2, Vehicle.CAR, "mock_api_key")[1], 2)
+        == 843.05
     )
 
 
