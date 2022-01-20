@@ -248,8 +248,7 @@ class Attributes:
 
             possible_exits2 = np.array([x
                                         for x in PossibleExits
-                                        if x not in self.preferred_places
-                                        ])
+                                        if x not in self.preferred_places])
             random_exits = np.random.choice(
                 possible_exits2, 3 - len(self.preferred_places), replace=False
             ).tolist()
@@ -528,7 +527,7 @@ class Person:
         possible_destinations2 = self.possible_destinations.copy()
 
         actions = []
-        probabilities = np.array([float])
+        probabilities: np.ndarray = np.array([])
         # ratios on how probable each exit is to happen
         # the first venue is 2 times more likely to incur
         # than the second and 6 times more likely than the third
@@ -1041,7 +1040,7 @@ def remove_data(
         obs_data: (numpy.ndarray) contains the trajectories of the on period.
     """
     sample_dur = int(np.around(60 * cycle * (1 - percentage), 0))
-    index_all = np.array([int])
+    index_all: np.ndarray = np.array([])
     for i in range(day):
         start = int(np.around(np.random.uniform(0, 60 * cycle, 1), 0))
         start += 86400 * i
