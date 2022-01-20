@@ -392,7 +392,7 @@ def gps_summaries(
         log_tags_temp = []
         if places_of_interest is not None or save_log:
             pause_vec = temp[temp[:, 0] == 2]
-            pause_array = np.array([])
+            pause_array: np.ndarray = np.array([])
             for row in pause_vec:
                 if (
                     great_circle_dist(row[1], row[2], home_lat, home_lon)
