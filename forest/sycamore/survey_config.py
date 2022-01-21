@@ -42,7 +42,7 @@ def convert_time_to_date(submit_time, day, time):
     return days[day]
 
 
-def generate_survey_times(time_start, time_end, timings=[], survey_type='weekly'):
+def generate_survey_times(time_start, time_end, timings=[], survey_type='weekly', intervention_dict = None):
     """
     Takes a start time and end time and generates a schedule of all sent surveys in time frame for the given survey type
     Args:
@@ -54,8 +54,9 @@ def generate_survey_times(time_start, time_end, timings=[], survey_type='weekly'
             list of survey timings, directly from the configuration file survey information
         survey_type(str):
             What type of survey schedule to generate times for
-            NOTE: As of now this only works for weekly surveys
-
+        intervention_dict(dict):
+            A dictionary with keys for each intervention time, each containing a timestamp object
+            (only needed for relative surveys)
     Returns:
         surveys(list):
             A list of all survey times that occur between the time_start and time_end per the given survey timings schedule
@@ -66,26 +67,45 @@ def generate_survey_times(time_start, time_end, timings=[], survey_type='weekly'
         # Get the number of weeks between start and end time
     t_start = pd.Timestamp(time_start)
     t_end = pd.Timestamp(time_end)
-
-    weeks = pd.Timedelta(t_end - t_start).days
-    # Get ceiling number of weeks
-    weeks = math.ceil(weeks / 7.0)
-
-    # Roll dates
-    t_lag = list(np.roll(np.array(timings, dtype="object"), -1))
-
-    # for each week, generate the survey times and append to a list
-    start_dates = [time_start + datetime.timedelta(days=7 * (i)) for i in range(weeks)]
-
     surveys = []
+    
+    if survey_type == 'weekly':
 
-    for s in start_dates:
-        # Get the starting day of week 
-        #         dow_s = s.weekday()
-        for i, t in enumerate(t_lag):
-            if len(t) > 0:
-                surveys.extend(convert_time_to_date(s, day=i, time=t))
+        weeks = pd.Timedelta(t_end - t_start).days
+        # Get ceiling number of weeks
+        weeks = math.ceil(weeks / 7.0)
 
+        # Roll dates
+        t_lag = list(np.roll(np.array(timings, dtype="object"), -1))
+
+        # for each week, generate the survey times and append to a list
+        start_dates = [time_start + datetime.timedelta(days=7 * (i)) for i in range(weeks)]
+
+        
+
+        for s in start_dates:
+            # Get the starting day of week 
+            #         dow_s = s.weekday()
+            for i, t in enumerate(t_lag):
+                if len(t) > 0:
+                    surveys.extend(convert_time_to_date(s, day=i, time=t))
+    if survey_type == 'absolute':
+ 
+        times_df = pd.DataFrame(timings)
+        times_df.columns = ['year', 'month', 'day', 'second']
+        surveys = pd.to_datetime(times_df)
+        
+        
+    if survey_type == 'relative':
+        if intervention_dict == None:
+            raise TypeError('Error: No dictionary of interventions provided.')
+            return []
+        
+        for t in timings: 
+            current_time = intervention_dict[t[0]] + pd.Timedelta(t[1], unit='days') + \
+            pd.Timedelta(t[2], unit='seconds') 
+
+            surveys.append(current_time)
     return surveys
 
 
