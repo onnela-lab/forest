@@ -81,8 +81,6 @@ def generate_survey_times(time_start, time_end, timings=[], survey_type='weekly'
         # for each week, generate the survey times and append to a list
         start_dates = [time_start + datetime.timedelta(days=7 * (i)) for i in range(weeks)]
 
-        
-
         for s in start_dates:
             # Get the starting day of week 
             #         dow_s = s.weekday()
@@ -90,15 +88,14 @@ def generate_survey_times(time_start, time_end, timings=[], survey_type='weekly'
                 if len(t) > 0:
                     surveys.extend(convert_time_to_date(s, day=i, time=t))
     if survey_type == 'absolute':
- 
+
         times_df = pd.DataFrame(timings)
         times_df.columns = ['year', 'month', 'day', 'second']
         surveys = pd.to_datetime(times_df)
         
-        
     if survey_type == 'relative':
         if intervention_dict == None:
-            raise TypeError('Error: No dictionary of interventions provided.')
+            print('Error: No dictionary of interventions provided.')
             return []
         
         for t in timings: 
@@ -109,7 +106,7 @@ def generate_survey_times(time_start, time_end, timings=[], survey_type='weekly'
     return surveys
 
 
-def gen_survey_schedule(config_path, time_start, time_end, beiwe_ids):
+def gen_survey_schedule(config_path, time_start, time_end, beiwe_ids, all_interventions_dict):
     """
     Args:
         config_path(str):
@@ -120,7 +117,10 @@ def gen_survey_schedule(config_path, time_start, time_end, beiwe_ids):
             The last date of the survey data
         beiwe_ids(list):
             List of users in study for which we are generating a survey schedule
-
+        all_interventions_dict(dict):
+            Dictionary containing a key for every beiwe id. 
+            Each value in the dict is a dict, with a key for each intervention and a timestamp for each intervention time
+            
     Returns:
         times_sur(DataFrame):
             DataFrame with a line for every survey deployed to every user in the study for the given time range
@@ -130,25 +130,35 @@ def gen_survey_schedule(config_path, time_start, time_end, beiwe_ids):
     # For each survey create a list of survey times
     times_sur = []
     for u_id in beiwe_ids:
+        print(u_id)
         for i, s in enumerate(surveys):
+            s_times = []
             if s['timings']:
-                s_times = generate_survey_times(time_start, time_end, timings=s['timings'])
-                # Add in relative and absolute survey timings here
-                ###
-                tbl = pd.DataFrame(s_times, columns=['delivery_time'])
-                # Create the "next" time column too, which indicates the next time the survey will be deployed
-                tbl['next_delivery_time'] = tbl.delivery_time.shift(-1)
-                tbl['id'] = i
-                tbl['beiwe_id'] = u_id
-                # Get all question IDs for the survey
-                qs = [q['question_id'] for q in s['content'] if 'question_id' in q.keys()]
-                if len(qs) > 0:
-                    q_ids = pd.DataFrame({'question_id': qs})
-                    tbl = pd.merge(tbl, q_ids, how='cross')
-                times_sur.append(tbl)
+                s_times = s_times + generate_survey_times(time_start, time_end, timings=s['timings'], survey_type='weekly')
+            if s['absolute_timings']:
+                s_times = s_times + generate_survey_times(time_start, time_end, timings=s['absolute_timings'], survey_type='absolute')
+            if s['relative_timings']:
+                if all_interventions_dict[u_id]: #We can only get relative timings if we have an index time
+                    s_times = s_times + generate_survey_times(time_start, time_end, timings=s['relative_timings'], survey_type='relative', intervention_dict = all_interventions_dict[u_id])
+                else:
+                    print('error: no index time found for user ' + u_id)
+            tbl = pd.DataFrame({'delivery_time': s_times})
+            tbl['delivery_time'] = pd.to_datetime(tbl['delivery_time']) #May not be necessary, but I'm leaving this in case timestamps are in different formats
+            tbl.sort_values('delivery_time', inplace = True)
+            tbl.reset_index(drop=True, inplace = True)
+            # Create the "next" time column too, which indicates the next time the survey will be deployed
+            tbl['next_delivery_time'] = tbl.delivery_time.shift(-1)
+            tbl['id'] = i
+            tbl['beiwe_id'] = u_id
+                    # Get all question IDs for the survey
+            qs = [q['question_id'] for q in s['content'] if 'question_id' in q.keys()]
+            if len(qs) > 0:
+                q_ids = pd.DataFrame({'question_id': qs})
+                tbl = pd.merge(tbl, q_ids, how='cross')
+            times_sur.append(tbl)
 
     times_sur = pd.concat(times_sur).reset_index(drop=True)
-    return times_sur
+    return(times_sur)
 
 
 def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg, study_tz=None):
