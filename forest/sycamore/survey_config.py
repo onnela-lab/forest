@@ -259,3 +259,30 @@ def survey_submits_no_config(study_dir, study_tz=None):
     tmp['time_to_complete'] = tmp['max_time'] - tmp['min_time']
     tmp['time_to_complete'] = [t.seconds for t in tmp['time_to_complete']]
     return tmp.sort_values(['beiwe_id', 'survey id'])
+
+
+def get_all_interventions_dict(filepath):
+    """
+    Placeholder function; should be replaced once we fix the data streams to have timings
+    Gets an all_interventions_dict from a table
+    Args:
+        filepath: the path to a table containing patient information
+        Note: right now, the user has to copy the table from the study website into a text processor.
+    Returns:
+        a dict with one key for each beiwe_id in the study. The value for each key is a dict with a key for each intervention in the study, and a value which is the timestamp 
+    filepath(str)
+    """
+    timings_table = pd.read_table(filepath)
+    timings_table.drop(['Creation Date', 'Phone registered', 'Phone OS'], axis = 1,  inplace = True)
+    timings_table.set_index('Patient ID', inplace = True)
+    for col in timings_table.columns:
+        timings_table[col] = pd.to_datetime(timings_table[col])
+    all_interventions_dict = timings_table.to_dict('index')
+    return(all_interventions_dict)
+    
+    
+    
+
+    
+    
+    
