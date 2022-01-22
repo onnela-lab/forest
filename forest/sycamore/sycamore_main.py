@@ -40,7 +40,7 @@ def survey_stats_main(output_dir, study_dir, beiwe_ids, config_path=None, time_s
         ca_summary.to_csv(os.path.join(output_dir, 'answers_summary.csv'), index=False)
         if time_start is not None and time_end is not None:
             # Create survey submits detail and summary
-            all_interventions_dict = get_all_interventions_dict(filepath)
+            all_interventions_dict = get_all_interventions_dict(interventions_filepath)
             ss_detail, ss_summary = survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg_data,
                                                    study_tz, all_interventions_dict)
             ss_detail.to_csv(os.path.join(output_dir, 'submits_data.csv'), index=False)
