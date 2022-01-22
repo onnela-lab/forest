@@ -91,14 +91,14 @@ def generate_survey_times(time_start, time_end, timings=[], survey_type='weekly'
 
         times_df = pd.DataFrame(timings)
         times_df.columns = ['year', 'month', 'day', 'second']
-        surveys = pd.to_datetime(times_df)
+        surveys = pd.to_datetime(times_df).tolist()
         
     if survey_type == 'relative':
         if intervention_dict == None:
             print('Error: No dictionary of interventions provided.')
             return []
-        
         for t in timings: 
+            #This could probably be vectorized
             current_time = intervention_dict[t[0]] + pd.Timedelta(t[1], unit='days') + \
             pd.Timedelta(t[2], unit='seconds') 
 
@@ -184,10 +184,7 @@ def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg,
     """
     time_start = pd.Timestamp(time_start)
     time_end = pd.Timestamp(time_end)
-    # Generate aggregated survey data
-    #     agg = functions.aggregate_surveys_config(study_dir, config_path, study_tz)
 
-    # Generate scheduled surveys data
     sched = gen_survey_schedule(config_path, time_start, time_end, beiwe_ids, all_interventions_dict)
 
     # Merge survey submit lines onto the schedule data and identify submitted lines
@@ -198,7 +195,7 @@ def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg,
         left_on=['id', 'beiwe_id'],
         right_on=['config_id', 'beiwe_id'])
 
-    # Get the submigged survey line
+    # Get the submitted survey line
     submit_lines['submit_flg'] = np.where(
         (submit_lines['Local time'] >= submit_lines['delivery_time']) &
         (submit_lines['Local time'] < submit_lines['next_delivery_time']),
@@ -220,8 +217,14 @@ def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg,
     #     # Select appropriate columns
     submit_lines3 = submit_lines3[['survey id', 'delivery_time', 'beiwe_id', 'submit_flg', 'submit_time']]
 
-    #     submit_lines3['time_to_submit'] = np.where(submit_lines3['submit_flg'] == 1, submit_lines3['submit_time'] - submit_lines3['delivery_time'], np.array(0, dtype='datetime64[ns]'))
     submit_lines3['time_to_submit'] = submit_lines3['submit_time'] - submit_lines3['delivery_time']
+    
+    ## make cols more interpretable as "no survey submitted"                              
+    submit_lines3['submit_time'] = np.where(submit_lines3['submit_flg'] == 1, submit_lines3['submit_time'] , np.array('NaT', dtype='datetime64[ns]'))
+    
+    submit_lines3['time_to_submit'] = np.where(submit_lines3['submit_flg'] == 1, submit_lines3['time_to_submit'] , np.array('NaT', dtype='datetime64[ns]'))
+    
+    
 
     # Create a summary that has survey_id, beiwe_id, num_surveys, num submitted surveys, average time to submit
     summary_cols = ['survey id', 'beiwe_id']
@@ -234,7 +237,8 @@ def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg,
     submit_lines_summary = pd.concat([num_surveys, num_complete_surveys, avg_time_to_submit], axis=1).reset_index()
     submit_lines_summary.columns = ['survey id', 'beiwe_id', 'num_surveys', 'num_complete_surveys',
                                     'avg_time_to_submit']
-
+    
+    
     return submit_lines3.sort_values(['survey id', 'beiwe_id']).drop_duplicates(), submit_lines_summary
 
 
