@@ -161,7 +161,7 @@ def gen_survey_schedule(config_path, time_start, time_end, beiwe_ids, all_interv
     return(times_sur)
 
 
-def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg, study_tz=None):
+def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg, study_tz=None, all_interventions_dict=None):
     """
     Args:
         study_dir(str):
@@ -176,6 +176,8 @@ def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg,
             List of users in study for which we are generating a survey schedule
         study_tz(str):
             Timezone of study. This defaults to 'America/New_York'
+        all_interventions_dict(dict):
+            dict containing interventions for each user. Each key in the dict is a beiwe id. Each value is a dict, with a key for each intervention name and a timestamp for each intervention's time
 
     Returns:
         A DataFrame with all surveys deployed in the given timeframe on the study to the users with completion times
@@ -186,7 +188,7 @@ def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg,
     #     agg = functions.aggregate_surveys_config(study_dir, config_path, study_tz)
 
     # Generate scheduled surveys data
-    sched = gen_survey_schedule(config_path, time_start, time_end, beiwe_ids)
+    sched = gen_survey_schedule(config_path, time_start, time_end, beiwe_ids, all_interventions_dict)
 
     # Merge survey submit lines onto the schedule data and identify submitted lines
     submit_lines = pd.merge(
