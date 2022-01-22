@@ -11,7 +11,7 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
-import pyproj
+from pyproj import Transformer
 import requests
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
@@ -53,16 +53,14 @@ def transform_point_to_circle(lat: float, lon: float, radius: float
     local_azimuthal_projection = (
         f"+proj=aeqd +R=6371000 +units=m +lat_0={lat} +lon_0={lon}"
     )
-    wgs84_to_aeqd = partial(
-        pyproj.transform,
-        pyproj.Proj("+proj=longlat +datum=WGS84 +no_defs"),
-        pyproj.Proj(local_azimuthal_projection),
-    )
-    aeqd_to_wgs84 = partial(
-        pyproj.transform,
-        pyproj.Proj(local_azimuthal_projection),
-        pyproj.Proj("+proj=longlat +datum=WGS84 +no_defs"),
-    )
+    wgs84_to_aeqd = Transformer.from_crs(
+        "+proj=longlat +datum=WGS84 +no_defs",
+        local_azimuthal_projection,
+    ).transform
+    aeqd_to_wgs84 = Transformer.from_crs(
+        local_azimuthal_projection,
+        "+proj=longlat +datum=WGS84 +no_defs",
+    ).transform
 
     center = Point(lat, lon)
     point_transformed = transform(wgs84_to_aeqd, center)
