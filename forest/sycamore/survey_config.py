@@ -219,11 +219,6 @@ def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg,
 
     submit_lines3['time_to_submit'] = submit_lines3['submit_time'] - submit_lines3['delivery_time']
     
-    ## make cols more interpretable as "no survey submitted"                              
-    submit_lines3['submit_time'] = np.where(submit_lines3['submit_flg'] == 1, submit_lines3['submit_time'] , np.array('NaT', dtype='datetime64[ns]'))
-    
-    submit_lines3['time_to_submit'] = np.where(submit_lines3['submit_flg'] == 1, submit_lines3['time_to_submit'] , np.array('NaT', dtype='datetime64[ns]'))
-    
     
 
     # Create a summary that has survey_id, beiwe_id, num_surveys, num submitted surveys, average time to submit
@@ -237,6 +232,11 @@ def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg,
     submit_lines_summary = pd.concat([num_surveys, num_complete_surveys, avg_time_to_submit], axis=1).reset_index()
     submit_lines_summary.columns = ['survey id', 'beiwe_id', 'num_surveys', 'num_complete_surveys',
                                     'avg_time_to_submit']
+    
+    ## make cols more interpretable as "no survey submitted"                              
+    submit_lines3['submit_time'] = np.where(submit_lines3['submit_flg'] == 1, submit_lines3['submit_time'] , np.array('NaT', dtype='datetime64[ns]'))
+    
+    submit_lines3['time_to_submit'] = np.where(submit_lines3['submit_flg'] == 1, submit_lines3['time_to_submit'] , np.array('NaT', dtype='datetime64[ns]'))
     
     
     return submit_lines3.sort_values(['survey id', 'beiwe_id']).drop_duplicates(), submit_lines_summary
