@@ -223,7 +223,7 @@ def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg,
 
     # Create a summary that has survey_id, beiwe_id, num_surveys, num submitted surveys, average time to submit
     summary_cols = ['survey id', 'beiwe_id']
-    num_surveys = submit_lines3.groupby(summary_cols)['submit_flg'].count()
+    num_surveys = submit_lines3.groupby(summary_cols)['delivery_time'].nunique()
     num_complete_surveys = submit_lines3.groupby(summary_cols)['submit_flg'].sum()
     avg_time_to_submit = submit_lines3.loc[submit_lines3.submit_flg == 1].groupby(summary_cols)['time_to_submit'].apply(
         lambda x: sum(x, datetime.timedelta()) / len(x))
