@@ -789,30 +789,38 @@ def gps_summaries(
     return summary_stats_df2, log_tags
 
 
-def gps_quality_check(study_folder, ID):
+def gps_quality_check(study_folder: str, study_id: str) -> float:
+    """The function checks the gps data quality.
+
+    Args:
+        study_folder (str): The path to the study folder.
+        study_id (str): The id code of the study.
+    Returns:
+        a scalar between 0 and 1, bigger means better data quality
+            (percentage of data which meet the criterion)
     """
-    The function checks the gps data quality.
-    Args: both study_folder and ID should be string
-    Return: a scalar between 0 and 1, bigger means better data quality (percentage of data which meet the criterion)
-    """
-    gps_path = study_folder + '/' + str(ID) + '/gps'
+    gps_path = f"{study_folder}/{study_id}/gps"
     if not os.path.exists(gps_path):
-        quality_check = 0
+        quality_check = 0.
     else:
         file_list = os.listdir(gps_path)
-        for i in range(len(file_list)):
-            if file_list[i][0]==".":
-                file_list[i]=file_list[i][2:]
-        file_path = [gps_path + "/"+ file_list[j] for j in range(len(file_list))]
-        file_path = np.sort(np.array(file_path))
-        ## check if there are enough data for the following algorithm
-        quality_yes = 0
-        for i in range(len(file_path)):
-            df = pd.read_csv(file_path[i])
-            if df.shape[0]>60:
-                quality_yes = quality_yes + 1
-        quality_check = quality_yes/(len(file_path)+0.0001)
+        for i, _ in enumerate(file_list):
+            if file_list[i][0] == ".":
+                file_list[i] = file_list[i][2:]
+        file_path = [
+            f"{gps_path }/{file_list[j]}"
+            for j, _ in enumerate(file_list)
+        ]
+        file_path_array = np.sort(np.array(file_path))
+        # check if there are enough data for the following algorithm
+        quality_yes = 0.
+        for i, _ in enumerate(file_path_array):
+            df = pd.read_csv(file_path_array[i])
+            if df.shape[0] > 60:
+                quality_yes = quality_yes + 1.
+        quality_check = quality_yes / (len(file_path_array) + 0.0001)
     return quality_check
+
 
 def gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_start = None, time_end = None, beiwe_id = None,
     parameters = None, all_memory_dict = None, all_BV_set=None, quality_threshold=None):
