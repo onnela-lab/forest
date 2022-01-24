@@ -789,17 +789,17 @@ def gps_summaries(
     return summary_stats_df2, log_tags
 
 
-def gps_quality_check(study_folder: str, id_code: str) -> float:
+def gps_quality_check(study_folder: str, study_id: str) -> float:
     """The function checks the gps data quality.
 
     Args:
         study_folder (str): The path to the study folder.
-        id_code (str): The id code of the study.
+        study_id (str): The id code of the study.
     Returns:
         a scalar between 0 and 1, bigger means better data quality
             (percentage of data which meet the criterion)
     """
-    gps_path = f"{study_folder}/{id_code}/gps"
+    gps_path = f"{study_folder}/{study_id}/gps"
     if not os.path.exists(gps_path):
         quality_check = 0.
     else:
