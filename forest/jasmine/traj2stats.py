@@ -3,7 +3,6 @@ modules and calculate summary statistics of imputed trajectories.
 """
 
 from enum import Enum
-from functools import partial
 import os
 import pickle
 import sys
