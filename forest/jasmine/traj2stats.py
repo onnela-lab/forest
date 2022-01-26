@@ -868,7 +868,7 @@ def gps_stats_main(
     tz_str: str,
     frequency: Frequency,
     save_traj: bool,
-    parameters: Hyperparameters,
+    parameters: Hyperparameters = None,
     places_of_interest: list = None,
     save_log: bool = False,
     threshold: int = None,
@@ -880,7 +880,7 @@ def gps_stats_main(
     beiwe_study_ids: list = None,
     all_memory_dict: dict = None,
     all_bv_set: dict = None,
-    quality_threshold: float = None,
+    quality_threshold: float = 0.05,
 ):
     """This the main function to do the GPS imputation.
     It calls every function defined before.
@@ -938,8 +938,8 @@ def gps_stats_main(
 
     os.makedirs(output_folder, exist_ok=True)
 
-    if quality_threshold is None:
-        quality_threshold = 0.05
+    if parameters is None:
+        parameters = Hyperparameters()
 
     pars0 = [
         parameters.l1, parameters.l2, parameters.l3, parameters.a1,
@@ -953,27 +953,21 @@ def gps_stats_main(
     orig_r = parameters.r
     orig_w = parameters.w
     orig_h = parameters.h
-    if parameters.r is None:
-        orig_r = None
-    if parameters.w is None:
-        orig_w = None
-    if parameters.h is None:
-        orig_h = None
 
     # beiwe_study_ids should be a list of str
     if beiwe_study_ids is None:
         beiwe_study_ids = os.listdir(study_folder)
-    # create a record of processed user id_code and starting/ending time
+    # create a record of processed user study_id and starting/ending time
 
     if all_memory_dict is None:
         all_memory_dict = {}
-        for id_code in beiwe_study_ids:
-            all_memory_dict[str(id_code)] = None
+        for study_id in beiwe_study_ids:
+            all_memory_dict[str(study_id)] = None
 
     if all_bv_set is None:
         all_bv_set = {}
-        for id_code in beiwe_study_ids:
-            all_bv_set[str(id_code)] = None
+        for study_id in beiwe_study_ids:
+            all_bv_set[str(study_id)] = None
 
     if frequency == Frequency.BOTH:
         os.makedirs(f"{output_folder}/hourly", exist_ok=True)
@@ -982,16 +976,16 @@ def gps_stats_main(
         os.makedirs(f"{output_folder}/trajectory", exist_ok=True)
 
     if len(beiwe_study_ids) > 0:
-        for id_code in beiwe_study_ids:
-            sys.stdout.write(f"User: {id_code}\n")
+        for study_id in beiwe_study_ids:
+            sys.stdout.write(f"User: {study_id}\n")
             try:
                 # data quality check
-                quality = gps_quality_check(study_folder, id_code)
+                quality = gps_quality_check(study_folder, study_id)
                 if quality > quality_threshold:
                     # read data
                     sys.stdout.write("Read in the csv files ...\n")
                     data, _, _ = read_data(
-                        id_code, study_folder, "gps",
+                        study_id, study_folder, "gps",
                         tz_str, time_start, time_end,
                     )
                     if orig_r is None:
@@ -1013,11 +1007,11 @@ def gps_stats_main(
                         parameters.tol,
                         parameters.d,
                         pars0,
-                        all_memory_dict[str(id_code)],
-                        all_bv_set[str(id_code)],
+                        all_memory_dict[str(study_id)],
+                        all_bv_set[str(study_id)],
                     )
-                    all_bv_set[str(id_code)] = bv_set = out_dict["BV_set"]
-                    all_memory_dict[str(id_code)] = out_dict["memory_dict"]
+                    all_bv_set[str(study_id)] = bv_set = out_dict["BV_set"]
+                    all_memory_dict[str(study_id)] = out_dict["memory_dict"]
                     imp_table = ImputeGPS(mobmat2, bv_set, parameters.method,
                                           parameters.switch, parameters.num,
                                           parameters.linearity, tz_str, pars1)
@@ -1042,7 +1036,7 @@ def gps_stats_main(
                             "obs",
                         ]
                         dest_path = (
-                            f"{output_folder}/trajectory/{id_code}.csv"
+                            f"{output_folder}/trajectory/{study_id}.csv"
                         )
                         pd_traj.to_csv(dest_path, index=False)
                     if frequency == Frequency.BOTH:
@@ -1056,7 +1050,7 @@ def gps_stats_main(
                             split_day_night,
                         )
                         write_all_summaries(
-                            id_code, summary_stats1, f"{output_folder}/hourly"
+                            study_id, summary_stats1, f"{output_folder}/hourly"
                         )
                         summary_stats2, logs2 = gps_summaries(
                             traj,
@@ -1070,7 +1064,7 @@ def gps_stats_main(
                             place_point_radius,
                         )
                         write_all_summaries(
-                            id_code, summary_stats2, f"{output_folder}/daily"
+                            study_id, summary_stats2, f"{output_folder}/daily"
                         )
                         if save_log:
                             with open(
@@ -1096,7 +1090,7 @@ def gps_stats_main(
                             split_day_night,
                         )
                         write_all_summaries(
-                            id_code, summary_stats, output_folder
+                            study_id, summary_stats, output_folder
                         )
                         if save_log:
                             with open(log_dir, "w") as loc:
