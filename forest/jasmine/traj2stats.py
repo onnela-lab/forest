@@ -2,6 +2,7 @@
 modules and calculate summary statistics of imputed trajectories.
 """
 
+from dataclasses import dataclass
 from enum import Enum
 import json
 import os
@@ -36,6 +37,43 @@ class Frequency(Enum):
     HOURLY = "hourly"
     DAILY = "daily"
     BOTH = "both"
+
+
+@dataclass
+class Hyperparameters:
+    """Class containing hyperparemeters for imputation of trajectories.
+
+    Args:
+        itrvl, accuracylim, r, w, h: hyperparameters for the
+            GPS2MobMat function.
+        itrvl, r: hyperparameters for the InferMobMat function.
+        l1, l2, l3, a1, a2, b1, b2, b3, sigma2, tol, d: hyperparameters
+            for the BV_select function.
+        l1, l2, a1, a2, b1, b2, b3, g, method, switch, num, linearity:
+            hyperparameters for the ImputeGPS function.
+        itrvl, r, w, h: hyperparameters for the Imp2traj function.
+    """
+    l1: int = 60 * 60 * 24 * 10
+    l2: int = 60 * 60 * 24 * 30
+    l3: float = 0.002
+    g: int = 200
+    a1: int = 5
+    a2: int = 1
+    b1: float = 0.3
+    b2: float = 0.2
+    b3: float = 0.5
+    d: int = 100
+    sigma2: float = 0.01
+    tol: float = 0.05
+    switch: int = 3
+    num: int = 10
+    linearity: int = 2
+    method: str = "GLC"
+    itrvl: int = 10
+    accuracylim: int = 51
+    r: Union[int, None] = None
+    w: Union[float, None] = None
+    h: Union[int, None] = None
 
 
 def transform_point_to_circle(lat: float, lon: float, radius: float
@@ -202,7 +240,7 @@ def gps_summaries(
     if frequency == Frequency.HOURLY:
         split_day_night = False
     elif frequency == Frequency.BOTH:
-        raise ValueError("frequency cannot be both")
+        raise ValueError("Frequency must be 'hourly' or 'daily'")
 
     ids: Dict[str, List[int]] = {}
     locations: Dict[int, List[List[float]]] = {}
@@ -830,6 +868,7 @@ def gps_stats_main(
     tz_str: str,
     frequency: Frequency,
     save_traj: bool,
+    parameters: Hyperparameters,
     places_of_interest: list = None,
     save_log: bool = False,
     threshold: int = None,
@@ -838,39 +877,39 @@ def gps_stats_main(
     place_point_radius: float = 7.5,
     time_start: list = None,
     time_end: list = None,
-    beiwe_id: list = None,
-    parameters: list = None,
+    beiwe_study_ids: list = None,
     all_memory_dict: dict = None,
     all_bv_set: dict = None,
+    quality_threshold: float = None,
 ):
     """This the main function to do the GPS imputation.
     It calls every function defined before.
 
     Args:
-        study_folder, string, the path of the study folder
-        output_folder, string, the path of the folder
+        study_folder: str, the path of the study folder
+        output_folder: str, the path of the folder
             where you want to save results
-        tz_str, string, timezone
-        frequency, Frequency, the frequency of the summary stats
+        tz_str: str, timezone
+        frequency: Frequency, the frequency of the summary stats
             (resolution for summary statistics)
-        save_traj, bool, True if you want to save the trajectories as a
+        save_traj: bool, True if you want to save the trajectories as a
             csv file, False if you don't
         places_of_interest: list of amenities or leisure places to watch,
             keywords as used in openstreetmaps
-        save_log, bool, True if you want to output a log of locations
+        save_log: bool, True if you want to output a log of locations
             visited and their tags
-        threshold, int, time spent in a pause needs to exceed the
+        threshold: int, time spent in a pause needs to exceed the
             threshold to be placed in the log
             only if save_log True, in minutes
-        split_day_night, bool, True if you want to split all metrics to
+        split_day_night: bool, True if you want to split all metrics to
             datetime and nighttime patterns
             only for daily frequency
-        person_point_radius, float, radius of the person's circle when
+        person_point_radius: float, radius of the person's circle when
             discovering places near him in pauses
-        place_point_radius, float, radius of place's circle
+        place_point_radius: float, radius of place's circle
             when place is returned as centre coordinates from osm
-        time_start, time_end are starting time and ending time of the
-            window of interest
+        time_start: list, starting time of window of interest
+        time_end: list ending time of the window of interest
             time should be a list of integers with format
             [year, month, day, hour, minute, second]
             if time_start is None and time_end is None: then it reads all
@@ -879,11 +918,13 @@ def gps_stats_main(
             the files before the given time
             if time_start is given and time_end is None, then it reads all
             the files after the given time
-        beiwe_id: a list of beiwe IDs
-        parameters: hyperparameters in functions, recommend to set it to
-            none (by default)
-        all_memory_dict and all_bv_set are dictionaries from previous run
-            (none if it's the first time)
+        beiwe_study_ids: a list of beiwe IDs
+        parameters: Hyperparameters, hyperparameters in functions
+            recommend to set it to default
+        all_memory_dict: dict, from previous run (none if it's the first time)
+        all_bv_set: dict, from previous run (none if it's the first time)
+        quality_threshold: float, a percentage value of the fraction of data
+            required for a summary to be created.
     Returns:
         write summary stats as csv for each user during the specified
             period
@@ -895,97 +936,58 @@ def gps_stats_main(
         and logger csv file to show warnings and bugs during the run
     """
 
-    if not os.path.exists(output_folder):
-        os.mkdir(output_folder)
+    os.makedirs(output_folder, exist_ok=True)
 
-    if parameters is None:
-        parameters = [
-            60 * 60 * 24 * 10,
-            60 * 60 * 24 * 30,
-            0.002,
-            200,
-            5,
-            1,
-            0.3,
-            0.2,
-            0.5,
-            100,
-            0.01,
-            0.05,
-            3,
-            10,
-            2,
-            "GLC",
-            10,
-            51,
-            None,
-            None,
-            None,
-        ]
-    [
-        l1,
-        l2,
-        l3,
-        g,
-        a1,
-        a2,
-        b1,
-        b2,
-        b3,
-        d,
-        sigma2,
-        tol,
-        switch,
-        num,
-        linearity,
-        method,
-        itrvl,
-        accuracylim,
-        r,
-        w,
-        h,
-    ] = parameters
-    pars0 = [l1, l2, l3, a1, a2, b1, b2, b3]
-    pars1 = [l1, l2, a1, a2, b1, b2, b3, g]
+    if quality_threshold is None:
+        quality_threshold = 0.05
 
-    if r is None:
+    pars0 = [
+        parameters.l1, parameters.l2, parameters.l3, parameters.a1,
+        parameters.a2, parameters.b1, parameters.b2, parameters.b3
+    ]
+    pars1 = [
+        parameters.l1, parameters.l2, parameters.a1, parameters.a2,
+        parameters.b1, parameters.b2, parameters.b3, parameters.g
+    ]
+
+    orig_r = parameters.r
+    orig_w = parameters.w
+    orig_h = parameters.h
+    if parameters.r is None:
         orig_r = None
-    if w is None:
+    if parameters.w is None:
         orig_w = None
-    if h is None:
+    if parameters.h is None:
         orig_h = None
 
-    # beiwe_id should be a list of str
-    if beiwe_id is None:
-        beiwe_id = os.listdir(study_folder)
+    # beiwe_study_ids should be a list of str
+    if beiwe_study_ids is None:
+        beiwe_study_ids = os.listdir(study_folder)
     # create a record of processed user id_code and starting/ending time
 
     if all_memory_dict is None:
         all_memory_dict = {}
-        for id_code in beiwe_id:
+        for id_code in beiwe_study_ids:
             all_memory_dict[str(id_code)] = None
 
     if all_bv_set is None:
         all_bv_set = {}
-        for id_code in beiwe_id:
+        for id_code in beiwe_study_ids:
             all_bv_set[str(id_code)] = None
 
     if frequency == Frequency.BOTH:
-        if not os.path.exists(f"{output_folder}/hourly"):
-            os.mkdir(f"{output_folder}/hourly")
-        if not os.path.exists(f"{output_folder}/daily"):
-            os.mkdir(f"{output_folder}/daily")
+        os.makedirs(f"{output_folder}/hourly", exist_ok=True)
+        os.makedirs(f"{output_folder}/daily", exist_ok=True)
     if save_traj:
-        if not os.path.exists(f"{output_folder}/trajectory"):
-            os.mkdir(f"{output_folder}/trajectory")
+        os.makedirs(f"{output_folder}/trajectory", exist_ok=True)
 
-    if len(beiwe_id) > 0:
-        for id_code in beiwe_id:
+    if len(beiwe_study_ids) > 0:
+        for id_code in beiwe_study_ids:
             sys.stdout.write(f"User: {id_code}\n")
             try:
                 # data quality check
                 quality = gps_quality_check(study_folder, id_code)
-                if quality > 0.6:
+                if quality > quality_threshold:
                     # read data
                     sys.stdout.write("Read in the csv files ...\n")
                     data, _, _ = read_data(
@@ -993,35 +995,37 @@ def gps_stats_main(
                         tz_str, time_start, time_end,
                     )
                     if orig_r is None:
-                        r = itrvl
+                        parameters.r = parameters.itrvl
                     if orig_h is None:
-                        h = r
+                        parameters.h = parameters.r
                     if orig_w is None:
-                        w = np.mean(data.accuracy)
+                        parameters.w = np.mean(data.accuracy)
                     # process data
-                    mobmat1 = GPS2MobMat(data, itrvl, accuracylim, r, w, h)
-                    mobmat2 = InferMobMat(mobmat1, itrvl, r)
+                    mobmat1 = GPS2MobMat(
+                        data, parameters.itrvl, parameters.accuracylim,
+                        parameters.r, parameters.w, parameters.h
+                    )
+                    mobmat2 = InferMobMat(mobmat1, parameters.itrvl,
+                                          parameters.r)
                     out_dict = BV_select(
                         mobmat2,
-                        sigma2,
-                        tol,
-                        d,
+                        parameters.sigma2,
+                        parameters.tol,
+                        parameters.d,
                         pars0,
                         all_memory_dict[str(id_code)],
                         all_bv_set[str(id_code)],
                     )
                     all_bv_set[str(id_code)] = bv_set = out_dict["BV_set"]
                     all_memory_dict[str(id_code)] = out_dict["memory_dict"]
-                    imp_table = ImputeGPS(
-                        mobmat2, bv_set, method, switch,
-                        num, linearity, tz_str, pars1,
-                    )
-                    traj = Imp2traj(imp_table, mobmat2, itrvl, r, w, h)
+                    imp_table = ImputeGPS(mobmat2, bv_set, parameters.method,
+                                          parameters.switch, parameters.num,
+                                          parameters.linearity, tz_str, pars1)
+                    traj = Imp2traj(imp_table, mobmat2, parameters.itrvl,
+                                    parameters.r, parameters.w, parameters.h)
                     # save all_memory_dict and all_bv_set
-                    with open(
-                        f"{output_folder}/all_memory_dict.pkl",
-                        "wb",
-                    ) as f:
+                    with open(f"{output_folder}/all_memory_dict.pkl",
+                              "wb") as f:
                         pickle.dump(all_memory_dict, f)
                     with open(f"{output_folder}/all_bv_set.pkl", "wb") as f:
                         pickle.dump(all_bv_set, f)
@@ -1095,19 +1099,11 @@ def gps_stats_main(
                             id_code, summary_stats, output_folder
                         )
                         if save_log:
-                            with open(
-                                log_dir,
-                                "w",
-                            ) as loc:
+                            with open(log_dir, "w") as loc:
                                 json.dump(logs, loc, indent=4)
                 else:
-                    sys.stdout.write(
-                        "GPS data are not collected"
-                        + " or the data quality is too low."
-                        + "\n"
-                    )
+                    sys.stdout.write("GPS data are not collected"
+                                     " or the data quality is too low\n")
             except Exception:
-                sys.stdout.write(
-                    "An error occured when processing the data.\n"
-                )
+                sys.stdout.write("An error occured when processing the data\n")
                 break
