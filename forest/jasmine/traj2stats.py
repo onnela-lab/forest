@@ -957,17 +957,17 @@ def gps_stats_main(
     # participant_ids should be a list of str
     if participant_ids is None:
         participant_ids = os.listdir(study_folder)
-    # create a record of processed user study_id and starting/ending time
+    # create a record of processed user participant_id and starting/ending time
 
     if all_memory_dict is None:
         all_memory_dict = {}
-        for study_id in participant_ids:
-            all_memory_dict[str(study_id)] = None
+        for participant_id in participant_ids:
+            all_memory_dict[str(participant_id)] = None
 
     if all_bv_set is None:
         all_bv_set = {}
-        for study_id in participant_ids:
-            all_bv_set[str(study_id)] = None
+        for participant_id in participant_ids:
+            all_bv_set[str(participant_id)] = None
 
     if frequency == Frequency.BOTH:
         os.makedirs(f"{output_folder}/hourly", exist_ok=True)
@@ -975,16 +975,16 @@ def gps_stats_main(
     if save_traj:
         os.makedirs(f"{output_folder}/trajectory", exist_ok=True)
 
-    for study_id in participant_ids:
-        sys.stdout.write(f"User: {study_id}\n")
+    for participant_id in participant_ids:
+        sys.stdout.write(f"User: {participant_id}\n")
         try:
             # data quality check
-            quality = gps_quality_check(study_folder, study_id)
+            quality = gps_quality_check(study_folder, participant_id)
             if quality > quality_threshold:
                 # read data
                 sys.stdout.write("Read in the csv files ...\n")
                 data, _, _ = read_data(
-                    study_id, study_folder, "gps",
+                    participant_id, study_folder, "gps",
                     tz_str, time_start, time_end,
                 )
                 if orig_r is None:
@@ -1005,11 +1005,11 @@ def gps_stats_main(
                     parameters.tol,
                     parameters.d,
                     pars0,
-                    all_memory_dict[str(study_id)],
-                    all_bv_set[str(study_id)],
+                    all_memory_dict[str(participant_id)],
+                    all_bv_set[str(participant_id)],
                 )
-                all_bv_set[str(study_id)] = bv_set = out_dict["BV_set"]
-                all_memory_dict[str(study_id)] = out_dict["memory_dict"]
+                all_bv_set[str(participant_id)] = bv_set = out_dict["BV_set"]
+                all_memory_dict[str(participant_id)] = out_dict["memory_dict"]
                 imp_table = ImputeGPS(mobmat2, bv_set, parameters.method,
                                       parameters.switch, parameters.num,
                                       parameters.linearity, tz_str, pars1)
@@ -1024,7 +1024,7 @@ def gps_stats_main(
                     pd_traj = pd.DataFrame(traj)
                     pd_traj.columns = ["status", "x0", "y0", "t0", "x1", "y1",
                                        "t1", "obs"]
-                    dest_path = f"{output_folder}/trajectory/{study_id}.csv"
+                    dest_path = f"{output_folder}/trajectory/{participant_id}.csv"
                     pd_traj.to_csv(dest_path, index=False)
                 if frequency == Frequency.BOTH:
                     summary_stats1, logs1 = gps_summaries(
@@ -1037,7 +1037,7 @@ def gps_stats_main(
                         split_day_night,
                     )
                     write_all_summaries(
-                        study_id, summary_stats1, f"{output_folder}/hourly"
+                        participant_id, summary_stats1, f"{output_folder}/hourly"
                     )
                     summary_stats2, logs2 = gps_summaries(
                         traj,
@@ -1051,7 +1051,7 @@ def gps_stats_main(
                         place_point_radius,
                     )
                     write_all_summaries(
-                        study_id, summary_stats2, f"{output_folder}/daily"
+                        participant_id, summary_stats2, f"{output_folder}/daily"
                     )
                     if save_log:
                         with open(
@@ -1077,7 +1077,7 @@ def gps_stats_main(
                         split_day_night,
                     )
                     write_all_summaries(
-                        study_id, summary_stats, output_folder
+                        participant_id, summary_stats, output_folder
                     )
                     if save_log:
                         with open(log_dir, "w") as loc:
