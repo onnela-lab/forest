@@ -1024,8 +1024,10 @@ def gps_stats_main(
                     pd_traj = pd.DataFrame(traj)
                     pd_traj.columns = ["status", "x0", "y0", "t0", "x1", "y1",
                                        "t1", "obs"]
-                    dest_path = f"{output_folder}/trajectory/{participant_id}.csv"
-                    pd_traj.to_csv(dest_path, index=False)
+                    pd_traj.to_csv(
+                        f"{output_folder}/trajectory/{participant_id}.csv",
+                        index=False
+                    )
                 if frequency == Frequency.BOTH:
                     summary_stats1, logs1 = gps_summaries(
                         traj,
@@ -1036,9 +1038,8 @@ def gps_stats_main(
                         threshold,
                         split_day_night,
                     )
-                    write_all_summaries(
-                        participant_id, summary_stats1, f"{output_folder}/hourly"
-                    )
+                    write_all_summaries(participant_id, summary_stats1,
+                                        f"{output_folder}/hourly")
                     summary_stats2, logs2 = gps_summaries(
                         traj,
                         tz_str,
@@ -1050,18 +1051,15 @@ def gps_stats_main(
                         person_point_radius,
                         place_point_radius,
                     )
-                    write_all_summaries(
-                        participant_id, summary_stats2, f"{output_folder}/daily"
-                    )
+                    write_all_summaries(participant_id, summary_stats2,
+                                        f"{output_folder}/daily")
                     if save_log:
                         with open(
-                            f"{output_folder}/hourly/locations_logs.json",
-                            "w",
+                            f"{output_folder}/hourly/locations_logs.json", "w",
                         ) as hourly:
                             json.dump(logs1, hourly, indent=4)
                         with open(
-                            f"{output_folder}/daily/locations_logs.json",
-                            "w",
+                            f"{output_folder}/daily/locations_logs.json", "w",
                         ) as daily:
                             json.dump(logs2, daily, indent=4)
                 else:
