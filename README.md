@@ -43,23 +43,21 @@ Alternatively, [install directly from github](https://pip.pypa.io/en/stable/refe
 pip install git+https://github.com/onnela-lab/forest
 ```
 
-Currently, all imports from `forest` must be explicit.  For the below example you need to import:
-
-```python
-from forest.bonsai.simulate_log_data import sim_log_data
-from forest.bonsai.simulate_gps_data import sim_gps_data
-from forest.jasmine.traj2stats import gps_stats_main
-from forest.willow.log_stats import log_stats_main
-```
-
 To immediately test out forest, adapt the filepaths in the code below and run:
 
 ```python
-# Run the above 4 imports
+# Currently, all imports from `forest` must be explicit.  For the below example you need to import the following
 # In future, it would be great to have all functions import automatically
 import datetime
+import os
 
-from forest.jasmine.traj2stats import Frequency, Hyperparameters
+import numpy as np
+
+from forest.bonsai.simulate_log_data import sim_log_data
+from forest.bonsai.simulate_gps_data import sim_gps_data
+from forest.jasmine.traj2stats import Frequency, gps_stats_main
+from forest.willow.log_stats import log_stats_main
+from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
 # 1. If you don't have any smartphone data (yet) you can generate fake data
 path_to_synthetic_gps_data = "ENTER/PATH1/HERE"
@@ -74,14 +72,21 @@ sim_log_data(path_to_synthetic_log_data)
 # Generate synthetic gps data and communication logs data as csv files
 # Define parameters for generating the data
 # To save smartphone battery power, we typically collect location data intermittently: e.g. during an on-cycle of 3 minutes, followed by an off-cycle of 12 minutes. We'll generate data in this way
-n_persons = 1 # number of persons to generate
-location = "GB/Bristol" # location of person to generate format: Country_2_letter_ISO_code/City_Name
-start_date = datetime.date(2021, 10, 1) # start date of generated trajectories
-end_date = datetime.date(2021, 10, 5) # end date of trajectories
-api_key = "mock_api_key" # api key for openroute service, generated from https://openrouteservice.org/
-cycle = 15 # Length of off-cycle + length of on-cycle in minutes
-percentage = 0.8 # Length off-cycle / (length off-cycle + length on-cycle)
-attributes_dict = None # dictionary of personallity attributes for each user, set to None if random, check Attributes class for usage in simulate_gps_data module. Example of dictionary of user attributes:
+# number of persons to generate
+n_persons = 1
+# location of person to generate format: Country_2_letter_ISO_code/City_Name
+location = "GB/Bristol"
+# start date of generated trajectories
+start_date = datetime.date(2021, 10, 1)
+# end date of trajectories
+end_date = datetime.date(2021, 10, 5)
+# api key for openroute service, generated from https://openrouteservice.org/
+api_key = "mock_api_key"
+# Length of off-cycle + length of on-cycle in minutes
+cycle = 15
+# Length off-cycle / (length off-cycle + length on-cycle)
+percentage = 0.8
+# dictionary of personallity attributes for each user, set to None if random, check Attributes class for usage in simulate_gps_data module.
 attributes_dict = {
     "User 1":
     {
@@ -109,32 +114,47 @@ attributes_dict = {
         "preferred_exits": ["cafe", "bar", "cinema"] 
     }
 }
-sample_gps_data = sim_gps_data(n_persons, location, start_date, end_data, api_key, cycle, percentage, attributes_dict)
-
+sample_gps_data = sim_gps_data(n_persons, location, start_date, end_date, cycle, percentage, api_key, attributes_dict)
+# save data in format of csv files for summary
+s = datetime2stamp([start_date.year, start_date.month, start_date.day, 0 ,0, 0], "Etc/GMT-1") * 1000
+for user in np.unique(sample_gps_data["user"]):
+    user_traj = sample_gps_data[sample_gps_data["user"] == user].iloc[:, 1:]
+    for i in range(4):
+        for j in range(24):
+            s_lower = s+i*24*60*60*1000+j*60*60*1000
+            s_upper = s+i*24*60*60*1000+(j+1)*60*60*1000
+            temp = user_traj[(user_traj["timestamp"]>=s_lower)&(user_traj["timestamp"]<s_upper)]
+            [y, m, d, h, _, _] = stamp2datetime(s_lower/1000, "Etc/GMT-1")
+            filename = f"{y}-{m:0>2}-{d:0>2} {h:0>2}_00_00.csv"
+            os.makedirs(f"{path_to_synthetic_gps_data}/user_{user}/gps/", exist_ok=True)
+            temp.to_csv(f"{path_to_synthetic_gps_data}/user_{user}/gps/{filename}", index = False)
 # 2. Specify parameters for imputation 
 # See https://github.com/onnela-lab/forest/wiki/Jasmine-documentation#input for details
-tz_str = "America/New_York" # time zone where the study took place (assumes that all participants were always in this time zone)
-frequency = Frequency.DAILY # Generate summary metrics Frequency.HOURLY, Frequency.DAILY or Frequency.BOTH
-save_traj = False # Save imputed trajectories?
-parameters = None # Hyperparameters class for imputation (default leave None)
-places_of_interest = ['cafe', 'bar', 'hospital'] # list of locations to track if visited, leave None if don't want these summary statistics
-save_log = False # True if want to save a log of all locations and attributes of those locations visited
-threshold = 15 # threshold of time spent in a location to count as being in that location, in minutes
-split_day_night = False # split summary statistics to day and nighttime statistics, only if frequency == Frequency.DAILY
-person_point_radius = 2 # meters around person to count as being in a place
-place_point_radius = 7.5 # meters around location to count as POI
+# time zone where the study took place (assumes that all participants were always in this time zone)
+tz_str = "America/New_York"
+# Generate summary metrics Frequency.HOURLY, Frequency.DAILY or Frequency.BOTH
+frequency = Frequency.DAILY
+# Save imputed trajectories?
+save_traj = False
+# Hyperparameters class for imputation (default leave None), from forest.jasmine.traj2stats import Hyperparameters
+parameters = None
+# list of locations to track if visited, leave None if don't want these summary statistics
+places_of_interest = ['cafe', 'bar', 'hospital']
+# True if want to save a log of all locations and attributes of those locations visited
+save_log = True
+# threshold of time spent in a location to count as being in that location, in minutes
+threshold = 15
+
+# 3. Impute location data and generate mobility summary metrics using the simulated data above
+gps_stats_main(path_to_synthetic_gps_data, path_to_gps_summary, tz_str, frequency, save_traj, parameters, places_of_interest, save_log, threshold)
+
+# 4. Generate daily summary metrics for call/text logs
+option = "daily"
 time_start = None 
 time_end = None
 participant_ids = None
-all_memory_dict = None
-all_bv_set= None
-quality_threshold = 0.05 # minimum percentage of data being valid needed to perform the analysis
 
-# 3. Impute location data and generate mobility summary metrics using the simulated data above
-gps_stats_main(path_to_synthetic_gps_data, path_to_gps_summary, tz_str, frequency, parameters, places_of_interest, save_log, threshold, split_day_night, person_point_radius, place_point_radius, time_start, time_end, participant_ids. all_memory_dict, all_bv_set, quality_threshold)
-
-# 4. Generate daily summary metrics for call/text logs
-log_stats_main(path_to_synthetic_log_data, path_to_log_summary, tz_str, option, time_start, time_end, beiwe_id)
+log_stats_main(path_to_synthetic_log_data, path_to_log_summary, tz_str, option, time_start, time_end, participant_ids)
 ```
 
 ## For contributors
