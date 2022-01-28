@@ -1054,17 +1054,19 @@ def gps_stats_main(
                     write_all_summaries(participant_id, summary_stats2,
                                         f"{output_folder}/daily")
                     if save_log:
+                        os.makedirs(f"{output_folder}/logs", exist_ok=True)
                         with open(
-                            f"{output_folder}/hourly/locations_logs.json", "w",
+                            f"{output_folder}/logs/locations_logs_hourly.json",
+                            "w",
                         ) as hourly:
                             json.dump(logs1, hourly, indent=4)
                         with open(
-                            f"{output_folder}/daily/locations_logs.json", "w",
+                            f"{output_folder}/logs/locations_logs_daily.json",
+                            "w",
                         ) as daily:
                             json.dump(logs2, daily, indent=4)
                 else:
                     freq = frequency.value
-                    log_dir = f"{output_folder}/{freq}/locations_logs.json"
                     summary_stats, logs = gps_summaries(
                         traj,
                         tz_str,
@@ -1078,7 +1080,11 @@ def gps_stats_main(
                         participant_id, summary_stats, output_folder
                     )
                     if save_log:
-                        with open(log_dir, "w") as loc:
+                        os.makedirs(f"{output_folder}/logs", exist_ok=True)
+                        with open(
+                            f"{output_folder}/logs/locations_logs.json",
+                            "w",
+                        ) as loc:
                             json.dump(logs, loc, indent=4)
             else:
                 sys.stdout.write("GPS data are not collected"
