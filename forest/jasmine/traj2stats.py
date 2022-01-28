@@ -1066,7 +1066,6 @@ def gps_stats_main(
                         ) as daily:
                             json.dump(logs2, daily, indent=4)
                 else:
-                    freq = frequency.value
                     summary_stats, logs = gps_summaries(
                         traj,
                         tz_str,
