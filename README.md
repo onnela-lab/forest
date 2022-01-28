@@ -1,4 +1,5 @@
-[![build](https://github.com/onnela-lab/forest/actions/workflows/build.yml/badge.svg)](https://github.com/onnela-lab/forest/actions/workflows/build.yml)
+[![Main branch](https://github.com/onnela-lab/forest/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/onnela-lab/forest/actions/workflows/build.yml)
+[![Develop branch](https://github.com/onnela-lab/forest/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/onnela-lab/forest/actions/workflows/build.yml)
 
 <img width="264" height="99" src="forest-logo-color.png" alt="Forest logo">
 
