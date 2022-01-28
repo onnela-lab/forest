@@ -6,3 +6,10 @@ __pycache__/
 
 # for installing Forest in editable mode when developing
 forest.egg-info/
+
+#We don't want to add data to github
+tutorials/data
+tutorials/comm_output
+tutorials/gps_output
+
+
