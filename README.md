@@ -49,15 +49,11 @@ To immediately test out forest, adapt the filepaths in the code below and run:
 # Currently, all imports from `forest` must be explicit.  For the below example you need to import the following
 # In future, it would be great to have all functions import automatically
 import datetime
-import os
-
-import numpy as np
 
 from forest.bonsai.simulate_log_data import sim_log_data
-from forest.bonsai.simulate_gps_data import sim_gps_data
+from forest.bonsai.simulate_gps_data import sim_gps_data, gps_to_csv
 from forest.jasmine.traj2stats import Frequency, gps_stats_main
 from forest.willow.log_stats import log_stats_main
-from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
 # 1. If you don't have any smartphone data (yet) you can generate fake data
 path_to_synthetic_gps_data = "ENTER/PATH1/HERE"
@@ -86,8 +82,8 @@ api_key = "mock_api_key"
 cycle = 15
 # Length off-cycle / (length off-cycle + length on-cycle)
 percentage = 0.8
-# dictionary of personallity attributes for each user, set to None if random, check Attributes class for usage in simulate_gps_data module.
-attributes_dict = {
+# dictionary of personal attributes for each user, set to None if random, check Attributes class for usage in simulate_gps_data module.
+personal_attributes = {
     "User 1":
     {
         "main_employment": "none", 
@@ -114,20 +110,10 @@ attributes_dict = {
         "preferred_exits": ["cafe", "bar", "cinema"] 
     }
 }
-sample_gps_data = sim_gps_data(n_persons, location, start_date, end_date, cycle, percentage, api_key, attributes_dict)
-# save data in format of csv files for summary
-s = datetime2stamp([start_date.year, start_date.month, start_date.day, 0 ,0, 0], "Etc/GMT-1") * 1000
-for user in np.unique(sample_gps_data["user"]):
-    user_traj = sample_gps_data[sample_gps_data["user"] == user].iloc[:, 1:]
-    for i in range(4):
-        for j in range(24):
-            s_lower = s+i*24*60*60*1000+j*60*60*1000
-            s_upper = s+i*24*60*60*1000+(j+1)*60*60*1000
-            temp = user_traj[(user_traj["timestamp"]>=s_lower)&(user_traj["timestamp"]<s_upper)]
-            [y, m, d, h, _, _] = stamp2datetime(s_lower/1000, "Etc/GMT-1")
-            filename = f"{y}-{m:0>2}-{d:0>2} {h:0>2}_00_00.csv"
-            os.makedirs(f"{path_to_synthetic_gps_data}/user_{user}/gps/", exist_ok=True)
-            temp.to_csv(f"{path_to_synthetic_gps_data}/user_{user}/gps/{filename}", index = False)
+sample_gps_data = sim_gps_data(n_persons, location, start_date, end_date, cycle, percentage, api_key, personal_attributes)
+# save data in format of csv files
+gps_to_csv(sample_gps_data, path_to_synthetic_gps_data, start_date, end_date)
+
 # 2. Specify parameters for imputation 
 # See https://github.com/onnela-lab/forest/wiki/Jasmine-documentation#input for details
 # time zone where the study took place (assumes that all participants were always in this time zone)
