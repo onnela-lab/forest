@@ -6,6 +6,7 @@ of a number of people anywhere in the world.
 import datetime
 from dataclasses import dataclass
 from enum import Enum
+import os
 import re
 import sys
 import time
@@ -1403,3 +1404,35 @@ def sim_gps_data(
         ind += 1
 
     return gps_data
+
+
+def gps_to_csv(data: pd.DataFrame, path: str, start_date: datetime.date,
+               end_date: datetime.date) -> None:
+    """Writes gps trajectories to csv files.
+
+    Args:
+        data: (pandas.DataFrame) contains gps trajectories
+            for each person
+        path: (str) path to save csv files
+        start_date: (datetime.date) start date of trajectories
+        end_date: (datetime.date) end date of trajectories,
+    """
+
+    s = datetime2stamp(
+        [start_date.year, start_date.month, start_date.day, 0, 0, 0],
+        "Etc/GMT-1"
+    ) * 1000
+    for user in np.unique(data["user"]):
+        user_traj = data[data["user"] == user].iloc[:, 1:]
+        for i in range((end_date - start_date).days):
+            for j in range(24):
+                s_lower = s + i * 24 * 60 * 60 * 1000 + j * 60 * 60 * 1000
+                s_upper = s + i * 24 * 60 * 60 * 1000 + (j+1) * 60 * 60 * 1000
+                temp = user_traj[
+                    (user_traj["timestamp"] >= s_lower)
+                    & (user_traj["timestamp"] < s_upper)
+                ]
+                [y, m, d, h, _, _] = stamp2datetime(s_lower/1000, "Etc/GMT-1")
+                filename = f"{y}-{m:0>2}-{d:0>2} {h:0>2}_00_00.csv"
+                os.makedirs(f"{path}/user_{user}/gps/", exist_ok=True)
+                temp.to_csv(f"{path}/user_{user}/gps/{filename}", index=False)
