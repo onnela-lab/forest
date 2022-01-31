@@ -12,4 +12,5 @@ tutorials/data
 tutorials/comm_output
 tutorials/gps_output
 
-
+#Remove checkpoints data because we don't need to double-track files
+tutorials/.ipynb_checkpoints/forest_usage-checkpoint.ipynb
