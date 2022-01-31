@@ -977,117 +977,113 @@ def gps_stats_main(
 
     for participant_id in participant_ids:
         sys.stdout.write(f"User: {participant_id}\n")
-        try:
-            # data quality check
-            quality = gps_quality_check(study_folder, participant_id)
-            if quality > quality_threshold:
-                # read data
-                sys.stdout.write("Read in the csv files ...\n")
-                data, _, _ = read_data(
-                    participant_id, study_folder, "gps",
-                    tz_str, time_start, time_end,
+        # data quality check
+        quality = gps_quality_check(study_folder, participant_id)
+        if quality > quality_threshold:
+            # read data
+            sys.stdout.write("Read in the csv files ...\n")
+            data, _, _ = read_data(
+                participant_id, study_folder, "gps",
+                tz_str, time_start, time_end,
+            )
+            if orig_r is None:
+                parameters.r = parameters.itrvl
+            if orig_h is None:
+                parameters.h = parameters.r
+            if orig_w is None:
+                parameters.w = np.mean(data.accuracy)
+            # process data
+            mobmat1 = GPS2MobMat(
+                data, parameters.itrvl, parameters.accuracylim,
+                parameters.r, parameters.w, parameters.h
+            )
+            mobmat2 = InferMobMat(mobmat1, parameters.itrvl, parameters.r)
+            out_dict = BV_select(
+                mobmat2,
+                parameters.sigma2,
+                parameters.tol,
+                parameters.d,
+                pars0,
+                all_memory_dict[str(participant_id)],
+                all_bv_set[str(participant_id)],
+            )
+            all_bv_set[str(participant_id)] = bv_set = out_dict["BV_set"]
+            all_memory_dict[str(participant_id)] = out_dict["memory_dict"]
+            imp_table = ImputeGPS(mobmat2, bv_set, parameters.method,
+                                  parameters.switch, parameters.num,
+                                  parameters.linearity, tz_str, pars1)
+            traj = Imp2traj(imp_table, mobmat2, parameters.itrvl,
+                            parameters.r, parameters.w, parameters.h)
+            # save all_memory_dict and all_bv_set
+            with open(f"{output_folder}/all_memory_dict.pkl", "wb") as f:
+                pickle.dump(all_memory_dict, f)
+            with open(f"{output_folder}/all_bv_set.pkl", "wb") as f:
+                pickle.dump(all_bv_set, f)
+            if save_traj is True:
+                pd_traj = pd.DataFrame(traj)
+                pd_traj.columns = ["status", "x0", "y0", "t0", "x1", "y1",
+                                   "t1", "obs"]
+                pd_traj.to_csv(
+                    f"{output_folder}/trajectory/{participant_id}.csv",
+                    index=False
                 )
-                if orig_r is None:
-                    parameters.r = parameters.itrvl
-                if orig_h is None:
-                    parameters.h = parameters.r
-                if orig_w is None:
-                    parameters.w = np.mean(data.accuracy)
-                # process data
-                mobmat1 = GPS2MobMat(
-                    data, parameters.itrvl, parameters.accuracylim,
-                    parameters.r, parameters.w, parameters.h
+            if frequency == Frequency.BOTH:
+                summary_stats1, logs1 = gps_summaries(
+                    traj,
+                    tz_str,
+                    Frequency.HOURLY,
+                    places_of_interest,
+                    save_log,
+                    threshold,
+                    split_day_night,
                 )
-                mobmat2 = InferMobMat(mobmat1, parameters.itrvl, parameters.r)
-                out_dict = BV_select(
-                    mobmat2,
-                    parameters.sigma2,
-                    parameters.tol,
-                    parameters.d,
-                    pars0,
-                    all_memory_dict[str(participant_id)],
-                    all_bv_set[str(participant_id)],
+                write_all_summaries(participant_id, summary_stats1,
+                                    f"{output_folder}/hourly")
+                summary_stats2, logs2 = gps_summaries(
+                    traj,
+                    tz_str,
+                    Frequency.DAILY,
+                    places_of_interest,
+                    save_log,
+                    threshold,
+                    split_day_night,
+                    person_point_radius,
+                    place_point_radius,
                 )
-                all_bv_set[str(participant_id)] = bv_set = out_dict["BV_set"]
-                all_memory_dict[str(participant_id)] = out_dict["memory_dict"]
-                imp_table = ImputeGPS(mobmat2, bv_set, parameters.method,
-                                      parameters.switch, parameters.num,
-                                      parameters.linearity, tz_str, pars1)
-                traj = Imp2traj(imp_table, mobmat2, parameters.itrvl,
-                                parameters.r, parameters.w, parameters.h)
-                # save all_memory_dict and all_bv_set
-                with open(f"{output_folder}/all_memory_dict.pkl", "wb") as f:
-                    pickle.dump(all_memory_dict, f)
-                with open(f"{output_folder}/all_bv_set.pkl", "wb") as f:
-                    pickle.dump(all_bv_set, f)
-                if save_traj is True:
-                    pd_traj = pd.DataFrame(traj)
-                    pd_traj.columns = ["status", "x0", "y0", "t0", "x1", "y1",
-                                       "t1", "obs"]
-                    pd_traj.to_csv(
-                        f"{output_folder}/trajectory/{participant_id}.csv",
-                        index=False
-                    )
-                if frequency == Frequency.BOTH:
-                    summary_stats1, logs1 = gps_summaries(
-                        traj,
-                        tz_str,
-                        Frequency.HOURLY,
-                        places_of_interest,
-                        save_log,
-                        threshold,
-                        split_day_night,
-                    )
-                    write_all_summaries(participant_id, summary_stats1,
-                                        f"{output_folder}/hourly")
-                    summary_stats2, logs2 = gps_summaries(
-                        traj,
-                        tz_str,
-                        Frequency.DAILY,
-                        places_of_interest,
-                        save_log,
-                        threshold,
-                        split_day_night,
-                        person_point_radius,
-                        place_point_radius,
-                    )
-                    write_all_summaries(participant_id, summary_stats2,
-                                        f"{output_folder}/daily")
-                    if save_log:
-                        os.makedirs(f"{output_folder}/logs", exist_ok=True)
-                        with open(
-                            f"{output_folder}/logs/locations_logs_hourly.json",
-                            "w",
-                        ) as hourly:
-                            json.dump(logs1, hourly, indent=4)
-                        with open(
-                            f"{output_folder}/logs/locations_logs_daily.json",
-                            "w",
-                        ) as daily:
-                            json.dump(logs2, daily, indent=4)
-                else:
-                    summary_stats, logs = gps_summaries(
-                        traj,
-                        tz_str,
-                        frequency,
-                        places_of_interest,
-                        save_log,
-                        threshold,
-                        split_day_night,
-                    )
-                    write_all_summaries(
-                        participant_id, summary_stats, output_folder
-                    )
-                    if save_log:
-                        os.makedirs(f"{output_folder}/logs", exist_ok=True)
-                        with open(
-                            f"{output_folder}/logs/locations_logs.json",
-                            "w",
-                        ) as loc:
-                            json.dump(logs, loc, indent=4)
+                write_all_summaries(participant_id, summary_stats2,
+                                    f"{output_folder}/daily")
+                if save_log:
+                    os.makedirs(f"{output_folder}/logs", exist_ok=True)
+                    with open(
+                        f"{output_folder}/logs/locations_logs_hourly.json",
+                        "w",
+                    ) as hourly:
+                        json.dump(logs1, hourly, indent=4)
+                    with open(
+                        f"{output_folder}/logs/locations_logs_daily.json",
+                        "w",
+                    ) as daily:
+                        json.dump(logs2, daily, indent=4)
             else:
-                sys.stdout.write("GPS data are not collected"
-                                 " or the data quality is too low\n")
-        except Exception:
-            sys.stdout.write("An error occured when processing the data\n")
-            break
+                summary_stats, logs = gps_summaries(
+                    traj,
+                    tz_str,
+                    frequency,
+                    places_of_interest,
+                    save_log,
+                    threshold,
+                    split_day_night,
+                )
+                write_all_summaries(
+                    participant_id, summary_stats, output_folder
+                )
+                if save_log:
+                    os.makedirs(f"{output_folder}/logs", exist_ok=True)
+                    with open(
+                        f"{output_folder}/logs/locations_logs.json",
+                        "w",
+                    ) as loc:
+                        json.dump(logs, loc, indent=4)
+        else:
+            sys.stdout.write("GPS data are not collected"
+                             " or the data quality is too low\n")
