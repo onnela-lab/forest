@@ -89,7 +89,7 @@ personal_attributes = {
         "main_employment": "none", 
         "vehicle" : "car",
         "travelling_status": 10,
-        "active_status": 0
+        "active_status": 7
     },
 
     "Users 2-4":
@@ -117,7 +117,7 @@ gps_to_csv(sample_gps_data, path_to_synthetic_gps_data, start_date, end_date)
 # 2. Specify parameters for imputation 
 # See https://github.com/onnela-lab/forest/wiki/Jasmine-documentation#input for details
 # time zone where the study took place (assumes that all participants were always in this time zone)
-tz_str = "America/New_York"
+tz_str = "Etc/GMT-1"
 # Generate summary metrics Frequency.HOURLY, Frequency.DAILY or Frequency.BOTH
 frequency = Frequency.DAILY
 # Save imputed trajectories?
