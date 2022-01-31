@@ -1418,9 +1418,14 @@ def gps_to_csv(data: pd.DataFrame, path: str, start_date: datetime.date,
         end_date: (datetime.date) end date of trajectories,
     """
 
+    location_coords = (float(data['latitude'][0]), float(data['longitude'][0]))
+
+    obj = TimezoneFinder()
+    tz_str = obj.timezone_at(lng=location_coords[1], lat=location_coords[0])
+
     s = datetime2stamp(
         [start_date.year, start_date.month, start_date.day, 0, 0, 0],
-        "Etc/GMT-1"
+        tz_str
     ) * 1000
     for user in np.unique(data["user"]):
         user_traj = data[data["user"] == user].iloc[:, 1:]
@@ -1432,7 +1437,7 @@ def gps_to_csv(data: pd.DataFrame, path: str, start_date: datetime.date,
                     (user_traj["timestamp"] >= s_lower)
                     & (user_traj["timestamp"] < s_upper)
                 ]
-                [y, m, d, h, _, _] = stamp2datetime(s_lower/1000, "Etc/GMT-1")
+                [y, m, d, h, _, _] = stamp2datetime(s_lower/1000, tz_str)
                 filename = f"{y}-{m:0>2}-{d:0>2} {h:0>2}_00_00.csv"
                 os.makedirs(f"{path}/user_{user}/gps/", exist_ok=True)
                 temp.to_csv(f"{path}/user_{user}/gps/{filename}", index=False)
