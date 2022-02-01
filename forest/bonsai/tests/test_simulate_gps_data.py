@@ -955,10 +955,18 @@ def sample_addresses():
     )
 
 
+def mock_directions(x):
+    return None
+
+
 def test_sim_gps_data_times(
     sample_addresses, sample_locations, sample_attributes, mocker
 ):
     """Test timestamp of simulated trajectories"""
+
+    mocker.patch(
+        "openrouteservice.Client.directions", side_effect=mock_directions
+    )
 
     mocker.patch(
         "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
@@ -993,6 +1001,10 @@ def test_sim_gps_data_multiple_people(
     sample_addresses, sample_locations, sample_attributes, mocker
 ):
     """Test timestamp of simulated trajectories"""
+
+    mocker.patch(
+        "openrouteservice.Client.directions", side_effect=mock_directions
+    )
 
     mocker.patch(
         "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
