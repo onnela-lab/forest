@@ -80,7 +80,7 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
         distance: distance of trip in meters
     Raises:
         RuntimeError: An error when openrouteservice does not
-            return coordinates of route as expected
+            have any remaining quota
     """
 
     lat1, lon1 = start
@@ -106,11 +106,8 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
         routes = client.directions(
             coords, profile=transport2, format="geojson"
             )
-    except Exception:
-        raise RuntimeError(
-            "Openrouteservice did not return proper trajectories."
-        )
-
+    except openrouteservice.exceptions.ApiError as e:
+        raise RuntimeError(e.message)
     coordinates = routes["features"][0]["geometry"]["coordinates"]
     path_coordinates = [[coord[1], coord[0]] for coord in coordinates]
 
@@ -604,21 +601,10 @@ class Person:
         if coords_str in self.trips.keys():
             path = self.trips[coords_str]
         else:
-            for try_no in range(3):
-                try:
-                    path, _ = get_path(
-                        origin, destination, transport, api_key
-                        )
-                except RuntimeError:
-                    if try_no == 2:
-                        raise
-                    else:
-                        time.sleep(30)
-                        continue
-                else:
-                    path = get_basic_path(path, transport)
-                    self.trips[coords_str] = path
-                    break
+            time.sleep(1.5)
+            path, _ = get_path(origin, destination, transport, api_key)
+            path = get_basic_path(path, transport)
+            self.trips[coords_str] = path
 
         return path, transport
 
@@ -1316,6 +1302,15 @@ def sim_gps_data(
         RuntimeError: if too many Overpass queries are made
         ValueError: if Overpass query fails
     """
+
+    # check if api key is valid
+    coords = ((8.34234, 48.23424), (8.34423, 48.26424))
+
+    client = openrouteservice.Client(key=api_key)
+    try:
+        client.directions(coords)
+    except openrouteservice.exceptions.ApiError as e:
+        raise RuntimeError(e.message)
 
     sys.stdout.write("Loading Attributes...\n")
 
