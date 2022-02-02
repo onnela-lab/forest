@@ -1303,9 +1303,6 @@ def sim_gps_data(
         ValueError: if Overpass query fails
     """
 
-    # check if api key is valid
-    coords = ((8.34234, 48.23424), (8.34423, 48.26424))
-
     sys.stdout.write("Loading Attributes...\n")
 
     if attributes_dict is None:
