@@ -8,6 +8,7 @@ requires = [
     'pandas',
     'pyproj',  # jasmine
     'pytz',  # jasmine, poplar
+    'ratelimit',
     'requests',  # bonsai
     'scipy',
     'shapely',  # jasmine

@@ -9,16 +9,17 @@ from enum import Enum
 import os
 import re
 import sys
-import time
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import openrouteservice
 import pandas as pd
+import ratelimit
 import requests
 from timezonefinder import TimezoneFinder
 
-from forest.constants import ORS_API_BASE_URL, ORS_API_DELAY, OSM_OVERPASS_URL
+from forest.constants import (ORS_API_BASE_URL, ORS_API_CALLS_PER_MINUTE,
+                              OSM_OVERPASS_URL)
 from forest.jasmine.data2mobmat import great_circle_dist
 from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
@@ -60,6 +61,8 @@ class ActionType(Enum):
     FLIGHT_PAUSE_FLIGHT = "fpf"
 
 
+@ratelimit.sleep_and_retry
+@ratelimit.limits(calls=ORS_API_CALLS_PER_MINUTE, period=60)
 def get_path(start: Tuple[float, float], end: Tuple[float, float],
              transport: Vehicle, api_key: str) -> Tuple[np.ndarray, float]:
     """Calculates paths between sets of coordinates
@@ -945,12 +948,10 @@ def gen_all_traj(person: Person, switches: Dict[str, int],
                 person.home_coordinates, action.destination_coordinates,
                 api_key
             )
-            time.sleep(ORS_API_DELAY)
             return_path, _ = person.calculate_trip(
                 action.destination_coordinates, person.home_coordinates,
                 api_key
             )
-            time.sleep(ORS_API_DELAY)
             # Flight 1
             res1, distance1 = gen_route_traj(go_path.tolist(), transport, t_s)
             t_s1 = res1[-1, 0]
