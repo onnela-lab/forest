@@ -18,8 +18,7 @@ import pandas as pd
 import requests
 from timezonefinder import TimezoneFinder
 
-from forest.forest.constants import (ORS_API_BASE_URL, ORS_API_DELAY,
-                                     OSM_OVERPASS_URL)
+from forest.constants import ORS_API_BASE_URL, ORS_API_DELAY, OSM_OVERPASS_URL
 from forest.jasmine.data2mobmat import great_circle_dist
 from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
