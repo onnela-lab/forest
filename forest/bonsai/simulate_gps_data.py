@@ -1309,7 +1309,10 @@ def sim_gps_data(
     client = openrouteservice.Client(key=api_key)
     try:
         client.directions(coords)
-    except openrouteservice.exceptions.ApiError as e:
+    except (openrouteservice.exceptions.ApiError,
+            openrouteservice.exceptions.ValidationError,
+            openrouteservice.exceptions.HTTPError,
+            openrouteservice.exceptions.Timeout) as e:
         raise RuntimeError(e.message)
 
     sys.stdout.write("Loading Attributes...\n")
