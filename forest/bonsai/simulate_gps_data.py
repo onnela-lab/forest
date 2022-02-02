@@ -601,7 +601,6 @@ class Person:
         if coords_str in self.trips.keys():
             path = self.trips[coords_str]
         else:
-            time.sleep(ORS_API_DELAY)
             path, _ = get_path(origin, destination, transport, api_key)
             path = get_basic_path(path, transport)
             self.trips[coords_str] = path
@@ -946,24 +945,23 @@ def gen_all_traj(person: Person, switches: Dict[str, int],
                 person.home_coordinates, action.destination_coordinates,
                 api_key
             )
+            time.sleep(ORS_API_DELAY)
             return_path, _ = person.calculate_trip(
                 action.destination_coordinates, person.home_coordinates,
                 api_key
             )
-
+            time.sleep(ORS_API_DELAY)
             # Flight 1
             res1, distance1 = gen_route_traj(go_path.tolist(), transport, t_s)
             t_s1 = res1[-1, 0]
             traj1 = res1
             d_temp += distance1
-
             # Pause
             res2 = gen_basic_pause(
                 action.destination_coordinates, t_s1, None, action.duration
                 )
             t_s2 = res2[-1, 0]
             traj2 = np.vstack((traj1, res2))
-
             # Flight 2
             res3, distance3 = gen_route_traj(
                 return_path.tolist(), transport, t_s2
