@@ -18,13 +18,13 @@ import pandas as pd
 import requests
 from timezonefinder import TimezoneFinder
 
+from constants import ORS_API_BASE_URL, ORS_API_DELAY, OSM_OVERPASS_URL
 from forest.jasmine.data2mobmat import great_circle_dist
 from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
 R = 6.371*10**6
 ACTIVE_STATUS_LIST = range(11)
 TRAVELLING_STATUS_LIST = range(11)
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
 
 class PossibleExits(Enum):
@@ -99,7 +99,7 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
         transport2 = "cycling-regular"
     else:
         transport2 = ""
-    client = openrouteservice.Client(key=api_key)
+    client = openrouteservice.Client(key=api_key, base_url=ORS_API_BASE_URL)
     coords = ((lon1, lat1), (lon2, lat2))
 
     try:
@@ -601,7 +601,7 @@ class Person:
         if coords_str in self.trips.keys():
             path = self.trips[coords_str]
         else:
-            time.sleep(1.5)
+            time.sleep(ORS_API_DELAY)
             path, _ = get_path(origin, destination, transport, api_key)
             path = get_basic_path(path, transport)
             self.trips[coords_str] = path
@@ -1163,7 +1163,7 @@ def generate_addresses(country: str, city: str) -> np.ndarray:
     out center 150;
     """
 
-    response = requests.get(OVERPASS_URL, params={"data": overpy_query},
+    response = requests.get(OSM_OVERPASS_URL, params={"data": overpy_query},
                             timeout=60)
     response.raise_for_status()
 
@@ -1231,7 +1231,7 @@ def generate_nodes(
     out center;
     """
 
-    response = requests.get(OVERPASS_URL, params={"data": overpy_query2},
+    response = requests.get(OSM_OVERPASS_URL, params={"data": overpy_query2},
                             timeout=60)
     response.raise_for_status()
 
@@ -1305,15 +1305,6 @@ def sim_gps_data(
 
     # check if api key is valid
     coords = ((8.34234, 48.23424), (8.34423, 48.26424))
-
-    client = openrouteservice.Client(key=api_key)
-    try:
-        client.directions(coords)
-    except (openrouteservice.exceptions.ApiError,
-            openrouteservice.exceptions.ValidationError,
-            openrouteservice.exceptions.HTTPError,
-            openrouteservice.exceptions.Timeout) as e:
-        raise RuntimeError(e.message)
 
     sys.stdout.write("Loading Attributes...\n")
 

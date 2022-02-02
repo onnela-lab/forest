@@ -18,6 +18,7 @@ from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
 
+from constants import OSM_OVERPASS_URL
 from forest.bonsai.simulate_gps_data import bounding_box
 from forest.jasmine.data2mobmat import (GPS2MobMat, InferMobMat,
                                         great_circle_dist,
@@ -28,8 +29,6 @@ from forest.jasmine.sogp_gps import BV_select
 from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
                                                stamp2datetime,
                                                write_all_summaries)
-
-OVERPASS_URL = "http://overpass-api.de/api/interpreter"
 
 
 class Frequency(Enum):
@@ -149,7 +148,7 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
 
     query += "\n);\nout geom qt;"
 
-    response = requests.get(OVERPASS_URL, params={"data": query}, timeout=60)
+    response = requests.get(OSM_OVERPASS_URL, params={"data": query}, timeout=60)
     response.raise_for_status()
 
     res = response.json()
