@@ -715,7 +715,7 @@ def test_gen_basic_pause_t_e_range(random_path):
     traj = gen_basic_pause(
         random_path[0], 4, t_e_range=[10, 100], t_diff_range=None
     )
-    assert traj[-1, 0] >= 10 and traj[-1, 0] <= 100
+    assert traj[-1, 0] >= 14 and traj[-1, 0] <= 104
 
 
 def test_gen_basic_pause_t_diff_range(random_path):
@@ -723,7 +723,7 @@ def test_gen_basic_pause_t_diff_range(random_path):
     traj = gen_basic_pause(
         random_path[0], 100, t_e_range=None, t_diff_range=[10, 100]
     )
-    assert traj[-1, 0] - traj[0, 0] >= 10 and traj[-1, 0] - traj[0, 0] <= 100
+    assert traj[-1, 0] - traj[0, 0] >= 9 and traj[-1, 0] - traj[0, 0] <= 99
 
 
 def test_gen_route_traj_shape(random_path):

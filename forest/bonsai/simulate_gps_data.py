@@ -9,22 +9,23 @@ from enum import Enum
 import os
 import re
 import sys
-import time
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import openrouteservice
 import pandas as pd
+import ratelimit
 import requests
 from timezonefinder import TimezoneFinder
 
+from forest.constants import (ORS_API_BASE_URL, ORS_API_CALLS_PER_MINUTE,
+                              OSM_OVERPASS_URL)
 from forest.jasmine.data2mobmat import great_circle_dist
 from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
 R = 6.371*10**6
 ACTIVE_STATUS_LIST = range(11)
 TRAVELLING_STATUS_LIST = range(11)
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
 
 class PossibleExits(Enum):
@@ -60,6 +61,8 @@ class ActionType(Enum):
     FLIGHT_PAUSE_FLIGHT = "fpf"
 
 
+@ratelimit.sleep_and_retry
+@ratelimit.limits(calls=ORS_API_CALLS_PER_MINUTE, period=60)
 def get_path(start: Tuple[float, float], end: Tuple[float, float],
              transport: Vehicle, api_key: str) -> Tuple[np.ndarray, float]:
     """Calculates paths between sets of coordinates
@@ -80,7 +83,7 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
         distance: distance of trip in meters
     Raises:
         RuntimeError: An error when openrouteservice does not
-            return coordinates of route as expected
+            have any remaining quota
     """
 
     lat1, lon1 = start
@@ -99,18 +102,18 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
         transport2 = "cycling-regular"
     else:
         transport2 = ""
-    client = openrouteservice.Client(key=api_key)
+    client = openrouteservice.Client(key=api_key, base_url=ORS_API_BASE_URL)
     coords = ((lon1, lat1), (lon2, lat2))
 
     try:
         routes = client.directions(
             coords, profile=transport2, format="geojson"
             )
-    except Exception:
-        raise RuntimeError(
-            "Openrouteservice did not return proper trajectories."
-        )
-
+    except (openrouteservice.exceptions.ApiError,
+            openrouteservice.exceptions.ValidationError,
+            openrouteservice.exceptions.HTTPError,
+            openrouteservice.exceptions.Timeout) as e:
+        raise RuntimeError(e.message)
     coordinates = routes["features"][0]["geometry"]["coordinates"]
     path_coordinates = [[coord[1], coord[0]] for coord in coordinates]
 
@@ -604,21 +607,9 @@ class Person:
         if coords_str in self.trips.keys():
             path = self.trips[coords_str]
         else:
-            for try_no in range(3):
-                try:
-                    path, _ = get_path(
-                        origin, destination, transport, api_key
-                        )
-                except RuntimeError:
-                    if try_no == 2:
-                        raise
-                    else:
-                        time.sleep(30)
-                        continue
-                else:
-                    path = get_basic_path(path, transport)
-                    self.trips[coords_str] = path
-                    break
+            path, _ = get_path(origin, destination, transport, api_key)
+            path = get_basic_path(path, transport)
+            self.trips[coords_str] = path
 
         return path, transport
 
@@ -964,20 +955,17 @@ def gen_all_traj(person: Person, switches: Dict[str, int],
                 action.destination_coordinates, person.home_coordinates,
                 api_key
             )
-
             # Flight 1
             res1, distance1 = gen_route_traj(go_path.tolist(), transport, t_s)
             t_s1 = res1[-1, 0]
             traj1 = res1
             d_temp += distance1
-
             # Pause
             res2 = gen_basic_pause(
                 action.destination_coordinates, t_s1, None, action.duration
                 )
             t_s2 = res2[-1, 0]
             traj2 = np.vstack((traj1, res2))
-
             # Flight 2
             res3, distance3 = gen_route_traj(
                 return_path.tolist(), transport, t_s2
@@ -1177,7 +1165,7 @@ def generate_addresses(country: str, city: str) -> np.ndarray:
     out center 150;
     """
 
-    response = requests.get(OVERPASS_URL, params={"data": overpy_query},
+    response = requests.get(OSM_OVERPASS_URL, params={"data": overpy_query},
                             timeout=60)
     response.raise_for_status()
 
@@ -1245,7 +1233,7 @@ def generate_nodes(
     out center;
     """
 
-    response = requests.get(OVERPASS_URL, params={"data": overpy_query2},
+    response = requests.get(OSM_OVERPASS_URL, params={"data": overpy_query2},
                             timeout=60)
     response.raise_for_status()
 
