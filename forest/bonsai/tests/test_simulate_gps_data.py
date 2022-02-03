@@ -692,7 +692,7 @@ def test_gen_basic_pause_t_e_range(random_path):
     traj = gen_basic_pause(
         random_path[0], 4, t_e_range=[10, 100], t_diff_range=None
     )
-    assert 14 <= traj[-1, 0] <= 104
+    assert 10 <= traj[-1, 0] <= 100
 
 
 def test_gen_basic_pause_t_diff_range(random_path):
