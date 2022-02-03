@@ -109,7 +109,10 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
         routes = client.directions(
             coords, profile=transport2, format="geojson"
             )
-    except openrouteservice.exceptions.ApiError as e:
+    except (openrouteservice.exceptions.ApiError,
+            openrouteservice.exceptions.ValidationError,
+            openrouteservice.exceptions.HTTPError,
+            openrouteservice.exceptions.Timeout) as e:
         raise RuntimeError(e.message)
     coordinates = routes["features"][0]["geometry"]["coordinates"]
     path_coordinates = [[coord[1], coord[0]] for coord in coordinates]
