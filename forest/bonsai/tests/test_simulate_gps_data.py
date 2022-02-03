@@ -256,39 +256,31 @@ def directions1():
 
 
 def test_get_path_starting_latitude(coords1, coords2, directions1, mocker):
-    mocker.patch(
-        "openrouteservice.Client.directions", return_value=directions1
-    )
-    assert (
-        get_path(
-            coords1, coords2, Vehicle.CAR, "mock_api_key"
-            )[0][0][0] == 51.458498
-    )
+    mocker.patch("openrouteservice.Client.directions",
+                 return_value=directions1)
+    assert (get_path(coords1, coords2, Vehicle.CAR, "mock_api_key")[0][0][0]
+            == 51.458498)
 
 
 def test_get_path_ending_longitude(coords1, coords2, directions1, mocker):
-    mocker.patch(
-        "openrouteservice.Client.directions", return_value=directions1
-    )
-    assert (
-        get_path(coords1, coords2, Vehicle.CAR, "mock_api_key")[0][-1][1]
-        == -2.608466
-    )
+    mocker.patch("openrouteservice.Client.directions",
+                 return_value=directions1)
+    assert (get_path(coords1, coords2, Vehicle.CAR, "mock_api_key")[0][-1][1]
+            == -2.608466)
 
 
 def test_get_path_distance(coords1, coords2, directions1, mocker):
-    mocker.patch(
-        "openrouteservice.Client.directions", return_value=directions1
-    )
-    assert (
-        round(get_path(coords1, coords2, Vehicle.CAR, "mock_api_key")[1], 2)
-        == 843.05
-    )
+    mocker.patch("openrouteservice.Client.directions",
+                 return_value=directions1)
+    assert (round(get_path(coords1, coords2, Vehicle.CAR, "mock_api_key")[1],
+                  2)
+            == 843.05)
 
 
 def test_get_path_close_locations(coords1, coords3):
     """Tests case distance of locations is less than 250 meters."""
-    assert len(get_path(coords1, coords3, "foot", "mock_api_key")[0]) == 2
+    assert (len(get_path(coords1, coords3, Vehicle.FOOT, "mock_api_key")[0])
+            == 2)
 
 
 @pytest.fixture
@@ -309,7 +301,6 @@ def random_path(directions1, coords1, coords2):
         path_coordinates[0] = [lat1, lon1]
     if path_coordinates[-1] != [lat2, lon2]:
         path_coordinates[-1] = [lat2, lon2]
-
     return np.array(path_coordinates)
 
 
@@ -463,7 +454,6 @@ def sample_attributes():
 
 def test_attributes_user_missing_args(sample_attributes):
     """Test processing attributes with missing arguments"""
-
     user_attrs = sample_attributes["User 1"]
     attrs = Attributes(**user_attrs)
     assert len(attrs.preferred_places) == 3
@@ -471,7 +461,6 @@ def test_attributes_user_missing_args(sample_attributes):
 
 def test_process_attributes_arguments_correct(sample_attributes):
     """Test that given arguments are processed correctly"""
-
     user_attrs = sample_attributes["User 5"]
     attrs = Attributes(**user_attrs)
     assert (
@@ -482,18 +471,16 @@ def test_process_attributes_arguments_correct(sample_attributes):
         )
 
 
-def test_person_main_employment(
-    sample_coordinates, sample_locations, sample_attributes
-):
+def test_person_main_employment(sample_coordinates, sample_locations,
+                                sample_attributes):
     user_attrs = sample_attributes["User 5"]
     attributes = Attributes(**user_attrs)
     random_person = Person(sample_coordinates, attributes, sample_locations)
     assert random_person.attributes.main_occupation == Occupation.WORK
 
 
-def test_person_cafe_places(
-    sample_coordinates, sample_locations, sample_attributes
-):
+def test_person_cafe_places(sample_coordinates, sample_locations,
+                            sample_attributes):
     """Test one place from cafe_places attribute is actual cafe"""
     user_attrs = sample_attributes["User 5"]
     attributes = Attributes(**user_attrs)
@@ -505,9 +492,8 @@ def test_person_cafe_places(
     assert cafe_place in sample_locations["cafe"]
 
 
-def test_person_office_address(
-    sample_coordinates, sample_locations, sample_attributes
-):
+def test_person_office_address(sample_coordinates, sample_locations,
+                               sample_attributes):
     """Test person going to work office_address"""
     user_attrs = sample_attributes["User 5"]
     attributes = Attributes(**user_attrs)
@@ -519,9 +505,8 @@ def test_person_office_address(
     assert office_coordinates in sample_locations["office"]
 
 
-def test_person_office_days(
-    sample_coordinates, sample_locations, sample_attributes
-):
+def test_person_office_days(sample_coordinates, sample_locations,
+                            sample_attributes):
     """Test person going to work office_address"""
     user_attrs = sample_attributes["User 5"]
     attributes = Attributes(**user_attrs)
@@ -563,9 +548,8 @@ def test_update_preferred_places_case_last_option(sample_person):
 def test_choose_preferred_exit_morning_home(sample_person):
     """Test choosing preferred exit early in the morning"""
     preferred_exit, location = sample_person.choose_preferred_exit(0)
-    assert (
-        preferred_exit == "home" and location == sample_person.home_coordinates
-    )
+    assert (preferred_exit == "home"
+            and location == sample_person.home_coordinates)
 
 
 def test_choose_preferred_exit_night_home(sample_person):
@@ -573,10 +557,8 @@ def test_choose_preferred_exit_night_home(sample_person):
     preferred_exit, location = sample_person.choose_preferred_exit(
         24 * 3600 - 1
     )
-    assert (
-        preferred_exit == "home_night"
-        and location == sample_person.home_coordinates
-    )
+    assert (preferred_exit == "home_night"
+            and location == sample_person.home_coordinates)
 
 
 def test_choose_preferred_exit_random_exit(sample_person):
@@ -593,15 +575,12 @@ def test_end_of_day_reset(sample_person):
     """Test end of day reset of preferred exits"""
     sample_person.update_preferred_places(PossibleExits.CAFE)
     sample_person.end_of_day_reset()
-    assert (
-        sample_person.attributes.preferred_places
-        == sample_person.preferred_places_today
-    )
+    assert (sample_person.attributes.preferred_places
+            == sample_person.preferred_places_today)
 
 
 def test_choose_action_day_home_action(sample_person):
     """Test choosing action early at home"""
-
     action = sample_person.choose_action(0, 0)
     assert action.action == ActionType.PAUSE
 
@@ -645,10 +624,9 @@ def test_choose_action_day_night_exit(sample_person):
 def test_choose_action_simple_case_actions(sample_person):
     """Test choosing action afternoon"""
     action = sample_person.choose_action(15 * 3600, 2)
-    assert action.action in [
-        ActionType.PAUSE_NIGHT, ActionType.FLIGHT_PAUSE_FLIGHT,
-        ActionType.PAUSE
-    ]
+    assert action.action in [ActionType.PAUSE_NIGHT,
+                             ActionType.FLIGHT_PAUSE_FLIGHT,
+                             ActionType.PAUSE]
 
 
 def test_choose_action_office_code(sample_person):
@@ -704,9 +682,8 @@ def test_gen_basic_traj_time(random_path):
 
 def test_gen_basic_pause_location(random_path):
     """Test basic pause generation location"""
-    traj = gen_basic_pause(
-        random_path[0], 0, t_e_range=[10, 100], t_diff_range=None
-    )
+    traj = gen_basic_pause(random_path[0], 0, t_e_range=[10, 100],
+                           t_diff_range=None)
     assert list(np.round(traj[0, 1:], 4)) == list(np.round(random_path[0], 4))
 
 
@@ -715,7 +692,7 @@ def test_gen_basic_pause_t_e_range(random_path):
     traj = gen_basic_pause(
         random_path[0], 4, t_e_range=[10, 100], t_diff_range=None
     )
-    assert traj[-1, 0] >= 14 and traj[-1, 0] <= 104
+    assert 14 <= traj[-1, 0] <= 104
 
 
 def test_gen_basic_pause_t_diff_range(random_path):
@@ -723,7 +700,7 @@ def test_gen_basic_pause_t_diff_range(random_path):
     traj = gen_basic_pause(
         random_path[0], 100, t_e_range=None, t_diff_range=[10, 100]
     )
-    assert traj[-1, 0] - traj[0, 0] >= 9 and traj[-1, 0] - traj[0, 0] <= 99
+    assert 9 <= traj[-1, 0] - traj[0, 0] <= 99
 
 
 def test_gen_route_traj_shape(random_path):
@@ -751,9 +728,8 @@ def mock_get_path(start, end, transport, api_key):
 
 def test_gen_all_traj_len(sample_person, mocker):
     """Testing length of trajectories"""
-    mocker.patch(
-        "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
-    )
+    mocker.patch("forest.bonsai.simulate_gps_data.get_path",
+                 side_effect=mock_get_path)
     traj, _, _ = gen_all_traj(
         person=sample_person,
         switches={},
@@ -766,10 +742,8 @@ def test_gen_all_traj_len(sample_person, mocker):
 
 def test_gen_all_traj_time(sample_person, mocker):
     """Testing time is increasing"""
-
-    mocker.patch(
-        "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
-    )
+    mocker.patch("forest.bonsai.simulate_gps_data.get_path",
+                 side_effect=mock_get_path)
     traj, _, _ = gen_all_traj(
         person=sample_person,
         switches={},
@@ -780,10 +754,8 @@ def test_gen_all_traj_time(sample_person, mocker):
     assert np.all(np.diff(traj[:, 0]) > 0)
 
 
-def test_gen_all_traj_consistent_values(
-    sample_person, mocker
-):
-    """Testing consistent lattitude, longitude values"""
+def test_gen_all_traj_consistent_values(sample_person, mocker):
+    """Testing consistent latitude, longitude values"""
     mocker.patch(
         "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
     )
@@ -833,7 +805,6 @@ def test_gen_all_traj_dist_travelled(sample_person, mocker):
         end_date=datetime.date(2021, 10, 5),
         api_key="mock_api_key",
         )
-
     total_d_list = np.array(total_d_list)
     assert np.all(total_d_list >= 0)
 
@@ -850,20 +821,17 @@ def generated_trajectory(sample_person, mocker):
         end_date=datetime.date(2021, 10, 5),
         api_key="mock_api_key",
         )
-
     return traj
 
 
 def test_remove_data_len(generated_trajectory):
     """Test length of data with removed observations"""
-
     obs_data = remove_data(generated_trajectory, 15, .8, 4)
     assert len(obs_data) <= .3 * len(generated_trajectory)
 
 
 def test_prepare_data_shape(generated_trajectory):
     """Test shape of prepared dataset"""
-
     obs_data = remove_data(generated_trajectory, 15, .8, 4)
     final_data = prepare_data(obs_data, 0, "UTC")
     assert final_data.shape[0] == len(obs_data) and final_data.shape[1] == 6
@@ -871,7 +839,6 @@ def test_prepare_data_shape(generated_trajectory):
 
 def test_prepare_data_timezones(generated_trajectory):
     """Test times from different timezones"""
-
     obs_data = remove_data(generated_trajectory, 15, .8, 4)
     final_data = prepare_data(obs_data, 0, "Etc/GMT+1")
     boolean_series = (
@@ -882,7 +849,6 @@ def test_prepare_data_timezones(generated_trajectory):
 
 def test_process_switches(sample_attributes):
     """Test processing attributes with switch of behavior"""
-
     key = "User 5"
     switches = process_switches(sample_attributes, key)
     assert (
@@ -893,21 +859,18 @@ def test_process_switches(sample_attributes):
 
 def test_load_attributes_nusers(sample_attributes):
     """Test loading attributes for n users"""
-
     attrs, _ = load_attributes(sample_attributes)
     assert len(attrs) == 5
 
 
 def test_load_attributes_attributes(sample_attributes):
     """Test attributes are loaded correctly"""
-
     attrs, _ = load_attributes(sample_attributes)
     assert attrs[2].travelling_status == 8
 
 
 def test_load_attributes_switches(sample_attributes):
     """Test switches are loaded correctly"""
-
     _, switches = load_attributes(sample_attributes)
     assert switches[5]["travelling_status-20"] == 1
 
@@ -959,18 +922,12 @@ def test_sim_gps_data_times(
     sample_addresses, sample_locations, sample_attributes, mocker
 ):
     """Test timestamp of simulated trajectories"""
-
-    mocker.patch(
-        "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
-    )
-    mocker.patch(
-        "forest.bonsai.simulate_gps_data.generate_addresses",
-        return_value=sample_addresses
-    )
-    mocker.patch(
-        "forest.bonsai.simulate_gps_data.generate_nodes",
-        return_value=sample_locations
-    )
+    mocker.patch("forest.bonsai.simulate_gps_data.get_path",
+                 side_effect=mock_get_path)
+    mocker.patch("forest.bonsai.simulate_gps_data.generate_addresses",
+                 return_value=sample_addresses)
+    mocker.patch("forest.bonsai.simulate_gps_data.generate_nodes",
+                 return_value=sample_locations)
     data = sim_gps_data(
         n_persons=1,
         location="GB/Bristol",
@@ -993,18 +950,12 @@ def test_sim_gps_data_multiple_people(
     sample_addresses, sample_locations, sample_attributes, mocker
 ):
     """Test timestamp of simulated trajectories"""
-
-    mocker.patch(
-        "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
-    )
-    mocker.patch(
-        "forest.bonsai.simulate_gps_data.generate_addresses",
-        return_value=sample_addresses
-    )
-    mocker.patch(
-        "forest.bonsai.simulate_gps_data.generate_nodes",
-        return_value=sample_locations
-    )
+    mocker.patch("forest.bonsai.simulate_gps_data.get_path",
+                 side_effect=mock_get_path)
+    mocker.patch("forest.bonsai.simulate_gps_data.generate_addresses",
+                 return_value=sample_addresses)
+    mocker.patch("forest.bonsai.simulate_gps_data.generate_nodes",
+                 return_value=sample_locations)
     data = sim_gps_data(
         n_persons=3,
         location="GB/Bristol",
