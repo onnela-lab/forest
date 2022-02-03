@@ -149,7 +149,7 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
     query += "\n);\nout geom qt;"
 
     response = requests.post(OSM_OVERPASS_URL,
-                            data={"data": query}, timeout=60)
+                             data={"data": query}, timeout=60)
     response.raise_for_status()
 
     res = response.json()
