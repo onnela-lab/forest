@@ -13,6 +13,7 @@ requires = [
     'scipy',
     'shapely',  # jasmine
     'timezonefinder',  # poplar, bonsai
+    'wheel'  # for ratelimit
 ]
 
 package_data = {'': ['*.csv', '*.json']}
