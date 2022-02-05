@@ -252,6 +252,7 @@ def gps_summaries(
     home_lat, home_lon = locate_home(obs_traj, tz_str)
     summary_stats: List[List[float]] = []
     log_tags: Dict[str, List[dict]] = {}
+    saved_polygons: Dict[str, Polygon] = {}
     if frequency == Frequency.HOURLY:
         # find starting and ending time
         sys.stdout.write("Calculating the hourly summary stats...\n")
@@ -473,21 +474,45 @@ def gps_summaries(
             for pause in pause_array:
                 if places_of_interest is not None:
                     all_place_probs = [0] * len(places_of_interest)
-                    pause_circle = transform_point_to_circle(
-                        pause[0], pause[1], person_point_radius
-                    )
+                    if (
+                        f"{pause[0]}, {pause[1]} - person"
+                        in saved_polygons.keys()
+                    ):
+                        pause_circle = saved_polygons[
+                            f"{pause[0]}, {pause[1]} - person"
+                        ]
+                    else:
+                        pause_circle = transform_point_to_circle(
+                            pause[0], pause[1], person_point_radius
+                        )
+                        saved_polygons[
+                            f"{pause[0]}, {pause[1]} - person"
+                        ] = pause_circle
                     add_to_other = True
                     for j, place in enumerate(places_of_interest):
                         for element_id in ids[place]:
                             if len(locations[element_id]) == 1:
-                                location_circle = transform_point_to_circle(
-                                    locations[element_id][0][0],
-                                    locations[element_id][0][1],
-                                    place_point_radius,
-                                )
+                                loc_lat = locations[element_id][0][0]
+                                loc_lon = locations[element_id][0][1]
+                                if (
+                                    f"{loc_lat}, {loc_lon} - place"
+                                    in saved_polygons.keys()
+                                ):
+                                    loc_circle = saved_polygons[
+                                        f"{loc_lat}, {loc_lon} - place"
+                                    ]
+                                else:
+                                    loc_circle = transform_point_to_circle(
+                                        loc_lat,
+                                        loc_lon,
+                                        place_point_radius,
+                                    )
+                                    saved_polygons[
+                                        f"{loc_lat}, {loc_lon} - place"
+                                    ] = loc_circle
 
                                 intersection_area = pause_circle.intersection(
-                                    location_circle
+                                    loc_circle
                                 ).area
                                 if intersection_area > 0:
                                     all_place_probs[j] += intersection_area
