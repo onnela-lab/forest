@@ -474,42 +474,30 @@ def gps_summaries(
             for pause in pause_array:
                 if places_of_interest is not None:
                     all_place_probs = [0] * len(places_of_interest)
-                    if (
-                        f"{pause[0]}, {pause[1]} - person"
-                        in saved_polygons.keys()
-                    ):
-                        pause_circle = saved_polygons[
-                            f"{pause[0]}, {pause[1]} - person"
-                        ]
+                    pause_str = f"{pause[0]}, {pause[1]} - person"
+                    if pause_str in saved_polygons.keys():
+                        pause_circle = saved_polygons[pause_str]
                     else:
                         pause_circle = transform_point_to_circle(
                             pause[0], pause[1], person_point_radius
                         )
-                        saved_polygons[
-                            f"{pause[0]}, {pause[1]} - person"
-                        ] = pause_circle
+                        saved_polygons[pause_str] = pause_circle
                     add_to_other = True
                     for j, place in enumerate(places_of_interest):
                         for element_id in ids[place]:
                             if len(locations[element_id]) == 1:
                                 loc_lat = locations[element_id][0][0]
                                 loc_lon = locations[element_id][0][1]
-                                if (
-                                    f"{loc_lat}, {loc_lon} - place"
-                                    in saved_polygons.keys()
-                                ):
-                                    loc_circle = saved_polygons[
-                                        f"{loc_lat}, {loc_lon} - place"
-                                    ]
+                                loc_str = f"{loc_lat}, {loc_lon} - place"
+                                if loc_str in saved_polygons.keys():
+                                    loc_circle = saved_polygons[loc_str]
                                 else:
                                     loc_circle = transform_point_to_circle(
                                         loc_lat,
                                         loc_lon,
                                         place_point_radius,
                                     )
-                                    saved_polygons[
-                                        f"{loc_lat}, {loc_lon} - place"
-                                    ] = loc_circle
+                                    saved_polygons[loc_str] = loc_circle
 
                                 intersection_area = pause_circle.intersection(
                                     loc_circle
