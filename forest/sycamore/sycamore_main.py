@@ -26,7 +26,8 @@ def survey_stats_main(output_dir, study_dir, beiwe_ids, config_path=None, time_s
         filepath where interventions table is. 
         NOTE: This should change once we get a data stream with intervention timings in it.
     """
-
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
     # Read, aggregate and clean data
     if config_path is None:
         print('No config file provided. Skipping some summary outputs.')
