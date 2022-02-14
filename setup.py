@@ -8,10 +8,12 @@ requires = [
     'pandas',
     'pyproj',  # jasmine
     'pytz',  # jasmine, poplar
+    'ratelimit',
     'requests',  # bonsai
     'scipy',
     'shapely',  # jasmine
     'timezonefinder',  # poplar, bonsai
+    'wheel'  # for ratelimit
 ]
 
 package_data = {'': ['*.csv', '*.json']}
