@@ -35,11 +35,10 @@ def stamp2datetime(stamp,tz_str):
     to check all timezones
     Return: a list of integers [year, month, day, hour (0-23), min, sec] in the specified tz
     """
-    loc_tz =  timezone(tz_str)
-    utc = timezone("UTC")
-    utc_dt = utc.localize(datetime.utcfromtimestamp(stamp))
-    loc_dt = utc_dt.astimezone(loc_tz)
-    return [loc_dt.year, loc_dt.month,loc_dt.day,loc_dt.hour,loc_dt.minute,loc_dt.second]
+    tz = timezone(tz_str)
+    localized_dt = tz.localize(datetime.utcfromtimestamp(stamp))
+    return [localized_dt.year, localized_dt.month, localized_dt.day,
+            localized_dt.hour, localized_dt.minute, localized_dt.second]
 
 def filename2stamp(filename):
     """
