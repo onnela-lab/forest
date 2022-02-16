@@ -3,7 +3,7 @@ import sys
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from pytz import timezone
+import pytz
 import calendar
 
 def datetime2stamp(time_list,tz_str):
@@ -17,9 +17,9 @@ def datetime2stamp(time_list,tz_str):
     to check all timezones
     Return: Unix time, which is what Beiwe uses
     """
-    loc_tz =  timezone(tz_str)
+    loc_tz = pytz.timezone(tz_str)
     loc_dt = loc_tz.localize(datetime(time_list[0], time_list[1], time_list[2], time_list[3], time_list[4], time_list[5]))
-    utc = timezone("UTC")
+    utc = pytz.timezone("UTC")
     utc_dt = loc_dt.astimezone(utc)
     timestamp = calendar.timegm(utc_dt.timetuple())
     return timestamp
@@ -35,8 +35,8 @@ def stamp2datetime(stamp,tz_str):
     to check all timezones
     Return: a list of integers [year, month, day, hour (0-23), min, sec] in the specified tz
     """
-    tz = timezone(tz_str)
-    localized_dt = tz.localize(datetime.utcfromtimestamp(stamp))
+    tz = pytz.timezone(tz_str)
+    localized_dt = datetime.fromtimestamp(stamp, tz)
     return [localized_dt.year, localized_dt.month, localized_dt.day,
             localized_dt.hour, localized_dt.minute, localized_dt.second]
 
