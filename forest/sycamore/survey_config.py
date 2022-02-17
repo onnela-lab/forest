@@ -209,6 +209,7 @@ def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg,
     for col in ['delivery_time', 'next_delivery_time']:
             submit_lines2[col] = pd.to_datetime(submit_lines2[col])
 
+
     # Merge on the times of the survey submission
     merge_cols = ['delivery_time', 'next_delivery_time', 'survey id', 'beiwe_id', 'config_id', 'submit_flg']
     submit_lines3 = pd.merge(submit_lines2, submit_lines[merge_cols + ['Local time']], how='left', left_on=merge_cols,
