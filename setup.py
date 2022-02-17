@@ -32,7 +32,7 @@ setup(
     author='Onnela Lab',
     author_email='onnela.lab@gmail.com',
     license=license,
-    packages=find_packages(),
+    packages=find_packages(include=["forest*"]),
     package_data=package_data,
     install_requires=requires
 )
