@@ -5,4 +5,13 @@ __pycache__/
 .idea
 
 # for installing Forest in editable mode when developing
-forest.egg-info/
+/forest.egg-info/
+
+#We don't want to add data to github
+/tutorials/data/
+/tutorials/comm_output/
+/tutorials/gps_output/
+/tutorials/gps_summary.csv
+
+#Remove checkpoints data because we don't need to double-track files
+/tutorials/.ipynb_checkpoints/
