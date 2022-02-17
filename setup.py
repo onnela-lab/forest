@@ -1,4 +1,4 @@
-from setuptools import setup, find_namespace_packages
+from setuptools import setup, find_packages
 
 requires = [
     'dataclasses',
@@ -32,7 +32,7 @@ setup(
     author='Onnela Lab',
     author_email='onnela.lab@gmail.com',
     license=license,
-    packages=find_namespace_packages(include=['forest.*']),
+    packages=find_packages(),
     package_data=package_data,
     install_requires=requires
 )
