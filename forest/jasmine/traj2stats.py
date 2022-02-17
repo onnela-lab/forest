@@ -19,7 +19,7 @@ from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
-from forest.constants import OSM_OVERPASS_URL
+from ..poplar.constants.gen_constants import OSM_OVERPASS_URL
 from forest.jasmine.data2mobmat import (GPS2MobMat, InferMobMat,
                                         great_circle_dist,
                                         pairwise_great_circle_dist)
