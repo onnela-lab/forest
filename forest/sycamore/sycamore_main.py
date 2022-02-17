@@ -32,7 +32,7 @@ def survey_stats_main(output_dir, study_dir, beiwe_ids, config_path=None, time_s
     if config_path is None:
         print('No config file provided. Skipping some summary outputs.')
         agg_data = aggregate_surveys_no_config(study_dir, study_tz)
-    if beiwe_ids = None:
+    if beiwe_ids == None:
         beiwe_ids = [u for u in os.listdir(study_dir) if not u.startswith('.') and u != 'registry']
     else:
         agg_data = aggregate_surveys_config(study_dir, config_path, study_tz)

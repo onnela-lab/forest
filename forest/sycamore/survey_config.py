@@ -205,6 +205,9 @@ def survey_submits(study_dir, config_path, time_start, time_end, beiwe_ids, agg,
     # Take the maximum survey submit line
     submit_lines2 = submit_lines.groupby(['delivery_time', 'next_delivery_time', 'survey id', 'beiwe_id', 'config_id'])[
         'submit_flg'].max().reset_index()
+    
+    for col in ['delivery_time', 'next_delivery_time']:
+            submit_lines2[col] = pd.to_dateatime(submit_lines2[col])
 
     # Merge on the times of the survey submission
     merge_cols = ['delivery_time', 'next_delivery_time', 'survey id', 'beiwe_id', 'config_id', 'submit_flg']
@@ -278,6 +281,8 @@ def get_all_interventions_dict(filepath):
         a dict with one key for each beiwe_id in the study. The value for each key is a dict with a key for each intervention in the study, and a value which is the timestamp 
     filepath(str)
     """
+    if filepath is None:
+        return({})
     timings_table = pd.read_table(filepath)
     timings_table.drop(['Creation Date', 'Phone registered', 'Phone OS'], axis = 1,  inplace = True)
     timings_table.set_index('Patient ID', inplace = True)
