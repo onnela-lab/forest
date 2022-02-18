@@ -3,7 +3,6 @@ from .functions import read_json, aggregate_surveys_no_config
 import math
 import numpy as np
 import pandas as pd
-from typing import list
 
 
 def convert_time_to_date(submit_time, day, time):

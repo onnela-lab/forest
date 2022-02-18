@@ -7,7 +7,7 @@ from .changed_answers import agg_changed_answers_summary
 def survey_stats_main(
         output_dir,
         study_dir,
-        beiwe_ids,
+        beiwe_ids = None,
         config_path=None,
         time_start=None,
         time_end=None,
@@ -35,13 +35,16 @@ def survey_stats_main(
     """
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
+    if beiwe_ids is None:
+        beiwe_ids = [u for u in os.listdir(
+            study_dir) if not u.startswith('.') and u != 'registry']
     # Read, aggregate and clean data
     if config_path is None:
         print('No config file provided. Skipping some summary outputs.')
         agg_data = aggregate_surveys_no_config(study_dir, study_tz)
-    if beiwe_ids is None:
-        beiwe_ids = [u for u in os.listdir(
-            study_dir) if not u.startswith('.') and u != 'registry']
+        if agg_data.shape[0] == 0:
+            print("Error: No survey data found")
+            return
     else:
         agg_data = aggregate_surveys_config(study_dir, config_path, study_tz)
         if agg_data.shape[0] == 0:
