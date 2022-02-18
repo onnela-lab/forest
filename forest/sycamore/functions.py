@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 def read_json(study_dir):
     """
     Read a json file into a dictionary.
+
     Args:
         study_dir (str):  study_dir to json file.
     Returns:
@@ -39,7 +40,8 @@ question_type_names = read_json(
 
 def make_lookup():
     """
-    From legacy script
+    From legacy script.
+
     Reformats the question types JSON to be usable in future functions
     """
     lookup = {'iOS': {}, 'Android': {}}
@@ -56,7 +58,7 @@ question_types_lookup = make_lookup()
 
 def q_types_standardize(q, lkp=question_types_lookup):
     """
-    Standardizes question types using a lookup function
+    Standardizes question types using a lookup function.
 
     Args:
         q (str):
@@ -77,18 +79,24 @@ def q_types_standardize(q, lkp=question_types_lookup):
 
 def read_and_aggregate(study_dir, beiwe_id, data_stream):
     """
-    Reads in all downloaded data for a particular user and data stream and stacks the datasets
+    Read and aggregate data for a user.
+
+    Reads in all downloaded data for a particular user and data stream and
+    stacks the datasets
 
     Args:
         study_dir (str):
-            path to downloaded data. This is a folder that includes the user data in a subfolder with the beiwe_id as the subfolder name
+            path to downloaded data. This is a folder that includes the user
+            data in a subfolder with the beiwe_id as the subfolder name
         beiwe_id (str):
             ID of user to aggregate data
         data_stream (str):
-            Data stream to aggregate. Must be a datastream name as downloaded from the server (TODO: ADD A CHECK)
+            Data stream to aggregate. Must be a datastream name as downloaded
+            from the server (TODO: ADD A CHECK)
 
     Returns:
-        survey_data (DataFrame): dataframe with stacked data, a field for the beiwe ID, a field for the day of week.
+        survey_data (DataFrame): dataframe with stacked data, a field for the
+        beiwe ID, a field for the day of week.
     """
     st_path = os.path.join(study_dir, beiwe_id, data_stream)
     if os.path.isdir(st_path):
@@ -110,14 +118,19 @@ def read_and_aggregate(study_dir, beiwe_id, data_stream):
 
 def aggregate_surveys(study_dir):
     """
-    Reads all survey data from a downloaded study folder and stacks data together. Standardizes question types between iOS and Android devices and
+    Aggregate Survey Data.
+
+    Reads all survey data from a downloaded study folder and stacks data
+    together. Standardizes question types between iOS and Android devices.
 
     Args:
         study_dir(str):
-            path to downloaded data. This is a folder that includes the user data in a subfolder with the beiwe_id as the subfolder name
+            path to downloaded data. This is a folder that includes the user
+            data in a subfolder with the beiwe_id as the subfolder name
 
     Returns:
-        all_data(DataFrame): An aggregated dataframe that has a question index field to understand if there are multiple lines for one question.
+        all_data(DataFrame): An aggregated dataframe that has a question index
+        field to understand if there are multiple lines for one question.
     """
     # READ AND AGGREGATE DATA
     # get a list of users (ignoring hidden files and registry file downloaded
@@ -149,7 +162,8 @@ def aggregate_surveys(study_dir):
             'User hit submit'] else row['event'],
         axis=1)
     all_data['question id'] = all_data.apply(
-        lambda row: np.nan if row['question id'] == row['event'] else row['question id'],
+        lambda row: np.nan if row['question id'] == row['event']
+        else row['question id'],
         axis=1)
 
     # Fix question types
@@ -167,8 +181,9 @@ def aggregate_surveys(study_dir):
 
     # Add a survey instance ID that is tied to the submit line
     all_data['surv_inst_flg'] = 0
-    all_data.loc[(all_data.event == 'submitted') | (all_data.event == 'User hit submit') | (
-        all_data.event == 'notified'), ['surv_inst_flg']] = 1
+    all_data.loc[(all_data.event == 'submitted') |
+                 (all_data.event == 'User hit submit') |
+                 (all_data.event == 'notified'), ['surv_inst_flg']] = 1
     all_data['surv_inst_flg'] = all_data['surv_inst_flg'].shift(1)
     # If a change of survey occurs without a submit flg, flag the new line
     all_data['survey_prev'] = all_data['survey id'].shift(1)
@@ -179,7 +194,8 @@ def aggregate_surveys(study_dir):
     # If 'Survey first rendered and displayed to user', also considered a new
     # survey
     all_data.loc[all_data['event'] ==
-                 'Survey first rendered and displayed to user', ['surv_inst_flg']] = 1
+                 'Survey first rendered and displayed to user',
+                 ['surv_inst_flg']] = 1
 
     # if a survey has a gap greater than 5 hours, consider it two surveys
     all_data['time_prev'] = all_data['UTC time'].shift(1)
@@ -199,6 +215,8 @@ def aggregate_surveys(study_dir):
 
 def parse_surveys(config_path, answers_l=False):
     """
+    Get survey information from config path.
+
     Args:
         config_path(str):
             path to the study configuration file
@@ -206,17 +224,18 @@ def parse_surveys(config_path, answers_l=False):
             If True, include question answers in summary
 
     Returns:
-        A dataframe with all surveys, question ids, question texts, question types
+        A dataframe with all surveys, question ids, question texts,
+        question types
     """
     data = read_json(config_path)
     surveys = data['surveys']
 
     # Create an array for surveys and one for timings
     output = []
-    timings_arr = []
+
     for i, s in enumerate(surveys):
         # Pull out questions
-        content = s['content']
+
         # Pull out timings
         #         timings = parse_timings(s, i)
         for q in s['content']:
@@ -229,7 +248,6 @@ def parse_surveys(config_path, answers_l=False):
                 if 'text_field_type' in q.keys():
                     surv['text_field_type'] = q['text_field_type']
                 # Convert surv to data frame
-                #                 surv = pd.DataFrame([surv]).merge(timings, left_on = 'config_id', right_on = 'config_id')
 
                 if answers_l:
                     if 'answers' in q.keys():
@@ -243,11 +261,14 @@ def parse_surveys(config_path, answers_l=False):
 
 def convert_timezone(utc_date, tz_str):
     """
+    Convert from UTC to local time.
+
     Args:
         utc_date(datetime):
             Given date, assumed to be in UTC time
         tz_str(str):
-            timezone to convert the utc_date too (a string used by the pytz library)
+            timezone to convert the utc_date to (a string used by the pytz
+                                                  library)
 
     Returns:
         A converted date from UTC time to the given timezone
@@ -258,6 +279,8 @@ def convert_timezone(utc_date, tz_str):
 
 def convert_timezone_df(df_merged, tz_str=None, utc_col='UTC time'):
     """
+    Convert a df to local time zone.
+
     Args:
         df_merged(DataFrame):
             Dataframe that has a field of dates that are in UTC time
@@ -278,7 +301,6 @@ def convert_timezone_df(df_merged, tz_str=None, utc_col='UTC time'):
             row[utc_col], tz_str), axis=1)
 
     # Remove timezone from datetime format
-    tz = pytz.timezone(tz_str)
     df_merged['Local time'] = [
         t.replace(tzinfo=None) for t in df_merged['Local time']]
 
@@ -287,22 +309,27 @@ def convert_timezone_df(df_merged, tz_str=None, utc_col='UTC time'):
 
 def aggregate_surveys_config(study_dir, config_path, study_tz=None):
     """
-    Merges stacked survey data with processed configuration file data and removes lines that are not questions or submission lines
+    Aggregate suveys when config is available.
+
+    Merges stacked survey data with processed configuration file data and
+    removes lines that are not questions or submission lines
 
     Args:
         study_dir (str):
-            path to downloaded data. This is a folder that includes the user data in a subfolder with the beiwe_id as the subfolder name
+            path to downloaded data. This is a folder that includes the user
+            data in a subfolder with the beiwe_id as the subfolder name
         config_path(str):
             path to the study configuration file
         calc_time_diff(bool):
-            If this is true, will calculate fields that have the time difference between the survey line and the expected delivery date for each day.
+            If this is true, will calculate fields that have the time
+            difference between the survey line and the expected delivery
+            date for each day.
         study_tz(str):
             Timezone of study. This defaults to 'America/New_York'
 
     Returns:
         df_merged(DataFrame): Merged data frame
     """
-
     # Read in aggregated data and survey configuration
     config_surveys = parse_surveys(config_path)
     agg_data = aggregate_surveys(study_dir)
@@ -339,15 +366,18 @@ def aggregate_surveys_config(study_dir, config_path, study_tz=None):
 
 def aggregate_surveys_no_config(study_dir, study_tz=None):
     """
-    Cleans aggregated data
+    Clean aggregated data.
 
     Args:
         study_dir (str):
-            path to downloaded data. This is a folder that includes the user data in a subfolder with the beiwe_id as the subfolder name
+            path to downloaded data. This is a folder that includes the user
+            data in a subfolder with the beiwe_id as the subfolder name
         config_path(str):
             path to the study configuration file
         calc_time_diff(bool):
-            If this is true, will calculate fields that have the time difference between the survey line and the expected delivery date for each day.
+            If this is true, will calculate fields that have the time
+            difference between the survey line and the expected delivery date
+            for each day.
         study_tz(str):
             Timezone of study. This defaults to 'America/New_York'
 
@@ -370,6 +400,8 @@ def aggregate_surveys_no_config(study_dir, study_tz=None):
 
 def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
     """
+    Get survey administration times.
+
     Created on Thu Jan 28 11:34:23 2021
 
     @author: DEBEU
@@ -421,9 +453,10 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
             # Check whether participant uses iOS
             if 'event' in f.columns:  # iOS: last columnname == 'event'
                 # Note: this assumes that all files have headers (check!)
-                ### Logic for iPhones ###
+                # Logic for iPhones ###
 
-                # Here you could have a loop over pd.unique(f['survey id']) to do it in
+                # Here you could have a loop over pd.unique(f['survey id'])
+                # to do it in
                 # one iteration for all surveys -->
                 # for sid in survey_ids:
                 # Note to Nellie: might be useful to have it iterate over
@@ -431,7 +464,8 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
 
                 # select relevant rows and columns
                 f = f.loc[(f['survey id'] == survey_id) &  # only this survey
-                          ((f['event'] == 'present') |  # only present / submit events
+                          ((f['event'] == 'present') |
+                           # only present / submit events
                            (f['event'] == 'submitted')),
                           ['timestamp', 'UTC time', 'survey id', 'event']]
 
@@ -473,8 +507,9 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
             else:
                 # LOGIC FOR ANDROID USERS
                 f = f.loc[(f['survey id'] == survey_id) &  # only this survey
-                          ((f[
-                              'question id'] == "Survey first rendered and displayed to user") |  # only present / submit events
+                          ((f['question id'] ==
+                            "Survey first rendered and displayed to user") |
+                           # only present / submit events
                            (f['question id'] == 'User hit submit')),
                           ['timestamp', 'UTC time', 'question id']]
 
@@ -498,7 +533,8 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
                     values='UTC time',
                     index='date_hour').rename(
                     columns={
-                        'Survey first rendered and displayed to user': 'present',
+                        'Survey first rendered and displayed to user':
+                            'present',
                         'User hit submit': 'submitted'}).reset_index()
 
                 for timestamp in pd.unique(f['date_hour']):
