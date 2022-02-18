@@ -158,7 +158,8 @@ def gen_survey_schedule(
             s_times = []
             if s['timings']:
                 s_times = s_times + \
-                    generate_survey_times(time_start, time_end, timings=s['timings'], survey_type='weekly')
+                    generate_survey_times(
+                        time_start, time_end, timings=s['timings'], survey_type='weekly')
             if s['absolute_timings']:
                 s_times = s_times + generate_survey_times(
                     time_start, time_end, timings=s['absolute_timings'], survey_type='absolute')
@@ -238,8 +239,10 @@ def survey_submits(
     # Merge survey submit lines onto the schedule data and identify submitted
     # lines
     submit_lines = pd.merge(
-        sched[['delivery_time', 'next_delivery_time', 'id', 'beiwe_id']].drop_duplicates(),
-        agg[['Local time', 'config_id', 'survey id', 'beiwe_id']].loc[agg.submit_line == 1].drop_duplicates(),
+        sched[['delivery_time', 'next_delivery_time',
+               'id', 'beiwe_id']].drop_duplicates(),
+        agg[['Local time', 'config_id', 'survey id', 'beiwe_id']
+            ].loc[agg.submit_line == 1].drop_duplicates(),
         how='left',
         left_on=['id', 'beiwe_id'],
         right_on=['config_id', 'beiwe_id'])
@@ -363,22 +366,20 @@ def survey_submits_no_config(study_dir, study_tz=None):
 
 def get_all_interventions_dict(filepath):
     """
-    Placeholder function; should be replaced once we fix the data streams to have timings
-    Gets an all_interventions_dict from a table
+    Read json file into interventions dict.
+
+    Extracts user intervention information for use in survey_timings.
     Args:
         filepath: the path to a table containing patient information
-        Note: right now, the user has to copy the table from the study website into a text processor.
+        Note: right now, the user has to copy the table from the study website
+        into a text processor.
     Returns:
-        a dict with one key for each beiwe_id in the study. The value for each key is a dict with a key for each intervention in the study, and a value which is the timestamp
+        a dict with one key for each beiwe_id in the study. The value for each
+        key is a dict with a key for each intervention in the study, and a
+        value which is the timestamp
     filepath(str)
     """
     if filepath is None:
-        return({})
-    timings_table = pd.read_table(filepath)
-    timings_table.drop(['Creation Date', 'Phone registered',
-                       'Phone OS'], axis=1, inplace=True)
-    timings_table.set_index('Patient ID', inplace=True)
-    for col in timings_table.columns:
-        timings_table[col] = pd.to_datetime(timings_table[col])
-    all_interventions_dict = timings_table.to_dict('index')
+        return({})  # empty dict
+    all_interventions_dict = read_json(filepath)
     return(all_interventions_dict)
