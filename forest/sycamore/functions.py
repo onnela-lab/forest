@@ -31,7 +31,10 @@ def read_json(study_dir):
 # From Josh's legacy script
 this_dir = os.path.dirname(__file__)
 events = read_json(os.path.join(this_dir, 'events.json'))
-question_type_names = read_json(os.path.join(this_dir, 'question_type_names.json'))
+question_type_names = read_json(
+    os.path.join(
+        this_dir,
+        'question_type_names.json'))
 
 
 def make_lookup():
@@ -97,7 +100,8 @@ def read_and_aggregate(study_dir, beiwe_id, data_stream):
         survey_data = [pd.read_csv(file) for file in all_files]
         survey_data = pd.concat(survey_data, axis=0, ignore_index=False)
         survey_data['beiwe_id'] = beiwe_id
-        survey_data['UTC time'] = survey_data['UTC time'].astype('datetime64[ns]')
+        survey_data['UTC time'] = survey_data['UTC time'].astype(
+            'datetime64[ns]')
         survey_data['DOW'] = survey_data['UTC time'].dt.dayofweek
         return survey_data
     else:
@@ -116,8 +120,10 @@ def aggregate_surveys(study_dir):
         all_data(DataFrame): An aggregated dataframe that has a question index field to understand if there are multiple lines for one question.
     """
     # READ AND AGGREGATE DATA
-    # get a list of users (ignoring hidden files and registry file downloaded when using mano)
-    users = [u for u in os.listdir(study_dir) if not u.startswith('.') and u != 'registry']
+    # get a list of users (ignoring hidden files and registry file downloaded
+    # when using mano)
+    users = [u for u in os.listdir(
+        study_dir) if not u.startswith('.') and u != 'registry']
 
     if len(users) == 0:
         print('No users in directory')
@@ -128,49 +134,63 @@ def aggregate_surveys(study_dir):
         all_data.append(read_and_aggregate(study_dir, u, 'survey_timings'))
 
     # Collapse all users into one file and drop duplicates
-    all_data = pd.concat(all_data, axis=0, ignore_index=False).drop_duplicates().sort_values(['survey id', 'beiwe_id', 'timestamp'])
+    all_data = pd.concat(all_data, axis=0, ignore_index=False).drop_duplicates(
+    ).sort_values(['survey id', 'beiwe_id', 'timestamp'])
 
     # FIX EVENT FIELDS
-    # Ensure there is an 'event' field (They're won't be one if all users are Android)
+    # Ensure there is an 'event' field (They're won't be one if all users are
+    # Android)
     if 'event' not in all_data.columns:
         all_data['event'] = None
     # Move Android events from the question id field to the event field
     all_data.event = all_data.apply(
-        lambda row: row['question id'] if row['question id'] in ['Survey first rendered and displayed to user',
-                                                                 'User hit submit'] else row['event'], axis=1)
+        lambda row: row['question id'] if row['question id'] in [
+            'Survey first rendered and displayed to user',
+            'User hit submit'] else row['event'],
+        axis=1)
     all_data['question id'] = all_data.apply(
-        lambda row: np.nan if row['question id'] == row['event'] else row['question id'], axis=1)
+        lambda row: np.nan if row['question id'] == row['event'] else row['question id'],
+        axis=1)
 
     # Fix question types
     all_data['question type'] = all_data.apply(
-        lambda row: q_types_standardize(row['question type'], question_types_lookup), axis=1)
+        lambda row: q_types_standardize(
+            row['question type'], question_types_lookup), axis=1)
 
     # ADD A QUESTION INDEX (to track changed answers)
     all_data['question id lag'] = all_data['question id'].shift(1)
-    all_data['question index'] = all_data.apply(
-        lambda row: 1 if ((row['question id'] != row['question id lag'])) else 0, axis=1)
-    all_data['question index'] = all_data.groupby(['survey id', 'beiwe_id'])['question index'].cumsum()
+    all_data['question index'] = all_data.apply(lambda row: 1 if (
+        (row['question id'] != row['question id lag'])) else 0, axis=1)
+    all_data['question index'] = all_data.groupby(['survey id', 'beiwe_id'])[
+        'question index'].cumsum()
     del all_data['question id lag']
 
     # Add a survey instance ID that is tied to the submit line
     all_data['surv_inst_flg'] = 0
-    all_data.loc[(all_data.event == 'submitted') | (all_data.event == 'User hit submit') | (all_data.event == 'notified'), ['surv_inst_flg']] = 1
+    all_data.loc[(all_data.event == 'submitted') | (all_data.event == 'User hit submit') | (
+        all_data.event == 'notified'), ['surv_inst_flg']] = 1
     all_data['surv_inst_flg'] = all_data['surv_inst_flg'].shift(1)
     # If a change of survey occurs without a submit flg, flag the new line
     all_data['survey_prev'] = all_data['survey id'].shift(1)
-    all_data.loc[all_data['survey_prev'] != all_data['survey id'], ['surv_inst_flg']] = 1
+    all_data.loc[all_data['survey_prev'] !=
+                 all_data['survey id'], ['surv_inst_flg']] = 1
     del all_data['survey_prev']
 
-    # If 'Survey first rendered and displayed to user', also considered a new survey
-    all_data.loc[all_data['event'] == 'Survey first rendered and displayed to user', ['surv_inst_flg']] = 1
+    # If 'Survey first rendered and displayed to user', also considered a new
+    # survey
+    all_data.loc[all_data['event'] ==
+                 'Survey first rendered and displayed to user', ['surv_inst_flg']] = 1
 
     # if a survey has a gap greater than 5 hours, consider it two surveys
     all_data['time_prev'] = all_data['UTC time'].shift(1)
     all_data['time_diff'] = all_data['UTC time'] - all_data['time_prev']
-    # Splitting up surveys where there appears to be a time gap or no submit line.
-    all_data.loc[all_data.time_diff > datetime.timedelta(hours = 2), ['surv_inst_flg']] = 1
+    # Splitting up surveys where there appears to be a time gap or no submit
+    # line.
+    all_data.loc[all_data.time_diff > datetime.timedelta(hours=2), [
+        'surv_inst_flg']] = 1
 
-    all_data['surv_inst_flg'] = all_data.groupby(['survey id', 'beiwe_id'])['surv_inst_flg'].cumsum()
+    all_data['surv_inst_flg'] = all_data.groupby(['survey id', 'beiwe_id'])[
+        'surv_inst_flg'].cumsum()
     all_data.loc[all_data.surv_inst_flg.isna(), ['surv_inst_flg']] = 0
 
     # OUTPUT AGGREGATE
@@ -253,11 +273,14 @@ def convert_timezone_df(df_merged, tz_str=None, utc_col='UTC time'):
     if tz_str is None:
         tz_str = 'America/New_York'
 
-    df_merged['Local time'] = df_merged.apply(lambda row: convert_timezone(row[utc_col], tz_str), axis=1)
+    df_merged['Local time'] = df_merged.apply(
+        lambda row: convert_timezone(
+            row[utc_col], tz_str), axis=1)
 
     # Remove timezone from datetime format
     tz = pytz.timezone(tz_str)
-    df_merged['Local time'] = [t.replace(tzinfo=None) for t in df_merged['Local time']]
+    df_merged['Local time'] = [
+        t.replace(tzinfo=None) for t in df_merged['Local time']]
 
     return df_merged
 
@@ -285,21 +308,28 @@ def aggregate_surveys_config(study_dir, config_path, study_tz=None):
     agg_data = aggregate_surveys(study_dir)
 
     # Merge data together and add configuration survey ID to all lines
-    df_merged = agg_data.merge(config_surveys[['config_id', 'question_id']], how='left', left_on='question id',
-                               right_on='question_id').drop(['question_id'], axis=1)
-    df_merged['config_id_update'] = df_merged['config_id'].fillna(method='ffill')
+    df_merged = agg_data.merge(config_surveys[['config_id',
+                                               'question_id']],
+                               how='left',
+                               left_on='question id',
+                               right_on='question_id').drop(['question_id'],
+                                                            axis=1)
+    df_merged['config_id_update'] = df_merged['config_id'].fillna(
+        method='ffill')
     df_merged['config_id'] = df_merged.apply(
-        lambda row: row['config_id_update'] if row['event'] in ['User hit submit', 'submitted'] else row['config_id'],
-        axis=1)
+        lambda row: row['config_id_update'] if row['event'] in [
+            'User hit submit', 'submitted'] else row['config_id'], axis=1)
 
     del df_merged['config_id_update']
 
     # Mark submission lines
-    df_merged['submit_line'] = df_merged.apply(lambda row: 1 if row['event'] in ['User hit submit', 'submitted'] else 0,
-                                               axis=1)
+    df_merged['submit_line'] = df_merged.apply(
+        lambda row: 1 if row['event'] in [
+            'User hit submit', 'submitted'] else 0, axis=1)
 
     # Remove notification and expiration lines
-    df_merged = df_merged.loc[(~df_merged['question id'].isnull()) | (~df_merged['config_id'].isnull())]
+    df_merged = df_merged.loc[(~df_merged['question id'].isnull()) | (
+        ~df_merged['config_id'].isnull())]
 
     # Convert to the study's timezone
     df_merged = convert_timezone_df(df_merged)
@@ -325,8 +355,9 @@ def aggregate_surveys_no_config(study_dir, study_tz=None):
         df_merged(DataFrame): Merged data frame
     """
     agg_data = aggregate_surveys(study_dir)
-    agg_data['submit_line'] = agg_data.apply(lambda row: 1 if row['event'] in ['User hit submit', 'submitted'] else 0,
-                                             axis=1)
+    agg_data['submit_line'] = agg_data.apply(
+        lambda row: 1 if row['event'] in [
+            'User hit submit', 'submitted'] else 0, axis=1)
 
     # Remove notification and expiration lines
     agg_data = agg_data.loc[(~agg_data['question id'].isnull())]
@@ -368,7 +399,8 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
 
 
     """
-    record = np.array(['beiwe_id', 'phone_os', 'date_hour', 'start_time', 'end_time']).reshape(1, 5)
+    record = np.array(['beiwe_id', 'phone_os', 'date_hour',
+                      'start_time', 'end_time']).reshape(1, 5)
     for pid in person_ids:
         print(pid)
         survey_dir = os.path.join(study_dir, pid, "survey_timings", survey_id)
@@ -383,7 +415,7 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
             #             print(fp)
             try:
                 f = pd.read_csv(os.path.join(survey_dir, fp))
-            except:
+            except BaseException:
                 pass
 
             # Check whether participant uses iOS
@@ -394,7 +426,8 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
                 # Here you could have a loop over pd.unique(f['survey id']) to do it in
                 # one iteration for all surveys -->
                 # for sid in survey_ids:
-                # Note to Nellie: might be useful to have it iterate over surveys and store timings for each survey
+                # Note to Nellie: might be useful to have it iterate over
+                # surveys and store timings for each survey
 
                 # select relevant rows and columns
                 f = f.loc[(f['survey id'] == survey_id) &  # only this survey
@@ -410,18 +443,27 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
                 # sort by UTC_time
                 f = f.sort_values(by='date_hour', ascending=True)
 
-                f = f.drop_duplicates(subset=['date_hour', 'event'], keep='first')
+                f = f.drop_duplicates(
+                    subset=[
+                        'date_hour',
+                        'event'],
+                    keep='first')
 
-                f = f.pivot(columns='event', values='UTC time', index='date_hour').reset_index()
+                f = f.pivot(
+                    columns='event',
+                    values='UTC time',
+                    index='date_hour').reset_index()
 
                 for timestamp in pd.unique(f['date_hour']):
                     try:
-                        present = f.loc[f['date_hour'] == timestamp, 'present'][0]
+                        present = f.loc[f['date_hour']
+                                        == timestamp, 'present'][0]
                     except KeyError:
                         present = None
 
                     try:
-                        submitted = f.loc[f['date_hour'] == timestamp, 'submitted'][0]
+                        submitted = f.loc[f['date_hour']
+                                          == timestamp, 'submitted'][0]
                     except KeyError:
                         submitted = None
 
@@ -432,7 +474,7 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
                 # LOGIC FOR ANDROID USERS
                 f = f.loc[(f['survey id'] == survey_id) &  # only this survey
                           ((f[
-                                'question id'] == "Survey first rendered and displayed to user") |  # only present / submit events
+                              'question id'] == "Survey first rendered and displayed to user") |  # only present / submit events
                            (f['question id'] == 'User hit submit')),
                           ['timestamp', 'UTC time', 'question id']]
 
@@ -443,12 +485,21 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
 
                 f = f.sort_values(by='date_hour', ascending=True)
 
-                # Looks like if Androids have double events, you should take the   last
-                f = f.drop_duplicates(subset=['date_hour', 'question id'], keep='last')
+                # Looks like if Androids have double events, you should take
+                # the   last
+                f = f.drop_duplicates(
+                    subset=[
+                        'date_hour',
+                        'question id'],
+                    keep='last')
 
-                f = f.pivot(columns='question id', values='UTC time', index='date_hour').rename(
-                    columns={'Survey first rendered and displayed to user': 'present',
-                             'User hit submit': 'submitted'}).reset_index()
+                f = f.pivot(
+                    columns='question id',
+                    values='UTC time',
+                    index='date_hour').rename(
+                    columns={
+                        'Survey first rendered and displayed to user': 'present',
+                        'User hit submit': 'submitted'}).reset_index()
 
                 for timestamp in pd.unique(f['date_hour']):
                     try:
@@ -469,7 +520,9 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
                         columns=record[0])
 
     # Fix surveys that were completed over more than an hour
-    svtm['day'] = pd.to_datetime(svtm['date_hour'].astype('str'), format='%Y_%m_%d_%H').dt.strftime('%Y-%m-%d')
+    svtm['day'] = pd.to_datetime(
+        svtm['date_hour'].astype('str'),
+        format='%Y_%m_%d_%H').dt.strftime('%Y-%m-%d')
 
     svtm = svtm.groupby(['beiwe_id', 'day', 'phone_os']).agg(
         {
