@@ -1,18 +1,15 @@
 import datetime
 from .functions import read_json, aggregate_surveys_no_config
-import glob
-import json
-import logging
 import math
 import numpy as np
-import os
 import pandas as pd
-import pytz
-from typing import List
+from typing import list
 
 
 def convert_time_to_date(submit_time, day, time):
     """
+    Convert an array of times to date.
+
     Takes a single array of timings and a single day
     Args:
         submit_time(datetime):
@@ -22,7 +19,6 @@ def convert_time_to_date(submit_time, day, time):
         time(list):
             List of timings times from the configuration surveys information
     """
-
     # Convert inputted desired day into an integer between 0 and 6
     day = day % 7
     # Get the days of the given week using the dow of the given submit day
@@ -57,26 +53,33 @@ def generate_survey_times(
         survey_type='weekly',
         intervention_dict=None):
     """
-    Takes a start time and end time and generates a schedule of all sent surveys in time frame for the given survey type
+    Get delivery times for a survey.
+
+    Takes a start time and end time and generates a schedule of all sent
+    surveys in time frame for the given survey type
     Args:
         time_start(str):
             The first date for which we want to generate survey times
         time_end(str):
             The last date for which we want to generate survey times
         timings(list):
-            list of survey timings, directly from the configuration file survey information
+            list of survey timings, directly from the configuration file
+            survey information
         survey_type(str):
             What type of survey schedule to generate times for
         intervention_dict(dict):
-            A dictionary with keys for each intervention time, each containing a timestamp object
+            A dictionary with keys for each intervention time, each containing
+            a timestamp object
             (only needed for relative surveys)
     Returns:
         surveys(list):
-            A list of all survey times that occur between the time_start and time_end per the given survey timings schedule
+            A list of all survey times that occur between the time_start and
+            time_end per the given survey timings schedule
     """
     if survey_type not in ['weekly', 'absolute', 'relative']:
         raise ValueError(
-            'Incorrect type of survey. Ensure this is weekly, absolute, or relative.')
+            'Incorrect type of survey.'
+            ' Ensure this is weekly, absolute, or relative.')
 
         # Get the number of weeks between start and end time
     t_start = pd.Timestamp(time_start)
@@ -131,6 +134,8 @@ def gen_survey_schedule(
         beiwe_ids,
         all_interventions_dict):
     """
+    Get survey schedule for a number of users.
+
     Args:
         config_path(str):
             File path to study configuration file
@@ -139,14 +144,17 @@ def gen_survey_schedule(
         time_end(str):
             The last date of the survey data
         beiwe_ids(list):
-            List of users in study for which we are generating a survey schedule
+            List of users in study for which we are generating a survey
+            schedule
         all_interventions_dict(dict):
             Dictionary containing a key for every beiwe id.
-            Each value in the dict is a dict, with a key for each intervention and a timestamp for each intervention time
+            Each value in the dict is a dict, with a key for each intervention
+            and a timestamp for each intervention time
 
     Returns:
         times_sur(DataFrame):
-            DataFrame with a line for every survey deployed to every user in the study for the given time range
+            DataFrame with a line for every survey deployed to every user in
+            the study for the given time range
     """
     # List of surveys
     surveys = read_json(config_path)['surveys']
@@ -159,10 +167,12 @@ def gen_survey_schedule(
             if s['timings']:
                 s_times = s_times + \
                     generate_survey_times(
-                        time_start, time_end, timings=s['timings'], survey_type='weekly')
+                        time_start, time_end, timings=s['timings'],
+                        survey_type='weekly')
             if s['absolute_timings']:
                 s_times = s_times + generate_survey_times(
-                    time_start, time_end, timings=s['absolute_timings'], survey_type='absolute')
+                    time_start, time_end, timings=s['absolute_timings'],
+                    survey_type='absolute')
             if s['relative_timings']:
                 # We can only get relative timings if we have an index time
                 if all_interventions_dict[u_id]:
@@ -207,6 +217,8 @@ def survey_submits(
         study_tz=None,
         all_interventions_dict=None):
     """
+    Get survey submits for users.
+
     Args:
         study_dir(str):
             File path to study data
@@ -217,14 +229,18 @@ def survey_submits(
         time_end(str):
             The last date of the survey data
         beiwe_ids(list):
-            List of users in study for which we are generating a survey schedule
+            List of users in study for which we are generating a survey
+            schedule
         study_tz(str):
             Timezone of study. This defaults to 'America/New_York'
         all_interventions_dict(dict):
-            dict containing interventions for each user. Each key in the dict is a beiwe id. Each value is a dict, with a key for each intervention name and a timestamp for each intervention's time
+            dict containing interventions for each user. Each key in the dict
+            is a beiwe id. Each value is a dict, with a key for each
+            intervention name and a timestamp for each intervention's time
 
     Returns:
-        A DataFrame with all surveys deployed in the given timeframe on the study to the users with completion times
+        A DataFrame with all surveys deployed in the given timeframe on the
+        study to the users with completion times
     """
     time_start = pd.Timestamp(time_start)
     time_end = pd.Timestamp(time_end)
@@ -301,12 +317,14 @@ def survey_submits(
         summary_cols)['delivery_time'].nunique()
     num_complete_surveys = submit_lines3.groupby(summary_cols)[
         'submit_flg'].sum()
-    avg_time_to_submit = submit_lines3.loc[submit_lines3.submit_flg == 1].groupby(
-        summary_cols)['time_to_submit'].apply(lambda x: sum(x, datetime.timedelta()) / len(x))
-    #     avg_time_to_submit = submit_lines3.groupby(summary_cols)['time_to_submit'].apply(lambda x: sum(x, datetime.timedelta())/len(x))
+    avg_time_to_submit = submit_lines3.\
+        loc[submit_lines3.submit_flg == 1].\
+        groupby(summary_cols)['time_to_submit'].\
+        apply(lambda x: sum(x, datetime.timedelta()) / len(x))
 
     submit_lines_summary = pd.concat(
-        [num_surveys, num_complete_surveys, avg_time_to_submit], axis=1).reset_index()
+        [num_surveys, num_complete_surveys, avg_time_to_submit], axis=1).\
+        reset_index()
     submit_lines_summary.columns = [
         'survey id',
         'beiwe_id',
@@ -335,12 +353,14 @@ def survey_submits(
 
 def survey_submits_no_config(study_dir, study_tz=None):
     """
-    Alternative function for getting the survey completions (doesn't have expected times of surveys)
+    Get survey submits without config file.
+
+    Alternative function for getting the survey completions (doesn't have
+    expected times of surveys)
     Args:
         agg(DataFrame):
             Output of aggregate_surveys_no_config
     """
-
     tmp = aggregate_surveys_no_config(study_dir, study_tz)
 
     def summarize_submits(df):
