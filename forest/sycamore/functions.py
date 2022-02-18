@@ -140,7 +140,9 @@ def aggregate_surveys(study_dir):
 
     if len(users) == 0:
         print('No users in directory')
-        return
+        empty_df = pd.DataFrame(columns = ["UTC time"], dtype = "datetime64[ns]")
+        
+        return(empty_df)
 
     all_data = []
     for u in users:

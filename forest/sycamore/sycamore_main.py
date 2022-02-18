@@ -44,6 +44,9 @@ def survey_stats_main(
             study_dir) if not u.startswith('.') and u != 'registry']
     else:
         agg_data = aggregate_surveys_config(study_dir, config_path, study_tz)
+        if agg_data.shape[0] == 0:
+            print("Error: No survey data found")
+            return
         # Create changed answers detail and summary
         ca_detail, ca_summary = agg_changed_answers_summary(
             study_dir, config_path, agg_data, study_tz)
