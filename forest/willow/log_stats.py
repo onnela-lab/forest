@@ -92,6 +92,10 @@ def comm_logs_summaries(ID:str, df_text, df_call, stamp_start, stamp_end, tz_str
             num_uniq_mis_call = len(np.unique(np.array(temp_call['hashed phone number'])[index_mis_call]))
             total_time_in_call = sum(dur_in_min[index_in_call])
             total_time_out_call = sum(dur_in_min[index_out_call])
+        else:
+            (num_in_call, num_out_call, num_mis_call, num_uniq_in_call,
+             num_uniq_out_call, num_uniq_mis_call, total_time_in_call,
+             total_time_out_call) = [pd.NA] * 8
         if option == 'daily':
             newline = [year, month, day, num_in_call, num_out_call, num_mis_call, num_uniq_in_call, num_uniq_out_call,
                   num_uniq_mis_call, total_time_in_call, total_time_out_call, num_s, num_r, num_mms_s, num_mms_r, num_s_tel,
