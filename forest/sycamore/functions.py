@@ -3,18 +3,19 @@ import glob
 import json
 import logging
 import os
-from typing import List
-
 import numpy as np
 import pandas as pd
-import pytz
+
+
+from typing import Optional
 
 # Explore use of logging function (TO DO: Read wiki)
 logger = logging.getLogger(__name__)
 
-
 # Modified from legacy beiwetools code
-def read_json(study_dir):
+
+
+def read_json(study_dir: str) -> dict:
     """
     Read a json file into a dictionary.
 
@@ -38,13 +39,13 @@ question_type_names = read_json(
         'question_type_names.json'))
 
 
-def make_lookup():
+def make_lookup() -> dict:
     """
     From legacy script.
 
     Reformats the question types JSON to be usable in future functions
     """
-    lookup = {'iOS': {}, 'Android': {}}
+    lookup: dict = {'iOS': {}, 'Android': {}}
     for k in question_type_names:
         for opsys in ['iOS', 'Android']:
             opsys_name = question_type_names[k][opsys]
@@ -56,7 +57,8 @@ def make_lookup():
 question_types_lookup = make_lookup()
 
 
-def q_types_standardize(q, lkp=question_types_lookup):
+def q_types_standardize(q: str,
+                        lkp: dict = question_types_lookup) -> str:
     """
     Standardizes question types using a lookup function.
 
@@ -77,7 +79,9 @@ def q_types_standardize(q, lkp=question_types_lookup):
         return q
 
 
-def read_and_aggregate(study_dir, beiwe_id, data_stream):
+def read_and_aggregate(study_dir: str,
+                       beiwe_id: str,
+                       data_stream: str) -> pd.DataFrame:
     """
     Read and aggregate data for a user.
 
@@ -105,8 +109,9 @@ def read_and_aggregate(study_dir, beiwe_id, data_stream):
         # Sort file paths for when they're read in
         all_files = sorted(all_files)
         # Read in all files
-        survey_data = [pd.read_csv(file) for file in all_files]
-        survey_data = pd.concat(survey_data, axis=0, ignore_index=False)
+        survey_data_list = [pd.read_csv(file) for file in all_files]
+        survey_data: pd.DataFrame = pd.concat(survey_data_list,
+                                              axis=0, ignore_index=False)
         survey_data['beiwe_id'] = beiwe_id
         survey_data['UTC time'] = survey_data['UTC time'].astype(
             'datetime64[ns]')
@@ -114,9 +119,11 @@ def read_and_aggregate(study_dir, beiwe_id, data_stream):
         return survey_data
     else:
         logging.warning('No survey_timings for user %s.' % beiwe_id)
+        return(pd.DataFrame(
+            columns=["UTC time"], dtype="datetime64[ns]"))
 
 
-def aggregate_surveys(study_dir):
+def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
     """
     Aggregate Survey Data.
 
@@ -135,22 +142,25 @@ def aggregate_surveys(study_dir):
     # READ AND AGGREGATE DATA
     # get a list of users (ignoring hidden files and registry file downloaded
     # when using mano)
-    users = [u for u in os.listdir(
-        study_dir) if not u.startswith('.') and u != 'registry']
+    if users is None:
+        users = [u for u in os.listdir(
+            study_dir) if not u.startswith('.') and u != 'registry']
 
     if len(users) == 0:
         print('No users in directory')
-        empty_df = pd.DataFrame(columns = ["UTC time"], dtype = "datetime64[ns]")
-        
+        empty_df = pd.DataFrame(
+            columns=["UTC time"], dtype="datetime64[ns]")
         return(empty_df)
 
-    all_data = []
+    all_data_list = []
     for u in users:
-        all_data.append(read_and_aggregate(study_dir, u, 'survey_timings'))
+        all_data_list.append(
+            read_and_aggregate(study_dir, u, 'survey_timings'))
 
     # Collapse all users into one file and drop duplicates
-    all_data = pd.concat(all_data, axis=0, ignore_index=False).drop_duplicates(
-    ).sort_values(['survey id', 'beiwe_id', 'timestamp'])
+    all_data: pd.DataFrame = pd.concat(all_data_list,
+                                       axis=0, ignore_index=False)\
+        .drop_duplicates().sort_values(['survey id', 'beiwe_id', 'timestamp'])
 
     # FIX EVENT FIELDS
     # Ensure there is an 'event' field (They're won't be one if all users are
@@ -215,7 +225,7 @@ def aggregate_surveys(study_dir):
     return all_data.reset_index(drop=True)
 
 
-def parse_surveys(config_path, answers_l=False):
+def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
     """
     Get survey information from config path.
 
@@ -261,25 +271,9 @@ def parse_surveys(config_path, answers_l=False):
     return output
 
 
-def convert_timezone(utc_date, tz_str):
-    """
-    Convert from UTC to local time.
-
-    Args:
-        utc_date(datetime):
-            Given date, assumed to be in UTC time
-        tz_str(str):
-            timezone to convert the utc_date to (a string used by the pytz
-                                                  library)
-
-    Returns:
-        A converted date from UTC time to the given timezone
-    """
-    date_local = pytz.utc.localize(utc_date, is_dst=None).astimezone(tz_str)
-    return date_local
-
-
-def convert_timezone_df(df_merged, tz_str=None, utc_col='UTC time'):
+def convert_timezone_df(df_merged: pd.DataFrame,
+                        tz_str: Optional[str] = None,
+                        utc_col: str = 'UTC time') -> pd.DataFrame:
     """
     Convert a df to local time zone.
 
@@ -298,18 +292,16 @@ def convert_timezone_df(df_merged, tz_str=None, utc_col='UTC time'):
     if tz_str is None:
         tz_str = 'America/New_York'
 
-    df_merged['Local time'] = df_merged.apply(
-        lambda row: convert_timezone(
-            row[utc_col], tz_str), axis=1)
-
-    # Remove timezone from datetime format
-    df_merged['Local time'] = [
-        t.replace(tzinfo=None) for t in df_merged['Local time']]
+    df_merged['Local time'] = df_merged[utc_col].dt.tz_localize('UTC').dt.\
+        tz_convert('America/New_York').dt.tz_localize(None)
 
     return df_merged
 
 
-def aggregate_surveys_config(study_dir, config_path, study_tz=None):
+def aggregate_surveys_config(study_dir: str,
+                             config_path: str,
+                             study_tz: Optional[str] = None,
+                             users: list = None) -> pd.DataFrame:
     """
     Aggregate suveys when config is available.
 
@@ -328,13 +320,15 @@ def aggregate_surveys_config(study_dir, config_path, study_tz=None):
             date for each day.
         study_tz(str):
             Timezone of study. This defaults to 'America/New_York'
+        users(tuple):
+            List of beiwe IDs of users to aggregate
 
     Returns:
         df_merged(DataFrame): Merged data frame
     """
     # Read in aggregated data and survey configuration
     config_surveys = parse_surveys(config_path)
-    agg_data = aggregate_surveys(study_dir)
+    agg_data = aggregate_surveys(study_dir, users)
     if agg_data.shape[0] == 0:
         return(agg_data)
 
@@ -368,7 +362,10 @@ def aggregate_surveys_config(study_dir, config_path, study_tz=None):
     return df_merged.reset_index(drop=True)
 
 
-def aggregate_surveys_no_config(study_dir, study_tz=None):
+def aggregate_surveys_no_config(study_dir: str,
+                                study_tz: Optional[str] = None,
+                                users: list = None
+                                ) -> pd.DataFrame:
     """
     Clean aggregated data.
 
@@ -384,11 +381,13 @@ def aggregate_surveys_no_config(study_dir, study_tz=None):
             for each day.
         study_tz(str):
             Timezone of study. This defaults to 'America/New_York'
+        users(tuple):
+            List of Beiwe IDs to run
 
     Returns:
         df_merged(DataFrame): Merged data frame
     """
-    agg_data = aggregate_surveys(study_dir)
+    agg_data = aggregate_surveys(study_dir, users)
     if agg_data.shape[0] == 0:
         return(agg_data)
     agg_data['submit_line'] = agg_data.apply(
@@ -404,7 +403,7 @@ def aggregate_surveys_no_config(study_dir, study_tz=None):
     return agg_data.reset_index(drop=True)
 
 
-def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
+def get_survey_timings(person_ids, study_dir, survey_id):
     """
     Get survey administration times.
 
@@ -440,7 +439,7 @@ def get_survey_timings(person_ids: List[str], study_dir: str, survey_id: str):
     record = np.array(['beiwe_id', 'phone_os', 'date_hour',
                       'start_time', 'end_time']).reshape(1, 5)
     for pid in person_ids:
-        print(pid)
+        # print(pid)
         survey_dir = os.path.join(study_dir, pid, "survey_timings", survey_id)
 
         try:

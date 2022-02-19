@@ -1,19 +1,23 @@
 import os
 from .functions import aggregate_surveys_config, aggregate_surveys_no_config
-from .survey_config import survey_submits, survey_submits_no_config, get_all_interventions_dict
+from .survey_config import (survey_submits, survey_submits_no_config,
+                            get_all_interventions_dict)
 from .changed_answers import agg_changed_answers_summary
+from typing import Optional, List
 
 
 def survey_stats_main(
-        output_dir,
-        study_dir,
-        beiwe_ids = None,
-        config_path=None,
-        time_start=None,
-        time_end=None,
-        study_tz=None,
-        interventions_filepath=None):
+        output_dir: str,
+        study_dir: str,
+        beiwe_ids: Optional[List] = None,
+        config_path: Optional[str] = None,
+        time_start: Optional[str] = None,
+        time_end: Optional[str] = None,
+        study_tz: Optional[str] = "America/New_York",
+        interventions_filepath: str = '') -> bool:
     """
+    Compute statistics on surveys.
+
     Args:
     output_dir(str):
         File path to output summaries and details
@@ -30,8 +34,8 @@ def survey_stats_main(
     study_tz(str):
         Timezone of study. This defaults to 'America/New_York'
     interventions_filepath(str):
-        filepath where interventions table is.
-        NOTE: This should change once we get a data stream with intervention timings in it.
+        filepath where interventions json file is.
+
     """
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
@@ -41,15 +45,16 @@ def survey_stats_main(
     # Read, aggregate and clean data
     if config_path is None:
         print('No config file provided. Skipping some summary outputs.')
-        agg_data = aggregate_surveys_no_config(study_dir, study_tz)
+        agg_data = aggregate_surveys_no_config(study_dir, study_tz, beiwe_ids)
         if agg_data.shape[0] == 0:
             print("Error: No survey data found")
-            return
+            return(True)
     else:
-        agg_data = aggregate_surveys_config(study_dir, config_path, study_tz)
+        agg_data = aggregate_surveys_config(study_dir, config_path,
+                                            study_tz, beiwe_ids)
         if agg_data.shape[0] == 0:
             print("Error: No survey data found")
-            return
+            return(True)
         # Create changed answers detail and summary
         ca_detail, ca_summary = agg_changed_answers_summary(
             study_dir, config_path, agg_data, study_tz)
@@ -68,17 +73,21 @@ def survey_stats_main(
             all_interventions_dict = get_all_interventions_dict(
                 interventions_filepath)
             ss_detail, ss_summary = survey_submits(
-                study_dir, config_path, time_start, time_end, beiwe_ids, agg_data, study_tz, all_interventions_dict)
-            ss_detail.to_csv(
-                os.path.join(
-                    output_dir,
-                    'submits_data.csv'),
-                index=False)
-            ss_summary.to_csv(
-                os.path.join(
-                    output_dir,
-                    'submits_summary.csv'),
-                index=False)
+                study_dir, config_path, time_start, time_end, beiwe_ids,
+                agg_data, study_tz, all_interventions_dict)
+            if ss_summary.shape[0] > 0:
+                ss_detail.to_csv(
+                    os.path.join(
+                        output_dir,
+                        'submits_data.csv'),
+                    index=False)
+                ss_summary.to_csv(
+                    os.path.join(
+                        output_dir,
+                        'submits_summary.csv'),
+                    index=False)
+            else:
+                print("An Error occurred when getting survey submit summaries")
     # Write out summaries
     agg_data.to_csv(
         os.path.join(
@@ -92,3 +101,4 @@ def survey_stats_main(
             output_dir,
             'submits_alt_summary.csv'),
         index=False)
+    return(True)

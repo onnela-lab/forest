@@ -3,9 +3,12 @@ from .functions import read_json, aggregate_surveys_no_config
 import math
 import numpy as np
 import pandas as pd
+from typing import Optional, Tuple, Dict
 
 
-def convert_time_to_date(submit_time, day, time):
+def convert_time_to_date(submit_time: datetime.datetime,
+                         day: int,
+                         time: list) -> list:
     """
     Convert an array of times to date.
 
@@ -22,14 +25,8 @@ def convert_time_to_date(submit_time, day, time):
     day = day % 7
     # Get the days of the given week using the dow of the given submit day
     dow = submit_time.weekday()
-    days = [
-        submit_time +
-        datetime.timedelta(
-            days=i) for i in range(
-            0 -
-            dow,
-            7 -
-            dow)]
+    days = [submit_time + datetime.timedelta(days=i)
+            for i in range(0 - dow, 7 - dow)]
 
     time = [str(datetime.timedelta(seconds=t)) for t in time]
     time = [t.split(':') for t in time]
@@ -37,20 +34,19 @@ def convert_time_to_date(submit_time, day, time):
 
     # Get rid of timing
     #     https://stackoverflow.com/questions/26882499/reset-time-part-of-a-pandas-timestamp
-    #     print(time)
     days = [d - pd.offsets.Micro(0) for d in days]
-    days = [[d.replace(hour=t[0], minute=t[1], second=t[2],
-                       microsecond=0) for t in time] for d in days]
+    list_of_days = [[d.replace(hour=t[0], minute=t[1], second=t[2],
+                               microsecond=0) for t in time] for d in days]
 
-    return days[day]
+    return list_of_days[day]
 
 
 def generate_survey_times(
-        time_start,
-        time_end,
-        timings=[],
-        survey_type='weekly',
-        intervention_dict=None):
+        time_start: str,
+        time_end: str,
+        timings: list = [],
+        survey_type: str = 'weekly',
+        intervention_dict: Optional[dict] = None) -> list:
     """
     Get delivery times for a survey.
 
@@ -96,7 +92,7 @@ def generate_survey_times(
 
         # for each week, generate the survey times and append to a list
         start_dates = [
-            time_start +
+            t_start +
             datetime.timedelta(
                 days=7 *
                 (i)) for i in range(weeks)]
@@ -119,19 +115,24 @@ def generate_survey_times(
             return []
         for t in timings:
             # This could probably be vectorized
-            current_time = intervention_dict[t[0]] + pd.Timedelta(
-                t[1], unit='days') + pd.Timedelta(t[2], unit='seconds')
+            if intervention_dict[t[0]] is not None:  # time exists for the user
+                # first, get the intervention time.
+                # Then, add the days and time of day for the survey to the time
+                current_time = datetime.datetime.fromisoformat(
+                    intervention_dict[t[0]]) + pd.Timedelta(
+                        t[1], unit='days') + pd.Timedelta(
+                            t[2], unit='seconds')  # seconds after time
 
-            surveys.append(current_time)
+                surveys.append(current_time)
     return surveys
 
 
 def gen_survey_schedule(
-        config_path,
-        time_start,
-        time_end,
-        beiwe_ids,
-        all_interventions_dict):
+        config_path: str,
+        time_start: pd.Timestamp,
+        time_end: pd.Timestamp,
+        beiwe_ids: list,
+        all_interventions_dict: dict) -> pd.DataFrame:
     """
     Get survey schedule for a number of users.
 
@@ -160,9 +161,8 @@ def gen_survey_schedule(
     # For each survey create a list of survey times
     times_sur = []
     for u_id in beiwe_ids:
-        print(u_id)
         for i, s in enumerate(surveys):
-            s_times = []
+            s_times: list = []
             if s['timings']:
                 s_times = s_times + \
                     generate_survey_times(
@@ -201,20 +201,24 @@ def gen_survey_schedule(
                 q_ids = pd.DataFrame({'question_id': qs})
                 tbl = pd.merge(tbl, q_ids, how='cross')
             times_sur.append(tbl)
-
-    times_sur = pd.concat(times_sur).reset_index(drop=True)
-    return(times_sur)
+    if len(times_sur) > 0:
+        times_sur_df = pd.concat(times_sur).reset_index(drop=True)
+    else:
+        times_sur_df = pd.DataFrame(
+            columns=['delivery_time', 'next_delivery_time', 'id', 'beiwe_id'])
+    return(times_sur_df)
 
 
 def survey_submits(
-        study_dir,
-        config_path,
-        time_start,
-        time_end,
-        beiwe_ids,
-        agg,
-        study_tz=None,
-        all_interventions_dict=None):
+        study_dir: str,
+        config_path: str,
+        time_start: str,
+        time_end: str,
+        beiwe_ids: list,
+        agg: pd.DataFrame,
+        study_tz: str = None,
+        all_interventions_dict: dict = {}
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Get survey submits for users.
 
@@ -238,8 +242,10 @@ def survey_submits(
             intervention name and a timestamp for each intervention's time
 
     Returns:
-        A DataFrame with all surveys deployed in the given timeframe on the
-        study to the users with completion times
+        submit_lines(DataFrame): A DataFrame with all surveys deployed in the
+        given timeframe on the study to the users with completion times
+        submit_lines_summary(DataFrame): a DataFrame with all users, total
+        surveys received, and responses.
     """
     time_start = pd.Timestamp(time_start)
     time_end = pd.Timestamp(time_end)
@@ -250,6 +256,11 @@ def survey_submits(
         time_end,
         beiwe_ids,
         all_interventions_dict)
+
+    if sched.shape[0] == 0:  # return empty dataframes
+        print("Error: No survey schedules found")
+        return(pd.DataFrame(columns=[['survey id', 'beiwe_id']]),
+               pd.DataFrame(columns=[['survey id', 'beiwe_id']]))
 
     # Merge survey submit lines onto the schedule data and identify submitted
     # lines
@@ -346,11 +357,13 @@ def survey_submits(
             'NaT',
             dtype='datetime64[ns]'))
 
-    return submit_lines3.sort_values(
-        ['survey id', 'beiwe_id']).drop_duplicates(), submit_lines_summary
+    return(submit_lines3.sort_values(
+        ['survey id', 'beiwe_id']).drop_duplicates(),
+        submit_lines_summary)
 
 
-def survey_submits_no_config(study_dir, study_tz=None):
+def survey_submits_no_config(study_dir: str,
+                             study_tz: Optional[str] = None) -> pd.DataFrame:
     """
     Get survey submits without config file.
 
@@ -383,7 +396,7 @@ def survey_submits_no_config(study_dir, study_tz=None):
     return tmp.sort_values(['beiwe_id', 'survey id'])
 
 
-def get_all_interventions_dict(filepath):
+def get_all_interventions_dict(filepath: str) -> dict:
     """
     Read json file into interventions dict.
 
@@ -400,5 +413,12 @@ def get_all_interventions_dict(filepath):
     """
     if filepath is None:
         return({})  # empty dict
-    all_interventions_dict = read_json(filepath)
-    return(all_interventions_dict)
+    full_dict = read_json(filepath)
+    output_dict: Dict = {}
+
+    for user in full_dict.keys():
+        output_dict[user] = {}
+        for survey in full_dict[user].keys():
+            for time in full_dict[user][survey].keys():
+                output_dict[user][time] = full_dict[user][survey][time]
+    return(output_dict)

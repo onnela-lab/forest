@@ -1,20 +1,18 @@
-import os
-import logging
 import pandas as pd
-import glob
-import json
 import numpy as np
 import datetime
-import pytz
-import math
 from .functions import parse_surveys
+from typing import Optional
 
 
 # Write a function that subsets the list if it starts with nan and ends
 # with two of the same elements
-def subset_answer_choices(answer):
+def subset_answer_choices(answer: list) -> list:
     """
-    If a user changes their answers multiple times, an iOS device will have redundant answers at the beginning
+    Remove Duplicate Answers.
+
+    If a user changes their answers multiple times, an iOS device will have
+    redundant answers at the beginning
     and end of the list, so we remove them.
     Args:
         answer(list):
@@ -30,14 +28,16 @@ def subset_answer_choices(answer):
     if len(answer) > 1:
         if answer[-1] == answer[-2]:
             answer = answer[:-1]
-
     return answer
 
 
 # Function that takes aggregated data and adds list of changed answers and
 # first and last times and answers
-def agg_changed_answers(study_dir, config_path, agg, study_tz=None):
+def agg_changed_answers(study_dir: str, config_path: str, agg: pd.DataFrame,
+                        study_tz: Optional[str] = None) -> pd.DataFrame:
     """
+    Add first/last times and changed answers to agg DataFrame.
+
     Args:
         config_path(str):
             File path to study configuration file
@@ -48,12 +48,10 @@ def agg_changed_answers(study_dir, config_path, agg, study_tz=None):
 
     Returns:
         agg(DataFrame):
-            Dataframe with aggregated data, one line per question answered, with changed answers aggregated into a list.
+            Dataframe with aggregated data, one line per question answered,
+            with changed answers aggregated into a list.
             The Final answer is in the 'last_answer' field
     """
-
-    #     agg = functions.aggregate_surveys_config(study_dir, config_path, study_tz)
-
     cols = [
         'survey id',
         'beiwe_id',
@@ -81,7 +79,6 @@ def agg_changed_answers(study_dir, config_path, agg, study_tz=None):
     agg['last_time'] = agg.groupby(cols)['Local time'].transform('last')
 
     # Number of changed answers and time spent answering each question
-    #     agg['num_answers'] = agg['all_answers'].apply(lambda x: x if isinstance(x, float) else len(x))
     agg['time_to_answer'] = agg['last_time'] - agg['first_time']
 
     # Filter agg down to the line of the last question time
@@ -93,8 +90,14 @@ def agg_changed_answers(study_dir, config_path, agg, study_tz=None):
 # Create a summary file that has survey, beiwe id, question id, average
 # number of changed answers, average time spent answering question
 
-def agg_changed_answers_summary(study_dir, config_path, agg, study_tz=None):
+def agg_changed_answers_summary(study_dir: str,
+                                config_path: str,
+                                agg: pd.DataFrame,
+                                study_tz: Optional[str] = None
+                                ) -> pd.DataFrame:
     """
+    Create Summary File.
+
     Args:
         config_path(str):
             File path to study configuration file
@@ -105,10 +108,10 @@ def agg_changed_answers_summary(study_dir, config_path, agg, study_tz=None):
 
     Returns:
         agg(DataFrame):
-            Dataframe with aggregated data, one line per question answered, with changed answers aggregated into a list.
+            Dataframe with aggregated data, one line per question answered,
+            with changed answers aggregated into a list.
             The Final answer is in the 'last_answer' field
     """
-
     detail = agg_changed_answers(study_dir, config_path, agg, study_tz)
     #####################################################################
     # Add instance id and update first time to be the last last time if there
@@ -153,8 +156,10 @@ def agg_changed_answers_summary(study_dir, config_path, agg, study_tz=None):
     avg_time = detail.groupby(summary_cols)['time_to_answer'].apply(
         lambda x: sum(x, datetime.timedelta()) / len(x))
     avg_chgs = detail.groupby(summary_cols)['num_answers'].mean()
-    most_common_answer = detail.groupby(summary_cols)['all_answers'].apply(lambda x: max(
-        set([x for x in x for x in x]), key=[x for x in x for x in x].count, default=0))
+    most_common_answer = detail.groupby(summary_cols)['all_answers'].\
+        apply(lambda x: max(
+            set([x for x in x for x in x]),
+            key=[x for x in x for x in x].count, default=0))
 
     out = pd.concat([num_answers, avg_time, avg_chgs,
                     most_common_answer], axis=1).reset_index()
