@@ -398,7 +398,7 @@ def survey_submits_no_config(study_dir: str,
     return tmp.sort_values(['beiwe_id', 'survey id'])
 
 
-def get_all_interventions_dict(filepath: str) -> dict:
+def get_all_interventions_dict(filepath: Optional[str]) -> dict:
     """
     Read json file into interventions dict.
 
