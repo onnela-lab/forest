@@ -30,6 +30,12 @@ def comm_logs_summaries(ID:str, df_text, df_call, stamp_start, stamp_end, tz_str
     ## for each chunk, calculate the summary statistics (colmean or count)
     for stamp in np.arange(table_start,table_end+1,step=step_size):
         (year, month, day, hour, minute, second) = stamp2datetime(stamp,tz_str)
+        (num_in_call, num_out_call, num_mis_call, num_uniq_in_call,
+         num_uniq_out_call, num_uniq_mis_call, total_time_in_call,
+         total_time_out_call, num_s, num_r, num_mms_s, num_mms_r, num_s_tel,
+         num_r_tel, total_char_s, total_char_r, text_reciprocity_incoming,
+         text_reciprocity_outgoing) = [pd.NA] * 18
+
         if df_text.shape[0] > 0:
             temp_text = df_text[(df_text["timestamp"]/1000>=stamp)&(df_text["timestamp"]/1000<stamp+step_size)]
             m_len = np.array(temp_text['message length'])
@@ -71,10 +77,6 @@ def comm_logs_summaries(ID:str, df_text, df_call, stamp_start, stamp_end, tz_str
                 text_reciprocity_incoming = text_reciprocity_incoming + sum(index_r*(np.array(temp_text['hashed phone number'])==tel))
               for tel in sent_no_response:
                 text_reciprocity_outgoing = text_reciprocity_outgoing + sum(index_s*(np.array(temp_text['hashed phone number'])==tel))
-        else:
-            (num_s, num_r, num_mms_s, num_mms_r, num_s_tel, num_r_tel,
-             total_char_s, total_char_r, text_reciprocity_incoming,
-             text_reciprocity_outgoing) = [pd.NA] * 10
 
         if df_call.shape[0] > 0:
             temp_call = df_call[(df_call["timestamp"]/1000>=stamp)&(df_call["timestamp"]/1000<stamp+step_size)]
