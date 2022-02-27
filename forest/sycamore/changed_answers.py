@@ -29,11 +29,12 @@ def subset_answer_choices(answer: list) -> list:
     return answer
 
 
-# Function that takes aggregated data and adds list of changed answers and
-# first and last times and answers
 def agg_changed_answers(study_dir: str, config_path: str, agg: pd.DataFrame,
                         study_tz: Optional[str] = None) -> pd.DataFrame:
     """Add first/last times and changed answers to agg DataFrame
+
+    Function that takes aggregated data and adds list of changed answers and
+    first and last times and answers.
 
     Args:
         config_path(str):
