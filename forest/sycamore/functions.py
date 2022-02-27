@@ -116,8 +116,7 @@ def read_and_aggregate(study_dir: str,
         return survey_data
     else:
         logging.warning('No survey_timings for user %s.' % beiwe_id)
-        return(pd.DataFrame(
-            columns=["UTC time"], dtype="datetime64[ns]"))
+        return pd.DataFrame(columns=["UTC time"], dtype="datetime64[ns]")
 
 
 def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
@@ -146,7 +145,7 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
         print('No users in directory')
         empty_df = pd.DataFrame(
             columns=["UTC time"], dtype="datetime64[ns]")
-        return(empty_df)
+        return empty_df
 
     all_data_list = []
     for u in users:
@@ -323,7 +322,7 @@ def aggregate_surveys_config(study_dir: str,
     config_surveys = parse_surveys(config_path)
     agg_data = aggregate_surveys(study_dir, users)
     if agg_data.shape[0] == 0:
-        return(agg_data)
+        return agg_data
 
     # Merge data together and add configuration survey ID to all lines
     df_merged = agg_data.merge(config_surveys[['config_id',
@@ -381,7 +380,7 @@ def aggregate_surveys_no_config(study_dir: str,
     """
     agg_data = aggregate_surveys(study_dir, users)
     if agg_data.shape[0] == 0:
-        return(agg_data)
+        return agg_data
     agg_data['submit_line'] = agg_data.apply(
         lambda row: 1 if row['event'] in [
             'User hit submit', 'submitted'] else 0, axis=1)

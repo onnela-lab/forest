@@ -206,7 +206,7 @@ def gen_survey_schedule(
     else:
         times_sur_df = pd.DataFrame(
             columns=['delivery_time', 'next_delivery_time', 'id', 'beiwe_id'])
-    return(times_sur_df)
+    return times_sur_df
 
 
 def survey_submits(
@@ -258,8 +258,8 @@ def survey_submits(
 
     if sched.shape[0] == 0:  # return empty dataframes
         print("Error: No survey schedules found")
-        return(pd.DataFrame(columns=[['survey id', 'beiwe_id']]),
-               pd.DataFrame(columns=[['survey id', 'beiwe_id']]))
+        return (pd.DataFrame(columns=[['survey id', 'beiwe_id']]),
+                pd.DataFrame(columns=[['survey id', 'beiwe_id']]))
 
     # Merge survey submit lines onto the schedule data and identify submitted
     # lines
@@ -356,7 +356,7 @@ def survey_submits(
             'NaT',
             dtype='datetime64[ns]'))
 
-    return(submit_lines3.sort_values(
+    return (submit_lines3.sort_values(
         ['survey id', 'beiwe_id']).drop_duplicates(),
         submit_lines_summary)
 
@@ -409,7 +409,7 @@ def get_all_interventions_dict(filepath: Optional[str]) -> dict:
     filepath(str)
     """
     if filepath is None:
-        return({})  # empty dict
+        return {}  # empty dict
     full_dict = read_json(filepath)
     output_dict: Dict = {}
 
@@ -418,4 +418,4 @@ def get_all_interventions_dict(filepath: Optional[str]) -> dict:
         for survey in full_dict[user].keys():
             for time in full_dict[user][survey].keys():
                 output_dict[user][time] = full_dict[user][survey][time]
-    return(output_dict)
+    return output_dict

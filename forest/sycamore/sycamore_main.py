@@ -57,7 +57,7 @@ def survey_stats_main(
                                             tz_str, participant_ids)
         if agg_data.shape[0] == 0:
             print("Error: No survey data found")
-            return(True)
+            return True
         # Create changed answers detail and summary
         ca_detail, ca_summary = agg_changed_answers_summary(
             study_folder, config_path, agg_data, tz_str)
@@ -96,4 +96,4 @@ def survey_stats_main(
     submits_tbl = survey_submits_no_config(study_folder, tz_str)
     submits_tbl.to_csv(os.path.join(output_folder, 'submits_alt_summary.csv'),
                        index=False)
-    return(True)
+    return True
