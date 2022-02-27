@@ -39,8 +39,7 @@ def survey_stats_main(
         filepath where interventions json file is.
 
     """
-    if not os.path.isdir(output_folder):
-        os.mkdir(output_folder)
+    os.makedirs(output_folder, exist_ok=True)
     if participant_ids is None:
         participant_ids = [u for u in os.listdir(
             study_folder) if not u.startswith('.') and u != 'registry']
@@ -61,23 +60,17 @@ def survey_stats_main(
         # Create changed answers detail and summary
         ca_detail, ca_summary = agg_changed_answers_summary(
             study_folder, config_path, agg_data, tz_str)
-        ca_detail.to_csv(
-            os.path.join(
-                output_folder,
-                'answers_data.csv'),
-            index=False)
-        ca_summary.to_csv(
-            os.path.join(
-                output_folder,
-                'answers_summary.csv'),
-            index=False)
+        ca_detail.to_csv(os.path.join(output_folder, 'answers_data.csv'),
+                         index=False)
+        ca_summary.to_csv(os.path.join(output_folder, 'answers_summary.csv'),
+                          index=False)
         if time_start is not None and time_end is not None:
             # Create survey submits detail and summary
             all_interventions_dict = get_all_interventions_dict(
                 interventions_filepath)
             ss_detail, ss_summary = survey_submits(
-                study_folder, config_path, time_start, time_end,
-                participant_ids, agg_data, tz_str, all_interventions_dict)
+                config_path, time_start, time_end,
+                participant_ids, agg_data, all_interventions_dict)
             if ss_summary.shape[0] > 0:
                 ss_detail.to_csv(
                     os.path.join(

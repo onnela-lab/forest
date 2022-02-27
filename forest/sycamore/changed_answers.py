@@ -50,13 +50,8 @@ def agg_changed_answers(study_dir: str, config_path: str, agg: pd.DataFrame,
             with changed answers aggregated into a list.
             The Final answer is in the 'last_answer' field
     """
-    cols = [
-        'survey id',
-        'beiwe_id',
-        'question id',
-        'question text',
-        'question type',
-        'question index']
+    cols = ['survey id', 'beiwe_id', 'question id', 'question text',
+            'question type', 'question index']
 
     agg['last_answer'] = agg.groupby(cols).answer.transform('last')
     # add in an answer ID and take the last of that too to join back on the
@@ -65,12 +60,9 @@ def agg_changed_answers(study_dir: str, config_path: str, agg: pd.DataFrame,
     agg['all_answers'] = agg.groupby(cols)['answer'].apply(lambda x: list(x))
     # Subset answer lists if needed
     agg['all_answers'] = agg['all_answers'].apply(
-        lambda x: x if isinstance(
-            x, float) else subset_answer_choices(x))
+        lambda x: x if isinstance(x, float) else subset_answer_choices(x))
     agg['num_answers'] = agg['all_answers'].apply(
-        lambda x: x if isinstance(
-            x, float) else len(
-            list(x)))
+        lambda x: x if isinstance(x, float) else len(list(x)))
     agg = agg.reset_index()
 
     agg['first_time'] = agg.groupby(cols)['Local time'].transform('first')
@@ -100,6 +92,7 @@ def agg_changed_answers_summary(study_dir: str,
             File path to study configuration file
         study_dir(str):
             File path to study data
+        agg(DataFrame): Dataframe with aggregated data
         study_tz(str):
             Timezone of study. This defaults to 'America/New_York'
 
@@ -118,8 +111,7 @@ def agg_changed_answers_summary(study_dir: str,
         'config_id').cumcount() + 1
 
     detail = pd.merge(detail,
-                      surv_config[['question_id',
-                                   'q_internal_id']],
+                      surv_config[['question_id', 'q_internal_id']],
                       how='left',
                       left_on='question id',
                       right_on='question_id')
@@ -133,9 +125,9 @@ def agg_changed_answers_summary(study_dir: str,
     # if there is one answer and the last_time and first_time are the same,
     # make the first_time = last_time_1
     detail['first_time'] = np.where(
-        (detail.num_answers == 1) & (
-            detail.first_time == detail.last_time) & (
-            detail.q_internal_id != 1),
+        (detail.num_answers == 1)
+        & (detail.first_time == detail.last_time)
+        & (detail.q_internal_id != 1),
         detail.last_time_1,
         detail.first_time)
 
@@ -151,7 +143,8 @@ def agg_changed_answers_summary(study_dir: str,
         'question type']
     num_answers = detail.groupby(summary_cols)['num_answers'].count()
     avg_time = detail.groupby(summary_cols)['time_to_answer'].apply(
-        lambda x: sum(x, datetime.timedelta()) / len(x))
+        lambda x: sum(x, datetime.timedelta()) / len(x)
+    )
     avg_chgs = detail.groupby(summary_cols)['num_answers'].mean()
     most_common_answer = detail.groupby(summary_cols)['all_answers'].\
         apply(lambda x: max(

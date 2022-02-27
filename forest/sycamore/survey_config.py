@@ -46,7 +46,7 @@ def convert_time_to_date(submit_time: datetime.datetime,
 def generate_survey_times(
         time_start: str,
         time_end: str,
-        timings: list = [],
+        timings: Optional[list] = None,
         survey_type: str = 'weekly',
         intervention_dict: Optional[dict] = None) -> list:
     """Get delivery times for a survey
@@ -73,9 +73,10 @@ def generate_survey_times(
             time_end per the given survey timings schedule
     """
     if survey_type not in ['weekly', 'absolute', 'relative']:
-        raise ValueError(
-            'Incorrect type of survey.'
-            ' Ensure this is weekly, absolute, or relative.')
+        raise ValueError('Incorrect type of survey.'
+                         ' Ensure this is weekly, absolute, or relative.')
+    if timings is None:
+        timings = []
 
         # Get the number of weeks between start and end time
     t_start = pd.Timestamp(time_start)
@@ -93,10 +94,8 @@ def generate_survey_times(
 
         # for each week, generate the survey times and append to a list
         start_dates = [
-            t_start +
-            datetime.timedelta(
-                days=7 *
-                (i)) for i in range(weeks)]
+            t_start + datetime.timedelta(days=7 * i) for i in range(weeks)
+        ]
 
         for s in start_dates:
             # Get the starting day of week
@@ -119,19 +118,18 @@ def generate_survey_times(
             if intervention_dict[t[0]] is not None:  # time exists for the user
                 # first, get the intervention time.
                 # Then, add the days and time of day for the survey to the time
-                current_time = datetime.datetime.fromisoformat(
-                    intervention_dict[t[0]]) + pd.Timedelta(
-                        t[1], unit='days') + pd.Timedelta(
-                            t[2], unit='seconds')  # seconds after time
-
+                current_time = (
+                    datetime.datetime.fromisoformat(intervention_dict[t[0]])
+                    + pd.Timedelta(t[1], unit='days')
+                    + pd.Timedelta(t[2], unit='seconds'))  # seconds after time
                 surveys.append(current_time)
     return surveys
 
 
 def gen_survey_schedule(
         config_path: str,
-        time_start: pd.Timestamp,
-        time_end: pd.Timestamp,
+        time_start: str,
+        time_end: str,
         beiwe_ids: list,
         all_interventions_dict: dict) -> pd.DataFrame:
     """Get survey schedule for a number of users
@@ -210,20 +208,16 @@ def gen_survey_schedule(
 
 
 def survey_submits(
-        study_dir: str,
         config_path: str,
         time_start: str,
         time_end: str,
         beiwe_ids: list,
         agg: pd.DataFrame,
-        study_tz: str = None,
-        all_interventions_dict: dict = {}
+        all_interventions_dict: Optional[dict] = None
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Get survey submits for users
 
     Args:
-        study_dir(str):
-            File path to study data
         config_path(str):
             File path to study configuration file
         time_start(str):
@@ -233,8 +227,6 @@ def survey_submits(
         beiwe_ids(list):
             List of users in study for which we are generating a survey
             schedule
-        study_tz(str):
-            Timezone of study. This defaults to 'America/New_York'
         all_interventions_dict(dict):
             dict containing interventions for each user. Each key in the dict
             is a beiwe id. Each value is a dict, with a key for each
@@ -246,8 +238,8 @@ def survey_submits(
         submit_lines_summary(DataFrame): a DataFrame with all users, total
         surveys received, and responses.
     """
-    time_start = pd.Timestamp(time_start)
-    time_end = pd.Timestamp(time_end)
+    if all_interventions_dict is None:
+        all_interventions_dict = {}
 
     sched = gen_survey_schedule(
         config_path,
@@ -286,7 +278,8 @@ def survey_submits(
             'next_delivery_time',
             'survey id',
             'beiwe_id',
-            'config_id'])['submit_flg'].max().reset_index()
+            'config_id'
+        ])['submit_flg'].max().reset_index()
 
     for col in ['delivery_time', 'next_delivery_time']:
         submit_lines2[col] = pd.to_datetime(submit_lines2[col])
@@ -308,9 +301,7 @@ def survey_submits(
     submit_lines3['submit_time'] = np.where(
         submit_lines3.submit_flg == 1,
         submit_lines3['Local time'],
-        np.array(
-            0,
-            dtype='datetime64[ns]'))
+        np.array(0, dtype='datetime64[ns]'))
 
     #     # Select appropriate columns
     submit_lines3 = submit_lines3[[
@@ -332,8 +323,8 @@ def survey_submits(
         apply(lambda x: sum(x, datetime.timedelta()) / len(x))
 
     submit_lines_summary = pd.concat(
-        [num_surveys, num_complete_surveys, avg_time_to_submit], axis=1).\
-        reset_index()
+        [num_surveys, num_complete_surveys, avg_time_to_submit], axis=1
+    ).reset_index()
     submit_lines_summary.columns = [
         'survey id',
         'beiwe_id',
@@ -345,16 +336,12 @@ def survey_submits(
     submit_lines3['submit_time'] = np.where(
         submit_lines3['submit_flg'] == 1,
         submit_lines3['submit_time'],
-        np.array(
-            'NaT',
-            dtype='datetime64[ns]'))
+        np.array('NaT', dtype='datetime64[ns]'))
 
     submit_lines3['time_to_submit'] = np.where(
         submit_lines3['submit_flg'] == 1,
         submit_lines3['time_to_submit'],
-        np.array(
-            'NaT',
-            dtype='datetime64[ns]'))
+        np.array('NaT', dtype='datetime64[ns]'))
 
     return (submit_lines3.sort_values(
         ['survey id', 'beiwe_id']).drop_duplicates(),
@@ -368,8 +355,10 @@ def survey_submits_no_config(study_dir: str,
     Alternative function for getting the survey completions (doesn't have
     expected times of surveys)
     Args:
-        agg(DataFrame):
-            Output of aggregate_surveys_no_config
+        study_dir(str):
+            Directory where information is located
+        study_tz(str):
+            Time zone for local time
     """
     tmp = aggregate_surveys_no_config(study_dir, study_tz)
 
@@ -383,10 +372,7 @@ def survey_submits_no_config(study_dir: str,
     tmp = tmp.groupby(['survey id', 'beiwe_id', 'surv_inst_flg'])[
         'Local time'].apply(summarize_submits).reset_index()
     tmp = tmp.pivot(
-        index=[
-            'survey id',
-            'beiwe_id',
-            'surv_inst_flg'],
+        index=['survey id', 'beiwe_id', 'surv_inst_flg'],
         columns='level_3',
         values='Local time').reset_index()
     tmp['time_to_complete'] = tmp['max_time'] - tmp['min_time']
@@ -399,9 +385,9 @@ def get_all_interventions_dict(filepath: Optional[str]) -> dict:
 
     Extracts user intervention information for use in survey_timings.
     Args:
-        filepath: the path to a table containing patient information
-        Note: right now, the user has to copy the table from the study website
-        into a text processor.
+        filepath: the path to a json file containing patient interventions
+        information (downloaded from the beiwe website)
+
     Returns:
         a dict with one key for each beiwe_id in the study. The value for each
         key is a dict with a key for each intervention in the study, and a

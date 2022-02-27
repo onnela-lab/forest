@@ -294,7 +294,7 @@ def aggregate_surveys_config(study_dir: str,
                              config_path: str,
                              study_tz: Optional[str] = None,
                              users: list = None) -> pd.DataFrame:
-    """Aggregate suveys when config is available
+    """Aggregate surveys when config is available
 
     Merges stacked survey data with processed configuration file data and
     removes lines that are not questions or submission lines
@@ -305,10 +305,6 @@ def aggregate_surveys_config(study_dir: str,
             data in a subfolder with the beiwe_id as the subfolder name
         config_path(str):
             path to the study configuration file
-        calc_time_diff(bool):
-            If this is true, will calculate fields that have the time
-            difference between the survey line and the expected delivery
-            date for each day.
         study_tz(str):
             Timezone of study. This defaults to 'America/New_York'
         users(tuple):
@@ -324,12 +320,11 @@ def aggregate_surveys_config(study_dir: str,
         return agg_data
 
     # Merge data together and add configuration survey ID to all lines
-    df_merged = agg_data.merge(config_surveys[['config_id',
-                                               'question_id']],
-                               how='left',
-                               left_on='question id',
-                               right_on='question_id').drop(['question_id'],
-                                                            axis=1)
+    df_merged = agg_data.merge(
+        config_surveys[['config_id', 'question_id']],
+        how='left',
+        left_on='question id',
+        right_on='question_id').drop(['question_id'], axis=1)
     df_merged['config_id_update'] = df_merged['config_id'].fillna(
         method='ffill')
     df_merged['config_id'] = df_merged.apply(
@@ -363,12 +358,6 @@ def aggregate_surveys_no_config(study_dir: str,
         study_dir (str):
             path to downloaded data. This is a folder that includes the user
             data in a subfolder with the beiwe_id as the subfolder name
-        config_path(str):
-            path to the study configuration file
-        calc_time_diff(bool):
-            If this is true, will calculate fields that have the time
-            difference between the survey line and the expected delivery date
-            for each day.
         study_tz(str):
             Timezone of study. This defaults to 'America/New_York'
         users(tuple):
@@ -425,10 +414,10 @@ def get_survey_timings(person_ids, study_dir, survey_id):
 
 
     """
-    record = np.array(['beiwe_id', 'phone_os', 'date_hour',
-                      'start_time', 'end_time']).reshape(1, 5)
+    record = np.array(
+        ['beiwe_id', 'phone_os', 'date_hour', 'start_time', 'end_time']
+    ).reshape(1, 5)
     for pid in person_ids:
-        # print(pid)
         survey_dir = os.path.join(study_dir, pid, "survey_timings", survey_id)
 
         try:
@@ -438,10 +427,9 @@ def get_survey_timings(person_ids, study_dir, survey_id):
 
         # For each survey
         for fp in filepaths:
-            #             print(fp)
             try:
                 f = pd.read_csv(os.path.join(survey_dir, fp))
-            except BaseException:
+            except Exception:
                 pass
 
             # Check whether participant uses iOS
@@ -472,20 +460,20 @@ def get_survey_timings(person_ids, study_dir, survey_id):
                 f = f.sort_values(by='date_hour', ascending=True)
 
                 f = f.drop_duplicates(
-                    subset=[
-                        'date_hour',
-                        'event'],
+                    subset=['date_hour', 'event'],
                     keep='first')
 
                 f = f.pivot(
                     columns='event',
                     values='UTC time',
-                    index='date_hour').reset_index()
+                    index='date_hour'
+                ).reset_index()
 
                 for timestamp in pd.unique(f['date_hour']):
                     try:
-                        present = f.loc[f['date_hour']
-                                        == timestamp, 'present'][0]
+                        present = f.loc[
+                            f['date_hour'] == timestamp, 'present'
+                        ][0]
                     except KeyError:
                         present = None
 
@@ -517,19 +505,17 @@ def get_survey_timings(person_ids, study_dir, survey_id):
                 # Looks like if Androids have double events, you should take
                 # the   last
                 f = f.drop_duplicates(
-                    subset=[
-                        'date_hour',
-                        'question id'],
-                    keep='last')
+                    subset=['date_hour', 'question id'], keep='last')
 
                 f = f.pivot(
                     columns='question id',
                     values='UTC time',
-                    index='date_hour').rename(
-                    columns={
-                        'Survey first rendered and displayed to user':
-                            'present',
-                        'User hit submit': 'submitted'}).reset_index()
+                    index='date_hour'
+                ).rename(
+                    columns={'Survey first rendered and displayed to user':
+                             'present',
+                             'User hit submit': 'submitted'}
+                ).reset_index()
 
                 for timestamp in pd.unique(f['date_hour']):
                     try:
@@ -551,8 +537,8 @@ def get_survey_timings(person_ids, study_dir, survey_id):
 
     # Fix surveys that were completed over more than an hour
     svtm['day'] = pd.to_datetime(
-        svtm['date_hour'].astype('str'),
-        format='%Y_%m_%d_%H').dt.strftime('%Y-%m-%d')
+        svtm['date_hour'].astype('str'), format='%Y_%m_%d_%H'
+    ).dt.strftime('%Y-%m-%d')
 
     svtm = svtm.groupby(['beiwe_id', 'day', 'phone_os']).agg(
         {
