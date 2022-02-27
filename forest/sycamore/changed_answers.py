@@ -1,5 +1,5 @@
-from typing import Optional
 import datetime
+from typing import Optional
 
 import pandas as pd
 import numpy as np
