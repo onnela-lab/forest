@@ -76,33 +76,24 @@ def survey_stats_main(
             all_interventions_dict = get_all_interventions_dict(
                 interventions_filepath)
             ss_detail, ss_summary = survey_submits(
-                study_folder, config_path, time_start,
-                time_end, participant_ids, agg_data,
-                tz_str, all_interventions_dict)
+                study_folder, config_path, time_start, time_end,
+                participant_ids, agg_data, tz_str, all_interventions_dict)
             if ss_summary.shape[0] > 0:
                 ss_detail.to_csv(
                     os.path.join(
                         output_folder,
                         'submits_data.csv'),
                     index=False)
-                ss_summary.to_csv(
-                    os.path.join(
-                        output_folder,
-                        'submits_summary.csv'),
-                    index=False)
+                ss_summary.to_csv(os.path.join(output_folder,
+                                               'submits_summary.csv'),
+                                  index=False)
             else:
                 print("An Error occurred when getting survey submit summaries")
     # Write out summaries
-    agg_data.to_csv(
-        os.path.join(
-            output_folder,
-            'agg_survey_data.csv'),
-        index=False)
+    agg_data.to_csv(os.path.join(output_folder, 'agg_survey_data.csv'),
+                    index=False)
     # Add alternative survey submits table
     submits_tbl = survey_submits_no_config(study_folder, tz_str)
-    submits_tbl.to_csv(
-        os.path.join(
-            output_folder,
-            'submits_alt_summary.csv'),
-        index=False)
+    submits_tbl.to_csv(os.path.join(output_folder, 'submits_alt_summary.csv'),
+                       index=False)
     return(True)
