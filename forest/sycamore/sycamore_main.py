@@ -18,8 +18,7 @@ def survey_stats_main(
         time_end: Optional[str] = None,
         config_path: Optional[str] = None,
         interventions_filepath: Optional[str] = None) -> bool:
-    """
-    Compute statistics on surveys.
+    """Compute statistics on surveys
 
     Args:
     output_folder(str):

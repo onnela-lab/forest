@@ -12,8 +12,7 @@ from forest.sycamore.functions import read_json, aggregate_surveys_no_config
 def convert_time_to_date(submit_time: datetime.datetime,
                          day: int,
                          time: list) -> list:
-    """
-    Convert an array of times to date.
+    """Convert an array of times to date
 
     Takes a single array of timings and a single day
     Args:
@@ -50,8 +49,7 @@ def generate_survey_times(
         timings: list = [],
         survey_type: str = 'weekly',
         intervention_dict: Optional[dict] = None) -> list:
-    """
-    Get delivery times for a survey.
+    """Get delivery times for a survey
 
     Takes a start time and end time and generates a schedule of all sent
     surveys in time frame for the given survey type
@@ -136,8 +134,7 @@ def gen_survey_schedule(
         time_end: pd.Timestamp,
         beiwe_ids: list,
         all_interventions_dict: dict) -> pd.DataFrame:
-    """
-    Get survey schedule for a number of users.
+    """Get survey schedule for a number of users
 
     Args:
         config_path(str):
@@ -222,8 +219,7 @@ def survey_submits(
         study_tz: str = None,
         all_interventions_dict: dict = {}
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Get survey submits for users.
+    """Get survey submits for users
 
     Args:
         study_dir(str):
@@ -367,8 +363,7 @@ def survey_submits(
 
 def survey_submits_no_config(study_dir: str,
                              study_tz: Optional[str] = None) -> pd.DataFrame:
-    """
-    Get survey submits without config file.
+    """Get survey submits without config file
 
     Alternative function for getting the survey completions (doesn't have
     expected times of surveys)
@@ -400,8 +395,7 @@ def survey_submits_no_config(study_dir: str,
 
 
 def get_all_interventions_dict(filepath: Optional[str]) -> dict:
-    """
-    Read json file into interventions dict.
+    """Read json file into interventions dict
 
     Extracts user intervention information for use in survey_timings.
     Args:

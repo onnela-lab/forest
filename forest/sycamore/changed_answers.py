@@ -7,15 +7,11 @@ import numpy as np
 from forest.sycamore.functions import parse_surveys
 
 
-# Write a function that subsets the list if it starts with nan and ends
-# with two of the same elements
 def subset_answer_choices(answer: list) -> list:
-    """
-    Remove Duplicate Answers.
+    """Remove Duplicate Answers
 
     If a user changes their answers multiple times, an iOS device will have
-    redundant answers at the beginning
-    and end of the list, so we remove them.
+    redundant answers at the beginning and end of the list, so we remove them.
     Args:
         answer(list):
             List of changed answers
@@ -37,8 +33,7 @@ def subset_answer_choices(answer: list) -> list:
 # first and last times and answers
 def agg_changed_answers(study_dir: str, config_path: str, agg: pd.DataFrame,
                         study_tz: Optional[str] = None) -> pd.DataFrame:
-    """
-    Add first/last times and changed answers to agg DataFrame.
+    """Add first/last times and changed answers to agg DataFrame
 
     Args:
         config_path(str):
@@ -97,8 +92,7 @@ def agg_changed_answers_summary(study_dir: str,
                                 agg: pd.DataFrame,
                                 study_tz: Optional[str] = None
                                 ) -> pd.DataFrame:
-    """
-    Create Summary File.
+    """Create Summary File
 
     Args:
         config_path(str):

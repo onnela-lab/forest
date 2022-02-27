@@ -17,8 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def read_json(study_dir: str) -> dict:
-    """
-    Read a json file into a dictionary.
+    """Read a json file into a dictionary
 
     Args:
         study_dir (str):  study_dir to json file.
@@ -41,8 +40,7 @@ question_type_names = read_json(
 
 
 def make_lookup() -> dict:
-    """
-    From legacy script.
+    """From legacy script
 
     Reformats the question types JSON to be usable in future functions
     """
@@ -60,8 +58,7 @@ question_types_lookup = make_lookup()
 
 def q_types_standardize(q: str,
                         lkp: dict = question_types_lookup) -> str:
-    """
-    Standardizes question types using a lookup function.
+    """Standardizes question types using a lookup function
 
     Args:
         q (str):
@@ -83,8 +80,7 @@ def q_types_standardize(q: str,
 def read_and_aggregate(study_dir: str,
                        beiwe_id: str,
                        data_stream: str) -> pd.DataFrame:
-    """
-    Read and aggregate data for a user.
+    """Read and aggregate data for a user
 
     Reads in all downloaded data for a particular user and data stream and
     stacks the datasets
@@ -125,8 +121,7 @@ def read_and_aggregate(study_dir: str,
 
 
 def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
-    """
-    Aggregate Survey Data.
+    """Aggregate Survey Data
 
     Reads all survey data from a downloaded study folder and stacks data
     together. Standardizes question types between iOS and Android devices.
@@ -227,8 +222,7 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
 
 
 def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
-    """
-    Get survey information from config path.
+    """Get survey information from config path
 
     Args:
         config_path(str):
@@ -275,8 +269,7 @@ def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
 def convert_timezone_df(df_merged: pd.DataFrame,
                         tz_str: Optional[str] = None,
                         utc_col: str = 'UTC time') -> pd.DataFrame:
-    """
-    Convert a df to local time zone.
+    """Convert a df to local time zone
 
     Args:
         df_merged(DataFrame):
@@ -303,8 +296,7 @@ def aggregate_surveys_config(study_dir: str,
                              config_path: str,
                              study_tz: Optional[str] = None,
                              users: list = None) -> pd.DataFrame:
-    """
-    Aggregate suveys when config is available.
+    """Aggregate suveys when config is available
 
     Merges stacked survey data with processed configuration file data and
     removes lines that are not questions or submission lines
@@ -367,8 +359,7 @@ def aggregate_surveys_no_config(study_dir: str,
                                 study_tz: Optional[str] = None,
                                 users: list = None
                                 ) -> pd.DataFrame:
-    """
-    Clean aggregated data.
+    """Clean aggregated data
 
     Args:
         study_dir (str):
@@ -405,8 +396,7 @@ def aggregate_surveys_no_config(study_dir: str,
 
 
 def get_survey_timings(person_ids, study_dir, survey_id):
-    """
-    Get survey administration times.
+    """Get survey administration times
 
     Created on Thu Jan 28 11:34:23 2021
 
