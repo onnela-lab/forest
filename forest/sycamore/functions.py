@@ -34,9 +34,7 @@ def read_json(study_dir: str) -> dict:
 this_dir = os.path.dirname(__file__)
 events = read_json(os.path.join(this_dir, 'events.json'))
 question_type_names = read_json(
-    os.path.join(
-        this_dir,
-        'question_type_names.json'))
+    os.path.join(this_dir, 'question_type_names.json'))
 
 
 def make_lookup() -> dict:
@@ -56,8 +54,7 @@ def make_lookup() -> dict:
 question_types_lookup = make_lookup()
 
 
-def q_types_standardize(q: str,
-                        lkp: dict = question_types_lookup) -> str:
+def q_types_standardize(q: str, lkp: dict = question_types_lookup) -> str:
     """Standardizes question types using a lookup function
 
     Args:
@@ -129,6 +126,8 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
         study_dir(str):
             path to downloaded data. This is a folder that includes the user
             data in a subfolder with the beiwe_id as the subfolder name
+        users(list):
+            List of users to aggregate survey data over
 
     Returns:
         all_data(DataFrame): An aggregated dataframe that has a question index
@@ -138,14 +137,14 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
     # get a list of users (ignoring hidden files and registry file downloaded
     # when using mano)
     if users is None:
-        users = [u for u in os.listdir(
-            study_dir) if not u.startswith('.') and u != 'registry']
+        users = [u
+                 for u in os.listdir(study_dir)
+                 if not u.startswith('.') and u != 'registry']
 
     if len(users) == 0:
         print('No users in directory')
-        empty_df = pd.DataFrame(
+        return pd.DataFrame(
             columns=["UTC time"], dtype="datetime64[ns]")
-        return empty_df
 
     all_data_list = []
     for u in users:
@@ -153,9 +152,9 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
             read_and_aggregate(study_dir, u, 'survey_timings'))
 
     # Collapse all users into one file and drop duplicates
-    all_data: pd.DataFrame = pd.concat(all_data_list,
-                                       axis=0, ignore_index=False)\
-        .drop_duplicates().sort_values(['survey id', 'beiwe_id', 'timestamp'])
+    all_data: pd.DataFrame = pd.concat(
+        all_data_list, axis=0, ignore_index=False
+    ).drop_duplicates().sort_values(['survey id', 'beiwe_id', 'timestamp'])
 
     # FIX EVENT FIELDS
     # Ensure there is an 'event' field (They're won't be one if all users are
@@ -286,7 +285,7 @@ def convert_timezone_df(df_merged: pd.DataFrame,
         tz_str = 'America/New_York'
 
     df_merged['Local time'] = df_merged[utc_col].dt.tz_localize('UTC').dt.\
-        tz_convert('America/New_York').dt.tz_localize(None)
+        tz_convert(tz_str).dt.tz_localize(None)
 
     return df_merged
 
@@ -349,7 +348,7 @@ def aggregate_surveys_config(study_dir: str,
         ~df_merged['config_id'].isnull())]
 
     # Convert to the study's timezone
-    df_merged = convert_timezone_df(df_merged)
+    df_merged = convert_timezone_df(df_merged, study_tz)
 
     return df_merged.reset_index(drop=True)
 
