@@ -46,7 +46,7 @@ def convert_time_to_date(submit_time: datetime.datetime,
 def generate_survey_times(
         time_start: str,
         time_end: str,
-        timings: Optional[list] = None,
+        timings: list = [],
         survey_type: str = 'weekly',
         intervention_dict: Optional[dict] = None) -> list:
     """Get delivery times for a survey
@@ -75,8 +75,6 @@ def generate_survey_times(
     if survey_type not in ['weekly', 'absolute', 'relative']:
         raise ValueError('Incorrect type of survey.'
                          ' Ensure this is weekly, absolute, or relative.')
-    if timings is None:
-        timings = []
 
         # Get the number of weeks between start and end time
     t_start = pd.Timestamp(time_start)
@@ -368,7 +366,7 @@ def survey_submits_no_config(study_dir: str,
             'min_time': df.min(),
             'max_time': df.max()
         }
-        return pd.Series(temp_dict, index=['min_time', 'max_time'])
+        return pd.Series(temp_dict, index=pd.Index(['min_time', 'max_time']))
 
     tmp = tmp.groupby(['survey id', 'beiwe_id', 'surv_inst_flg'])[
         'Local time'].apply(summarize_submits).reset_index()

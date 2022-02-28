@@ -54,7 +54,6 @@ def make_lookup() -> dict:
 question_types_lookup = make_lookup()
 
 
-
 def q_types_standardize(q: str, lkp: dict = question_types_lookup) -> str:
     """Standardizes question types using a lookup function
 
