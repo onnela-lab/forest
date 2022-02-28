@@ -30,7 +30,7 @@ def subset_answer_choices(answer: list) -> list:
 
 
 def agg_changed_answers(study_dir: str, config_path: str, agg: pd.DataFrame,
-                        study_tz: Optional[str] = None) -> pd.DataFrame:
+                        study_tz: str = "UTC") -> pd.DataFrame:
     """Add first/last times and changed answers to agg DataFrame
 
     Function that takes aggregated data and adds list of changed answers and
@@ -42,7 +42,7 @@ def agg_changed_answers(study_dir: str, config_path: str, agg: pd.DataFrame,
         study_dir(str):
             File path to study data
         study_tz(str):
-            Timezone of study. This defaults to 'America/New_York'
+            Timezone of study. This defaults to 'UTC'
 
     Returns:
         agg(DataFrame):
@@ -83,7 +83,7 @@ def agg_changed_answers(study_dir: str, config_path: str, agg: pd.DataFrame,
 def agg_changed_answers_summary(study_dir: str,
                                 config_path: str,
                                 agg: pd.DataFrame,
-                                study_tz: Optional[str] = None
+                                study_tz: str = "UTC"
                                 ) -> pd.DataFrame:
     """Create Summary File
 
@@ -94,7 +94,7 @@ def agg_changed_answers_summary(study_dir: str,
             File path to study data
         agg(DataFrame): Dataframe with aggregated data
         study_tz(str):
-            Timezone of study. This defaults to 'America/New_York'
+            Timezone of study. This defaults to 'UTC'
 
     Returns:
         agg(DataFrame):

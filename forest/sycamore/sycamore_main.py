@@ -12,7 +12,7 @@ from forest.sycamore.survey_config import (survey_submits,
 def survey_stats_main(
         study_folder: str,
         output_folder: str,
-        tz_str: Optional[str] = "America/New_York",
+        tz_str: Optional[str] = "UTC",
         participant_ids: Optional[List] = None,
         time_start: Optional[str] = None,
         time_end: Optional[str] = None,
@@ -34,7 +34,7 @@ def survey_stats_main(
     participant_ids(list):
         List of users in study for which we are generating a survey schedule
     tz_str(str):
-        Timezone of study. This defaults to 'America/New_York'
+        Timezone of study. This defaults to 'UTC'
     interventions_filepath(str):
         filepath where interventions json file is.
 

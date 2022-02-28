@@ -292,7 +292,7 @@ def convert_timezone_df(df_merged: pd.DataFrame,
 
 def aggregate_surveys_config(study_dir: str,
                              config_path: str,
-                             study_tz: Optional[str] = None,
+                             study_tz: str = "UTC",
                              users: list = None) -> pd.DataFrame:
     """Aggregate surveys when config is available
 
@@ -306,7 +306,7 @@ def aggregate_surveys_config(study_dir: str,
         config_path(str):
             path to the study configuration file
         study_tz(str):
-            Timezone of study. This defaults to 'America/New_York'
+            Timezone of study. This defaults to 'UTC'
         users(tuple):
             List of beiwe IDs of users to aggregate
 
@@ -349,7 +349,7 @@ def aggregate_surveys_config(study_dir: str,
 
 
 def aggregate_surveys_no_config(study_dir: str,
-                                study_tz: Optional[str] = None,
+                                study_tz: str = "UTC",
                                 users: list = None
                                 ) -> pd.DataFrame:
     """Clean aggregated data
@@ -359,7 +359,7 @@ def aggregate_surveys_no_config(study_dir: str,
             path to downloaded data. This is a folder that includes the user
             data in a subfolder with the beiwe_id as the subfolder name
         study_tz(str):
-            Timezone of study. This defaults to 'America/New_York'
+            Timezone of study. This defaults to 'UTC'
         users(tuple):
             List of Beiwe IDs to run
 
