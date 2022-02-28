@@ -231,6 +231,7 @@ def survey_submits(
             dict containing interventions for each user. Each key in the dict
             is a beiwe id. Each value is a dict, with a key for each
             intervention name and a timestamp for each intervention's time
+        agg(DataFrame): Dataframe of aggregated data
 
     Returns:
         submit_lines(DataFrame): A DataFrame with all surveys deployed in the
@@ -363,11 +364,11 @@ def survey_submits_no_config(study_dir: str,
     tmp = aggregate_surveys_no_config(study_dir, study_tz)
 
     def summarize_submits(df):
-        tmp = {
+        temp_dict = {
             'min_time': df.min(),
             'max_time': df.max()
         }
-        return pd.Series(tmp, index=['min_time', 'max_time'])
+        return pd.Series(temp_dict, index=['min_time', 'max_time'])
 
     tmp = tmp.groupby(['survey id', 'beiwe_id', 'surv_inst_flg'])[
         'Local time'].apply(summarize_submits).reset_index()
@@ -386,7 +387,7 @@ def get_all_interventions_dict(filepath: Optional[str]) -> dict:
     Extracts user intervention information for use in survey_timings.
     Args:
         filepath: the path to a json file containing patient interventions
-        information (downloaded from the beiwe website)
+            information (downloaded from the beiwe website)
 
     Returns:
         a dict with one key for each beiwe_id in the study. The value for each
