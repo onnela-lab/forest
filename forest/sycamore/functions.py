@@ -54,6 +54,7 @@ def make_lookup() -> dict:
 question_types_lookup = make_lookup()
 
 
+
 def q_types_standardize(q: str, lkp: dict = question_types_lookup) -> str:
     """Standardizes question types using a lookup function
 
@@ -256,7 +257,7 @@ def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
 
                 if answers_l:
                     if 'answers' in q.keys():
-                        for i, a in enumerate(q['answers']):
+                        for j, a in enumerate(q['answers']):
                             surv['answer_' + str(i)] = a['text']
 
                 output.append(pd.DataFrame([surv]))
@@ -382,7 +383,7 @@ def aggregate_surveys_no_config(study_dir: str,
     return agg_data.reset_index(drop=True)
 
 
-def get_survey_timings(person_ids, study_dir, survey_id):
+def get_survey_timings(person_ids: list, study_dir: str, survey_id: str) -> pd.DataFrame:
     """Get survey administration times
 
     Created on Thu Jan 28 11:34:23 2021
