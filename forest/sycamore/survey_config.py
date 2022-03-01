@@ -76,6 +76,9 @@ def generate_survey_times(
         raise ValueError('Incorrect type of survey.'
                          ' Ensure this is weekly, absolute, or relative.')
 
+    if timings is None:
+        timings = []
+
         # Get the number of weeks between start and end time
     t_start = pd.Timestamp(time_start)
     t_end = pd.Timestamp(time_end)
