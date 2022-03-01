@@ -46,7 +46,7 @@ def convert_time_to_date(submit_time: datetime.datetime,
 def generate_survey_times(
         time_start: str,
         time_end: str,
-        timings: list = [],
+        timings: Optional[list] = None,
         survey_type: str = 'weekly',
         intervention_dict: Optional[dict] = None) -> list:
     """Get delivery times for a survey

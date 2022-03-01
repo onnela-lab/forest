@@ -1,10 +1,11 @@
 import datetime
-from typing import Optional
+from typing import Tuple, Any
 
 import pandas as pd
 import numpy as np
 
 from forest.sycamore.functions import parse_surveys
+from pandas import DataFrame
 
 
 def subset_answer_choices(answer: list) -> list:
@@ -29,20 +30,16 @@ def subset_answer_choices(answer: list) -> list:
     return answer
 
 
-def agg_changed_answers(study_dir: str, config_path: str, agg: pd.DataFrame,
-                        study_tz: str = "UTC") -> pd.DataFrame:
+def agg_changed_answers(agg: pd.DataFrame) -> pd.DataFrame:
     """Add first/last times and changed answers to agg DataFrame
 
     Function that takes aggregated data and adds list of changed answers and
     first and last times and answers.
 
     Args:
-        config_path(str):
-            File path to study configuration file
-        study_dir(str):
-            File path to study data
-        study_tz(str):
-            Timezone of study. This defaults to 'UTC'
+        agg(DataFrame):
+            Aggregated Data
+
 
     Returns:
         agg(DataFrame):
@@ -80,21 +77,14 @@ def agg_changed_answers(study_dir: str, config_path: str, agg: pd.DataFrame,
 # Create a summary file that has survey, beiwe id, question id, average
 # number of changed answers, average time spent answering question
 
-def agg_changed_answers_summary(study_dir: str,
-                                config_path: str,
-                                agg: pd.DataFrame,
-                                study_tz: str = "UTC"
-                                ) -> pd.DataFrame:
+def agg_changed_answers_summary(config_path: str, agg: pd.DataFrame,) -> Tuple[Any, DataFrame]:
     """Create Summary File
 
     Args:
         config_path(str):
             File path to study configuration file
-        study_dir(str):
-            File path to study data
         agg(DataFrame): Dataframe with aggregated data
-        study_tz(str):
-            Timezone of study. This defaults to 'UTC'
+
 
     Returns:
         agg(DataFrame):
@@ -102,7 +92,7 @@ def agg_changed_answers_summary(study_dir: str,
             with changed answers aggregated into a list.
             The Final answer is in the 'last_answer' field
     """
-    detail = agg_changed_answers(study_dir, config_path, agg, study_tz)
+    detail = agg_changed_answers(agg)
     #####################################################################
     # Add instance id and update first time to be the last last time if there
     # is only one line

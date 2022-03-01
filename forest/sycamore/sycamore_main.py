@@ -47,13 +47,13 @@ def survey_stats_main(
     if config_path is None:
         print('No config file provided. Skipping some summary outputs.')
         agg_data = aggregate_surveys_no_config(
-            study_folder, tz_str, participant_ids)
+            study_folder, tz_str)
         if agg_data.shape[0] == 0:
             print("Error: No survey data found")
-            return(True)
+            return True
     else:
         agg_data = aggregate_surveys_config(study_folder, config_path,
-                                            tz_str, participant_ids)
+                                            tz_str)
         if agg_data.shape[0] == 0:
             print("Error: No survey data found")
             return True
