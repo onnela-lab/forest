@@ -78,7 +78,8 @@ def agg_changed_answers(agg: pd.DataFrame) -> pd.DataFrame:
 # number of changed answers, average time spent answering question
 
 def agg_changed_answers_summary(
-        config_path: str, agg: pd.DataFrame) -> Tuple[Any, DataFrame]:
+        config_path: str, agg: pd.DataFrame
+) -> Tuple[Any, DataFrame]:
     """Create Summary File
 
     Args:
@@ -159,7 +160,8 @@ def agg_changed_answers_summary(
     detail_cols = ['survey id', 'beiwe_id', 'question id', 'question text',
                    'question type', 'question answer options', 'timestamp',
                    'Local time', 'last_answer', 'all_answers', 'num_answers',
-                   'first_time', 'last_time', 'time_to_answer']
+                   'first_time', 'last_time', 'time_to_answer'
+                   ]
 
     detail = detail[detail_cols]
     return detail, out

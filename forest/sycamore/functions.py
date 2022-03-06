@@ -7,7 +7,6 @@ import glob
 import numpy as np
 import pandas as pd
 
-
 from typing import Optional
 
 # Explore use of logging function (TO DO: Read wiki)
@@ -54,7 +53,7 @@ def make_lookup() -> dict:
 question_types_lookup = make_lookup()
 
 
-def q_types_standardize(q: str, lkp: dict = question_types_lookup) -> str:
+def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
     """Standardizes question types using a lookup function
 
     Args:
@@ -67,6 +66,8 @@ def q_types_standardize(q: str, lkp: dict = question_types_lookup) -> str:
     Returns:
         s: string with the corrected question type
     """
+    if lkp is None:
+        lkp = question_types_lookup
     # If it's an Android string, flip it from the key to the value
     if q in lkp['Android'].keys():
         return lkp['Android'][q]
@@ -323,7 +324,7 @@ def aggregate_surveys_config(study_dir: str,
     # Merge data together and add configuration survey ID to all lines
     df_merged = agg_data.merge(
         config_surveys[['config_id', 'question_id']], how='left',
-        left_on='question id',right_on='question_id'
+        left_on='question id', right_on='question_id'
     ).drop(['question_id'], axis=1)
     df_merged['config_id_update'] = df_merged['config_id'].fillna(
         method='ffill')
@@ -484,8 +485,9 @@ def get_survey_timings(person_ids: list, study_dir: str,
                         present = None
 
                     try:
-                        submitted = f.loc[f['date_hour']
-                                          == timestamp, 'submitted'][0]
+                        submitted = f.loc[
+                            f['date_hour'] == timestamp, 'submitted'
+                        ][0]
                     except KeyError:
                         submitted = None
 
@@ -514,7 +516,7 @@ def get_survey_timings(person_ids: list, study_dir: str,
                     subset=['date_hour', 'question id'], keep='last')
 
                 f = f.pivot(
-                    columns='question id',values='UTC time',index='date_hour'
+                    columns='question id', values='UTC time', index='date_hour'
                 ).rename(
                     columns={'Survey first rendered and displayed to user':
                              'present',
@@ -545,7 +547,7 @@ def get_survey_timings(person_ids: list, study_dir: str,
     ).dt.strftime('%Y-%m-%d')
 
     svtm = svtm.groupby(['beiwe_id', 'day', 'phone_os']).agg(
-        {'start_time': min,'end_time': max}  # for sum durations
+        {'start_time': min, 'end_time': max}  # for sum durations
     ).reset_index()
 
     svtm['duration'] = svtm['end_time'] - svtm['start_time']
