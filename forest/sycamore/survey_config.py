@@ -42,10 +42,10 @@ def convert_time_to_date(submit_time: datetime.datetime,
     return list_of_days[day]
 
 
-def generate_survey_times(time_start: str, time_end: str,
-                          timings: Optional[list] = None,
-                          survey_type: str = 'weekly',
-                          intervention_dict: Optional[dict] = None) -> list:
+def generate_survey_times(
+        time_start: str, time_end: str, timings: Optional[list] = None,
+        survey_type: str = 'weekly', intervention_dict: Optional[dict] = None
+) -> list:
     """Get delivery times for a survey
 
     Takes a start time and end time and generates a schedule of all sent
@@ -247,10 +247,12 @@ def survey_submits(
     # Merge survey submit lines onto the schedule data and identify submitted
     # lines
     submit_lines = pd.merge(
-        sched[['delivery_time', 'next_delivery_time',
-               'id', 'beiwe_id']].drop_duplicates(),
-        agg[['Local time', 'config_id', 'survey id', 'beiwe_id']
-            ].loc[agg.submit_line == 1].drop_duplicates(),
+        sched[
+            ['delivery_time', 'next_delivery_time','id', 'beiwe_id']
+        ].drop_duplicates(),
+        agg[
+            ['Local time', 'config_id', 'survey id', 'beiwe_id']
+        ].loc[agg.submit_line == 1].drop_duplicates(),
         how='left',
         left_on=['id', 'beiwe_id'],
         right_on=['config_id', 'beiwe_id'])
@@ -285,8 +287,9 @@ def survey_submits(
     )
 
     #     # Select appropriate columns
-    submit_lines3 = submit_lines3[['survey id', 'delivery_time', 'beiwe_id',
-                                   'submit_flg', 'submit_time']]
+    submit_lines3 = submit_lines3[
+        ['survey id', 'delivery_time', 'beiwe_id','submit_flg', 'submit_time']
+    ]
 
     submit_lines3['time_to_submit'] = submit_lines3['submit_time'] - \
         submit_lines3['delivery_time']
@@ -350,9 +353,9 @@ def survey_submits_no_config(study_dir: str,
 
     tmp = tmp.groupby(['survey id', 'beiwe_id', 'surv_inst_flg'])[
         'Local time'].apply(summarize_submits).reset_index()
-    tmp = tmp.pivot(
-        index=['survey id', 'beiwe_id', 'surv_inst_flg'], columns='level_3',
-        values='Local time').reset_index()
+    tmp = tmp.pivot(index=['survey id', 'beiwe_id', 'surv_inst_flg'],
+                    columns='level_3',
+                    values='Local time').reset_index()
     tmp['time_to_complete'] = tmp['max_time'] - tmp['min_time']
     tmp['time_to_complete'] = [t.seconds for t in tmp['time_to_complete']]
     return tmp.sort_values(['beiwe_id', 'survey id'])

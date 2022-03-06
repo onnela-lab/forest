@@ -109,7 +109,8 @@ def read_and_aggregate(study_dir: str,
                                               axis=0, ignore_index=False)
         survey_data['beiwe_id'] = beiwe_id
         survey_data['UTC time'] = survey_data['UTC time'].astype(
-            'datetime64[ns]')
+            'datetime64[ns]'
+        )
         survey_data['DOW'] = survey_data['UTC time'].dt.dayofweek
         return survey_data
     else:
@@ -201,9 +202,10 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
 
     # If 'Survey first rendered and displayed to user', also considered a new
     # survey
-    all_data.loc[all_data['event'] ==
-                 'Survey first rendered and displayed to user',
-                 ['surv_inst_flg']] = 1
+    all_data.loc[
+        all_data['event'] == 'Survey first rendered and displayed to user',
+                 ['surv_inst_flg']
+    ] = 1
 
     # if a survey has a gap greater than 5 hours, consider it two surveys
     all_data['time_prev'] = all_data['UTC time'].shift(1)
@@ -342,8 +344,8 @@ def aggregate_surveys_config(study_dir: str,
     )
 
     # Remove notification and expiration lines
-    df_merged = df_merged.loc[(~df_merged['question id'].isnull()) | (
-        ~df_merged['config_id'].isnull())]
+    df_merged = df_merged.loc[(~df_merged['question id'].isnull())
+                              | (~df_merged['config_id'].isnull())]
 
     # Convert to the study's timezone
     df_merged = convert_timezone_df(df_merged, study_tz)

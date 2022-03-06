@@ -39,8 +39,9 @@ def survey_stats_main(
     """
     os.makedirs(output_folder, exist_ok=True)
     if participant_ids is None:
-        participant_ids = [u for u in os.listdir(
-            study_folder) if not u.startswith('.') and u != 'registry']
+        participant_ids = [u
+                           for u in os.listdir(study_folder)
+                           if not u.startswith('.') and u != 'registry']
     # Read, aggregate and clean data
     if config_path is None:
         print('No config file provided. Skipping some summary outputs.')
@@ -71,11 +72,11 @@ def survey_stats_main(
                 participant_ids, agg_data, all_interventions_dict)
             if ss_summary.shape[0] > 0:
                 ss_detail.to_csv(
-                    os.path.join(output_folder,'submits_data.csv'),
+                    os.path.join(output_folder, 'submits_data.csv'),
                     index=False)
-                ss_summary.to_csv(os.path.join(output_folder,
-                                               'submits_summary.csv'),
-                                  index=False)
+                ss_summary.to_csv(
+                    os.path.join(output_folder, 'submits_summary.csv'),
+                    index=False)
             else:
                 print("An Error occurred when getting survey submit summaries")
     # Write out summaries
