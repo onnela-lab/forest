@@ -382,7 +382,8 @@ def aggregate_surveys_no_config(study_dir: str,
     return agg_data.reset_index(drop=True)
 
 
-def get_survey_timings(person_ids: list, study_dir: str, survey_id: str) -> pd.DataFrame:
+def get_survey_timings(person_ids: list, study_dir: str,
+                       survey_id: str) -> pd.DataFrame:
     """Get survey administration times
 
     Created on Thu Jan 28 11:34:23 2021

@@ -77,13 +77,16 @@ def agg_changed_answers(agg: pd.DataFrame) -> pd.DataFrame:
 # Create a summary file that has survey, beiwe id, question id, average
 # number of changed answers, average time spent answering question
 
-def agg_changed_answers_summary(config_path: str, agg: pd.DataFrame,) -> Tuple[Any, DataFrame]:
+def agg_changed_answers_summary(
+        config_path: str, agg: pd.DataFrame) -> Tuple[Any, DataFrame]:
     """Create Summary File
 
     Args:
         config_path(str):
             File path to study configuration file
-        agg(DataFrame): Dataframe with aggregated data (output from aggregate_surveys_config)
+        agg(DataFrame):
+            Dataframe with aggregated data (output from
+            aggregate_surveys_config)
 
 
     Returns:
@@ -92,8 +95,8 @@ def agg_changed_answers_summary(config_path: str, agg: pd.DataFrame,) -> Tuple[A
             with changed answers aggregated into a list.
             The Final answer is in the 'last_answer' field
         out(DataFrame):
-            Summary of how an individual answered each question, with their most common answer,
-            time to answer, etc
+            Summary of how an individual answered each question, with their
+            most common answer, time to answer, etc
     """
     detail = agg_changed_answers(agg)
     #####################################################################

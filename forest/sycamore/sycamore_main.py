@@ -58,7 +58,8 @@ def survey_stats_main(
             print("Error: No survey data found")
             return True
         # Create changed answers detail and summary
-        ca_detail, ca_summary = agg_changed_answers_summary(config_path, agg_data)
+        ca_detail, ca_summary = agg_changed_answers_summary(
+            config_path, agg_data)
         ca_detail.to_csv(os.path.join(output_folder, 'answers_data.csv'),
                          index=False)
         ca_summary.to_csv(os.path.join(output_folder, 'answers_summary.csv'),
