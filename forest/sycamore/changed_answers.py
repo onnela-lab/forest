@@ -83,14 +83,17 @@ def agg_changed_answers_summary(config_path: str, agg: pd.DataFrame,) -> Tuple[A
     Args:
         config_path(str):
             File path to study configuration file
-        agg(DataFrame): Dataframe with aggregated data
+        agg(DataFrame): Dataframe with aggregated data (output from aggregate_surveys_config)
 
 
     Returns:
-        agg(DataFrame):
+        detail(DataFrame):
             Dataframe with aggregated data, one line per question answered,
             with changed answers aggregated into a list.
             The Final answer is in the 'last_answer' field
+        out(DataFrame):
+            Summary of how an individual answered each question, with their most common answer,
+            time to answer, etc
     """
     detail = agg_changed_answers(agg)
     #####################################################################

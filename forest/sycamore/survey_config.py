@@ -232,7 +232,7 @@ def survey_submits(
             dict containing interventions for each user. Each key in the dict
             is a beiwe id. Each value is a dict, with a key for each
             intervention name and a timestamp for each intervention's time
-        agg(DataFrame): Dataframe of aggregated data
+        agg(DataFrame): Dataframe of aggregated data. Output from aggregate_surveys_config
 
     Returns:
         submit_lines(DataFrame): A DataFrame with all surveys deployed in the
