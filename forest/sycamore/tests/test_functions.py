@@ -1,5 +1,7 @@
-import pandas as pd
+import numpy as np
 import os
+import pandas as pd
+
 
 from forest.sycamore.survey_config import get_all_interventions_dict
 from forest.sycamore.functions import aggregate_surveys
@@ -9,11 +11,12 @@ from forest.sycamore.survey_config import gen_survey_schedule
 os.chdir(os.path.join("forest", "sycamore", "tests"))
 
 
-def test_get_interventions():
+def test_get_empty_intervention():
     empty_dict = get_all_interventions_dict("empty_intervention_data.json")
 
     assert empty_dict == {}
 
+def test_get_intervention():
     interventions_dict = get_all_interventions_dict(
         "sample_intervention_data.json")
 
@@ -44,7 +47,8 @@ def test_gen_survey_schedule():
 
     assert sample_schedule.shape[0] == 7
 
-    assert all(
-        sample_schedule.columns == pd.Index(['delivery_time',
-                                             'next_delivery_time', 'id',
-                                             'beiwe_id', 'question_id']))
+    assert np.mean(
+        sample_schedule.columns ==
+        pd.Index(['delivery_time','next_delivery_time', 'id', 'beiwe_id',
+                  'question_id'])
+    ) == 1.0
