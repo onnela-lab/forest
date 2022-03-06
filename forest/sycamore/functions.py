@@ -430,7 +430,17 @@ def get_survey_timings(person_ids: list, study_dir: str,
         for fp in filepaths:
             if not fp.endswith(".csv"):
                 continue
-            f = pd.read_csv(os.path.join(survey_dir, fp))
+            try:
+                f = pd.read_csv(os.path.join(survey_dir, fp))
+            except FileNotFoundError:
+                print("File not found")
+                continue
+            except pd.errors.EmptyDataError:
+                print("No data")
+                continue
+            except pd.errors.ParserError:
+                print("Parse error")
+                continue
             # Check whether participant uses iOS
             if 'event' in f.columns:  # iOS: last columnname == 'event'
                 # Note: this assumes that all files have headers (check!)
