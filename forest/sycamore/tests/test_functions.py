@@ -31,13 +31,15 @@ def test_get_intervention():
     assert interventions_dict["ntz4apjf"]["Time_0"] == "2021-12-14"
 
 
-def aggregate_surveys():
+def test_aggregate_surveys():
     sample_agg_data = aggregate_surveys("sample_dir", ["idr8gqdh"])
 
     assert pd.isnull(sample_agg_data.loc[0, "time_prev"])
 
-    assert np.mean(pd.to_datetime(sample_agg_data['timestamp'], unit='ms') ==
-               sample_agg_data['UTC time']) == 1.0
+    assert np.mean(
+        pd.to_datetime(sample_agg_data['timestamp'], unit='ms'
+                       ) == sample_agg_data['UTC time']
+    ) == 1.0
     assert "MALFORMED" not in sample_agg_data["question text"].values
 
 
@@ -105,14 +107,7 @@ def test_survey_submits_with_no_submissions():
     assert ss_detail.shape[0] == 0
     assert ss_summary.shape[0] == 0
 
+
 def test_survey_submits_no_config():
     submits_tbl = survey_submits_no_config("sample_dir", "UTC")
     assert submits_tbl.shape[0] == 2
-
-
-
-
-
-
-
-

@@ -314,7 +314,6 @@ def survey_submits(
             groupby(summary_cols)['time_to_submit'].\
             apply(lambda x: pd.to_datetime("NaT"))
 
-
     submit_lines_summary = pd.concat(
         [num_surveys, num_complete_surveys, avg_time_to_submit], axis=1
     ).reset_index()
