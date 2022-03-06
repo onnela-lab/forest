@@ -175,7 +175,8 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
     # Fix question types
     all_data['question type'] = all_data.apply(
         lambda row: q_types_standardize(
-            row['question type'], question_types_lookup), axis=1)
+            row['question type'], question_types_lookup), axis=1
+    )
 
     # ADD A QUESTION INDEX (to track changed answers)
     all_data['question id lag'] = all_data['question id'].shift(1)
@@ -321,10 +322,9 @@ def aggregate_surveys_config(study_dir: str,
 
     # Merge data together and add configuration survey ID to all lines
     df_merged = agg_data.merge(
-        config_surveys[['config_id', 'question_id']],
-        how='left',
-        left_on='question id',
-        right_on='question_id').drop(['question_id'], axis=1)
+        config_surveys[['config_id', 'question_id']], how='left',
+        left_on='question id',right_on='question_id'
+    ).drop(['question_id'], axis=1)
     df_merged['config_id_update'] = df_merged['config_id'].fillna(
         method='ffill')
     df_merged['config_id'] = df_merged.apply(
@@ -335,8 +335,10 @@ def aggregate_surveys_config(study_dir: str,
 
     # Mark submission lines
     df_merged['submit_line'] = df_merged.apply(
-        lambda row: 1 if row['event'] in [
-            'User hit submit', 'submitted'] else 0, axis=1)
+        lambda row:
+        1 if row['event'] in ['User hit submit', 'submitted'] else 0,
+        axis=1
+    )
 
     # Remove notification and expiration lines
     df_merged = df_merged.loc[(~df_merged['question id'].isnull()) | (
@@ -420,7 +422,6 @@ def get_survey_timings(person_ids: list, study_dir: str,
     ).reshape(1, 5)
     for pid in person_ids:
         survey_dir = os.path.join(study_dir, pid, "survey_timings", survey_id)
-
         try:
             filepaths = os.listdir(survey_dir)
         except FileNotFoundError:
@@ -455,8 +456,7 @@ def get_survey_timings(person_ids: list, study_dir: str,
 
                 # select relevant rows and columns
                 f = f.loc[(f['survey id'] == survey_id) &  # only this survey
-                          ((f['event'] == 'present') |
-                           # only present / submit events
+                          ((f['event'] == 'present') |  # present/submit event
                            (f['event'] == 'submitted')),
                           ['timestamp', 'UTC time', 'survey id', 'event']]
 
@@ -468,14 +468,11 @@ def get_survey_timings(person_ids: list, study_dir: str,
                 # sort by UTC_time
                 f = f.sort_values(by='date_hour', ascending=True)
 
-                f = f.drop_duplicates(
-                    subset=['date_hour', 'event'],
-                    keep='first')
+                f = f.drop_duplicates(subset=['date_hour', 'event'],
+                                      keep='first')
 
                 f = f.pivot(
-                    columns='event',
-                    values='UTC time',
-                    index='date_hour'
+                    columns='event', values='UTC time', index='date_hour'
                 ).reset_index()
 
                 for timestamp in pd.unique(f['date_hour']):
@@ -517,9 +514,7 @@ def get_survey_timings(person_ids: list, study_dir: str,
                     subset=['date_hour', 'question id'], keep='last')
 
                 f = f.pivot(
-                    columns='question id',
-                    values='UTC time',
-                    index='date_hour'
+                    columns='question id',values='UTC time',index='date_hour'
                 ).rename(
                     columns={'Survey first rendered and displayed to user':
                              'present',
@@ -550,10 +545,8 @@ def get_survey_timings(person_ids: list, study_dir: str,
     ).dt.strftime('%Y-%m-%d')
 
     svtm = svtm.groupby(['beiwe_id', 'day', 'phone_os']).agg(
-        {
-            'start_time': min,  # Sum duration per group
-            'end_time': max
-        }).reset_index()
+        {'start_time': min,'end_time': max}  # for sum durations
+    ).reset_index()
 
     svtm['duration'] = svtm['end_time'] - svtm['start_time']
     svtm['duration_in_sec'] = svtm['duration'].dt.seconds

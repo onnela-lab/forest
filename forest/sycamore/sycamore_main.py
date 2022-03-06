@@ -10,14 +10,12 @@ from forest.sycamore.survey_config import (survey_submits,
 
 
 def survey_stats_main(
-        study_folder: str,
-        output_folder: str,
-        tz_str: Optional[str] = "UTC",
+        study_folder: str, output_folder: str, tz_str: Optional[str] = "UTC",
         participant_ids: Optional[List] = None,
-        time_start: Optional[str] = None,
-        time_end: Optional[str] = None,
+        time_start: Optional[str] = None, time_end: Optional[str] = None,
         config_path: Optional[str] = None,
-        interventions_filepath: Optional[str] = None) -> bool:
+        interventions_filepath: Optional[str] = None
+) -> bool:
     """Compute statistics on surveys
 
     Args:
@@ -73,9 +71,7 @@ def survey_stats_main(
                 participant_ids, agg_data, all_interventions_dict)
             if ss_summary.shape[0] > 0:
                 ss_detail.to_csv(
-                    os.path.join(
-                        output_folder,
-                        'submits_data.csv'),
+                    os.path.join(output_folder,'submits_data.csv'),
                     index=False)
                 ss_summary.to_csv(os.path.join(output_folder,
                                                'submits_summary.csv'),

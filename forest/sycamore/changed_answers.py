@@ -106,11 +106,10 @@ def agg_changed_answers_summary(
     surv_config['q_internal_id'] = surv_config.groupby(
         'config_id').cumcount() + 1
 
-    detail = pd.merge(detail,
-                      surv_config[['question_id', 'q_internal_id']],
-                      how='left',
-                      left_on='question id',
-                      right_on='question_id')
+    detail = pd.merge(
+        detail, surv_config[['question_id', 'q_internal_id']], how='left',
+        left_on='question id', right_on='question_id'
+    )
 
     detail['instance_id'] = np.where(detail['q_internal_id'] == 1, 1, 0)
     detail['instance_id'] = detail['instance_id'].cumsum()
@@ -124,19 +123,15 @@ def agg_changed_answers_summary(
         (detail.num_answers == 1)
         & (detail.first_time == detail.last_time)
         & (detail.q_internal_id != 1),
-        detail.last_time_1,
-        detail.first_time)
+        detail.last_time_1, detail.first_time
+    )
 
     # Update time_to_answer
     detail['time_to_answer'] = detail['last_time'] - detail['first_time']
     #####################################################################
 
-    summary_cols = [
-        'survey id',
-        'beiwe_id',
-        'question id',
-        'question text',
-        'question type']
+    summary_cols = ['survey id', 'beiwe_id', 'question id', 'question text',
+                    'question type']
     num_answers = detail.groupby(summary_cols)['num_answers'].count()
     avg_time = detail.groupby(summary_cols)['time_to_answer'].apply(
         lambda x: sum(x, datetime.timedelta()) / len(x)
@@ -153,29 +148,18 @@ def agg_changed_answers_summary(
     out = pd.concat([num_answers, avg_time, avg_chgs,
                     most_common_answer], axis=1).reset_index()
 
-    out.columns = summary_cols + ['num_answers',
-                                  'average_time_to_answer',
-                                  'average_number_of_answers',
-                                  'most_common_answer']
+    out.columns = summary_cols + [
+        'num_answers', 'average_time_to_answer', 'average_number_of_answers',
+        'most_common_answer'
+    ]
 
     # Select relevant columns from detail to output and keep one line per
     # question
     detail = detail.loc[detail['last_answer'] == detail['answer']]
-    detail_cols = [
-        'survey id',
-        'beiwe_id',
-        'question id',
-        'question text',
-        'question type',
-        'question answer options',
-        'timestamp',
-        'Local time',
-        'last_answer',
-        'all_answers',
-        'num_answers',
-        'first_time',
-        'last_time',
-        'time_to_answer']
+    detail_cols = ['survey id', 'beiwe_id', 'question id', 'question text',
+                   'question type', 'question answer options', 'timestamp',
+                   'Local time', 'last_answer', 'all_answers', 'num_answers',
+                   'first_time', 'last_time', 'time_to_answer']
 
     detail = detail[detail_cols]
     return detail, out

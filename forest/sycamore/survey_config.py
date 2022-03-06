@@ -43,12 +43,10 @@ def convert_time_to_date(submit_time: datetime.datetime,
     return list_of_days[day]
 
 
-def generate_survey_times(
-        time_start: str,
-        time_end: str,
-        timings: Optional[list] = None,
-        survey_type: str = 'weekly',
-        intervention_dict: Optional[dict] = None) -> list:
+def generate_survey_times(time_start: str, time_end: str,
+                          timings: Optional[list] = None,
+                          survey_type: str = 'weekly',
+                          intervention_dict: Optional[dict] = None) -> list:
     """Get delivery times for a survey
 
     Takes a start time and end time and generates a schedule of all sent
@@ -105,7 +103,6 @@ def generate_survey_times(
                 if len(t) > 0:
                     surveys.extend(convert_time_to_date(s, day=i, time=t))
     if survey_type == 'absolute':
-
         times_df = pd.DataFrame(timings)
         times_df.columns = ['year', 'month', 'day', 'second']
         surveys = pd.to_datetime(times_df).tolist()
@@ -163,23 +160,23 @@ def gen_survey_schedule(
         for i, s in enumerate(surveys):
             s_times: list = []
             if s['timings']:
-                s_times = s_times + \
-                    generate_survey_times(
-                        time_start, time_end, timings=s['timings'],
-                        survey_type='weekly')
+                s_times = s_times + generate_survey_times(
+                    time_start, time_end, timings=s['timings'],
+                    survey_type='weekly'
+                )
             if s['absolute_timings']:
                 s_times = s_times + generate_survey_times(
                     time_start, time_end, timings=s['absolute_timings'],
-                    survey_type='absolute')
+                    survey_type='absolute'
+                )
             if s['relative_timings']:
                 # We can only get relative timings if we have an index time
                 if all_interventions_dict[u_id]:
                     s_times = s_times + generate_survey_times(
-                        time_start,
-                        time_end,
-                        timings=s['relative_timings'],
+                        time_start, time_end, timings=s['relative_timings'],
                         survey_type='relative',
-                        intervention_dict=all_interventions_dict[u_id])
+                        intervention_dict=all_interventions_dict[u_id]
+                    )
                 else:
                     print('error: no index time found for user ' + u_id)
             tbl = pd.DataFrame({'delivery_time': s_times})
@@ -209,12 +206,8 @@ def gen_survey_schedule(
 
 
 def survey_submits(
-        config_path: str,
-        time_start: str,
-        time_end: str,
-        beiwe_ids: list,
-        agg: pd.DataFrame,
-        all_interventions_dict: Optional[dict] = None
+        config_path: str, time_start: str, time_end: str, beiwe_ids: list,
+        agg: pd.DataFrame, all_interventions_dict: Optional[dict] = None
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Get survey submits for users
 
@@ -244,12 +237,8 @@ def survey_submits(
     if all_interventions_dict is None:
         all_interventions_dict = {}
 
-    sched = gen_survey_schedule(
-        config_path,
-        time_start,
-        time_end,
-        beiwe_ids,
-        all_interventions_dict)
+    sched = gen_survey_schedule(config_path, time_start, time_end, beiwe_ids,
+                                all_interventions_dict)
 
     if sched.shape[0] == 0:  # return empty dataframes
         print("Error: No survey schedules found")
@@ -276,39 +265,29 @@ def survey_submits(
 
     # Take the maximum survey submit line
     submit_lines2 = submit_lines.groupby(
-        [
-            'delivery_time',
-            'next_delivery_time',
-            'survey id',
-            'beiwe_id',
-            'config_id'
-        ])['submit_flg'].max().reset_index()
+        ['delivery_time', 'next_delivery_time',
+         'survey id', 'beiwe_id','config_id']
+    )['submit_flg'].max().reset_index()
 
     for col in ['delivery_time', 'next_delivery_time']:
         submit_lines2[col] = pd.to_datetime(submit_lines2[col])
 
     # Merge on the times of the survey submission
-    merge_cols = [
-        'delivery_time',
-        'next_delivery_time',
-        'survey id',
-        'beiwe_id',
-        'config_id',
-        'submit_flg']
+    merge_cols = ['delivery_time', 'next_delivery_time', 'survey id',
+                  'beiwe_id', 'config_id', 'submit_flg']
     submit_lines3 = pd.merge(submit_lines2,
                              submit_lines[merge_cols + ['Local time']],
-                             how='left',
-                             left_on=merge_cols,
+                             how='left', left_on=merge_cols,
                              right_on=merge_cols)
 
     submit_lines3['submit_time'] = np.where(
-        submit_lines3.submit_flg == 1,
-        submit_lines3['Local time'],
-        np.array(0, dtype='datetime64[ns]'))
+        submit_lines3.submit_flg == 1, submit_lines3['Local time'],
+        np.array(0, dtype='datetime64[ns]')
+    )
 
     #     # Select appropriate columns
-    submit_lines3 = submit_lines3[[
-        'survey id', 'delivery_time', 'beiwe_id', 'submit_flg', 'submit_time']]
+    submit_lines3 = submit_lines3[['survey id', 'delivery_time', 'beiwe_id',
+                                   'submit_flg', 'submit_time']]
 
     submit_lines3['time_to_submit'] = submit_lines3['submit_time'] - \
         submit_lines3['delivery_time']
@@ -329,11 +308,9 @@ def survey_submits(
         [num_surveys, num_complete_surveys, avg_time_to_submit], axis=1
     ).reset_index()
     submit_lines_summary.columns = [
-        'survey id',
-        'beiwe_id',
-        'num_surveys',
-        'num_complete_surveys',
-        'avg_time_to_submit']
+        'survey id', 'beiwe_id', 'num_surveys', 'num_complete_surveys',
+        'avg_time_to_submit'
+    ]
 
     # make cols more interpretable as "no survey submitted"
     submit_lines3['submit_time'] = np.where(
@@ -375,8 +352,7 @@ def survey_submits_no_config(study_dir: str,
     tmp = tmp.groupby(['survey id', 'beiwe_id', 'surv_inst_flg'])[
         'Local time'].apply(summarize_submits).reset_index()
     tmp = tmp.pivot(
-        index=['survey id', 'beiwe_id', 'surv_inst_flg'],
-        columns='level_3',
+        index=['survey id', 'beiwe_id', 'surv_inst_flg'], columns='level_3',
         values='Local time').reset_index()
     tmp['time_to_complete'] = tmp['max_time'] - tmp['min_time']
     tmp['time_to_complete'] = [t.seconds for t in tmp['time_to_complete']]
