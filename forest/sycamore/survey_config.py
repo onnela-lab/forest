@@ -301,10 +301,19 @@ def survey_submits(
         summary_cols)['delivery_time'].nunique()
     num_complete_surveys = submit_lines3.groupby(summary_cols)[
         'submit_flg'].sum()
-    avg_time_to_submit = submit_lines3.\
-        loc[submit_lines3.submit_flg == 1].\
-        groupby(summary_cols)['time_to_submit'].\
-        apply(lambda x: sum(x, datetime.timedelta()) / len(x))
+    if np.sum(submit_lines3.submit_flg == 1) > 0:
+        # this will work (and only makes sense) if there is at least one row
+        # with a survey submit
+        avg_time_to_submit = submit_lines3.\
+            loc[submit_lines3.submit_flg == 1].\
+            groupby(summary_cols)['time_to_submit'].\
+            apply(lambda x: sum(x, datetime.timedelta()) / len(x))
+    else:
+        # do the groupby on all rows to avoid getting an error
+        avg_time_to_submit = submit_lines3.\
+            groupby(summary_cols)['time_to_submit'].\
+            apply(lambda x: pd.to_datetime("NaT"))
+
 
     submit_lines_summary = pd.concat(
         [num_surveys, num_complete_surveys, avg_time_to_submit], axis=1
