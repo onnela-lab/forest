@@ -139,10 +139,13 @@ def agg_changed_answers_summary(config_path: str, agg: pd.DataFrame,) -> Tuple[A
         lambda x: sum(x, datetime.timedelta()) / len(x)
     )
     avg_chgs = detail.groupby(summary_cols)['num_answers'].mean()
-    most_common_answer = detail.groupby(summary_cols)['all_answers'].\
-        apply(lambda x: max(
-            set([x for x in x for x in x]),
-            key=[x for x in x for x in x].count, default=0))
+
+    def get_most_common_answer(col):
+        answers = [answer for answer_list in col for answer in answer_list]
+        return max(set(answers), key=answers.count, default=0)
+
+    most_common_answer = detail.groupby(
+        summary_cols)['all_answers'].apply(get_most_common_answer)
 
     out = pd.concat([num_answers, avg_time, avg_chgs,
                     most_common_answer], axis=1).reset_index()
