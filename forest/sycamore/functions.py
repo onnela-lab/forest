@@ -204,7 +204,7 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
     # survey
     all_data.loc[
         all_data['event'] == 'Survey first rendered and displayed to user',
-                 ['surv_inst_flg']
+                ['surv_inst_flg']
     ] = 1
 
     # if a survey has a gap greater than 5 hours, consider it two surveys

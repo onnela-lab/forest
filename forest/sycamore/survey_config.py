@@ -248,7 +248,7 @@ def survey_submits(
     # lines
     submit_lines = pd.merge(
         sched[
-            ['delivery_time', 'next_delivery_time','id', 'beiwe_id']
+            ['delivery_time', 'next_delivery_time', 'id', 'beiwe_id']
         ].drop_duplicates(),
         agg[
             ['Local time', 'config_id', 'survey id', 'beiwe_id']
@@ -267,7 +267,7 @@ def survey_submits(
     # Take the maximum survey submit line
     submit_lines2 = submit_lines.groupby(
         ['delivery_time', 'next_delivery_time',
-         'survey id', 'beiwe_id','config_id']
+         'survey id', 'beiwe_id', 'config_id']
     )['submit_flg'].max().reset_index()
 
     for col in ['delivery_time', 'next_delivery_time']:
@@ -288,7 +288,7 @@ def survey_submits(
 
     #     # Select appropriate columns
     submit_lines3 = submit_lines3[
-        ['survey id', 'delivery_time', 'beiwe_id','submit_flg', 'submit_time']
+        ['survey id', 'delivery_time', 'beiwe_id', 'submit_flg', 'submit_time']
     ]
 
     submit_lines3['time_to_submit'] = submit_lines3['submit_time'] - \

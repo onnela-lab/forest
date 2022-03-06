@@ -16,6 +16,7 @@ def test_get_empty_intervention():
 
     assert empty_dict == {}
 
+
 def test_get_intervention():
     interventions_dict = get_all_interventions_dict(
         "sample_intervention_data.json")
@@ -49,6 +50,6 @@ def test_gen_survey_schedule():
 
     assert np.mean(
         sample_schedule.columns ==
-        pd.Index(['delivery_time','next_delivery_time', 'id', 'beiwe_id',
+        pd.Index(['delivery_time', 'next_delivery_time', 'id', 'beiwe_id',
                   'question_id'])
     ) == 1.0
