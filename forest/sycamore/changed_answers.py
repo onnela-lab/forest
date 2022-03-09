@@ -10,6 +10,7 @@ from pandas import DataFrame
 
 logger = logging.getLogger(__name__)
 
+
 def subset_answer_choices(answer: list) -> list:
     """Remove Duplicate Answers
 

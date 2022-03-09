@@ -11,6 +11,7 @@ from forest.sycamore.survey_config import (survey_submits,
 
 logger = logging.getLogger(__name__)
 
+
 def survey_stats_main(
         study_folder: str, output_folder: str, tz_str: str = "UTC",
         participant_ids: Optional[List] = None,
@@ -46,7 +47,8 @@ def survey_stats_main(
                            if not u.startswith('.') and u != 'registry']
     # Read, aggregate and clean data
     if config_path is None:
-        logger.warning('No config file provided. Skipping some summary outputs.')
+        logger.warning('No config file provided. '
+                       'Skipping some summary outputs.')
         agg_data = aggregate_surveys_no_config(study_folder, tz_str)
         if agg_data.shape[0] == 0:
             logger.error(f"Error: No survey data found in {study_folder}")
@@ -82,7 +84,8 @@ def survey_stats_main(
                     index=False
                 )
             else:
-                logger.error("An Error occurred when getting survey submit summaries")
+                logger.error("An Error occurred when "
+                             "getting survey submit summaries")
     # Write out summaries
     agg_data.to_csv(os.path.join(output_folder, 'agg_survey_data.csv'),
                     index=False)

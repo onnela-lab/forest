@@ -10,6 +10,7 @@ from forest.sycamore.functions import read_json, aggregate_surveys_no_config
 
 logger = logging.getLogger(__name__)
 
+
 def convert_time_to_date(submit_time: datetime.datetime,
                          day: int,
                          time: list) -> list:
@@ -178,7 +179,7 @@ def gen_survey_schedule(
                         intervention_dict=all_interventions_dict[u_id]
                     )
                 else:
-                    logger.warning('error: no index time found for user ' + u_id)
+                    logger.warning(f'error: no index time found for {u_id}')
             tbl = pd.DataFrame({'delivery_time': s_times})
             # May not be necessary, but I'm leaving this in case timestamps are
             # in different formats
