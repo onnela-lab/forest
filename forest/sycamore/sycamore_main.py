@@ -1,5 +1,6 @@
 import os
 from typing import Optional, List
+import logging
 
 from forest.sycamore.changed_answers import agg_changed_answers_summary
 from forest.sycamore.functions import (aggregate_surveys_config,
@@ -8,6 +9,7 @@ from forest.sycamore.survey_config import (survey_submits,
                                            survey_submits_no_config,
                                            get_all_interventions_dict)
 
+logger = logging.getLogger(__name__)
 
 def survey_stats_main(
         study_folder: str, output_folder: str, tz_str: str = "UTC",
@@ -44,15 +46,15 @@ def survey_stats_main(
                            if not u.startswith('.') and u != 'registry']
     # Read, aggregate and clean data
     if config_path is None:
-        print('No config file provided. Skipping some summary outputs.')
+        logger.warning('No config file provided. Skipping some summary outputs.')
         agg_data = aggregate_surveys_no_config(study_folder, tz_str)
         if agg_data.shape[0] == 0:
-            print("Error: No survey data found")
+            logger.error(f"Error: No survey data found in {study_folder}")
             return True
     else:
         agg_data = aggregate_surveys_config(study_folder, config_path, tz_str)
         if agg_data.shape[0] == 0:
-            print("Error: No survey data found")
+            logger.error(f"Error: No survey data found in {study_folder}")
             return True
         # Create changed answers detail and summary
         ca_detail, ca_summary = agg_changed_answers_summary(config_path,
@@ -80,7 +82,7 @@ def survey_stats_main(
                     index=False
                 )
             else:
-                print("An Error occurred when getting survey submit summaries")
+                logger.error("An Error occurred when getting survey submit summaries")
     # Write out summaries
     agg_data.to_csv(os.path.join(output_folder, 'agg_survey_data.csv'),
                     index=False)

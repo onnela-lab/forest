@@ -1,5 +1,6 @@
 import datetime
 from typing import Tuple, Any
+import logging
 
 import pandas as pd
 import numpy as np
@@ -7,6 +8,7 @@ import numpy as np
 from forest.sycamore.functions import parse_surveys
 from pandas import DataFrame
 
+logger = logging.getLogger(__name__)
 
 def subset_answer_choices(answer: list) -> list:
     """Remove Duplicate Answers

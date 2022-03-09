@@ -1,12 +1,14 @@
 import datetime
 import math
 from typing import Optional, Tuple, Dict
+import logging
 
 import numpy as np
 import pandas as pd
 
 from forest.sycamore.functions import read_json, aggregate_surveys_no_config
 
+logger = logging.getLogger(__name__)
 
 def convert_time_to_date(submit_time: datetime.datetime,
                          day: int,
@@ -108,7 +110,7 @@ def generate_survey_times(
 
     if survey_type == 'relative':
         if intervention_dict is None:
-            print('Error: No dictionary of interventions provided.')
+            logger.error('Error: No dictionary of interventions provided.')
             return []
         for t in timings:
             # This could probably be vectorized
@@ -176,7 +178,7 @@ def gen_survey_schedule(
                         intervention_dict=all_interventions_dict[u_id]
                     )
                 else:
-                    print('error: no index time found for user ' + u_id)
+                    logger.warning('error: no index time found for user ' + u_id)
             tbl = pd.DataFrame({'delivery_time': s_times})
             # May not be necessary, but I'm leaving this in case timestamps are
             # in different formats
@@ -240,7 +242,7 @@ def survey_submits(
                                 all_interventions_dict)
 
     if sched.shape[0] == 0:  # return empty dataframes
-        print("Error: No survey schedules found")
+        logger.error("Error: No survey schedules found")
         return (pd.DataFrame(columns=[['survey id', 'beiwe_id']]),
                 pd.DataFrame(columns=[['survey id', 'beiwe_id']]))
 
