@@ -269,7 +269,7 @@ def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
 
 
 def convert_timezone_df(df_merged: pd.DataFrame,
-                        tz_str: Optional[str] = "UTC",
+                        tz_str: str = "UTC",
                         utc_col: str = 'UTC time') -> pd.DataFrame:
     """Convert a df to local time zone
 
@@ -285,8 +285,6 @@ def convert_timezone_df(df_merged: pd.DataFrame,
         df_merged(DataFrame):
 
     """
-    if tz_str is None:
-        tz_str = 'America/New_York'
 
     df_merged['Local time'] = df_merged[utc_col].dt.tz_localize('UTC').dt.\
         tz_convert(tz_str).dt.tz_localize(None)
