@@ -57,9 +57,11 @@ def agg_changed_answers(agg: pd.DataFrame) -> pd.DataFrame:
     agg['all_answers'] = agg.groupby(cols)['answer'].apply(lambda x: list(x))
     # Subset answer lists if needed
     agg['all_answers'] = agg['all_answers'].apply(
-        lambda x: x if isinstance(x, float) else subset_answer_choices(x))
+        lambda x: x if isinstance(x, float) else subset_answer_choices(x)
+    )
     agg['num_answers'] = agg['all_answers'].apply(
-        lambda x: x if isinstance(x, float) else len(list(x)))
+        lambda x: x if isinstance(x, float) else len(list(x))
+    )
     agg = agg.reset_index()
 
     agg['first_time'] = agg.groupby(cols)['Local time'].transform('first')
@@ -105,7 +107,8 @@ def agg_changed_answers_summary(
     # is only one line
     surv_config = parse_surveys(config_path)
     surv_config['q_internal_id'] = surv_config.groupby(
-        'config_id').cumcount() + 1
+        'config_id'
+    ).cumcount() + 1
 
     detail = pd.merge(
         detail, surv_config[['question_id', 'q_internal_id']], how='left',
@@ -116,7 +119,8 @@ def agg_changed_answers_summary(
     detail['instance_id'] = detail['instance_id'].cumsum()
 
     detail['last_time_1'] = detail.groupby(
-        ['instance_id'])['last_time'].shift(1)
+        ['instance_id']
+    )['last_time'].shift(1)
 
     # if there is one answer and the last_time and first_time are the same,
     # make the first_time = last_time_1
@@ -160,8 +164,7 @@ def agg_changed_answers_summary(
     detail_cols = ['survey id', 'beiwe_id', 'question id', 'question text',
                    'question type', 'question answer options', 'timestamp',
                    'Local time', 'last_answer', 'all_answers', 'num_answers',
-                   'first_time', 'last_time', 'time_to_answer'
-                   ]
+                   'first_time', 'last_time', 'time_to_answer']
 
     detail = detail[detail_cols]
     return detail, out

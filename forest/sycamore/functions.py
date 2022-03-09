@@ -33,7 +33,8 @@ def read_json(study_dir: str) -> dict:
 this_dir = os.path.dirname(__file__)
 events = read_json(os.path.join(this_dir, 'events.json'))
 question_type_names = read_json(
-    os.path.join(this_dir, 'question_type_names.json'))
+    os.path.join(this_dir, 'question_type_names.json')
+)
 
 
 def make_lookup() -> dict:
@@ -145,13 +146,13 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
 
     if len(users) == 0:
         print('No users in directory')
-        return pd.DataFrame(
-            columns=["UTC time"], dtype="datetime64[ns]")
+        return pd.DataFrame(columns=["UTC time"], dtype="datetime64[ns]")
 
     all_data_list = []
     for u in users:
         all_data_list.append(
-            read_and_aggregate(study_dir, u, 'survey_timings'))
+            read_and_aggregate(study_dir, u, 'survey_timings')
+        )
 
     # Collapse all users into one file and drop duplicates
     all_data: pd.DataFrame = pd.concat(
@@ -167,23 +168,30 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
     all_data.event = all_data.apply(
         lambda row: row['question id'] if row['question id'] in [
             'Survey first rendered and displayed to user',
-            'User hit submit'] else row['event'],
-        axis=1)
+            'User hit submit'
+        ] else row['event'],
+        axis=1
+    )
     all_data['question id'] = all_data.apply(
         lambda row: np.nan if row['question id'] == row['event']
         else row['question id'],
-        axis=1)
+        axis=1
+    )
 
     # Fix question types
     all_data['question type'] = all_data.apply(
         lambda row: q_types_standardize(
-            row['question type'], question_types_lookup), axis=1
+            row['question type'], question_types_lookup
+        ), axis=1
     )
 
     # ADD A QUESTION INDEX (to track changed answers)
     all_data['question id lag'] = all_data['question id'].shift(1)
-    all_data['question index'] = all_data.apply(lambda row: 1 if (
-        (row['question id'] != row['question id lag'])) else 0, axis=1)
+    all_data['question index'] = all_data.apply(
+        lambda row:
+        1 if ((row['question id'] != row['question id lag'])) else 0,
+        axis=1
+    )
     all_data['question index'] = all_data.groupby(['survey id', 'beiwe_id'])[
         'question index'].cumsum()
     del all_data['question id lag']
@@ -196,15 +204,16 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
     all_data['surv_inst_flg'] = all_data['surv_inst_flg'].shift(1)
     # If a change of survey occurs without a submit flg, flag the new line
     all_data['survey_prev'] = all_data['survey id'].shift(1)
-    all_data.loc[all_data['survey_prev'] !=
-                 all_data['survey id'], ['surv_inst_flg']] = 1
+    all_data.loc[
+        all_data['survey_prev'] != all_data['survey id'], ['surv_inst_flg']
+    ] = 1
     del all_data['survey_prev']
 
     # If 'Survey first rendered and displayed to user', also considered a new
     # survey
     all_data.loc[
         all_data['event'] == 'Survey first rendered and displayed to user',
-                ['surv_inst_flg']
+        ['surv_inst_flg']
     ] = 1
 
     # if a survey has a gap greater than 5 hours, consider it two surveys
@@ -212,11 +221,13 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
     all_data['time_diff'] = all_data['UTC time'] - all_data['time_prev']
     # Splitting up surveys where there appears to be a time gap or no submit
     # line.
-    all_data.loc[all_data.time_diff > datetime.timedelta(hours=2), [
-        'surv_inst_flg']] = 1
+    all_data.loc[
+        all_data.time_diff > datetime.timedelta(hours=2), ['surv_inst_flg']
+    ] = 1
 
-    all_data['surv_inst_flg'] = all_data.groupby(['survey id', 'beiwe_id'])[
-        'surv_inst_flg'].cumsum()
+    all_data['surv_inst_flg'] = all_data.groupby(
+        ['survey id', 'beiwe_id']
+    )['surv_inst_flg'].cumsum()
     all_data.loc[all_data.surv_inst_flg.isna(), ['surv_inst_flg']] = 0
 
     # OUTPUT AGGREGATE
@@ -286,8 +297,9 @@ def convert_timezone_df(df_merged: pd.DataFrame,
 
     """
 
-    df_merged['Local time'] = df_merged[utc_col].dt.tz_localize('UTC').dt.\
-        tz_convert(tz_str).dt.tz_localize(None)
+    df_merged['Local time'] = df_merged[utc_col].dt.tz_localize(
+        'UTC'
+    ).dt.tz_convert(tz_str).dt.tz_localize(None)
 
     return df_merged
 
@@ -327,10 +339,15 @@ def aggregate_surveys_config(study_dir: str,
         left_on='question id', right_on='question_id'
     ).drop(['question_id'], axis=1)
     df_merged['config_id_update'] = df_merged['config_id'].fillna(
-        method='ffill')
+        method='ffill'
+    )
     df_merged['config_id'] = df_merged.apply(
-        lambda row: row['config_id_update'] if row['event'] in [
-            'User hit submit', 'submitted'] else row['config_id'], axis=1)
+        lambda row:
+        row['config_id_update'] if row['event'] in ['User hit submit',
+                                                    'submitted']
+        else row['config_id'],
+        axis=1
+    )
 
     del df_merged['config_id_update']
 
@@ -351,8 +368,7 @@ def aggregate_surveys_config(study_dir: str,
     return df_merged.reset_index(drop=True)
 
 
-def aggregate_surveys_no_config(study_dir: str,
-                                study_tz: str = "UTC",
+def aggregate_surveys_no_config(study_dir: str, study_tz: str = "UTC",
                                 users: list = None
                                 ) -> pd.DataFrame:
     """Clean aggregated data
@@ -373,8 +389,10 @@ def aggregate_surveys_no_config(study_dir: str,
     if agg_data.shape[0] == 0:
         return agg_data
     agg_data['submit_line'] = agg_data.apply(
-        lambda row: 1 if row['event'] in [
-            'User hit submit', 'submitted'] else 0, axis=1)
+        lambda row:
+        1 if row['event'] in ['User hit submit', 'submitted'] else 0,
+        axis=1
+    )
 
     # Remove notification and expiration lines
     agg_data = agg_data.loc[(~agg_data['question id'].isnull())]
@@ -512,8 +530,8 @@ def get_survey_timings(person_ids: list, study_dir: str,
 
                 # Looks like if Androids have double events, you should take
                 # the   last
-                f = f.drop_duplicates(
-                    subset=['date_hour', 'question id'], keep='last')
+                f = f.drop_duplicates(subset=['date_hour', 'question id'],
+                                      keep='last')
 
                 f = f.pivot(
                     columns='question id', values='UTC time', index='date_hour'

@@ -118,17 +118,16 @@ def generate_survey_times(
                 current_time = (
                     datetime.datetime.fromisoformat(intervention_dict[t[0]])
                     + pd.Timedelta(t[1], unit='days')
-                    + pd.Timedelta(t[2], unit='seconds'))  # seconds after time
+                    + pd.Timedelta(t[2], unit='seconds')
+                )  # seconds after time
                 surveys.append(current_time)
     return surveys
 
 
 def gen_survey_schedule(
-        config_path: str,
-        time_start: str,
-        time_end: str,
-        beiwe_ids: list,
-        all_interventions_dict: dict) -> pd.DataFrame:
+        config_path: str, time_start: str, time_end: str, beiwe_ids: list,
+        all_interventions_dict: dict
+                        ) -> pd.DataFrame:
     """Get survey schedule for a number of users
 
     Args:
@@ -200,7 +199,8 @@ def gen_survey_schedule(
         times_sur_df = pd.concat(times_sur).reset_index(drop=True)
     else:
         times_sur_df = pd.DataFrame(
-            columns=['delivery_time', 'next_delivery_time', 'id', 'beiwe_id'])
+            columns=['delivery_time', 'next_delivery_time', 'id', 'beiwe_id']
+        )
     return times_sur_df
 
 
@@ -255,7 +255,8 @@ def survey_submits(
         ].loc[agg.submit_line == 1].drop_duplicates(),
         how='left',
         left_on=['id', 'beiwe_id'],
-        right_on=['config_id', 'beiwe_id'])
+        right_on=['config_id', 'beiwe_id']
+    )
 
     # Get the submitted survey line
     submit_lines['submit_flg'] = np.where(
@@ -276,10 +277,10 @@ def survey_submits(
     # Merge on the times of the survey submission
     merge_cols = ['delivery_time', 'next_delivery_time', 'survey id',
                   'beiwe_id', 'config_id', 'submit_flg']
-    submit_lines3 = pd.merge(submit_lines2,
-                             submit_lines[merge_cols + ['Local time']],
-                             how='left', left_on=merge_cols,
-                             right_on=merge_cols)
+    submit_lines3 = pd.merge(
+        submit_lines2, submit_lines[merge_cols + ['Local time']], how='left',
+        left_on=merge_cols, right_on=merge_cols
+    )
 
     submit_lines3['submit_time'] = np.where(
         submit_lines3.submit_flg == 1, submit_lines3['Local time'],
@@ -298,21 +299,23 @@ def survey_submits(
     # submitted surveys, average time to submit
     summary_cols = ['survey id', 'beiwe_id']
     num_surveys = submit_lines3.groupby(
-        summary_cols)['delivery_time'].nunique()
-    num_complete_surveys = submit_lines3.groupby(summary_cols)[
-        'submit_flg'].sum()
+        summary_cols
+    )['delivery_time'].nunique()
+    num_complete_surveys = submit_lines3.groupby(summary_cols
+                                                 )['submit_flg'].sum()
     if np.sum(submit_lines3.submit_flg == 1) > 0:
         # this will work (and only makes sense) if there is at least one row
         # with a survey submit
-        avg_time_to_submit = submit_lines3.\
-            loc[submit_lines3.submit_flg == 1].\
-            groupby(summary_cols)['time_to_submit'].\
-            apply(lambda x: sum(x, datetime.timedelta()) / len(x))
+        avg_time_to_submit = submit_lines3.loc[
+            submit_lines3.submit_flg == 1
+            ].groupby(summary_cols)['time_to_submit'].apply(
+            lambda x: sum(x, datetime.timedelta()) / len(x)
+        )
     else:
         # do the groupby on all rows to avoid getting an error
-        avg_time_to_submit = submit_lines3.\
-            groupby(summary_cols)['time_to_submit'].\
-            apply(lambda x: pd.to_datetime("NaT"))
+        avg_time_to_submit = submit_lines3.groupby(summary_cols)[
+            'time_to_submit'
+        ].apply(lambda x: pd.to_datetime("NaT"))
 
     submit_lines_summary = pd.concat(
         [num_surveys, num_complete_surveys, avg_time_to_submit], axis=1
@@ -326,12 +329,14 @@ def survey_submits(
     submit_lines3['submit_time'] = np.where(
         submit_lines3['submit_flg'] == 1,
         submit_lines3['submit_time'],
-        np.array('NaT', dtype='datetime64[ns]'))
+        np.array('NaT', dtype='datetime64[ns]')
+    )
 
     submit_lines3['time_to_submit'] = np.where(
         submit_lines3['submit_flg'] == 1,
         submit_lines3['time_to_submit'],
-        np.array('NaT', dtype='datetime64[ns]'))
+        np.array('NaT', dtype='datetime64[ns]')
+    )
 
     return (submit_lines3.sort_values(
         ['survey id', 'beiwe_id']).drop_duplicates(),
@@ -360,7 +365,8 @@ def survey_submits_no_config(study_dir: str,
         return pd.Series(temp_dict, index=pd.Index(['min_time', 'max_time']))
 
     tmp = tmp.groupby(['survey id', 'beiwe_id', 'surv_inst_flg'])[
-        'Local time'].apply(summarize_submits).reset_index()
+        'Local time'
+    ].apply(summarize_submits).reset_index()
     tmp = tmp.pivot(index=['survey id', 'beiwe_id', 'surv_inst_flg'],
                     columns='level_3',
                     values='Local time').reset_index()
