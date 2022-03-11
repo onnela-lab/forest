@@ -1,8 +1,6 @@
 """
 Quantification of various types of physical
 activity using accelerometer data.
-
-To do finished when the paper appears.
 """
 
 import os
@@ -178,7 +176,7 @@ def find_walking(vm_bout, fs, A, step_freq, alpha, beta, epsilon, delta):
     """
 
     # define wavelet function used in method
-    wavelet = ('gmw', {'beta': 60, 'gamma': 3})
+    wavelet = ('gmw', {'beta': 90, 'gamma': 3})
 
     # calculate pp to exclude low-intensity periods from further computing
     x = vm_bout.reshape(fs, -1, order="F")
@@ -198,14 +196,16 @@ def find_walking(vm_bout, fs, A, step_freq, alpha, beta, epsilon, delta):
                                        np.zeros(5*fs)))
 
         # compute cwt over bout
-        try:
-            out = ssq_cwt(tapered_bout, wavelet, fs=10)
-        except:
-            tapered_bout = tapered_bout[:-1]
-            out = ssq_cwt(tapered_bout, wavelet, fs=10)
+        # try:
+        #     out = ssq_cwt(tapered_bout, wavelet, fs=10)
+        #     coefs = out[0]
+        # except:
+        #     # tapered_bout = tapered_bout[:-1]
+        out = ssq_cwt(tapered_bout[:-1], wavelet, fs=10)
+        coefs = out[0]
+        coefs = np.append(coefs, coefs[:, -1:], 1)
 
         # magnitude of cwt
-        coefs = out[0]
         coefs = np.abs(coefs**2)
 
         # interpolate spectrogram
@@ -508,8 +508,8 @@ def main_function(study_folder: str, output_folder: str, tz_str: str,
 
                     # find bouts with sufficient duration (here, minimum 5s)
                     N, BI, B = rle(samples_enough)
-                    bout_start = BI[(B is True) & (N >= 5)]
-                    bout_duration = N[(B is True) & (N >= 5)]
+                    bout_start = BI[B & (N >= 5)]
+                    bout_duration = N[B & (N >= 5)]
 
                     for b, b_datetime in enumerate(bout_start):
                         # create a list with second-level timestamps
