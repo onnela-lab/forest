@@ -11,20 +11,19 @@ from forest.sycamore.functions import (aggregate_surveys,
 from forest.sycamore.survey_config import gen_survey_schedule, survey_submits
 from forest.sycamore.changed_answers import agg_changed_answers_summary
 
-# Needed so that relative paths in the below file will work
-if not os.getcwd().endswith(os.path.join("forest", "sycamore", "tests")):
-    os.chdir(os.path.join("forest", "sycamore", "tests"))
+LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def test_get_empty_intervention():
-    empty_dict = get_all_interventions_dict("empty_intervention_data.json")
+    filepath = os.path.join(LOCAL_DIR, "empty_intervention_data.json")
+    empty_dict = get_all_interventions_dict(filepath)
 
     assert empty_dict == {}
 
 
 def test_get_intervention():
-    interventions_dict = get_all_interventions_dict(
-        "sample_intervention_data.json")
+    filepath = os.path.join(LOCAL_DIR, "sample_intervention_data.json")
+    interventions_dict = get_all_interventions_dict(filepath)
 
     assert type(interventions_dict["ntz4apjf"]) is dict
 
@@ -32,7 +31,8 @@ def test_get_intervention():
 
 
 def test_aggregate_surveys():
-    sample_agg_data = aggregate_surveys("sample_dir", ["idr8gqdh"])
+    filepath = os.path.join(LOCAL_DIR, "sample_dir")
+    sample_agg_data = aggregate_surveys(filepath, ["idr8gqdh"])
 
     assert pd.isnull(sample_agg_data.loc[0, "time_prev"])
 
@@ -44,11 +44,15 @@ def test_aggregate_surveys():
 
 
 def test_gen_survey_schedule():
-    interventions_dict = get_all_interventions_dict(
-        "sample_intervention_data.json")
+    interventions_path = os.path.join(LOCAL_DIR,
+                                      "sample_intervention_data.json")
+    interventions_dict = get_all_interventions_dict(interventions_path)
+    surveys_settings_path = os.path.join(
+        LOCAL_DIR, "sample_study_surveys_and_settings.json"
+    )
 
     sample_schedule = gen_survey_schedule(
-        "sample_study_surveys_and_settings.json",
+        surveys_settings_path,
         time_start=pd.to_datetime("2021-12-01"),
         time_end=pd.to_datetime("2021-12-30"),
         beiwe_ids=["idr8gqdh"],
@@ -64,7 +68,8 @@ def test_gen_survey_schedule():
 
 
 def test_aggregate_surveys_no_config():
-    agg_data = aggregate_surveys_no_config("sample_dir", "UTC")
+    filepath = os.path.join(LOCAL_DIR, "sample_dir")
+    agg_data = aggregate_surveys_no_config(filepath, "UTC")
     assert np.mean(pd.to_datetime(agg_data['timestamp'], unit='ms') ==
                    agg_data['UTC time']) == 1.0
     assert len(agg_data.surv_inst_flg.unique()) == 2
@@ -72,9 +77,12 @@ def test_aggregate_surveys_no_config():
 
 
 def test_aggregate_surveys_config():
-    agg_data = aggregate_surveys_config(
-        "sample_dir", "sample_study_surveys_and_settings.json", "UTC"
+    study_dir = os.path.join(LOCAL_DIR, "sample_dir")
+    survey_settings_path = os.path.join(
+        LOCAL_DIR, "sample_study_surveys_and_settings.json"
     )
+
+    agg_data = aggregate_surveys_config(study_dir, survey_settings_path, "UTC")
     assert np.mean(pd.to_datetime(agg_data['timestamp'], unit='ms') ==
                    agg_data['UTC time']) == 1.0
     assert len(agg_data.surv_inst_flg.unique()) == 2
@@ -82,11 +90,13 @@ def test_aggregate_surveys_config():
 
 
 def test_agg_changed_answers_summary():
-    agg_data = aggregate_surveys_config(
-        "sample_dir", "sample_study_surveys_and_settings.json", "UTC"
+    study_dir = os.path.join(LOCAL_DIR, "sample_dir")
+    survey_settings_path = os.path.join(
+        LOCAL_DIR, "sample_study_surveys_and_settings.json"
     )
+    agg_data = aggregate_surveys_config(study_dir, survey_settings_path, "UTC")
     ca_detail, ca_summary = agg_changed_answers_summary(
-        "sample_study_surveys_and_settings.json", agg_data
+        survey_settings_path, agg_data
     )
     assert ca_detail.shape[0] == 5
     assert ca_detail.shape[1] == 14
@@ -95,13 +105,17 @@ def test_agg_changed_answers_summary():
 
 
 def test_survey_submits_with_no_submissions():
-    agg_data = aggregate_surveys_config(
-        "sample_dir", "sample_study_surveys_and_settings.json", "UTC"
+    study_dir = os.path.join(LOCAL_DIR, "sample_dir")
+    survey_settings_path = os.path.join(
+        LOCAL_DIR, "sample_study_surveys_and_settings.json"
     )
-    interventions_dict = get_all_interventions_dict(
-        "sample_intervention_data.json")
+    interventions_path = os.path.join(
+        LOCAL_DIR, "sample_intervention_data.json"
+    )
+    agg_data = aggregate_surveys_config(study_dir, survey_settings_path, "UTC")
+    interventions_dict = get_all_interventions_dict(interventions_path)
     ss_detail, ss_summary = survey_submits(
-        "sample_study_surveys_and_settings.json", "2021-12-01", "2021-12-30",
+        survey_settings_path, "2021-12-01", "2021-12-30",
         ["idr8gqdh"], agg_data, interventions_dict
     )
     assert ss_detail.shape[0] == 0
@@ -109,5 +123,6 @@ def test_survey_submits_with_no_submissions():
 
 
 def test_survey_submits_no_config():
-    submits_tbl = survey_submits_no_config("sample_dir", "UTC")
+    study_dir = os.path.join(LOCAL_DIR, "sample_dir")
+    submits_tbl = survey_submits_no_config(study_dir, "UTC")
     assert submits_tbl.shape[0] == 2
