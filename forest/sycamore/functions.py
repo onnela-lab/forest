@@ -114,7 +114,7 @@ def read_and_aggregate(study_dir: str, beiwe_id: str,
         survey_data["DOW"] = survey_data["UTC time"].dt.dayofweek
         return survey_data
     else:
-        logger.warning("No survey_timings for user %s." % beiwe_id)
+        logger.warning("No survey_timings for user %s.", beiwe_id)
         return pd.DataFrame(columns=["UTC time"], dtype="datetime64[ns]")
 
 
@@ -144,7 +144,7 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
                  if not u.startswith(".") and u != "registry"]
 
     if len(users) == 0:
-        logger.error(f"No users in directory {study_dir}")
+        logger.error("No users in directory %s", study_dir)
         return pd.DataFrame(columns=["UTC time"], dtype="datetime64[ns]")
 
     all_data_list = []
@@ -450,13 +450,13 @@ def get_survey_timings(person_ids: list, study_dir: str,
             try:
                 f = pd.read_csv(os.path.join(survey_dir, fp))
             except FileNotFoundError:
-                logger.error(f"File not found at path {fp}")
+                logger.error("File not found at path %s", fp)
                 continue
             except pd.errors.EmptyDataError:
-                logger.error(f"No data found at path {fp}")
+                logger.error("No data found at path %s", fp)
                 continue
             except pd.errors.ParserError:
-                logger.error(f"Parse error for file at path {fp}")
+                logger.error("Parse error for file at path %s", fp)
                 continue
             # Check whether participant uses iOS
             if "event" in f.columns:  # iOS: last columnname == "event"

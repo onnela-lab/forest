@@ -179,7 +179,7 @@ def gen_survey_schedule(
                         intervention_dict=all_interventions_dict[u_id]
                     )
                 else:
-                    logger.warning(f"error: no index time found for {u_id}")
+                    logger.warning("error: no index time found for %s", u_id)
             tbl = pd.DataFrame({"delivery_time": s_times})
             # May not be necessary, but I"m leaving this in case timestamps are
             # in different formats

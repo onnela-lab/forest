@@ -51,12 +51,12 @@ def survey_stats_main(
                        "Skipping some summary outputs.")
         agg_data = aggregate_surveys_no_config(study_folder, tz_str)
         if agg_data.shape[0] == 0:
-            logger.error(f"Error: No survey data found in {study_folder}")
+            logger.error("Error: No survey data found in %s", study_folder)
             return True
     else:
         agg_data = aggregate_surveys_config(study_folder, config_path, tz_str)
         if agg_data.shape[0] == 0:
-            logger.error(f"Error: No survey data found in {study_folder}")
+            logger.error("Error: No survey data found in %s", study_folder)
             return True
         # Create changed answers detail and summary
         ca_detail, ca_summary = agg_changed_answers_summary(config_path,
