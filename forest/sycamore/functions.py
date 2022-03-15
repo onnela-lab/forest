@@ -76,8 +76,7 @@ def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
         return q
 
 
-def read_and_aggregate(study_dir: str,
-                       beiwe_id: str,
+def read_and_aggregate(study_dir: str, beiwe_id: str,
                        data_stream: str) -> pd.DataFrame:
     """Read and aggregate data for a user
 
@@ -279,8 +278,7 @@ def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
     return output
 
 
-def convert_timezone_df(df_merged: pd.DataFrame,
-                        tz_str: str = "UTC",
+def convert_timezone_df(df_merged: pd.DataFrame, tz_str: str = "UTC",
                         utc_col: str = 'UTC time') -> pd.DataFrame:
     """Convert a df to local time zone
 
@@ -304,10 +302,10 @@ def convert_timezone_df(df_merged: pd.DataFrame,
     return df_merged
 
 
-def aggregate_surveys_config(study_dir: str,
-                             config_path: str,
-                             study_tz: str = "UTC",
-                             users: list = None) -> pd.DataFrame:
+def aggregate_surveys_config(
+        study_dir: str, config_path: str, study_tz: str = "UTC",
+        users: list = None
+) -> pd.DataFrame:
     """Aggregate surveys when config is available
 
     Merges stacked survey data with processed configuration file data and
@@ -369,8 +367,7 @@ def aggregate_surveys_config(study_dir: str,
 
 
 def aggregate_surveys_no_config(study_dir: str, study_tz: str = "UTC",
-                                users: list = None
-                                ) -> pd.DataFrame:
+                                users: list = None) -> pd.DataFrame:
     """Clean aggregated data
 
     Args:
@@ -556,8 +553,7 @@ def get_survey_timings(person_ids: list, study_dir: str,
                                         [pid, 'Android', timestamp,
                                          present, submitted]])
 
-    svtm = pd.DataFrame(record[1:, :],
-                        columns=record[0])
+    svtm = pd.DataFrame(record[1:, :], columns=record[0])
 
     # Fix surveys that were completed over more than an hour
     svtm['day'] = pd.to_datetime(

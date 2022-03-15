@@ -151,7 +151,8 @@ def agg_changed_answers_summary(
         return max(set(answers), key=answers.count, default=0)
 
     most_common_answer = detail.groupby(
-        summary_cols)['all_answers'].apply(get_most_common_answer)
+        summary_cols
+    )['all_answers'].apply(get_most_common_answer)
 
     out = pd.concat([num_answers, avg_time, avg_chgs,
                     most_common_answer], axis=1).reset_index()

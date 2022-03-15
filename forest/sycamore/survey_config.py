@@ -130,7 +130,7 @@ def generate_survey_times(
 def gen_survey_schedule(
         config_path: str, time_start: str, time_end: str, beiwe_ids: list,
         all_interventions_dict: dict
-                        ) -> pd.DataFrame:
+) -> pd.DataFrame:
     """Get survey schedule for a number of users
 
     Args:
@@ -256,8 +256,7 @@ def survey_submits(
         agg[
             ['Local time', 'config_id', 'survey id', 'beiwe_id']
         ].loc[agg.submit_line == 1].drop_duplicates(),
-        how='left',
-        left_on=['id', 'beiwe_id'],
+        how='left', left_on=['id', 'beiwe_id'],
         right_on=['config_id', 'beiwe_id']
     )
 
@@ -311,7 +310,7 @@ def survey_submits(
         # with a survey submit
         avg_time_to_submit = submit_lines3.loc[
             submit_lines3.submit_flg == 1
-            ].groupby(summary_cols)['time_to_submit'].apply(
+        ].groupby(summary_cols)['time_to_submit'].apply(
             lambda x: sum(x, datetime.timedelta()) / len(x)
         )
     else:
@@ -361,10 +360,7 @@ def survey_submits_no_config(study_dir: str,
     tmp = aggregate_surveys_no_config(study_dir, study_tz)
 
     def summarize_submits(df):
-        temp_dict = {
-            'min_time': df.min(),
-            'max_time': df.max()
-        }
+        temp_dict = {'min_time': df.min(), 'max_time': df.max()}
         return pd.Series(temp_dict, index=pd.Index(['min_time', 'max_time']))
 
     tmp = tmp.groupby(['survey id', 'beiwe_id', 'surv_inst_flg'])[
