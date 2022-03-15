@@ -35,7 +35,7 @@ def survey_stats_main(
     participant_ids(list):
         List of users in study for which we are generating a survey schedule
     tz_str(str):
-        Timezone of study. This defaults to 'UTC'
+        Timezone of study. This defaults to "UTC"
     interventions_filepath(str):
         filepath where interventions json file is.
 
@@ -44,11 +44,11 @@ def survey_stats_main(
     if participant_ids is None:
         participant_ids = [u
                            for u in os.listdir(study_folder)
-                           if not u.startswith('.') and u != 'registry']
+                           if not u.startswith(".") and u != "registry"]
     # Read, aggregate and clean data
     if config_path is None:
-        logger.warning('No config file provided. '
-                       'Skipping some summary outputs.')
+        logger.warning("No config file provided. "
+                       "Skipping some summary outputs.")
         agg_data = aggregate_surveys_no_config(study_folder, tz_str)
         if agg_data.shape[0] == 0:
             logger.error(f"Error: No survey data found in {study_folder}")
@@ -61,9 +61,9 @@ def survey_stats_main(
         # Create changed answers detail and summary
         ca_detail, ca_summary = agg_changed_answers_summary(config_path,
                                                             agg_data)
-        ca_detail.to_csv(os.path.join(output_folder, 'answers_data.csv'),
+        ca_detail.to_csv(os.path.join(output_folder, "answers_data.csv"),
                          index=False)
-        ca_summary.to_csv(os.path.join(output_folder, 'answers_summary.csv'),
+        ca_summary.to_csv(os.path.join(output_folder, "answers_summary.csv"),
                           index=False)
         if time_start is not None and time_end is not None:
             # Create survey submits detail and summary
@@ -76,21 +76,21 @@ def survey_stats_main(
             )
             if ss_summary.shape[0] > 0:
                 ss_detail.to_csv(
-                    os.path.join(output_folder, 'submits_data.csv'),
+                    os.path.join(output_folder, "submits_data.csv"),
                     index=False
                 )
                 ss_summary.to_csv(
-                    os.path.join(output_folder, 'submits_summary.csv'),
+                    os.path.join(output_folder, "submits_summary.csv"),
                     index=False
                 )
             else:
                 logger.error("An Error occurred when "
                              "getting survey submit summaries")
     # Write out summaries
-    agg_data.to_csv(os.path.join(output_folder, 'agg_survey_data.csv'),
+    agg_data.to_csv(os.path.join(output_folder, "agg_survey_data.csv"),
                     index=False)
     # Add alternative survey submits table
     submits_tbl = survey_submits_no_config(study_folder, tz_str)
-    submits_tbl.to_csv(os.path.join(output_folder, 'submits_alt_summary.csv'),
+    submits_tbl.to_csv(os.path.join(output_folder, "submits_alt_summary.csv"),
                        index=False)
     return True

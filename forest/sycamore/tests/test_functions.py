@@ -37,8 +37,8 @@ def test_aggregate_surveys():
     assert pd.isnull(sample_agg_data.loc[0, "time_prev"])
 
     assert np.mean(
-        pd.to_datetime(sample_agg_data['timestamp'], unit='ms'
-                       ) == sample_agg_data['UTC time']
+        pd.to_datetime(sample_agg_data["timestamp"], unit="ms"
+                       ) == sample_agg_data["UTC time"]
     ) == 1.0
     assert "MALFORMED" not in sample_agg_data["question text"].values
 
@@ -62,16 +62,16 @@ def test_gen_survey_schedule():
 
     assert np.mean(
         sample_schedule.columns ==
-        pd.Index(['delivery_time', 'next_delivery_time', 'id', 'beiwe_id',
-                  'question_id'])
+        pd.Index(["delivery_time", "next_delivery_time", "id", "beiwe_id",
+                  "question_id"])
     ) == 1.0
 
 
 def test_aggregate_surveys_no_config():
     filepath = os.path.join(LOCAL_DIR, "sample_dir")
     agg_data = aggregate_surveys_no_config(filepath, "UTC")
-    assert np.mean(pd.to_datetime(agg_data['timestamp'], unit='ms') ==
-                   agg_data['UTC time']) == 1.0
+    assert np.mean(pd.to_datetime(agg_data["timestamp"], unit="ms") ==
+                   agg_data["UTC time"]) == 1.0
     assert len(agg_data.surv_inst_flg.unique()) == 2
     assert len(agg_data.DOW.unique()) == 2
 
@@ -83,8 +83,8 @@ def test_aggregate_surveys_config():
     )
 
     agg_data = aggregate_surveys_config(study_dir, survey_settings_path, "UTC")
-    assert np.mean(pd.to_datetime(agg_data['timestamp'], unit='ms') ==
-                   agg_data['UTC time']) == 1.0
+    assert np.mean(pd.to_datetime(agg_data["timestamp"], unit="ms") ==
+                   agg_data["UTC time"]) == 1.0
     assert len(agg_data.surv_inst_flg.unique()) == 2
     assert len(agg_data.DOW.unique()) == 2
 

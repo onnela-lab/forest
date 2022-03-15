@@ -48,33 +48,33 @@ def agg_changed_answers(agg: pd.DataFrame) -> pd.DataFrame:
         agg(DataFrame):
             Dataframe with aggregated data, one line per question answered,
             with changed answers aggregated into a list.
-            The Final answer is in the 'last_answer' field
+            The Final answer is in the "last_answer" field
     """
-    cols = ['survey id', 'beiwe_id', 'question id', 'question text',
-            'question type', 'question index']
+    cols = ["survey id", "beiwe_id", "question id", "question text",
+            "question type", "question index"]
 
-    agg['last_answer'] = agg.groupby(cols).answer.transform('last')
+    agg["last_answer"] = agg.groupby(cols).answer.transform("last")
     # add in an answer ID and take the last of that too to join back on the
     # time
     agg = agg.reset_index().set_index(cols)
-    agg['all_answers'] = agg.groupby(cols)['answer'].apply(lambda x: list(x))
+    agg["all_answers"] = agg.groupby(cols)["answer"].apply(lambda x: list(x))
     # Subset answer lists if needed
-    agg['all_answers'] = agg['all_answers'].apply(
+    agg["all_answers"] = agg["all_answers"].apply(
         lambda x: x if isinstance(x, float) else subset_answer_choices(x)
     )
-    agg['num_answers'] = agg['all_answers'].apply(
+    agg["num_answers"] = agg["all_answers"].apply(
         lambda x: x if isinstance(x, float) else len(list(x))
     )
     agg = agg.reset_index()
 
-    agg['first_time'] = agg.groupby(cols)['Local time'].transform('first')
-    agg['last_time'] = agg.groupby(cols)['Local time'].transform('last')
+    agg["first_time"] = agg.groupby(cols)["Local time"].transform("first")
+    agg["last_time"] = agg.groupby(cols)["Local time"].transform("last")
 
     # Number of changed answers and time spent answering each question
-    agg['time_to_answer'] = agg['last_time'] - agg['first_time']
+    agg["time_to_answer"] = agg["last_time"] - agg["first_time"]
 
     # Filter agg down to the line of the last question time
-    agg = agg.loc[agg['Local time'] == agg['last_time']]
+    agg = agg.loc[agg["Local time"] == agg["last_time"]]
 
     return agg.reset_index(drop=True)
 
@@ -99,7 +99,7 @@ def agg_changed_answers_summary(
         detail(DataFrame):
             Dataframe with aggregated data, one line per question answered,
             with changed answers aggregated into a list.
-            The Final answer is in the 'last_answer' field
+            The Final answer is in the "last_answer" field
         out(DataFrame):
             Summary of how an individual answered each question, with their
             most common answer, time to answer, etc
@@ -109,25 +109,25 @@ def agg_changed_answers_summary(
     # Add instance id and update first time to be the last last time if there
     # is only one line
     surv_config = parse_surveys(config_path)
-    surv_config['q_internal_id'] = surv_config.groupby(
-        'config_id'
+    surv_config["q_internal_id"] = surv_config.groupby(
+        "config_id"
     ).cumcount() + 1
 
     detail = pd.merge(
-        detail, surv_config[['question_id', 'q_internal_id']], how='left',
-        left_on='question id', right_on='question_id'
+        detail, surv_config[["question_id", "q_internal_id"]], how="left",
+        left_on="question id", right_on="question_id"
     )
 
-    detail['instance_id'] = np.where(detail['q_internal_id'] == 1, 1, 0)
-    detail['instance_id'] = detail['instance_id'].cumsum()
+    detail["instance_id"] = np.where(detail["q_internal_id"] == 1, 1, 0)
+    detail["instance_id"] = detail["instance_id"].cumsum()
 
-    detail['last_time_1'] = detail.groupby(
-        ['instance_id']
-    )['last_time'].shift(1)
+    detail["last_time_1"] = detail.groupby(
+        ["instance_id"]
+    )["last_time"].shift(1)
 
     # if there is one answer and the last_time and first_time are the same,
     # make the first_time = last_time_1
-    detail['first_time'] = np.where(
+    detail["first_time"] = np.where(
         (detail.num_answers == 1)
         & (detail.first_time == detail.last_time)
         & (detail.q_internal_id != 1),
@@ -135,16 +135,16 @@ def agg_changed_answers_summary(
     )
 
     # Update time_to_answer
-    detail['time_to_answer'] = detail['last_time'] - detail['first_time']
+    detail["time_to_answer"] = detail["last_time"] - detail["first_time"]
     #####################################################################
 
-    summary_cols = ['survey id', 'beiwe_id', 'question id', 'question text',
-                    'question type']
-    num_answers = detail.groupby(summary_cols)['num_answers'].count()
-    avg_time = detail.groupby(summary_cols)['time_to_answer'].apply(
+    summary_cols = ["survey id", "beiwe_id", "question id", "question text",
+                    "question type"]
+    num_answers = detail.groupby(summary_cols)["num_answers"].count()
+    avg_time = detail.groupby(summary_cols)["time_to_answer"].apply(
         lambda x: sum(x, datetime.timedelta()) / len(x)
     )
-    avg_chgs = detail.groupby(summary_cols)['num_answers'].mean()
+    avg_chgs = detail.groupby(summary_cols)["num_answers"].mean()
 
     def get_most_common_answer(col):
         answers = [answer for answer_list in col for answer in answer_list]
@@ -152,23 +152,23 @@ def agg_changed_answers_summary(
 
     most_common_answer = detail.groupby(
         summary_cols
-    )['all_answers'].apply(get_most_common_answer)
+    )["all_answers"].apply(get_most_common_answer)
 
     out = pd.concat([num_answers, avg_time, avg_chgs,
                     most_common_answer], axis=1).reset_index()
 
     out.columns = summary_cols + [
-        'num_answers', 'average_time_to_answer', 'average_number_of_answers',
-        'most_common_answer'
+        "num_answers", "average_time_to_answer", "average_number_of_answers",
+        "most_common_answer"
     ]
 
     # Select relevant columns from detail to output and keep one line per
     # question
-    detail = detail.loc[detail['last_answer'] == detail['answer']]
-    detail_cols = ['survey id', 'beiwe_id', 'question id', 'question text',
-                   'question type', 'question answer options', 'timestamp',
-                   'Local time', 'last_answer', 'all_answers', 'num_answers',
-                   'first_time', 'last_time', 'time_to_answer']
+    detail = detail.loc[detail["last_answer"] == detail["answer"]]
+    detail_cols = ["survey id", "beiwe_id", "question id", "question text",
+                   "question type", "question answer options", "timestamp",
+                   "Local time", "last_answer", "all_answers", "num_answers",
+                   "first_time", "last_time", "time_to_answer"]
 
     detail = detail[detail_cols]
     return detail, out
