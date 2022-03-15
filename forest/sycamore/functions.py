@@ -188,7 +188,7 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
     all_data["question id lag"] = all_data["question id"].shift(1)
     all_data["question index"] = all_data.apply(
         lambda row:
-        1 if ((row["question id"] != row["question id lag"])) else 0,
+        1 if (row["question id"] != row["question id lag"]) else 0,
         axis=1
     )
     all_data["question index"] = all_data.groupby(["survey id", "beiwe_id"])[
