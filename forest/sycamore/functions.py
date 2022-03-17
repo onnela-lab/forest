@@ -12,6 +12,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+
 def read_json(study_dir: str) -> dict:
     """Read a json file into a dictionary
 
@@ -27,16 +28,16 @@ def read_json(study_dir: str) -> dict:
 
 # load events & question types dictionary
 QUESTION_TYPES_LOOKUP = {
-'Android': {'Checkbox Question': 'checkbox',
-             'Info Text Box': 'info_text_box',
-             'Open Response Question': 'free_response',
-             'Radio Button Question': 'radio_button',
-             'Slider Question': 'slider'},
- 'iOS': {'checkbox': 'checkbox',
-         'free_response': 'free_response',
-         'info_text_box': 'info_text_box',
-         'radio_button': 'radio_button',
-         'slider': 'slider'}
+    'Android': {'Checkbox Question': 'checkbox',
+                'Info Text Box': 'info_text_box',
+                'Open Response Question': 'free_response',
+                'Radio Button Question': 'radio_button',
+                'Slider Question': 'slider'},
+    'iOS': {'checkbox': 'checkbox',
+            'free_response': 'free_response',
+            'info_text_box': 'info_text_box',
+            'radio_button': 'radio_button',
+            'slider': 'slider'}
 }
 
 
@@ -48,7 +49,7 @@ def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
             a single value for a question type
         lkp (dict):
             a lookup dictionary of question types and what they should map too.
-            Based on Josh"s dictionary of question types.
+            Based on Josh's dictionary of question types.
 
     Returns:
         s: string with the corrected question type
@@ -242,11 +243,12 @@ def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
         # Pull out timings
         for q in s["content"]:
             if "question_id" in q.keys():
-                surv = {}
-                surv["config_id"] = i
-                surv["question_id"] = q["question_id"]
-                surv["question_text"] = q["question_text"]
-                surv["question_type"] = q["question_type"]
+                surv = {
+                        "config_id": i,
+                        "question_id":  q["question_id"],
+                        "question_text": q["question_text"],
+                        "question_type":  q["question_type"]
+                }
                 if "text_field_type" in q.keys():
                     surv["text_field_type"] = q["text_field_type"]
                 # Convert surv to data frame
