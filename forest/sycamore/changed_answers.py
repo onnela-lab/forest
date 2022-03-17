@@ -79,13 +79,11 @@ def agg_changed_answers(agg: pd.DataFrame) -> pd.DataFrame:
     return agg.reset_index(drop=True)
 
 
-# Create a summary file that has survey, beiwe id, question id, average
-# number of changed answers, average time spent answering question
-
 def agg_changed_answers_summary(
         config_path: str, agg: pd.DataFrame
 ) -> Tuple[Any, DataFrame]:
-    """Create Summary File
+    """Create Summary File with survey, beiwe id, question id, average
+    number of changed answers, average time spent answering question
 
     Args:
         config_path(str):

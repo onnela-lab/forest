@@ -347,7 +347,7 @@ def survey_submits_no_config(study_dir: str,
                              study_tz: str = "UTC") -> pd.DataFrame:
     """Get survey submits without config file
 
-    Alternative function for getting the survey completions (doesn"t have
+    Alternative function for getting the survey completions (doesn't have
     expected times of surveys)
     Args:
         study_dir(str):
