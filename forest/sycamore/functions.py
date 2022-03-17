@@ -29,29 +29,18 @@ def read_json(study_dir: str) -> dict:
 
 
 # load events & question types dictionary
-# From Josh"s legacy script
-this_dir = os.path.dirname(__file__)
-events = read_json(os.path.join(this_dir, "events.json"))
-question_type_names = read_json(
-    os.path.join(this_dir, "question_type_names.json")
-)
-
-
-def make_lookup() -> dict:
-    """From legacy script
-
-    Reformats the question types JSON to be usable in future functions
-    """
-    lookup: dict = {"iOS": {}, "Android": {}}
-    for k in question_type_names:
-        for opsys in ["iOS", "Android"]:
-            opsys_name = question_type_names[k][opsys]
-            lookup[opsys][opsys_name] = k
-    return lookup
-
-
-# Create a lookup to be used in question standardization
-question_types_lookup = make_lookup()
+QUESTION_TYPES_LOOKUP = {
+'Android': {'Checkbox Question': 'checkbox',
+             'Info Text Box': 'info_text_box',
+             'Open Response Question': 'free_response',
+             'Radio Button Question': 'radio_button',
+             'Slider Question': 'slider'},
+ 'iOS': {'checkbox': 'checkbox',
+         'free_response': 'free_response',
+         'info_text_box': 'info_text_box',
+         'radio_button': 'radio_button',
+         'slider': 'slider'}
+}
 
 
 def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
@@ -68,7 +57,7 @@ def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
         s: string with the corrected question type
     """
     if lkp is None:
-        lkp = question_types_lookup
+        lkp = QUESTION_TYPES_LOOKUP
     # If it"s an Android string, flip it from the key to the value
     if q in lkp["Android"].keys():
         return lkp["Android"][q]
@@ -180,7 +169,7 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
     # Fix question types
     all_data["question type"] = all_data.apply(
         lambda row: q_types_standardize(
-            row["question type"], question_types_lookup
+            row["question type"], QUESTION_TYPES_LOOKUP
         ), axis=1
     )
 
