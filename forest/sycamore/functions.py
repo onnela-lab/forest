@@ -9,11 +9,8 @@ import pandas as pd
 
 from typing import Optional
 
-# Explore use of logging function (TO DO: Read wiki)
+
 logger = logging.getLogger(__name__)
-
-# Modified from legacy beiwetools code
-
 
 def read_json(study_dir: str) -> dict:
     """Read a json file into a dictionary
@@ -58,7 +55,7 @@ def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
     """
     if lkp is None:
         lkp = QUESTION_TYPES_LOOKUP
-    # If it"s an Android string, flip it from the key to the value
+    # If it's an Android string, flip it from the key to the value
     if q in lkp["Android"].keys():
         return lkp["Android"][q]
     else:
@@ -447,7 +444,7 @@ def get_survey_timings(person_ids: list, study_dir: str,
             # Check whether participant uses iOS
             if "event" in f.columns:  # iOS: last columnname == "event"
                 # Note: this assumes that all files have headers (check!)
-                # Logic for iPhones ###
+                # Logic for iPhones
 
                 # Here you could have a loop over pd.unique(f["survey id"])
                 # to do it in

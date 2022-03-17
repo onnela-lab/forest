@@ -338,9 +338,9 @@ def survey_submits(
         np.array("NaT", dtype="datetime64[ns]")
     )
 
-    return (submit_lines3.sort_values(
-        ["survey id", "beiwe_id"]).drop_duplicates(),
-        submit_lines_summary)
+    return submit_lines3.sort_values(
+        ["survey id", "beiwe_id"]
+    ).drop_duplicates(), submit_lines_summary
 
 
 def survey_submits_no_config(study_dir: str,
@@ -387,7 +387,7 @@ def get_all_interventions_dict(filepath: Optional[str]) -> dict:
     filepath(str)
     """
     if filepath is None:
-        return {}  # empty dict
+        return {}
     full_dict = read_json(filepath)
     output_dict: Dict = {}
 
