@@ -14,6 +14,7 @@ requires = [
     'shapely',  # jasmine
     'timezonefinder',  # poplar, bonsai
     'wheel'  # for ratelimit
+    'ssqueezepy'  # oak
 ]
 
 package_data = {'': ['*.csv', '*.json']}
