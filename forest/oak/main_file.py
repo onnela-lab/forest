@@ -1,56 +1,65 @@
 """
-Quantification of various types of physical
-activity using accelerometer data.
+Quantification of walking activity (step counting) using accelerometer data.
+
+Module is aimed to process raw accelerometer smartphone data collected with
+Beiwe Research Platform. Data preprocessing involves signal preproprocesing
+(unit standardization and interpolation to 10Hz), transformation using
+Continuous Wavelet transform (using ssqueezepy package), and calculation of
+steps from the identified walking bouts. Additional gait features calculated
+by module are walking time and gait speed (cadence).
+Results may be outputted in hourly and daily intervals.
+
 """
 
-import os
-import sys
-import pandas as pd
-import numpy as np
 from dateutil import tz
 from datetime import datetime, timedelta
+import numpy as np
+import os
+import pandas as pd
 from scipy import interpolate
 from scipy.signal import find_peaks, tukey
 from scipy.interpolate import interp2d
+import sys
 
 from ssqueezepy import ssq_cwt
 
 
-def rle(inarray):
+def rle(inarray: np.ndarray):
     """
     Run length encoding.
 
     Parameters
     ----------
-    inarray: multidatatype
+    inarray: numpy array
         array for run length encoding
 
     Returns
     -------
-    Runlengths : tuple
-        Running length
-    Startpositions : tuple
+    run_length : tuple
+        running length
+    start_ind : tuple
         starting index
-    Values : tuple
-        Running values
-
+    val : tuple
+        running values
     """
-
     ia = np.asarray(inarray)                 # force numpy
-    n = len(ia)
-    if n == 0:
-        return (None, None, None)
+    array_length = len(ia)
+    if array_length == 0:
+        return None, None, None
     else:
-        y = ia[1:] != ia[:-1]                # pairwise unequal (string safe)
-        i = np.append(np.where(y), n - 1)    # must include last element posi
-        z = np.diff(np.append(-1, i))        # run lengths
-        p = np.cumsum(np.append(0, z))[:-1]  # positions
-        return(z, p, ia[i])
+        pairwise_unequal = ia[1:] != ia[:-1]  # pairwise unequal (string safe)
+        ind = np.append(np.where(pairwise_unequal),
+                        array_length - 1)  # must include last element position
+        run_length = np.diff(np.append(-1, ind))  # run lengths
+        start_ind = np.cumsum(np.append(0, run_length))[:-1]  # positions
+        val = ia[ind]
+        return run_length, start_ind, val
 
 
-def standardize_bout(t_bout, x_bout, y_bout, z_bout):
+def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
+                    z_bout: np.ndarray):
     """
-    Interpolate acceleration to unify sampling rate.
+    Interpolate 3-axial signal to universal sampling rate and compute its norm.
 
     Parameters
     ----------
@@ -72,10 +81,9 @@ def standardize_bout(t_bout, x_bout, y_bout, z_bout):
     z_bout : array of floats
         Interpolated z-axis acceleration
     vm_bout : array of floats
-        Interpolated vector magnitude
+        Interpolated, zero-oscillating vector magnitude
 
     """
-
     t_bout_interp = np.arange(t_bout[0], t_bout[-1], (1/fs))
 
     f = interpolate.interp1d(t_bout, x_bout)
@@ -113,10 +121,11 @@ def standardize_bout(t_bout, x_bout, y_bout, z_bout):
     return x_bout, y_bout, z_bout, vm_bout
 
 
-def adjust_bout(vm_bout, fs):
+def adjust_bout(vm_bout: np.ndarray, fs: int):
     """
     Fill observations in incomplete bouts.
-    E.g., if the bout is 9.8s long, function fills in values at its
+
+    For example, if the bout is 9.8s long, fill in values at its
     end to make it 10s (results in N%fs=0).
 
     Parameters
@@ -132,20 +141,20 @@ def adjust_bout(vm_bout, fs):
         vector magnitude with one bout of activity
 
     """
-
     if len(vm_bout) % fs >= 0.7*fs:
         for i in range(fs-len(vm_bout) % fs):
             vm_bout = np.append(vm_bout, vm_bout[-1])
     elif len(vm_bout) % fs != 0:
         vm_bout = vm_bout[np.arange(len(vm_bout)//fs*fs)]
+
     return vm_bout
 
 
-def find_walking(vm_bout, fs, A, step_freq, alpha, beta, epsilon, delta):
+def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
+                 step_freq: float, alpha: float, beta: float, epsilon: int,
+                 delta: int):
     """
-    Finds walking periods within raw accelerometery data.
-    E.g., if the bout is 9.8s long, function fills in values at it's end to
-    make it 10s.
+    Find walking periods within raw accelerometery data.
 
     Parameters
     ----------
@@ -174,15 +183,15 @@ def find_walking(vm_bout, fs, A, step_freq, alpha, beta, epsilon, delta):
     cad : gait speed within bout of activity (in Hz or steps/sec)
 
     """
-
     # define wavelet function used in method
     wavelet = ('gmw', {'beta': 90, 'gamma': 3})
 
-    # calculate pp to exclude low-intensity periods from further computing
-    x = vm_bout.reshape(fs, -1, order="F")
-    pp = np.array([max(x[:, i])-min(x[:, i]) for i in range(x.shape[1])])
+    # calculate peak-to-peak to exclude low-intensity periods
+    vm_res_sec = vm_bout.reshape(fs, -1, order="F")
+    pp = np.array([max(vm_res_sec[:, i])-min(vm_res_sec[:, i])
+                   for i in range(vm_res_sec.shape[1])])
     valid = np.ones(len(pp), dtype=bool)
-    valid[pp < A] = False
+    valid[pp < min_amp] = False
 
     # compute cwt only if valid fragment is suffiently long
     if sum(valid) >= epsilon:
@@ -190,17 +199,12 @@ def find_walking(vm_bout, fs, A, step_freq, alpha, beta, epsilon, delta):
         tapered_bout = vm_bout[np.repeat(valid, fs)]
 
         # add some noise in the edges to minimize impact of coin of influence
-        w = tukey(len(tapered_bout), alpha=0.02, sym=True)
+        win = tukey(len(tapered_bout), alpha=0.02, sym=True)
         tapered_bout = np.concatenate((np.zeros(5*fs),
-                                       (tapered_bout)*w,
+                                       (tapered_bout)*win,
                                        np.zeros(5*fs)))
 
         # compute cwt over bout
-        # try:
-        #     out = ssq_cwt(tapered_bout, wavelet, fs=10)
-        #     coefs = out[0]
-        # except:
-        #     # tapered_bout = tapered_bout[:-1]
         out = ssq_cwt(tapered_bout[:-1], wavelet, fs=10)
         coefs = out[0]
         coefs = np.append(coefs, coefs[:, -1:], 1)
@@ -218,15 +222,15 @@ def find_walking(vm_bout, fs, A, step_freq, alpha, beta, epsilon, delta):
         coefs_interp = coefs_interp[:, 5*fs:-5*fs]
 
         # identify dominant peaks with the spectrum
-        D = np.zeros((coefs_interp.shape[0], int(coefs_interp.shape[1]/fs)))
+        dp = np.zeros((coefs_interp.shape[0], int(coefs_interp.shape[1]/fs)))
         loc_min = np.argmin(abs(freqs_interp-step_freq[0]))
         loc_max = np.argmin(abs(freqs_interp-step_freq[1]))
         for i in range(int(coefs_interp.shape[1]/fs)):
             # segment measurement into one-second non-overlapping windows
-            xStart = i*fs
-            xFinish = (i+1)*fs
+            x_start = i*fs
+            x_end = (i+1)*fs
             # identify peaks and their location in each window
-            window = np.sum(coefs_interp[:, np.arange(xStart, xFinish)],
+            window = np.sum(coefs_interp[:, np.arange(x_start, x_end)],
                             axis=1)
             locs, _ = find_peaks(window)
             pks = window[locs]
@@ -237,33 +241,33 @@ def find_walking(vm_bout, fs, A, step_freq, alpha, beta, epsilon, delta):
 
             # account peaks that satisfy condition
             for j in range(len(locs)):
-                if locs[j] >= loc_min and locs[j] <= loc_max:
+                if loc_min <= locs[j] <= loc_max:
                     index_in_range.append(j)
                 if len(index_in_range) >= 1:
                     break
-            x = np.zeros(coefs_interp.shape[0])
+            peak_vec = np.zeros(coefs_interp.shape[0])
             if len(index_in_range) > 0:
                 if locs[0] > loc_max:
                     if pks[0]/pks[index_in_range[0]] < alpha:
-                        x[locs[index_in_range[0]]] = 1
+                        peak_vec[locs[index_in_range[0]]] = 1
                 elif locs[0] < loc_min:
                     if pks[0]/pks[index_in_range[0]] < beta:
-                        x[locs[index_in_range[0]]] = 1
+                        peak_vec[locs[index_in_range[0]]] = 1
                 else:
-                    x[locs[index_in_range[0]]] = 1
-            D[:, i] = x
+                    peak_vec[locs[index_in_range[0]]] = 1
+            dp[:, i] = peak_vec
 
         # distribute local maxima across valid periods
-        E = np.zeros((D.shape[0], len(valid)))
-        E[:, valid] = D
+        val_peaks = np.zeros((dp.shape[0], len(valid)))
+        val_peaks[:, valid] = dp
 
         # find when peaks are continuous in time and frequency
-        B = find_continuous_dominant_peaks(E, epsilon, delta)
+        cp = find_continuous_dominant_peaks(val_peaks, epsilon, delta)
 
         # summarize the results
-        cad = np.zeros(E.shape[1])
+        cad = np.zeros(val_peaks.shape[1])
         for i in range(len(cad)):
-            ind_freqs = np.where(B[:, i] > 0)[0]
+            ind_freqs = np.where(cp[:, i] > 0)[0]
             if len(ind_freqs) > 0:
                 cad[i] = freqs_interp[ind_freqs[0]]
 
@@ -275,15 +279,15 @@ def find_walking(vm_bout, fs, A, step_freq, alpha, beta, epsilon, delta):
     return cad
 
 
-def find_continuous_dominant_peaks(E, epsilon, delta):
+def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
+                                   delta: int):
     """
-    Function that identifies continuous and sustained peaks within matrix.
-    Peaks that do not satisfy the desired continuity and stability are cleared.
+    Identify continuous and sustained peaks within matrix.
 
     Parameters
     ----------
-    E : nparray
-        binary matrix (1=peak,0=no peak)
+    val_peaks : nparray
+        binary matrix (1=peak,0=no peak) of valid peaks
     epsilon : integer
         minimum duration of peaks (in seconds)
     delta : integer
@@ -292,70 +296,78 @@ def find_continuous_dominant_peaks(E, epsilon, delta):
 
     Returns
     -------
-    B : nparray
-        binary matrix (1=peak,0=no peak)
+    cp : nparray
+        binary matrix (1=peak,0=no peak) of continuous peaks
 
     """
-    E = np.concatenate((E, np.zeros((E.shape[0], 1))), axis=1)
-    B = np.zeros((E.shape[0], E.shape[1]))
-    for m in range(E.shape[1]-epsilon):
-        A = E[:, np.arange(m, m+epsilon)]
-        loop = [i for i in np.arange(epsilon)] + [i for i in
-                                                  np.arange(epsilon-2, -1, -1)]
-        for t in range(len(loop)):
-            s = loop[t]
-            pr = np.where(A[:, s] != 0)[0]
-            j = 0
+    val_peaks = np.concatenate((val_peaks, np.zeros((val_peaks.shape[0], 1))),
+                               axis=1)
+    cp = np.zeros((val_peaks.shape[0], val_peaks.shape[1]))
+    for slice_ind in range(val_peaks.shape[1]-epsilon):
+        slice_mat = val_peaks[:, np.arange(slice_ind, slice_ind+epsilon)]
+        win = [i for i in np.arange(epsilon)] + [i for i in
+                                                 np.arange(epsilon-2, -1, -1)]
+
+        for ind in range(len(win)):
+            win_ind = win[ind]
+            pr = np.where(slice_mat[:, win_ind] != 0)[0]
+            count = 0
             if len(pr) > 0:
                 for i in range(len(pr)):
-                    index = np.arange(max(0, pr[i]-delta), min(pr[i]+delta+1,
-                                                               A.shape[0]))
-                    if s == 0 or s == epsilon-1:
-                        W = np.transpose(np.array([np.ones(len(index))*pr[i],
-                                                   index], dtype=int))
+                    index = np.arange(max(0, pr[i]-delta),
+                                      min(pr[i]+delta+1, slice_mat.shape[0]))
+                    if win_ind == 0 or win_ind == epsilon-1:
+                        cur_peak_loc = np.transpose(np.array(
+                            [np.ones(len(index))*pr[i], index], dtype=int))
                     else:
-                        W = np.transpose(np.array([index,
-                                                   np.ones(len(index))*pr[i],
-                                                   index], dtype=int))
+                        cur_peak_loc = np.transpose(np.array(
+                            [index, np.ones(len(index))*pr[i], index],
+                            dtype=int))
 
-                    F = np.zeros((W.shape[0], W.shape[1]), dtype=int)
-                    if s == 0:
-                        F[:, 0] = A[W[:, 0], s]
-                        F[:, 1] = A[W[:, 1], s+1]
-                    elif s == epsilon-1:
-                        F[:, 0] = A[W[:, 0], s]
-                        F[:, 1] = A[W[:, 1], s-1]
+                    peaks = np.zeros((cur_peak_loc.shape[0],
+                                      cur_peak_loc.shape[1]), dtype=int)
+                    if win_ind == 0:
+                        peaks[:, 0] = slice_mat[cur_peak_loc[:, 0], win_ind]
+                        peaks[:, 1] = slice_mat[cur_peak_loc[:, 1], win_ind+1]
+                    elif win_ind == epsilon-1:
+                        peaks[:, 0] = slice_mat[cur_peak_loc[:, 0], win_ind]
+                        peaks[:, 1] = slice_mat[cur_peak_loc[:, 1], win_ind-1]
                     else:
-                        F[:, 0] = A[W[:, 0], s-1]
-                        F[:, 1] = A[W[:, 1], s]
-                        F[:, 2] = A[W[:, 2], s+1]
-                    G1 = W[np.sum(F[:, np.arange(2)], axis=1) > 1, :]
-                    if s == 0 or s == epsilon-1:
-                        if G1.shape[0] == 0:
-                            A[W[:, 0], s] = 0
+                        peaks[:, 0] = slice_mat[cur_peak_loc[:, 0], win_ind-1]
+                        peaks[:, 1] = slice_mat[cur_peak_loc[:, 1], win_ind]
+                        peaks[:, 2] = slice_mat[cur_peak_loc[:, 2], win_ind+1]
+
+                    cont_peaks_edge = cur_peak_loc[np.sum(
+                        peaks[:, np.arange(2)], axis=1) > 1, :]
+                    cpe0 = cont_peaks_edge.shape[0]
+                    if win_ind == 0 or win_ind == epsilon-1:  # start or end
+                        if cpe0 == 0:
+                            slice_mat[cur_peak_loc[:, 0], win_ind] = 0
                         else:
-                            j = j + 1
+                            count = count + 1
                     else:
-                        G2 = W[np.sum(F[:, np.arange(1, 3)], axis=1) > 1, :]
-                        if G1.shape[0] == 0 or G2.shape[0] == 0:
-                            A[W[:, 1], s] = 0
+                        cont_peaks_other = cur_peak_loc[np.sum(
+                            peaks[:, np.arange(1, 3)], axis=1) > 1, :]
+                        cpo0 = cont_peaks_other.shape[0]
+                        if cpe0 == 0 or cpo0 == 0:
+                            slice_mat[cur_peak_loc[:, 1], win_ind] = 0
                         else:
-                            j = j + 1
-            if j == 0:
-                A = np.zeros((A.shape[0], A.shape[1]))
+                            count = count + 1
+            if count == 0:
+                slice_mat = np.zeros((slice_mat.shape[0], slice_mat.shape[1]))
                 break
-        B[:, np.arange(m, m + epsilon)] = np.maximum(B[:,
-                                                       np.arange(m, m +
-                                                                 epsilon)], A)
+        cp[:, np.arange(
+            slice_ind, slice_ind + epsilon)] = np.maximum(
+                cp[:, np.arange(slice_ind, slice_ind + epsilon)], slice_mat)
 
-    B = B[:, :-1]
-    return B
+    cp = cp[:, :-1]
+    return cp
 
 
 def main_function(study_folder: str, output_folder: str, tz_str: str,
                   option: str, time_start=None, time_end=None, beiwe_id=None):
     """
-    Compute walking metrics from raw accelerometer data collected with Beiwe
+    Estimate gait features from accelerometer smartphone data.
 
     Parameters
     ----------
@@ -375,20 +387,17 @@ def main_function(study_folder: str, output_folder: str, tz_str: str,
         beiwe ID selected for computation
 
     """
-
     fmt = '%Y-%m-%d %H_%M_%S'
     from_zone = tz.gettz('UTC')
-    to_zone = tz.gettz('America/New_York')
+    if tz_str is None:
+        tz_str = "America/New_York"
+    to_zone = tz.gettz(tz_str)
 
     # create folders for results
-    if os.path.exists(output_folder) is False:
-        os.mkdir(output_folder)
     if option is None or option == 'both' or option == 'daily':
-        if os.path.exists(output_folder+"/daily") is False:
-            os.mkdir(output_folder+"/daily")
+        os.makedirs(output_folder+"/daily", exist_ok=True)
     if option is None or option == 'both' or option == 'hourly':
-        if os.path.exists(output_folder+"/hourly") is False:
-            os.mkdir(output_folder+"/hourly")
+        os.makedirs(output_folder+"/hourly", exist_ok=True)
 
     if beiwe_id is None:
         beiwe_id = os.listdir(study_folder)
@@ -400,7 +409,7 @@ def main_function(study_folder: str, output_folder: str, tz_str: str,
         file_list = os.listdir(source_folder)
 
         # transform all files in folder to datelike format
-        if "+00_00.csv" in file_list:
+        if "+00_00.csv" in file_list[0]:
             file_dates = [file.replace("+00_00.csv", "") for file in file_list]
         else:
             file_dates = [file.replace(".csv", "") for file in file_list]
@@ -429,12 +438,6 @@ def main_function(study_folder: str, output_folder: str, tz_str: str,
         days_hourly = pd.date_range(date_start, date_end+timedelta(days=1),
                                     freq='H')
 
-        # initiate metrics
-        # data quality - TO DO
-        # compliance - TO DO
-
-        # activity intensity - TO DO
-
         # activity type - gait
         if option is None or option == 'both' or option == 'daily':
             steps_daily = np.empty((len(days), 1))
@@ -455,12 +458,9 @@ def main_function(study_folder: str, output_folder: str, tz_str: str,
             walkingtime_hourly = np.empty((len(days), 24))
             walkingtime_hourly.fill(np.nan)
 
-        # running
-        # TO DO
-
-        for d, d_datetime in enumerate(days):
-            sys.stdout.write('Day: ' + str(d) + '\n')
-            # find file indices for this day
+        for d_ind, d_datetime in enumerate(days):
+            sys.stdout.write('Day: ' + str(d_ind) + '\n')
+            # find file indices for this d_ind
             file_ind = [i for i, x in enumerate(dates_shifted)
                         if x == d_datetime]
 
@@ -475,7 +475,7 @@ def main_function(study_folder: str, output_folder: str, tz_str: str,
                 if option is None or option == 'both' or option == 'hourly':
                     cadence_temp_hourly = []
                     # hour of the day
-                    h = int((dates[f]-dates_shifted[f]).seconds/60/60)
+                    h_ind = int((dates[f]-dates_shifted[f]).seconds/60/60)
 
                 # read data
                 data = pd.read_csv(source_folder + file_list[f])
@@ -507,16 +507,17 @@ def main_function(study_folder: str, output_folder: str, tz_str: str,
                     samples_enough = samples_per_sec >= (fs - 1)
 
                     # find bouts with sufficient duration (here, minimum 5s)
-                    N, BI, B = rle(samples_enough)
-                    bout_start = BI[B & (N >= 5)]
-                    bout_duration = N[B & (N >= 5)]
+                    run_length, start_ind, val = rle(samples_enough)
+                    bout_start = start_ind[val & (run_length >= 5)]
+                    bout_duration = run_length[val & (run_length >= 5)]
 
-                    for b, b_datetime in enumerate(bout_start):
+                    for b_ind, b_datetime in enumerate(bout_start):
                         # create a list with second-level timestamps
-                        bout_time = pd.date_range(t_sec_bins[bout_start[b]],
-                                                  t_sec_bins[bout_start[b] +
-                                                             bout_duration[b]],
-                                                  freq='S').tolist()
+                        bout_time = pd.date_range(
+                            t_sec_bins[bout_start[b_ind]],
+                            t_sec_bins[bout_start[b_ind] +
+                                       bout_duration[b_ind]],
+                            freq='S').tolist()
                         bout_time = bout_time[:-1]
 
                         # find observations in this bout
@@ -529,21 +530,12 @@ def main_function(study_folder: str, output_folder: str, tz_str: str,
                         if np.sum([np.std(x_bout), np.std(y_bout),
                                    np.std(z_bout)]) > minimum_activity_thr:
                             # interpolate bout to 10Hz and calculate vm
-                            [x_bout,
-                             y_bout,
-                             z_bout,
-                             vm_bout] = standardize_bout(t_bout,
-                                                         x_bout,
-                                                         y_bout,
-                                                         z_bout)
-
-                            # activity intensity - TO DO
-                            # activity types - gait
-
-                            cadence_bout = find_walking(vm_bout, fs, A,
+                            vm_bout = preprocess_bout(t_bout, x_bout, y_bout,
+                                                      z_bout)[3]
+                            # find walking and estimate steps
+                            cadence_bout = find_walking(vm_bout, fs, min_amp,
                                                         step_freq, alpha, beta,
                                                         epsilon, delta)
-
                             cadence_bout = cadence_bout[np.where(cadence_bout
                                                                  > 0)]
                             if (option is None or option == 'both' or
@@ -557,17 +549,20 @@ def main_function(study_folder: str, output_folder: str, tz_str: str,
 
                     if (option is None or option == 'both' or
                             option == 'hourly'):
-                        walkingtime_hourly[d, h] = len(cadence_temp_hourly)
-                        steps_hourly[d, h] = int(np.sum(cadence_temp_hourly))
-                        cadence_hourly[d, h] = np.mean(cadence_temp_hourly)
+                        walkingtime_hourly[d_ind, h_ind] = len(
+                            cadence_temp_hourly)
+                        steps_hourly[d_ind, h_ind] = int(np.sum(
+                            cadence_temp_hourly))
+                        cadence_hourly[d_ind, h_ind] = np.mean(
+                            cadence_temp_hourly)
 
                 except IndexError:
                     print('Empty file')
 
             if option is None or option == 'both' or option == 'daily':
-                walkingtime_daily[d] = len(cadence_temp_daily)
-                steps_daily[d] = int(np.sum(cadence_temp_daily))
-                cadence_daily[d] = np.mean(cadence_temp_daily)
+                walkingtime_daily[d_ind] = len(cadence_temp_daily)
+                steps_daily[d_ind] = int(np.sum(cadence_temp_daily))
+                cadence_daily[d_ind] = np.mean(cadence_temp_daily)
 
         # save results
         if option is None or option == 'both' or option == 'daily':
@@ -597,7 +592,7 @@ gravity = 9.80665
 # tuning parameters for walking recognition:
 #
 # minimum peak-to-peak amplitude (in gravitational units (g))
-A = 0.3
+min_amp = 0.3
 # step frequency (in Hz)
 step_freq = [1.4, 2.3]
 # alpha = maximum ratio between dominant peak below and within step frequency
@@ -615,7 +610,7 @@ epsilon = 3
 # other thresholds
 minimum_activity_thr = 0.1
 
-# study folder (CHANGE TO YOUR DIRECTORY)
+# study folder (change to your directory)
 study_folder = 'C:/Users/mstra/Documents/data/',
 'beiwe_test_data/onnela_lab_ios_test2'
 output_folder = "C:/Users/mstra/Documents/Python/forest/oak/output"
@@ -626,4 +621,4 @@ time_end = "2022-01-01"
 
 # main function
 main_function(study_folder, output_folder, tz_str, option=None,
-              time_start=None, time_end=None, beiwe_id={"sxvpopdz"})
+              time_start=None, time_end=None, beiwe_id={"sxval_peaksopdz"})
