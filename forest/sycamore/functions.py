@@ -101,7 +101,7 @@ def read_and_aggregate(study_dir: str, beiwe_id: str,
     if os.path.isdir(st_path):
         # get all survey timings files
         all_files = glob.glob(os.path.join(st_path, "*/*.csv"))
-        # Sort file paths for when they"re read in
+        # Sort file paths for when they're read in
         all_files = sorted(all_files)
         # Read in all files
         survey_data_list = [pd.read_csv(file) for file in all_files]
@@ -159,7 +159,7 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
     ).drop_duplicates().sort_values(["survey id", "beiwe_id", "timestamp"])
 
     # FIX EVENT FIELDS
-    # Ensure there is an "event" field (They"re won"t be one if all users are
+    # Ensure there is an "event" field (There won't be one if all users are
     # Android)
     if "event" not in all_data.columns:
         all_data["event"] = None
@@ -215,7 +215,7 @@ def aggregate_surveys(study_dir: str, users: list = None) -> pd.DataFrame:
         ["surv_inst_flg"]
     ] = 1
 
-    # if a survey has a gap greater than 5 hours, consider it two surveys
+    # if a survey has a gap greater than 2 hours, consider it two surveys
     all_data["time_prev"] = all_data["UTC time"].shift(1)
     all_data["time_diff"] = all_data["UTC time"] - all_data["time_prev"]
     # Splitting up surveys where there appears to be a time gap or no submit
@@ -253,10 +253,7 @@ def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
     output = []
 
     for i, s in enumerate(surveys):
-        # Pull out questions
-
         # Pull out timings
-        #         timings = parse_timings(s, i)
         for q in s["content"]:
             if "question_id" in q.keys():
                 surv = {}

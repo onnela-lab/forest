@@ -99,8 +99,6 @@ def generate_survey_times(
         ]
 
         for s in start_dates:
-            # Get the starting day of week
-            #         dow_s = s.weekday()
             for i, t in enumerate(t_lag):
                 if len(t) > 0:
                     surveys.extend(convert_time_to_date(s, day=i, time=t))
@@ -289,7 +287,7 @@ def survey_submits(
         np.array(0, dtype="datetime64[ns]")
     )
 
-    #     # Select appropriate columns
+    # Select appropriate columns
     submit_lines3 = submit_lines3[
         ["survey id", "delivery_time", "beiwe_id", "submit_flg", "submit_time"]
     ]

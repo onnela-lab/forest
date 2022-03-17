@@ -106,7 +106,7 @@ def agg_changed_answers_summary(
     """
     detail = agg_changed_answers(agg)
     #####################################################################
-    # Add instance id and update first time to be the last last time if there
+    # Add instance id and update first time to be the last time if there
     # is only one line
     surv_config = parse_surveys(config_path)
     surv_config["q_internal_id"] = surv_config.groupby(
