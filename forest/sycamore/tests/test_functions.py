@@ -11,18 +11,18 @@ from forest.sycamore.functions import (aggregate_surveys,
 from forest.sycamore.survey_config import gen_survey_schedule, survey_submits
 from forest.sycamore.changed_answers import agg_changed_answers_summary
 
-LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
+TEST_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def test_get_empty_intervention():
-    filepath = os.path.join(LOCAL_DIR, "empty_intervention_data.json")
+    filepath = os.path.join(TEST_DATA_DIR, "empty_intervention_data.json")
     empty_dict = get_all_interventions_dict(filepath)
 
     assert empty_dict == {}
 
 
 def test_get_intervention():
-    filepath = os.path.join(LOCAL_DIR, "sample_intervention_data.json")
+    filepath = os.path.join(TEST_DATA_DIR, "sample_intervention_data.json")
     interventions_dict = get_all_interventions_dict(filepath)
 
     assert type(interventions_dict["ntz4apjf"]) is dict
@@ -31,7 +31,7 @@ def test_get_intervention():
 
 
 def test_aggregate_surveys():
-    filepath = os.path.join(LOCAL_DIR, "sample_dir")
+    filepath = os.path.join(TEST_DATA_DIR, "sample_dir")
     sample_agg_data = aggregate_surveys(filepath, ["idr8gqdh"])
 
     assert pd.isnull(sample_agg_data.loc[0, "time_prev"])
@@ -44,11 +44,11 @@ def test_aggregate_surveys():
 
 
 def test_gen_survey_schedule():
-    interventions_path = os.path.join(LOCAL_DIR,
+    interventions_path = os.path.join(TEST_DATA_DIR,
                                       "sample_intervention_data.json")
     interventions_dict = get_all_interventions_dict(interventions_path)
     surveys_settings_path = os.path.join(
-        LOCAL_DIR, "sample_study_surveys_and_settings.json"
+        TEST_DATA_DIR, "sample_study_surveys_and_settings.json"
     )
 
     sample_schedule = gen_survey_schedule(
@@ -68,7 +68,7 @@ def test_gen_survey_schedule():
 
 
 def test_aggregate_surveys_no_config():
-    filepath = os.path.join(LOCAL_DIR, "sample_dir")
+    filepath = os.path.join(TEST_DATA_DIR, "sample_dir")
     agg_data = aggregate_surveys_no_config(filepath, "UTC")
     assert np.mean(pd.to_datetime(agg_data["timestamp"], unit="ms") ==
                    agg_data["UTC time"]) == 1.0
@@ -77,9 +77,9 @@ def test_aggregate_surveys_no_config():
 
 
 def test_aggregate_surveys_config():
-    study_dir = os.path.join(LOCAL_DIR, "sample_dir")
+    study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
     survey_settings_path = os.path.join(
-        LOCAL_DIR, "sample_study_surveys_and_settings.json"
+        TEST_DATA_DIR, "sample_study_surveys_and_settings.json"
     )
 
     agg_data = aggregate_surveys_config(study_dir, survey_settings_path, "UTC")
@@ -90,9 +90,9 @@ def test_aggregate_surveys_config():
 
 
 def test_agg_changed_answers_summary():
-    study_dir = os.path.join(LOCAL_DIR, "sample_dir")
+    study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
     survey_settings_path = os.path.join(
-        LOCAL_DIR, "sample_study_surveys_and_settings.json"
+        TEST_DATA_DIR, "sample_study_surveys_and_settings.json"
     )
     agg_data = aggregate_surveys_config(study_dir, survey_settings_path, "UTC")
     ca_detail, ca_summary = agg_changed_answers_summary(
@@ -105,12 +105,12 @@ def test_agg_changed_answers_summary():
 
 
 def test_survey_submits_with_no_submissions():
-    study_dir = os.path.join(LOCAL_DIR, "sample_dir")
+    study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
     survey_settings_path = os.path.join(
-        LOCAL_DIR, "sample_study_surveys_and_settings.json"
+        TEST_DATA_DIR, "sample_study_surveys_and_settings.json"
     )
     interventions_path = os.path.join(
-        LOCAL_DIR, "sample_intervention_data.json"
+        TEST_DATA_DIR, "sample_intervention_data.json"
     )
     agg_data = aggregate_surveys_config(study_dir, survey_settings_path, "UTC")
     interventions_dict = get_all_interventions_dict(interventions_path)
@@ -123,6 +123,6 @@ def test_survey_submits_with_no_submissions():
 
 
 def test_survey_submits_no_config():
-    study_dir = os.path.join(LOCAL_DIR, "sample_dir")
+    study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
     submits_tbl = survey_submits_no_config(study_dir, "UTC")
     assert submits_tbl.shape[0] == 2
