@@ -24,7 +24,7 @@ If config file is not provided, outputs include:
   * `UTC time`: The time (in UTC time) corresponding to the event
   * `question id`: The ID of the question corresponding to the event
   * `survey id`: The ID of the survey corresponding to the event
-  * `question type`: The type of question (radio button, free response, etc) corresponding to the event
+  * `question type`: The type of question (radio button, free response, etc.) corresponding to the event
   * `question text`: The text presented to the user
   * `question answer options`: The answer options presented to the user (applicable for check box or radio button surveys)
   * `answer`: The answer selected by the user at the time corresponding to the event. 
@@ -57,7 +57,7 @@ If a config file is provided, additional outputs include:
   * `beiwe_id`: The Beiwe ID of the user corresponding to the answer
   * `question id`: The question ID corresponding to the answer
   * `question text`: The question text corresponding to the answer
-  * `question type`: The type of question (radio button, free response, etc) corresponding to the answer
+  * `question type`: The type of question (radio button, free response, etc.) corresponding to the answer
   * `question answer options`: The answer options presented to the user (applicable for check box or radio button surveys)
   * `timestamp`: The Unix timestamp corresponding to the latest time the user was on the question
   * `Local time`: The local time corresponding to the latest time the user was on the question
@@ -93,14 +93,14 @@ Methods are designed for use on the `survey_timings` data from the Beiwe app.
 
 ___
 ## Functions  
-1.  [`sycamore.sycamore_main`](#syc_main)
-2.  [`sycamore.functions.get_survey_timings`](#get)
-3.  [`sycamore.survey_config.survey_submits`](#submits_config)
-4.  [`sycamore.survey_config.survey_submits_no_config`](#submits_no_config)
-5.  [`sycamore.changed_answers.agg_changed_answers_summary`](#ca_summary)
+1.  [`sycamore.sycamore_main`](#1-sycamoresycamore_main)
+2.  [`sycamore.functions.get_survey_timings`](#2-sycamorefunctionsget_survey_timings)
+3.  [`sycamore.survey_config.survey_submits`](#3-sycamorefunctionsaggregate_surveys_config)
+4.  [`sycamore.survey_config.survey_submits_no_config`](#4-sycamoresurvey_configsurvey_submits_no_config)
+5.  [`sycamore.changed_answers.agg_changed_answers_summary`](#5-sycamorechanged_answersagg_changed_answers_summary)
 
 ___
-## 1. `sycamore.sycamore_main` <a name = "syc_main"/>  
+## 1. `sycamore.sycamore_main` 
 
 *Example (without config file)*    
 ```
@@ -112,7 +112,7 @@ time_end = end time
 study_tz = Timezone of study (if not defined, defaults to 'UTC')
 
 sycamore_main.survey_stats_main(
-    study_dir, output_dir, study_tz, beiwe_ids, time_start = time_start, 
+    study_dir, output_dir, study_tz, beiwe_ids, time_start=time_start, 
     time_end = time_end
 )
 ```
@@ -129,13 +129,14 @@ time_end = end time
 study_tz = Timezone of study (if not defined, defaults to 'UTC')
 
 sycamore_main.survey_stats_main(
-    study_dir, output_dir, study_tz, beiwe_ids, time_start = time_start, 
-    time_end = time_end, config_path, interventions_path
+    study_dir, output_dir, study_tz, beiwe_ids, time_start=time_start, 
+    time_end=time_end, config_path, interventions_path
 )
 
 ```
+
 ___
-## 2. `sycamore.functions.get_survey_timings` <a name="get"/>  
+## 2. `sycamore.functions.get_survey_timings`
 Extracts the beginning and submission times for each survey instance in a given study and survey (using the survey ID), using the `survey_timings` data.  
 
 *Example*  
@@ -147,12 +148,13 @@ RAW_DATA_DIR_HERE = path/to/data
 all_ptcp = os.listdir(path)
 PATH_TO_OUTPUT_FILE = path/to/output
 
-survey_timings_array = get_survey_timings(all_ptcp, RAW_DATA_DIR_HERE, SURVEY_ID)
+survey_timings_array = get_survey_timings(all_ptcp, RAW_DATA_DIR_HERE, 
+                                          SURVEY_ID)
                    
-survey_timings_array.to_csv(PATH_TO_OUTPUT_FILE.csv, index = False)
+survey_timings_array.to_csv(PATH_TO_OUTPUT_FILE.csv, index=False)
 ```
 ___
-## 3. `sycamore.functions.aggregate_surveys_config` <a name = "agg_config"/>
+## 3. `sycamore.functions.aggregate_surveys_config`
 
 Aggregate all survey information from a study, using the config file to infer information about surveys
 
@@ -186,13 +188,14 @@ agg_data = aggregate_surveys_config(study_dir, config_path, study_tz)
 all_interventions_dict = get_all_interventions_dict(interventions_path)
 
 submits_detail, submits_summary = survey_submits(
-    config_path, time_start, time_end, beiwe_ids, agg_data, all_interventions_dict
+    config_path, time_start, time_end, beiwe_ids, agg_data, 
+    all_interventions_dict
 )
 ```
  
 ___
-## 4. `sycamore.survey_config.survey_submits_no_config` <a name = "submits_no_config"/>
-Used to extract an alternative survey submits table that does not innclude delivery times
+## 4. `sycamore.survey_config.survey_submits_no_config`
+Used to extract an alternative survey submits table that does not include delivery times
 
 *Example*  
 ```
@@ -206,7 +209,7 @@ submits_tbl = survey_submits_no_config(study_dir, study_tz)
 ```
  
 ___
-## 5. `sycamore.changed_answers.agg_changed_answers_summary` <a name = "ca_summary"/>
+## 5. `sycamore.changed_answers.agg_changed_answers_summary`
 Used to extract data summarizing user responses
  
 *Example*  
