@@ -2,8 +2,6 @@
 
 ### Maintainer: Zachary Clement
 
-### Last Update Date: 18 March 2022 
-
 ### Executive Summary: 
 Use `sycamore` to process and analyze Beiwe survey data.
 
