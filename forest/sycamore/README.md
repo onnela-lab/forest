@@ -21,7 +21,9 @@ Download raw data from your Beiwe server and use this package to process the dat
 
 If config file is not provided, outputs include:  
 
-* `agg_survey_data.csv`: One csv with all data from the survey_timings data stream.
+### Results of sycamore.common.aggregate_surveys_no_config
+
+* `agg_survey_data`: One csv/dataframe with all data from the survey_timings data stream.
   * `timestamp`: The Unix timestamp corresponding to the event
   * `UTC time`: The time (in UTC time) corresponding to the event
   * `question id`: The ID of the question corresponding to the event
@@ -42,9 +44,9 @@ If config file is not provided, outputs include:
   * `Local time`: The time of the event, in local time
   * `last_answer`: The last answer to a question included
 
+### Results of sycamore.submits.survey_submits_no_config
 
-
-* `submits_alt_summary.csv`: One csv with survey completion times for all users.  
+* `submits_alt_summary`: One csv/dataframe with survey completion times for all users.  
   * `survey id`: The ID of the survey corresponding to the submission
   * `beiwe_id`: The Beiwe ID of the user corresponding to the submission
   * `surv_inst_flg`: A number used to distinguish different administrations of the same user for an individual
@@ -54,7 +56,9 @@ If config file is not provided, outputs include:
 
 If a config file is provided, additional outputs include:
 
-* `answers_data.csv`: Aggregated survey data (similar to agg_survey_data.csv, will likely be deprecated in future iterations).
+### Results of sycamore.responses.agg_changed_answers_summary
+
+* `answers_data`: Aggregated survey data (similar to agg_survey_data, will likely be deprecated in future iterations).
   * `survey id`: The survey ID corresponding to the answer
   * `beiwe_id`: The Beiwe ID of the user corresponding to the answer
   * `question id`: The question ID corresponding to the answer
@@ -70,18 +74,20 @@ If a config file is provided, additional outputs include:
   * `last_time`: The local time corresponding to the latest time the user was on the question
   * `time_to_answer`: The time that the user spent on the question
 
-* `answers_summary.csv` : For each beiwe id, survey id, and question id, this file provides the following summaries:
+* `answers_summary` : For each beiwe id, survey id, and question id, this file/dataframe provides the following summaries:
   * `num_answers`: The number of times in the given data the answer is answered.
   * `average_time_to_answer`: The average amount of time the user takes to answer the question.
   * `average_number_of_answers`: Average number of answers selected for a question. This indicated if a user changed an answer before submitting it.  
   * `most_common_answer`: A user's most common answer to a question.
 
-* `submits_summary.csv`: For each survey id and beiwe id, this file provides the following summaries:  
+### Results of sycamore.submits.survey_submits
+
+* `submits_summary`: For each survey id and beiwe id, this file/dataframe provides the following summaries:  
   * `num_surveys`: The number of surveys issued to the user in the given timeframe. This is calculated from the provided config file.
   * `num_completed_surveys`: The number of surveys the user submitted in the given timeframe. A completed survey is considered a survey that was completed before the next survey was deployed to the user.
   * `avg_time_to_submit`: The average amount of time that lapses between the survey getting deployed and the user submitting the survey.  
 
-* `submits_data.csv` : For each survey id and beiwe id, this file provides survey timings details summarized in `submits_summary.csv`
+* `submits_data` : For each survey id and beiwe id, this file/dataframe provides survey timings details summarized in `submits_summary`
   * `survey_id`: The survey ID corresponding to this delivery
   * `delivery_time`: The time the survey was scheduled to be delivered 
   * `beiwe_id`: The participant's Beiwe ID
@@ -103,6 +109,9 @@ ___
 
 ___
 ## 1. `sycamore.base.survey_stats_main` 
+
+survey_stats_main runs aggregate_surveys_config, survey_submits, survey_submits_no_config, and agg_changed_answers_summary, and writes their output to csv files
+
 
 *Example (without config file)*    
 ```
