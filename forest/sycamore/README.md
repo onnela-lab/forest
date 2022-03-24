@@ -92,8 +92,8 @@ Methods are designed for use on the `survey_timings` data from the Beiwe app.
 ___
 ## Functions  
 1.  [`sycamore.sycamore_main`](#1-sycamoresycamore_main)
-2.  [`sycamore.functions.get_survey_timings`](#2-sycamorefunctionsget_survey_timings)
-3.  [`sycamore.survey_config.survey_submits`](#3-sycamorefunctionsaggregate_surveys_config)
+2.  [`sycamore.functions.aggregate_surveys_config`](#2-sycamorefunctionsaggregate_surveys_config)
+3.  [`sycamore.survey_config.survey_submits`](#3-sycamoresurvey_configsurvey_submits)
 4.  [`sycamore.survey_config.survey_submits_no_config`](#4-sycamoresurvey_configsurvey_submits_no_config)
 5.  [`sycamore.changed_answers.agg_changed_answers_summary`](#5-sycamorechanged_answersagg_changed_answers_summary)
 
@@ -134,25 +134,7 @@ sycamore_main.survey_stats_main(
 ```
 
 ___
-## 2. `sycamore.functions.get_survey_timings`
-Extracts the beginning and submission times for each survey instance in a given study and survey (using the survey ID), using the `survey_timings` data.  
-
-*Example*  
-```
-from forest.sycamore.functions import get_survey_timings
-
-SURVEY_ID = survey_id
-RAW_DATA_DIR_HERE = path/to/data
-all_ptcp = os.listdir(path)
-PATH_TO_OUTPUT_FILE = path/to/output
-
-survey_timings_array = get_survey_timings(all_ptcp, RAW_DATA_DIR_HERE, 
-                                          SURVEY_ID)
-                   
-survey_timings_array.to_csv(PATH_TO_OUTPUT_FILE.csv, index=False)
-```
-___
-## 3. `sycamore.functions.aggregate_surveys_config`
+## 2. `sycamore.functions.aggregate_surveys_config`
 
 Aggregate all survey information from a study, using the config file to infer information about surveys
 
@@ -164,7 +146,7 @@ agg_data = aggregate_surveys_config(study_dir, config_path, study_tz)
 ```
 
 ___
-## 3. `sycamore.survey_config.survey_submits` <a name = "submits_config"/>
+## 3. `sycamore.survey_config.survey_submits` 
 
 Extract and summarize delivery and submission times
 
