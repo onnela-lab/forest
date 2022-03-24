@@ -6,7 +6,7 @@ import logging
 import numpy as np
 import pandas as pd
 
-from forest.sycamore.functions import read_json, aggregate_surveys_no_config
+from forest.sycamore.commmon import read_json, aggregate_surveys_no_config
 
 logger = logging.getLogger(__name__)
 
