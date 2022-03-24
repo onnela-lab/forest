@@ -8,9 +8,13 @@ Use `sycamore` to process and analyze Beiwe survey data.
 
 #### Import
 
-`from forest import sycamore.sycamore_main`  
+User-facing functions can be imported directly from sycamore:
 
-`from forest import sycamore.functions`
+`from forest.sycamore import sycamore_stats_main`  
+`from forest.sycamore import aggregate_surveys_config` 
+`from forest.sycamore import survey_submits`
+`from forest.sycamore import survey_submits_no_config`
+`from forest.sycamore import agg_changed_answers_summary`
 
 ## Usage:  
 Download raw data from your Beiwe server and use this package to process the data in the `survey_timings` data stream. Summary data provides metrics around survey submissions and survey question completion. Additional outputs are generated if a config file is provided.
@@ -91,17 +95,19 @@ Methods are designed for use on the `survey_timings` data from the Beiwe app.
 
 ___
 ## Functions  
-1.  [`sycamore.sycamore_main`](#1-sycamoresycamore_main)
-2.  [`sycamore.functions.aggregate_surveys_config`](#2-sycamorefunctionsaggregate_surveys_config)
-3.  [`sycamore.survey_config.survey_submits`](#3-sycamoresurvey_configsurvey_submits)
-4.  [`sycamore.survey_config.survey_submits_no_config`](#4-sycamoresurvey_configsurvey_submits_no_config)
-5.  [`sycamore.changed_answers.agg_changed_answers_summary`](#5-sycamorechanged_answersagg_changed_answers_summary)
+1.  [`sycamore.base.survey_stats_main`](#1-sycamorebasesurvey_stats_main)
+2.  [`sycamore.common.aggregate_surveys_config`](#2-sycamorecommonaggregate_surveys_config)
+3.  [`sycamore.submits.survey_submits`](#3-sycamoresubmitssurvey_submits)
+4.  [`sycamore.submits.survey_submits_no_config`](#4-sycamoresubmitssurvey_submits_no_config)
+5.  [`sycamore.responses.agg_changed_answers_summary`](#5-sycamoreresponsesagg_changed_answers_summary)
 
 ___
-## 1. `sycamore.sycamore_main` 
+## 1. `sycamore.base.survey_stats_main` 
 
 *Example (without config file)*    
 ```
+from forest.sycamore import survey_stats_main
+
 study_dir = path/to/data  
 output_dir = path/to/output
 beiwe_ids = list of ids in study_dir
@@ -134,25 +140,25 @@ sycamore_main.survey_stats_main(
 ```
 
 ___
-## 2. `sycamore.functions.aggregate_surveys_config`
+## 2. `sycamore.common.aggregate_surveys_config`
 
 Aggregate all survey information from a study, using the config file to infer information about surveys
 
 *Example*  
 ```
-from forest.sycamore.functions import aggregate_surveys_config
+from forest.sycamore import aggregate_surveys_config
 
 agg_data = aggregate_surveys_config(study_dir, config_path, study_tz)
 ```
 
 ___
-## 3. `sycamore.survey_config.survey_submits` 
+## 3. `sycamore.submits.survey_submits` 
 
 Extract and summarize delivery and submission times
 
 *Example*  
 ```
-from forest.sycamore.survey_config import survey_submits
+from forest.sycamore.submits import survey_submits
 
 config_path = path/to/config file
 interventions_path = path/to/interventions file
@@ -174,12 +180,12 @@ submits_detail, submits_summary = survey_submits(
 ```
  
 ___
-## 4. `sycamore.survey_config.survey_submits_no_config`
+## 4. `sycamore.submits.survey_submits_no_config`
 Used to extract an alternative survey submits table that does not include delivery times
 
 *Example*  
 ```
-from forest.sycamore.survey_config import survey_submits_no_config,
+from forest.sycamore import survey_submits_no_config
 
 study_dir = path/to/data  
 study_tz = Timezone of study (if not defined, defaults to 'UTC')
@@ -189,12 +195,12 @@ submits_tbl = survey_submits_no_config(study_dir, study_tz)
 ```
  
 ___
-## 5. `sycamore.changed_answers.agg_changed_answers_summary`
+## 5. `sycamore.responses.agg_changed_answers_summary`
 Used to extract data summarizing user responses
  
 *Example*  
 ```
-from forest.sycamore.changed_answers import agg_changed_answers_summary
+from forest.sycamore import agg_changed_answers_summary
 
 config_path = path/to/config file
 study_dir = path/to/data  
