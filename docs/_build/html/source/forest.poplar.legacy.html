@@ -1,0 +1,187 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>forest.poplar.legacy package &#8212; forest 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="forest-poplar-legacy-package">
+<h1>forest.poplar.legacy package<a class="headerlink" href="#forest-poplar-legacy-package" title="Permalink to this headline">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-forest.poplar.legacy.common_funcs">
+<span id="forest-poplar-legacy-common-funcs-module"></span><h2>forest.poplar.legacy.common_funcs module<a class="headerlink" href="#module-forest.poplar.legacy.common_funcs" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="forest.poplar.legacy.common_funcs.datetime2stamp">
+<span class="sig-prename descclassname"><span class="pre">forest.poplar.legacy.common_funcs.</span></span><span class="sig-name descname"><span class="pre">datetime2stamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tz_str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#forest.poplar.legacy.common_funcs.datetime2stamp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Docstring
+Args: time_list: a list of integers [year, month, day, hour (0-23), min, sec],</p>
+<blockquote>
+<div><p>tz_str: timezone (str), where the study is conducted</p>
+</div></blockquote>
+<p>please use
+## from pytz import all_timezones
+## all_timezones
+to check all timezones
+Return: Unix time, which is what Beiwe uses</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="forest.poplar.legacy.common_funcs.filename2stamp">
+<span class="sig-prename descclassname"><span class="pre">forest.poplar.legacy.common_funcs.</span></span><span class="sig-name descname"><span class="pre">filename2stamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#forest.poplar.legacy.common_funcs.filename2stamp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Docstring
+Args: filename (str), the filename of communication log
+Return: UNIX time (int)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="forest.poplar.legacy.common_funcs.read_data">
+<span class="sig-prename descclassname"><span class="pre">forest.poplar.legacy.common_funcs.</span></span><span class="sig-name descname"><span class="pre">read_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ID</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">study_folder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datastream</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tz_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_end</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#forest.poplar.legacy.common_funcs.read_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Docstring
+Args: ID: beiwe ID; study_folder: the path of the folder which contains all the users</p>
+<blockquote>
+<div><p>datastream: ‘gps’,’accelerometer’,’texts’ or ‘calls’
+tz_str: where the study is/was conducted
+starting time and ending time of the window of interest
+time should be a list of integers with format [year, month, day, hour, minute, second]
+if time_start is None and time_end is None: then it reads all the available files
+if time_start is None and time_end is given, then it reads all the files before the given time
+if time_start is given and time_end is None, then it reads all the files after the given time
+if identifiers files are present and the earliest identifiers registration timestamp occurred</p>
+<blockquote>
+<div><p>after the provided time_start (or if time_start is None) then that identifier timestamp
+will be used instead.</p>
+</div></blockquote>
+</div></blockquote>
+<dl class="simple">
+<dt>return: a panda dataframe of the datastream (not for accelerometer data!) and corresponding starting/ending timestamp (UTC),</dt><dd><p>you can convert it to numpy array as needed
+For accelerometer data, instead of a panda dataframe, it returns a list of filenames
+The reason is the volume of accelerometer data is too large, we need to process it on the fly:
+read one csv file, process one, not wait until all the csv’s are imported (that may be too large in memory!)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="forest.poplar.legacy.common_funcs.stamp2datetime">
+<span class="sig-prename descclassname"><span class="pre">forest.poplar.legacy.common_funcs.</span></span><span class="sig-name descname"><span class="pre">stamp2datetime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stamp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tz_str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#forest.poplar.legacy.common_funcs.stamp2datetime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Docstring
+Args: stamp: Unix time, integer, the timestamp in Beiwe</p>
+<blockquote>
+<div><p>tz_str: timezone (str), where the study is conducted</p>
+</div></blockquote>
+<p>please use
+## from pytz import all_timezones
+## all_timezones
+to check all timezones
+Return: a list of integers [year, month, day, hour (0-23), min, sec] in the specified tz</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="forest.poplar.legacy.common_funcs.write_all_summaries">
+<span class="sig-prename descclassname"><span class="pre">forest.poplar.legacy.common_funcs.</span></span><span class="sig-name descname"><span class="pre">write_all_summaries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ID</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stats_pdframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_folder</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#forest.poplar.legacy.common_funcs.write_all_summaries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Docstring
+Args: ID: str, stats_pdframe is pd dataframe (summary stats)</p>
+<blockquote>
+<div><p>output_path should be the folder path where you want to save the output</p>
+</div></blockquote>
+<p>Return: write out as csv files named by user ID</p>
+</dd></dl>
+
+</section>
+<section id="module-forest.poplar.legacy">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-forest.poplar.legacy" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">forest</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Greyson Liu, Josh Barback, and Nellie Ponarul.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.4.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/source/forest.poplar.legacy.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
