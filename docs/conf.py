@@ -34,9 +34,9 @@ release = '1.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.intersphinx',
-]
+              'sphinx.ext.napoleon',
+              'sphinx.ext.intersphinx',
+              'myst_parser']
 
 napoleon_google_docstring = True
 
@@ -61,3 +61,5 @@ html_theme = 'alabaster'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+# Note: To update scripts, run sphinx-build docs forest in the correct dir
+# Then, to compile the html file, run make html in the docs dir
