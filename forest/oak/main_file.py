@@ -589,30 +589,21 @@ def main_function(study_folder: str, output_folder: str, tz_str: str,
             summary_stats.to_csv(dest_path, index=False)
 
 
-# global variables
+# global variables:
 fs = 10  # desired sampling rate (frequency) (in Hertz (Hz))
 gravity = 9.80665
 
 # tuning parameters for walking recognition:
-#
-# minimum peak-to-peak amplitude (in gravitational units (g))
-min_amp = 0.3
-# step frequency (in Hz)
-step_freq = [1.4, 2.3]
-# alpha = maximum ratio between dominant peak below and within step frequency
-# range
-alpha = 0.6
-# beta = maximum ratio between dominant peak above and within step frequency
-# range
-beta = 2.5
-# delta = maximum change of step frequency between two one-second
+min_amp = 0.3  # minimum peak-to-peak amplitude (in gravitational units (g))
+step_freq = [1.4, 2.3]  # step frequency (in Hz) - sfr
+alpha = 0.6  # maximum ratio between dominant peak below and within sfr
+beta = 2.5  # maximum ratio between dominant peak above and within sfr
+delta = 20  # maximum change of step frequency between two one-second
 # nonoverlapping segments (multiplication of 0.05Hz, e.g., delta=2 -> 0.1Hz)
-delta = 20
-# epsilon = minimum walking time (in seconds (s))
-epsilon = 3
+epsilon = 3  # minimum walking time (in seconds (s))
 
-# other thresholds
-minimum_activity_thr = 0.1
+# other thresholds:
+minimum_activity_thr = 0.1  # threshold to qualify act. bout for computation
 
 # study folder (change to your directory)
 study_folder = 'C:/Users/mstra/Documents/data/',
