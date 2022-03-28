@@ -25,13 +25,12 @@ from ssqueezepy import ssq_cwt
 
 
 def rle(inarray: np.ndarray):
-    """
-    Run length encoding.
+    """ Run length encoding.
 
     Parameters
     ----------
     inarray: numpy array
-        array for run length encoding
+        array of bool for run length encoding
 
     Returns
     -------
@@ -58,8 +57,10 @@ def rle(inarray: np.ndarray):
 
 def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
                     z_bout: np.ndarray):
-    """
-    Interpolate 3-axial signal to universal sampling rate and compute its norm.
+    """Preprocess accelerometer bout to a common format.
+
+    Resample 3-axial input signal to a predefined sampling rate and compute
+    vector magnitude.
 
     Parameters
     ----------
@@ -122,11 +123,10 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
 
 
 def adjust_bout(vm_bout: np.ndarray, fs: int):
-    """
-    Fill observations in incomplete bouts.
+    """Fill observations in incomplete bouts.
 
-    For example, if the bout is 9.8s long, fill in values at its
-    end to make it 10s (results in N%fs=0).
+    For example, if the bout is 9.8s long, add values at its end to make it
+    10s (results in N%fs=0).
 
     Parameters
     ----------
@@ -153,8 +153,11 @@ def adjust_bout(vm_bout: np.ndarray, fs: int):
 def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
                  step_freq: float, alpha: float, beta: float, epsilon: int,
                  delta: int):
-    """
-    Find walking periods within raw accelerometery data.
+    """Find walking and calculate steps from raw acceleration data.
+
+    Method finds periods of repetetive and continuous oscillations with
+    predominant frequency occuring within know step frequency range.
+    Frequency components are extracted with Continuous Wavelet Transform.
 
     Parameters
     ----------
@@ -281,8 +284,7 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
 
 def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
                                    delta: int):
-    """
-    Identify continuous and sustained peaks within matrix.
+    """Identify continuous and sustained peaks within matrix.
 
     Parameters
     ----------
@@ -366,8 +368,10 @@ def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
 
 def main_function(study_folder: str, output_folder: str, tz_str: str,
                   option: str, time_start=None, time_end=None, beiwe_id=None):
-    """
-    Estimate gait features from accelerometer smartphone data.
+    """Run walking recognition and step counting algorithm over dataset.
+
+    Determine paths to input and output folders, set analysis time frames,
+    subjects' local timezone, and time resolution of computed results.
 
     Parameters
     ----------
@@ -621,4 +625,4 @@ time_end = "2022-01-01"
 
 # main function
 main_function(study_folder, output_folder, tz_str, option=None,
-              time_start=None, time_end=None, beiwe_id={"sxval_peaksopdz"})
+              time_start=None, time_end=None, beiwe_id={"abcdefgh"})
