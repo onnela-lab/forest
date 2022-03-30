@@ -46,7 +46,7 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '*/test*']
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -61,5 +61,5 @@ html_theme = 'alabaster'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-# Note: To update scripts, run sphinx-build docs forest in the correct dir
-# Then, to compile the html file, run make html in the docs dir
+# Note: To update scripts, run 'sphinx-build docs forest' in the root dir
+# Then, to compile the html file, run 'make html' in the docs dir
