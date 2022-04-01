@@ -1,4 +1,4 @@
-""" Step counting method using accelerometer data.
+"""Step counting method for accelerometer data.
 
 Module is aimed to process raw accelerometer smartphone data collected with
 Beiwe Research Platform. Data preprocessing involves signal preproprocesing
@@ -15,29 +15,26 @@ import numpy as np
 import os
 import pandas as pd
 from scipy import interpolate
-from scipy.signal import find_peaks, tukey
 from scipy.interpolate import interp2d
+from scipy.signal import find_peaks, tukey
 import sys
 
 from ssqueezepy import ssq_cwt
 
 
 def rle(inarray: np.ndarray) -> [np.ndarray, np.ndarray, np.ndarray]:
-    """ Runs length encoding.
+    """Runs length encoding.
 
-    Parameters
-    ----------
-    inarray: numpy array
-        array of bool for run length encoding
-
-    Returns
-    -------
-    run_length : tuple
-        running length
-    start_ind : tuple
-        starting index
-    val : tuple
-        running values
+    Args:
+        inarray: array of Boolean values
+            input for run length encoding
+    Returns:
+        run_length: tuple
+            running length
+        start_ind : tuple
+            starting index
+        val : tuple
+            running values
     """
     array_length = len(inarray)
     if array_length == 0:
@@ -60,28 +57,25 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
     Resample 3-axial input signal to a predefined sampling rate and compute
     vector magnitude.
 
-    Parameters
-    ----------
-    t_bout : array of floats
-        Unix timestamp
-    x_bout : array of floats
-        X-axis acceleration
-    y_bout : array of floats
-        Y-axis acceleration
-    z_bout : array of floats
-        Z-axis acceleration
+    Args:
+        t_bout : array of floats
+            Unix timestamp
+        x_bout : array of floats
+            X-axis acceleration
+        y_bout : array of floats
+            Y-axis acceleration
+        z_bout : array of floats
+            Z-axis acceleration
 
-    Returns
-    -------
-    x_bout : array of floats
-        Interpolated x-axis acceleration
-    y_bout : array of floats
-        Interpolated y-axis acceleration
-    z_bout : array of floats
-        Interpolated z-axis acceleration
-    vm_bout : array of floats
-        Interpolated, zero-oscillating vector magnitude
-
+    Returns:
+        x_bout : array of floats
+            Interpolated x-axis acceleration
+        y_bout : array of floats
+            Interpolated y-axis acceleration
+        z_bout : array of floats
+            Interpolated z-axis acceleration
+        vm_bout : array of floats
+            Interpolated, zero-oscillating vector magnitude
     """
     t_bout_interp = np.arange(t_bout[0], t_bout[-1], (1/fs))
 
@@ -121,23 +115,20 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
 
 
 def adjust_bout(vm_bout: np.ndarray, fs: int) -> np.ndarray:
-    """Fill observations in incomplete bouts.
+    """Fills observations in incomplete bouts.
 
     For example, if the bout is 9.8s long, add values at its end to make it
     10s (results in N%fs=0).
 
-    Parameters
-    ----------
-    vm_bout : array of floats
-        vector magnitude with one bout of activity
-    fs : integer
-        sampling frequency
+    Args:
+        vm_bout : array of floats
+            vector magnitude with one bout of activity
+        fs : integer
+            sampling frequency
 
-    Returns
-    -------
-    vm_bout : array of floats
-        vector magnitude with one bout of activity
-
+    Returns:
+        vm_bout : array of floats
+            vector magnitude with one bout of activity
     """
     if len(vm_bout) % fs >= 0.7*fs:
         for i in range(fs-len(vm_bout) % fs):
@@ -151,39 +142,36 @@ def adjust_bout(vm_bout: np.ndarray, fs: int) -> np.ndarray:
 def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
                  step_freq: float, alpha: float, beta: float, epsilon: int,
                  delta: int) -> np.ndarray:
-    """Find walking and calculate steps from raw acceleration data.
+    """Finds walking and calculate steps from raw acceleration data.
 
     Method finds periods of repetetive and continuous oscillations with
     predominant frequency occuring within know step frequency range.
     Frequency components are extracted with Continuous Wavelet Transform.
 
-    Parameters
-    ----------
-    vm_bout : array of floats
-        vector magnAtude with one bout of activity (in g)
-    fs : integer
-        sampling frequency (in Hz)
-    A : float
-        minimum amplitude (in g)
-    step_freq : tuple
-        step frequency range
-    alpha : float
-        maximum ratio between dominant peak below and within
-        step frequency range
-    beta : float
-        maximum ratio between dominant peak above and within
-        step frequency range
-    epsilon : integer
-        minimum duration of peaks (in seconds)
-    delta : integer
-        maximum difference between consecutive peaks (in multiplication of
-                                                      0.05Hz)
+    Args:
+        vm_bout : array of floats
+            vector magnAtude with one bout of activity (in g)
+        fs : integer
+            sampling frequency (in Hz)
+        A : float
+            minimum amplitude (in g)
+        step_freq : tuple
+            step frequency range
+        alpha : float
+            maximum ratio between dominant peak below and within
+            step frequency range
+        beta : float
+            maximum ratio between dominant peak above and within
+            step frequency range
+        epsilon : integer
+            minimum duration of peaks (in seconds)
+        delta : integer
+            maximum difference between consecutive peaks (in multiplication of
+                                                          0.05Hz)
 
-    Returns
-    -------
-    cad :  array of floats
-        gait speed within bout of activity (in Hz or steps/sec)
-
+    Returns:
+        cad :  array of floats
+            gait speed within bout of activity (in Hz or steps/sec)
     """
     # define wavelet function used in method
     wavelet = ('gmw', {'beta': 90, 'gamma': 3})
@@ -283,23 +271,20 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
 
 def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
                                    delta: int) -> np.ndarray:
-    """Identify continuous and sustained peaks within matrix.
+    """Identifies continuous and sustained peaks within matrix.
 
-    Parameters
-    ----------
-    val_peaks : nparray
-        binary matrix (1=peak,0=no peak) of valid peaks
-    epsilon : integer
-        minimum duration of peaks (in seconds)
-    delta : integer
-        maximum difference between consecutive peaks (in multiplication of
-                                                      0.05Hz)
+    Args:
+        val_peaks : nparray
+            binary matrix (1=peak,0=no peak) of valid peaks
+        epsilon : integer
+            minimum duration of peaks (in seconds)
+        delta : integer
+            maximum difference between consecutive peaks (in multiplication of
+                                                          0.05Hz)
 
-    Returns
-    -------
-    cp : nparray
-        binary matrix (1=peak,0=no peak) of continuous peaks
-
+    Returns:
+        cp : nparray
+            binary matrix (1=peak,0=no peak) of continuous peaks
     """
     val_peaks = np.concatenate((val_peaks, np.zeros((val_peaks.shape[0], 1))),
                                axis=1)
@@ -368,28 +353,26 @@ def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
 def main_function(study_folder: str, output_folder: str, tz_str: str,
                   option: str, time_start=None, time_end=None,
                   beiwe_id=None) -> None:
-    """Run walking recognition and step counting algorithm over dataset.
+    """Runs walking recognition and step counting algorithm over dataset.
 
     Determine paths to input and output folders, set analysis time frames,
     subjects' local timezone, and time resolution of computed results.
 
-    Parameters
-    ----------
-    study folder : string
-        local repository with beiwe folders (IDs) for a given study
-    output folder : string
-        local repository to store results
-    tz_str : string
-        local time zone, e.g., "America/New_York"
-    option : string
-        summary statistics format (accepts 'both', 'hourly', 'daily')
-    time_start : string
-        initial date of study in format: 'YYYY-mm-dd HH_MM_SS'
-    time_end : string
-        final date of study in format: 'YYYY-mm-dd HH_MM_SS'
-    beiwe_id : list of strings
-        beiwe ID selected for computation
-
+    Args:
+        study folder : string
+            local repository with beiwe folders (IDs) for a given study
+        output folder : string
+            local repository to store results
+        tz_str : string
+            local time zone, e.g., "America/New_York"
+        option : string
+            summary statistics format (accepts 'both', 'hourly', 'daily')
+        time_start : string
+            initial date of study in format: 'YYYY-mm-dd HH_MM_SS'
+        time_end : string
+            final date of study in format: 'YYYY-mm-dd HH_MM_SS'
+        beiwe_id : list of strings
+            beiwe ID selected for computation
     """
     fmt = '%Y-%m-%d %H_%M_%S'
     from_zone = tz.gettz('UTC')
