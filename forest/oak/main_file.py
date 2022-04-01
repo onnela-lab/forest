@@ -1,5 +1,4 @@
-"""
-Quantification of walking activity (step counting) using accelerometer data.
+""" Step counting method using accelerometer data.
 
 Module is aimed to process raw accelerometer smartphone data collected with
 Beiwe Research Platform. Data preprocessing involves signal preproprocesing
@@ -8,7 +7,6 @@ Continuous Wavelet transform (using ssqueezepy package), and calculation of
 steps from the identified walking bouts. Additional gait features calculated
 by module are walking time and gait speed (cadence).
 Results may be outputted in hourly and daily intervals.
-
 """
 
 from dateutil import tz
@@ -24,8 +22,8 @@ import sys
 from ssqueezepy import ssq_cwt
 
 
-def rle(inarray: np.ndarray):
-    """ Run length encoding.
+def rle(inarray: np.ndarray) -> [np.ndarray, np.ndarray, np.ndarray]:
+    """ Runs length encoding.
 
     Parameters
     ----------
@@ -55,8 +53,9 @@ def rle(inarray: np.ndarray):
 
 
 def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
-                    z_bout: np.ndarray):
-    """Preprocess accelerometer bout to a common format.
+                    z_bout: np.ndarray) -> [np.ndarray, np.ndarray,
+                                            np.ndarray]:
+    """Preprocesses accelerometer bout to a common format.
 
     Resample 3-axial input signal to a predefined sampling rate and compute
     vector magnitude.
@@ -121,7 +120,7 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
     return x_bout, y_bout, z_bout, vm_bout
 
 
-def adjust_bout(vm_bout: np.ndarray, fs: int):
+def adjust_bout(vm_bout: np.ndarray, fs: int) -> np.ndarray:
     """Fill observations in incomplete bouts.
 
     For example, if the bout is 9.8s long, add values at its end to make it
@@ -151,7 +150,7 @@ def adjust_bout(vm_bout: np.ndarray, fs: int):
 
 def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
                  step_freq: float, alpha: float, beta: float, epsilon: int,
-                 delta: int):
+                 delta: int) -> np.ndarray:
     """Find walking and calculate steps from raw acceleration data.
 
     Method finds periods of repetetive and continuous oscillations with
@@ -182,7 +181,8 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
 
     Returns
     -------
-    cad : gait speed within bout of activity (in Hz or steps/sec)
+    cad :  array of floats
+        gait speed within bout of activity (in Hz or steps/sec)
 
     """
     # define wavelet function used in method
@@ -282,7 +282,7 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
 
 
 def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
-                                   delta: int):
+                                   delta: int) -> np.ndarray:
     """Identify continuous and sustained peaks within matrix.
 
     Parameters
@@ -366,7 +366,8 @@ def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
 
 
 def main_function(study_folder: str, output_folder: str, tz_str: str,
-                  option: str, time_start=None, time_end=None, beiwe_id=None):
+                  option: str, time_start=None, time_end=None,
+                  beiwe_id=None) -> None:
     """Run walking recognition and step counting algorithm over dataset.
 
     Determine paths to input and output folders, set analysis time frames,
@@ -607,8 +608,8 @@ epsilon = 3  # minimum walking time (in seconds (s))
 minimum_activity_thr = 0.1  # threshold to qualify act. bout for computation
 
 # study folder (change to your directory)
-study_folder = 'C:/Users/mstra/Documents/publication_and_conferences/1. Ideas/4 validation of walking recognition against fitbit/data/beiwe'
-output_folder = "C:/Users/mstra/Documents/Python/forest/oak/output"
+study_folder = "C:/Users/User1/Documents/project/data"
+output_folder = "C:/Users/User1/Documents/project/results"
 
 tz_str = "America/New_York"
 time_start = "2018-01-01"
