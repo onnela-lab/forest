@@ -41,17 +41,16 @@ def rle(inarray: np.ndarray):
     val : tuple
         running values
     """
-    ia = np.asarray(inarray)                 # force numpy
-    array_length = len(ia)
+    array_length = len(inarray)
     if array_length == 0:
         return None, None, None
     else:
-        pairwise_unequal = ia[1:] != ia[:-1]  # pairwise unequal (string safe)
+        pairwise_unequal = inarray[1:] != inarray[:-1]  # pairwise unequal
         ind = np.append(np.where(pairwise_unequal),
                         array_length - 1)  # must include last element position
         run_length = np.diff(np.append(-1, ind))  # run lengths
         start_ind = np.cumsum(np.append(0, run_length))[:-1]  # positions
-        val = ia[ind]
+        val = inarray[ind]
         return run_length, start_ind, val
 
 
@@ -523,6 +522,8 @@ def main_function(study_folder: str, output_folder: str, tz_str: str,
                                        bout_duration[b_ind]],
                             freq='S').tolist()
                         bout_time = bout_time[:-1]
+                        bout_time = [t_i.to_pydatetime()
+                                     for t_i in bout_time]
 
                         # find observations in this bout
                         acc_ind = np.isin(t_shifted, bout_time)
@@ -606,8 +607,7 @@ epsilon = 3  # minimum walking time (in seconds (s))
 minimum_activity_thr = 0.1  # threshold to qualify act. bout for computation
 
 # study folder (change to your directory)
-study_folder = 'C:/Users/mstra/Documents/data/',
-'beiwe_test_data/onnela_lab_ios_test2'
+study_folder = 'C:/Users/mstra/Documents/publication_and_conferences/1. Ideas/4 validation of walking recognition against fitbit/data/beiwe'
 output_folder = "C:/Users/mstra/Documents/Python/forest/oak/output"
 
 tz_str = "America/New_York"
@@ -616,4 +616,4 @@ time_end = "2022-01-01"
 
 # main function
 main_function(study_folder, output_folder, tz_str, option=None,
-              time_start=None, time_end=None, beiwe_id={"abcdefgh"})
+              time_start=None, time_end=None, beiwe_id={"4aczi869"})
