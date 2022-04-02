@@ -1,5 +1,4 @@
 import argparse
-
 import sys
 
 from forest.sycamore.base import survey_stats_main
