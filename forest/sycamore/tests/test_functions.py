@@ -117,7 +117,8 @@ def test_survey_submits_with_no_submissions():
 
 def test_survey_submits_no_config():
     study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
-    submits_tbl = survey_submits_no_config(study_dir, "UTC")
+    agg_data = aggregate_surveys_no_config(study_dir, study_tz="UTC")
+    submits_tbl = survey_submits_no_config(agg_data)
     assert submits_tbl.shape[0] == 6
 
 

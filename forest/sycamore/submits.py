@@ -343,33 +343,33 @@ def survey_submits(
     ).drop_duplicates(), submit_lines_summary
 
 
-def survey_submits_no_config(study_dir: str,
-                             study_tz: str = "UTC") -> pd.DataFrame:
+def survey_submits_no_config(agg: pd.DataFrame) -> pd.DataFrame:
     """Get survey submits without config file
 
     Alternative function for getting the survey completions (doesn't have
     expected times of surveys)
     Args:
-        study_dir(str):
-            Directory where information is located
-        study_tz(str):
-            Time zone for local time
+        agg(DataFrame):
+            Dataframe of Aggregated Data
+    Returns:
+        alt_submits(DataFrame):
+            Dataframe with one line per survey submission.
+
     """
-    tmp = aggregate_surveys_no_config(study_dir, study_tz)
 
     def summarize_submits(df):
         temp_dict = {"min_time": df.min(), "max_time": df.max()}
         return pd.Series(temp_dict, index=pd.Index(["min_time", "max_time"]))
 
-    tmp = tmp.groupby(["survey id", "beiwe_id", "surv_inst_flg"])[
+    agg = agg.groupby(["survey id", "beiwe_id", "surv_inst_flg"])[
         "Local time"
     ].apply(summarize_submits).reset_index()
-    tmp = tmp.pivot(index=["survey id", "beiwe_id", "surv_inst_flg"],
+    agg = agg.pivot(index=["survey id", "beiwe_id", "surv_inst_flg"],
                     columns="level_3",
                     values="Local time").reset_index()
-    tmp["time_to_complete"] = tmp["max_time"] - tmp["min_time"]
-    tmp["time_to_complete"] = [t.seconds for t in tmp["time_to_complete"]]
-    return tmp.sort_values(["beiwe_id", "survey id"])
+    agg["time_to_complete"] = agg["max_time"] - agg["min_time"]
+    agg["time_to_complete"] = [t.seconds for t in agg["time_to_complete"]]
+    return agg.sort_values(["beiwe_id", "survey id"])
 
 
 def get_all_interventions_dict(filepath: Optional[str]) -> dict:

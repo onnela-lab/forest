@@ -90,7 +90,7 @@ def survey_stats_main(
     agg_data.to_csv(os.path.join(output_folder, "agg_survey_data.csv"),
                     index=False)
     # Add alternative survey submits table
-    submits_tbl = survey_submits_no_config(study_folder, tz_str)
+    submits_tbl = survey_submits_no_config(agg_data)
     submits_tbl.to_csv(os.path.join(output_folder, "submits_alt_summary.csv"),
                        index=False)
     return True
