@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 import os
+import re
 
 import glob
 import numpy as np
@@ -28,16 +29,16 @@ def read_json(study_dir: str) -> dict:
 
 # load events & question types dictionary
 QUESTION_TYPES_LOOKUP = {
-    'Android': {'Checkbox Question': 'checkbox',
-                'Info Text Box': 'info_text_box',
-                'Open Response Question': 'free_response',
-                'Radio Button Question': 'radio_button',
-                'Slider Question': 'slider'},
-    'iOS': {'checkbox': 'checkbox',
-            'free_response': 'free_response',
-            'info_text_box': 'info_text_box',
-            'radio_button': 'radio_button',
-            'slider': 'slider'}
+    "Android": {"Checkbox Question": "checkbox",
+                "Info Text Box": "info_text_box",
+                "Open Response Question": "free_response",
+                "Radio Button Question": "radio_button",
+                "Slider Question": "slider"},
+    "iOS": {"checkbox": "checkbox",
+            "free_response": "free_response",
+            "info_text_box": "info_text_box",
+            "radio_button": "radio_button",
+            "slider": "slider"}
 }
 
 
@@ -256,7 +257,7 @@ def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
                 if answers_l:
                     if "answers" in q.keys():
                         for j, a in enumerate(q["answers"]):
-                            surv["answer_" + str(i)] = a["text"]
+                            surv["answer_" + str(j)] = a["text"]
 
                 output.append(pd.DataFrame([surv]))
     output = pd.concat(output).reset_index(drop=True)
@@ -347,6 +348,9 @@ def aggregate_surveys_config(
 
     # Convert to the study's timezone
     df_merged = convert_timezone_df(df_merged, study_tz)
+    df_merged = append_from_answers(df_merged, study_dir,
+                                    participant_ids=users, tz_str=study_tz,
+                                    config_path=config_path)
 
     return df_merged.reset_index(drop=True)
 
@@ -381,5 +385,279 @@ def aggregate_surveys_no_config(study_dir: str, study_tz: str = "UTC",
 
     # Convert to the study's timezone
     agg_data = convert_timezone_df(agg_data, tz_str=study_tz)
+    agg_data = append_from_answers(agg_data, study_dir, tz_str=study_tz)
 
     return agg_data.reset_index(drop=True)
+
+
+def append_from_answers(
+        agg_data: pd.DataFrame, download_folder: str,
+        participant_ids: list = None, tz_str: str = "UTC",
+        config_path: str = None
+) -> pd.DataFrame:
+    answers_data = read_aggregate_answers_stream(
+        download_folder, participant_ids, tz_str, config_path
+    )
+    if participant_ids is None:
+        participant_ids = [u
+                           for u in os.listdir(download_folder)
+                           if not u.startswith(".") and u != "registry"]
+    missing_submission_data = []  # list of surveys to add on to end
+
+    for u in participant_ids:
+        for survey_id in agg_data["survey id"].unique():
+            known_timings_submits = agg_data.loc[
+                (agg_data["beiwe_id"] == u)
+                & (agg_data["survey id"] == survey_id),
+                "Local time"
+            ].unique()
+
+            known_answers_submits = answers_data.loc[
+                (answers_data["beiwe_id"] == u)
+                & (answers_data["survey id"] == survey_id),
+                "Local time"
+            ].unique()
+            missing_times = []
+            for time in known_answers_submits:
+
+                hours_from_nearest = np.min(
+                    np.abs((pd.to_datetime(known_timings_submits)
+                            - pd.to_datetime(time)).total_seconds())
+                ) / 60/60
+                # add on the data if there is more than 1/2 hour between an
+                # answers submission and a timing submission.
+                if hours_from_nearest > .5 or len(known_timings_submits) == 0:
+                    missing_times.append(time)
+            if len(missing_times) > 0:
+                missing_data = answers_data.loc[
+                        (answers_data["beiwe_id"] == u)
+                        & (answers_data["survey id"] == survey_id)
+                        & (answers_data["Local time"].isin(missing_times)),
+                        :
+                    ].copy()
+                max_surv_inst_flg = answers_data.loc[
+                        (answers_data["beiwe_id"] == u)
+                        & (answers_data["survey id"] == survey_id)
+                        & (answers_data["Local time"].isin(missing_times)),
+                        "surv_inst_flg"
+                ].max()
+                # add the max submit flag to the inst_flags we have to make
+                # sure all flags are unique
+                missing_data["surv_inst_flg"] = missing_data[
+                                                    "surv_inst_flg"
+                                                ] + max_surv_inst_flg + 1
+
+                missing_data["time_prev"] = missing_data["Local time"].shift(1)
+                # one line in the survey will have a submission flag
+                missing_data.loc[
+                    missing_data["time_prev"] != missing_data["Local time"],
+                    "submit_flg"
+                ] = 1
+
+                missing_data.drop(["time_prev"], axis=1, inplace=True)
+                missing_submission_data.append(missing_data)
+    data_to_return = [agg_data] + missing_submission_data
+
+    return pd.concat(data_to_return)
+
+
+def read_one_answers_stream(download_folder: str, beiwe_id: str,
+                            tz_str: str = "UTC") -> pd.DataFrame:
+    """
+    Reads in all answers data for a user and creates a column with the survey
+    ID, as well as a column for the date from the filename.
+    Args:
+        download_folder (str):
+            path to downloaded data. A folder wiith the user ID should be a
+            subdirectory of this path.
+        beiwe_id (str):
+            ID of user to aggregate data
+        tz_str (str):
+            Time Zone to include in Local time column of output. See
+            https://en.wikipedia.org/wiki/List_of_tz_database_time_zones for
+            options
+    Returns:
+        aggregated_data (DataFrame): dataframe with stacked data, a field for
+        the beiwe ID, a field for the survey, and a filed with the time in
+        the filename.
+    """
+    data_stream = "survey_answers"
+    st_path = os.path.join(download_folder, beiwe_id, data_stream)
+    if os.path.isdir(st_path):
+        # get all survey IDs included for this user (data will have one folder
+        # per survey)
+        survey_ids = [subdir
+                      for subdir in os.listdir(st_path)
+                      if not subdir.startswith(".") and subdir != "registry"]
+        all_surveys = []
+        for survey in survey_ids:
+            # get all csv files in the survey subdirectory
+            all_files = [file
+                         for file in os.listdir(os.path.join(st_path, survey))
+                         if file.endswith(".csv")]
+            survey_dfs = []
+            # We need to enumerate to tell different survey occasions apart
+            for i, file in enumerate(all_files):
+                current_df = pd.read_csv(os.path.join(st_path, survey, file))
+                # get UTC time from the file name because it"s not included in
+                # the csv file
+                file_name = file.split(".")[0]
+                # the files are written with _ instead of :, so we need to
+                # switch that back for format to read correctly.
+                current_df["UTC time"] = pd.to_datetime(
+                    file_name.replace("_", ":")
+                )
+                current_df["survey id"] = survey
+                current_df["surv_inst_flg"] = i
+                survey_dfs.append(current_df)
+            survey_data = pd.concat(survey_dfs, axis=0, ignore_index=True)
+            survey_data["beiwe_id"] = beiwe_id
+            survey_data["Local time"] = survey_data[
+                "UTC time"
+            ].dt.tz_convert(tz_str).dt.tz_localize(None)
+
+            all_surveys.append(survey_data)
+
+        return pd.concat(all_surveys, axis=0, ignore_index=True)
+
+
+def read_aggregate_answers_stream(
+        download_folder: str, participant_ids: list = None,
+        tz_str: str = "UTC", config_path: str = None
+) -> pd.DataFrame:
+    """
+    Reads in all answers data for many users and fixes Android users to have
+    an answer instead of an integer
+    Args:
+        download_folder (str):
+            path to downloaded data. This folder should have Beiwe IDs as
+            subdirectories.
+        participant_ids (str):
+            List of IDs of users to aggregate data on
+        tz_str (str):
+            Time Zone to include in Local time column of output. See
+            https://en.wikipedia.org/wiki/List_of_tz_database_time_zones for
+            options
+        config_path: Path to config file. If this is included, the function
+            uses the config file to resolve semicolons that appear in survey
+            answers lists. If this is not included, the function attempt to use
+            iPhone responses to resolve semicolons.
+    Returns:
+        aggregated_data (DataFrame): dataframe with stacked data, a field for
+        the beiwe ID, a field for the day of week.
+    """
+    if config_path is not None:
+        config_surveys = parse_surveys(config_path, answers_l=True)
+        config_included = True
+    else:
+        config_surveys = pd.DataFrame(None)
+        config_included = False
+    if participant_ids is None:
+        participant_ids = [u
+                           for u in os.listdir(download_folder)
+                           if not u.startswith(".") and u != "registry"]
+
+    all_users_list = [read_one_answers_stream(download_folder, user, tz_str)
+                      for user in participant_ids]
+
+    aggregated_data = pd.concat(all_users_list, axis=0, ignore_index=True)
+
+    # if a semicolon appears in an answer choice option,
+    # our regexp sub/split operation would think there are
+    # way more answers than there really are.
+    # We will pull from the responses from iPhone users and switch semicolons
+    # within an answer to commas.
+    # Android users have "; " separating answer choices. iPhone users have
+    # ";" separating choices.
+    # This will make them the same.
+    aggregated_data["question answer options"] = aggregated_data[
+        "question answer options"].apply(
+        lambda x: x.replace("; ", ";") if isinstance(x, str) else x
+    )
+
+    # We also need to change the answers to match the above pattern if we want
+    # to find answers inside of answer choice strings.
+    # We will change this back later.
+    aggregated_data["answer"] = aggregated_data["answer"].apply(
+        lambda x: x.replace("; ", ";") if isinstance(x, str) else x
+    )
+
+    # get all answer choices text options now that Android and iPhone have the
+    # same ones.
+    radio_answer_choices_list = aggregated_data.loc[
+        aggregated_data[
+            "question type"] == "radio_button", "question answer options"
+    ].unique()
+
+    for answer_choices in radio_answer_choices_list:
+        fixed_answer_choices = answer_choices
+        if config_included:
+            question_id = aggregated_data.loc[
+                aggregated_data["question answer options"] == answer_choices,
+                "question_id"
+                ].unique()[0]
+            answer_list = config_surveys.loc[
+                config_surveys["question_id"] == question_id,
+                config_surveys.columns[range(5, len(config_surveys.columns))]
+            ].stack().unique()
+            pass
+        else:
+            answer_list = aggregated_data.loc[
+                aggregated_data[
+                    "question answer options"] == answer_choices, "answer"
+            ].unique()  # all answers users have put for this choice
+        for answer in answer_list:
+            if isinstance(answer, str) and answer.find(";") != -1:
+                fixed_answer = answer.replace(";", ", ")
+                # replace semicolons with commas within the answer. We include
+                # a space after becaus we removed spaces after semicolons
+                # earlier.
+                fixed_answer_choices = fixed_answer_choices.replace(
+                    answer, fixed_answer
+                )  # the answer within the answer choice string no
+                # longer has a semicolon.
+
+        aggregated_data.loc[
+            aggregated_data["question answer options"] == answer_choices,
+            "question answer options"
+        ] = fixed_answer_choices
+
+    aggregated_data["answer"] = aggregated_data["answer"].apply(
+        lambda x: x.replace(";", ", ") if isinstance(x, str) else x
+    )
+
+    # remove first and last bracket as well as any nan, then split it by ;
+    aggregated_data["question answer options"] = aggregated_data[
+        "question answer options"
+    ].astype("str").apply(lambda x: re.sub(r"^\[|\]$|^nan$", "", x).split(";"))
+
+    android_radio_questions = aggregated_data.loc[
+        # find radio button questions. These are the ones that show up weird
+        # on Android.
+        (aggregated_data["question type"] == "Radio Button Question")
+        # they will have ints in their answer field.
+        & (aggregated_data["answer"].apply(
+            lambda x: x.isdigit() if isinstance(x, str)
+            else True if isinstance(x, int)
+            else False)),
+        "answer"
+        # if their question type looks like this, it was made on an Android
+        # device. Radio button questions are the only ones with the integer
+        # instead of text (Also, avoiding any possible text outputs)
+    ].index
+
+    for i in android_radio_questions:
+        # for Androids, the radio buttons are the index of the "question answer
+        # options" list that the person selected. We will iterate through and
+        # get the string corresponding to that index
+        aggregated_data.loc[i, "answer"] = aggregated_data.loc[
+            i, "question answer options"
+        ][int(aggregated_data.loc[i, "answer"])]
+    # convert to the iOS question types text
+    aggregated_data["question type"] = aggregated_data["question type"].apply(
+        lambda x:
+        QUESTION_TYPES_LOOKUP["Android"][x] if x in QUESTION_TYPES_LOOKUP[
+            "Android"].keys()
+        else x
+    )
+    return aggregated_data

@@ -7,7 +7,9 @@ from forest.sycamore.submits import (get_all_interventions_dict,
                                      survey_submits_no_config)
 from forest.sycamore.common import (aggregate_surveys,
                                     aggregate_surveys_no_config,
-                                    aggregate_surveys_config)
+                                    aggregate_surveys_config,
+                                    read_one_answers_stream,
+                                    read_aggregate_answers_stream)
 from forest.sycamore.submits import gen_survey_schedule, survey_submits
 from forest.sycamore.responses import agg_changed_answers_summary
 
@@ -35,11 +37,6 @@ def test_aggregate_surveys():
     sample_agg_data = aggregate_surveys(filepath, ["idr8gqdh"])
 
     assert pd.isnull(sample_agg_data.loc[0, "time_prev"])
-
-    assert np.mean(
-        pd.to_datetime(sample_agg_data["timestamp"], unit="ms"
-                       ) == sample_agg_data["UTC time"]
-    ) == 1.0
     assert "MALFORMED" not in sample_agg_data["question text"].values
 
 
@@ -69,11 +66,9 @@ def test_gen_survey_schedule():
 
 def test_aggregate_surveys_no_config():
     filepath = os.path.join(TEST_DATA_DIR, "sample_dir")
-    agg_data = aggregate_surveys_no_config(filepath, "UTC")
-    assert np.mean(pd.to_datetime(agg_data["timestamp"], unit="ms") ==
-                   agg_data["UTC time"]) == 1.0
-    assert len(agg_data.surv_inst_flg.unique()) == 2
-    assert len(agg_data.DOW.unique()) == 2
+    agg_data = aggregate_surveys_no_config(filepath, study_tz="UTC")
+    assert len(agg_data.surv_inst_flg.unique()) == 6
+    assert len(agg_data.DOW.unique()) == 4
 
 
 def test_aggregate_surveys_config():
@@ -83,10 +78,8 @@ def test_aggregate_surveys_config():
     )
 
     agg_data = aggregate_surveys_config(study_dir, survey_settings_path, "UTC")
-    assert np.mean(pd.to_datetime(agg_data["timestamp"], unit="ms") ==
-                   agg_data["UTC time"]) == 1.0
-    assert len(agg_data.surv_inst_flg.unique()) == 2
-    assert len(agg_data.DOW.unique()) == 2
+    assert len(agg_data.surv_inst_flg.unique()) == 6
+    assert len(agg_data.DOW.unique()) == 4
 
 
 def test_agg_changed_answers_summary():
@@ -98,9 +91,9 @@ def test_agg_changed_answers_summary():
     ca_detail, ca_summary = agg_changed_answers_summary(
         survey_settings_path, agg_data
     )
-    assert ca_detail.shape[0] == 5
+    assert ca_detail.shape[0] == 8
     assert ca_detail.shape[1] == 14
-    assert ca_summary.shape[0] == 4
+    assert ca_summary.shape[0] == 7
     assert ca_summary.shape[1] == 9
 
 
@@ -125,4 +118,17 @@ def test_survey_submits_with_no_submissions():
 def test_survey_submits_no_config():
     study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
     submits_tbl = survey_submits_no_config(study_dir, "UTC")
-    assert submits_tbl.shape[0] == 2
+    assert submits_tbl.shape[0] == 6
+
+
+def test_read_one_answers_stream():
+    study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
+    df = read_one_answers_stream(study_dir, "idr8gqdh", "UTC")
+    assert len(df["Local time"].unique()) == 2
+
+
+def test_read_aggregate_answers_stream():
+    study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
+    df = read_aggregate_answers_stream(study_dir)
+    assert len(df["beiwe_id"].unique()) == 2
+    assert df.shape[1] == 10
