@@ -171,3 +171,109 @@ def agg_changed_answers_summary(
 
     detail = detail[detail_cols]
     return detail, out
+
+
+def by_survey_administration(agg_data: pd.DataFrame) -> dict:
+    """
+    Takes aggregated answers and writes individual csv files for each survey
+
+    Args:
+        agg_data(DataFrame): output from aggregate_surveys_config or
+            aggregate_surveys_no_config
+
+    Returns:
+        surveys_dict(dict): Dict with a key for each survey ID in agg_data.
+        Each value is a dataframe with readable survey submission information.
+
+    """
+    surveys_dict = {}
+
+    for survey_id in agg_data["survey id"].unique():
+        logger.info("now processing: %s", survey_id)
+        survey_df = agg_data.loc[agg_data["survey id"] == survey_id].copy()
+        unique_survey_cols = ["beiwe_id", "surv_inst_flg"]
+
+        # get starting and ending times for each survey
+        survey_df["start_time"] = survey_df.groupby(unique_survey_cols)[
+            "Local time"
+        ].transform("first")
+        survey_df["end_time"] = survey_df.groupby(unique_survey_cols)[
+            "Local time"
+        ].transform("last")
+
+        survey_df = survey_df.loc[survey_df["submit_line"] != 1]
+        # needs to come after finding start and end times because
+        # the "user hit submit" line contains end times
+
+        if survey_df.shape[0] > 0:  # We need to have data to read
+            survey_df.sort_values(by=["beiwe_id", "Local time"],
+                                  ascending=True, inplace=True)
+            survey_df.reset_index(inplace=True)
+
+            # TODO: add an option to take the survey config file to get this
+            # information
+            id_text_dict = {}.fromkeys(survey_df["question id"].unique())
+
+            num_found = 0
+            i = 0
+            keys_not_found = True
+            while keys_not_found:
+                # update dictionary entry
+                if id_text_dict[survey_df.loc[i, "question id"]] is None:
+                    id_text_dict[survey_df.loc[i, "question id"]] = [
+                        survey_df.loc[i, "question text"],
+                        survey_df.loc[i, "question type"],
+                        survey_df.loc[i, "question answer options"]
+                    ]
+                    num_found = num_found + 1
+                if num_found == len(id_text_dict):
+                    keys_not_found = False
+                i = i + 1
+                if i == survey_df.shape[0]:
+                    # should find all keys before we get to the end but let's
+                    # be safe...
+                    break
+
+            survey_df["survey_duration"] = survey_df["end_time"] - survey_df[
+                "start_time"
+            ]
+
+            keep_cols = ["beiwe_id", "start_time", "end_time",
+                         "survey_duration"]
+
+            unique_question_cols = keep_cols + ["question id"]
+            survey_df.drop_duplicates(unique_question_cols, keep="last",
+                                      inplace=True)
+            # Because we sorted ascending, this will keep the most recent
+            # response
+            pivot_df = survey_df.pivot(index=keep_cols, columns="question id",
+                                       values="answer")
+            question_info_df = pd.DataFrame(id_text_dict)
+
+            question_id_df = pd.DataFrame(columns=question_info_df.columns)
+            # move column names to a row for writing
+            question_id_df.loc[0] = question_info_df.columns
+            # add fake indices to stack nicely with the multiindex
+            for col in keep_cols[1:4]:
+                question_info_df[col] = ""
+                question_id_df[col] = ""
+
+            question_id_df["beiwe_id"] = "Question ID"
+            question_info_df["beiwe_id"] = ["Question Text", "Question Type",
+                                            "Question Options"]
+            ## Get these to stack nicely with multiindex
+            question_info_df.set_index(keys=keep_cols, inplace=True)
+            question_id_df.set_index(keys=keep_cols, inplace=True)
+            ## stack together
+            output_df = pd.concat([question_info_df, question_id_df, pivot_df])
+            output_df = output_df.reset_index(drop=False)
+            ## Interpretable column names in csv
+            colnames = ["beiwe_id", "start_time", "end_time",
+                        "survey_duration"]
+            colnames = colnames + [f"question_{i + 1}" for i in range(
+                len(output_df.columns) - len(colnames))]
+            output_df.columns = colnames
+
+            surveys_dict[survey_id] = output_df
+
+    return surveys_dict

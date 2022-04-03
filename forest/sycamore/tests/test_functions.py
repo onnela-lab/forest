@@ -11,7 +11,9 @@ from forest.sycamore.common import (aggregate_surveys,
                                     read_one_answers_stream,
                                     read_aggregate_answers_stream)
 from forest.sycamore.submits import gen_survey_schedule, survey_submits
-from forest.sycamore.responses import agg_changed_answers_summary
+from forest.sycamore.responses import (agg_changed_answers_summary,
+                                       by_survey_administration)
+
 
 TEST_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -160,3 +162,11 @@ def test_read_aggregate_answers_stream():
     df = read_aggregate_answers_stream(study_dir)
     assert len(df["beiwe_id"].unique()) == 2
     assert df.shape[1] == 10
+
+def test_by_survey_administration():
+    study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
+    agg_data = aggregate_surveys_no_config(study_dir, study_tz="UTC")
+    surveys_dict = by_survey_administration(agg_data)
+    assert len(surveys_dict.keys()) == 1
+    assert surveys_dict["hkmxse2N7aMGfNyVMQDiWWEP"].shape[0] == 10
+

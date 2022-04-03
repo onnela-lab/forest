@@ -2,7 +2,8 @@ import os
 from typing import Optional, List
 import logging
 
-from forest.sycamore.responses import agg_changed_answers_summary
+from forest.sycamore.responses import (agg_changed_answers_summary,
+                                       by_survey_administration)
 from forest.sycamore.common import (aggregate_surveys_config,
                                     aggregate_surveys_no_config)
 from forest.sycamore.submits import (survey_submits,
@@ -86,6 +87,15 @@ def survey_stats_main(
                      index=False)
     ca_summary.to_csv(os.path.join(output_folder, "answers_summary.csv"),
                       index=False)
+
+    surveys_dict = by_survey_administration(agg_data)
+    for survey_id in surveys_dict.keys():
+        surveys_dict[survey_id].to_csv(
+            os.path.join(output_folder, "by_survey", survey_id + ".csv"),
+            index=False
+        )
+
+
 
     # Write out summaries
     agg_data.to_csv(os.path.join(output_folder, "agg_survey_data.csv"),
