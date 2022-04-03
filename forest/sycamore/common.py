@@ -435,14 +435,14 @@ def append_from_answers(
                         & (answers_data["Local time"].isin(missing_times)),
                         :
                     ].copy()
-                max_surv_inst_flg = answers_data.loc[
-                        (answers_data["beiwe_id"] == u)
-                        & (answers_data["survey id"] == survey_id)
-                        & (answers_data["Local time"].isin(missing_times)),
+                # Get the max survey flag from agg_data so we don't overlap any
+                # survey flags after merging
+                max_surv_inst_flg = agg_data.loc[
+                        (agg_data["beiwe_id"] == u)
+                        & (agg_data["survey id"] == survey_id),
                         "surv_inst_flg"
                 ].max()
-                # add the max submit flag to the inst_flags we have to make
-                # sure all flags are unique
+                # add the max submit flag to the inst_flags we have
                 missing_data["surv_inst_flg"] = missing_data[
                                                     "surv_inst_flg"
                                                 ] + max_surv_inst_flg + 1
