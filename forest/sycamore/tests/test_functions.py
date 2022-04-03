@@ -132,6 +132,17 @@ def test_survey_submits_with_no_submissions():
 
 
 def test_survey_submits_no_config():
+    # Ensure that survey_submits_no_config generates the same information
+    # regardless of whether the passed data was generated from a config file.
+    study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
+    survey_settings_path = os.path.join(
+        TEST_DATA_DIR, "sample_study_surveys_and_settings.json"
+    )
+    agg_data = aggregate_surveys_config(study_dir, survey_settings_path, "UTC")
+    submits_tbl = survey_submits_no_config(agg_data)
+    assert submits_tbl.shape[0] == 6
+
+def test_survey_submits_no_config_with_config_input():
     study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
     agg_data = aggregate_surveys_no_config(study_dir, study_tz="UTC")
     submits_tbl = survey_submits_no_config(agg_data)
