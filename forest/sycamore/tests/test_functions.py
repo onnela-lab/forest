@@ -67,7 +67,7 @@ def test_gen_survey_schedule():
 def test_aggregate_surveys_no_config():
     filepath = os.path.join(TEST_DATA_DIR, "sample_dir")
     agg_data = aggregate_surveys_no_config(filepath, study_tz="UTC")
-    assert len(agg_data.surv_inst_flg.unique()) == 6
+    assert agg_data.shape[0] == 52
     assert len(agg_data.DOW.unique()) == 4
 
 
@@ -78,7 +78,7 @@ def test_aggregate_surveys_config():
     )
 
     agg_data = aggregate_surveys_config(study_dir, survey_settings_path, "UTC")
-    assert len(agg_data.surv_inst_flg.unique()) == 6
+    assert agg_data.shape[0] == 52
     assert len(agg_data.DOW.unique()) == 4
 
 
