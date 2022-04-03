@@ -58,13 +58,6 @@ def survey_stats_main(
         if agg_data.shape[0] == 0:
             logger.error("Error: No survey data found in %s", study_folder)
             return True
-        # Create changed answers detail and summary
-        ca_detail, ca_summary = agg_changed_answers_summary(config_path,
-                                                            agg_data)
-        ca_detail.to_csv(os.path.join(output_folder, "answers_data.csv"),
-                         index=False)
-        ca_summary.to_csv(os.path.join(output_folder, "answers_summary.csv"),
-                          index=False)
         if time_start is not None and time_end is not None:
             # Create survey submits detail and summary
             all_interventions_dict = get_all_interventions_dict(
@@ -86,6 +79,14 @@ def survey_stats_main(
             else:
                 logger.error("An Error occurred when "
                              "getting survey submit summaries")
+    # Create changed answers detail and summary
+    ca_detail, ca_summary = agg_changed_answers_summary(config_path,
+                                                        agg_data)
+    ca_detail.to_csv(os.path.join(output_folder, "answers_data.csv"),
+                     index=False)
+    ca_summary.to_csv(os.path.join(output_folder, "answers_summary.csv"),
+                      index=False)
+
     # Write out summaries
     agg_data.to_csv(os.path.join(output_folder, "agg_survey_data.csv"),
                     index=False)

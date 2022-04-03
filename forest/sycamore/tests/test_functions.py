@@ -96,6 +96,22 @@ def test_agg_changed_answers_summary():
     assert ca_summary.shape[0] == 7
     assert ca_summary.shape[1] == 9
 
+def test_agg_changed_answers_summary_no_config():
+    # make sure that changed_answers_summary is the same if we aggregate the
+    # data using the no config function
+    study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
+    survey_settings_path = os.path.join(
+        TEST_DATA_DIR, "sample_study_surveys_and_settings.json"
+    )
+    agg_data = aggregate_surveys_no_config(study_dir, "UTC")
+    ca_detail, ca_summary = agg_changed_answers_summary(
+        survey_settings_path, agg_data
+    )
+    assert ca_detail.shape[0] == 8
+    assert ca_detail.shape[1] == 14
+    assert ca_summary.shape[0] == 7
+    assert ca_summary.shape[1] == 9
+
 
 def test_survey_submits_with_no_submissions():
     study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
