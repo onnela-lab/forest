@@ -261,13 +261,13 @@ def by_survey_administration(agg_data: pd.DataFrame) -> dict:
             question_id_df["beiwe_id"] = "Question ID"
             question_info_df["beiwe_id"] = ["Question Text", "Question Type",
                                             "Question Options"]
-            ## Get these to stack nicely with multiindex
+            # Get these to stack nicely with multiindex
             question_info_df.set_index(keys=keep_cols, inplace=True)
             question_id_df.set_index(keys=keep_cols, inplace=True)
-            ## stack together
+            # stack together
             output_df = pd.concat([question_info_df, question_id_df, pivot_df])
             output_df = output_df.reset_index(drop=False)
-            ## Interpretable column names in csv
+            # Interpretable column names in csv
             colnames = ["beiwe_id", "start_time", "end_time",
                         "survey_duration"]
             colnames = colnames + [f"question_{i + 1}" for i in range(

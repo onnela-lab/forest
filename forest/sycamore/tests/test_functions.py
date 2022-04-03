@@ -98,6 +98,7 @@ def test_agg_changed_answers_summary():
     assert ca_summary.shape[0] == 7
     assert ca_summary.shape[1] == 9
 
+
 def test_agg_changed_answers_summary_no_config():
     # make sure that changed_answers_summary is the same if we aggregate the
     # data using the no config function
@@ -144,6 +145,7 @@ def test_survey_submits_no_config():
     submits_tbl = survey_submits_no_config(agg_data)
     assert submits_tbl.shape[0] == 6
 
+
 def test_survey_submits_no_config_with_config_input():
     study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
     agg_data = aggregate_surveys_no_config(study_dir, study_tz="UTC")
@@ -163,10 +165,10 @@ def test_read_aggregate_answers_stream():
     assert len(df["beiwe_id"].unique()) == 2
     assert df.shape[1] == 10
 
+
 def test_by_survey_administration():
     study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
     agg_data = aggregate_surveys_no_config(study_dir, study_tz="UTC")
     surveys_dict = by_survey_administration(agg_data)
     assert len(surveys_dict.keys()) == 1
     assert surveys_dict["hkmxse2N7aMGfNyVMQDiWWEP"].shape[0] == 10
-

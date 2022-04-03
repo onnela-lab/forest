@@ -95,8 +95,6 @@ def survey_stats_main(
             index=False
         )
 
-
-
     # Write out summaries
     agg_data.to_csv(os.path.join(output_folder, "agg_survey_data.csv"),
                     index=False)
