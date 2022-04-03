@@ -3,7 +3,7 @@ from typing import Optional, List
 import logging
 
 from forest.sycamore.responses import (agg_changed_answers_summary,
-                                       by_survey_administration)
+                                       responses_by_submission)
 from forest.sycamore.common import (aggregate_surveys_config,
                                     aggregate_surveys_no_config)
 from forest.sycamore.submits import (survey_submits,
@@ -88,7 +88,7 @@ def survey_stats_main(
                 logger.error("An Error occurred when "
                              "getting survey submit summaries")
 
-    surveys_dict = by_survey_administration(agg_data)
+    surveys_dict = responses_by_submission(agg_data)
     for survey_id in surveys_dict.keys():
         surveys_dict[survey_id].to_csv(
             os.path.join(output_folder, "by_survey", survey_id + ".csv"),

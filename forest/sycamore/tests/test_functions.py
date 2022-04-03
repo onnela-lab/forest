@@ -12,7 +12,7 @@ from forest.sycamore.common import (aggregate_surveys,
                                     read_aggregate_answers_stream)
 from forest.sycamore.submits import gen_survey_schedule, survey_submits
 from forest.sycamore.responses import (agg_changed_answers_summary,
-                                       by_survey_administration)
+                                       responses_by_submission)
 
 
 TEST_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -166,9 +166,20 @@ def test_read_aggregate_answers_stream():
     assert df.shape[1] == 10
 
 
-def test_by_survey_administration():
+def test_responses_by_submission():
     study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
     agg_data = aggregate_surveys_no_config(study_dir, study_tz="UTC")
-    surveys_dict = by_survey_administration(agg_data)
+    surveys_dict = responses_by_submission(agg_data)
+    assert len(surveys_dict.keys()) == 1
+    assert surveys_dict["hkmxse2N7aMGfNyVMQDiWWEP"].shape[0] == 10
+
+
+def test_by_responses_by_submission_with_config():
+    study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
+    survey_settings_path = os.path.join(
+        TEST_DATA_DIR, "sample_study_surveys_and_settings.json"
+    )
+    agg_data = aggregate_surveys_config(study_dir, survey_settings_path, "UTC")
+    surveys_dict = responses_by_submission(agg_data)
     assert len(surveys_dict.keys()) == 1
     assert surveys_dict["hkmxse2N7aMGfNyVMQDiWWEP"].shape[0] == 10

@@ -173,7 +173,7 @@ def agg_changed_answers_summary(
     return detail, out
 
 
-def by_survey_administration(agg_data: pd.DataFrame) -> dict:
+def responses_by_submission(agg_data: pd.DataFrame) -> dict:
     """
     Takes aggregated answers and writes individual csv files for each survey
 
