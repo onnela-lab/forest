@@ -294,6 +294,9 @@ def survey_submits(
 
     submit_lines3["time_to_submit"] = submit_lines3["submit_time"] - \
         submit_lines3["delivery_time"]
+    submit_lines3["time_to_submit"] = [
+        t.seconds for t in submit_lines3["time_to_submit"]
+    ]
 
     # Create a summary that has survey_id, beiwe_id, num_surveys, num
     # submitted surveys, average time to submit
@@ -332,10 +335,12 @@ def survey_submits(
         np.array("NaT", dtype="datetime64[ns]")
     )
 
+    ## mark as NA if no submit happened
+
     submit_lines3["time_to_submit"] = np.where(
         submit_lines3["submit_flg"] == 1,
         submit_lines3["time_to_submit"],
-        np.array("NaT", dtype="datetime64[ns]")
+        np.NaN
     )
 
     return submit_lines3.sort_values(
