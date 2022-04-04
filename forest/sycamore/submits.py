@@ -232,6 +232,7 @@ def survey_submits(
         submit_lines_summary(DataFrame): a DataFrame with all users, total
         surveys received, and responses.
     """
+    agg = agg.copy()
     if interventions_filepath is None:
         all_interventions_dict = {}
     else:
@@ -361,6 +362,7 @@ def survey_submits_no_config(agg: pd.DataFrame) -> pd.DataFrame:
             Dataframe with one line per survey submission.
 
     """
+    agg = agg.copy()
 
     def summarize_submits(df):
         temp_dict = {"min_time": df.min(), "max_time": df.max()}

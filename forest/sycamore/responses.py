@@ -109,6 +109,7 @@ def agg_changed_answers_summary(
             Summary of how an individual answered each question, with their
             most common answer, time to answer, etc
     """
+    agg = agg.copy()
     detail = agg_changed_answers(agg)
     #####################################################################
     # Add instance id and update first time to be the last time if there
@@ -201,6 +202,7 @@ def responses_by_submission(agg_data: pd.DataFrame) -> dict:
         Each value is a dataframe with readable survey submission information.
 
     """
+    agg_data = agg_data.copy()
     surveys_dict = {}
 
     for survey_id in agg_data["survey id"].unique():
