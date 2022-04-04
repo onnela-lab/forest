@@ -163,7 +163,7 @@ def test_read_aggregate_answers_stream():
     study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
     df = read_aggregate_answers_stream(study_dir)
     assert len(df["beiwe_id"].unique()) == 2
-    assert df.shape[1] == 10
+    assert df.shape[1] == 11
 
 
 def test_responses_by_submission():
