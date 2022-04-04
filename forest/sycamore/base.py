@@ -78,7 +78,7 @@ def survey_stats_main(
                                                             agg_data.copy())
         ca_detail.to_csv(
             os.path.join(output_folder, "summaries", "answers_data.csv"),
-                         index=False
+            index=False
         )
         ca_summary.to_csv(
             os.path.join(output_folder, "summaries", "answers_summary.csv"),
