@@ -3,12 +3,13 @@ import json
 import logging
 import os
 import re
+from typing import Optional
 
 import glob
 import numpy as np
 import pandas as pd
 
-from typing import Optional
+
 
 
 logger = logging.getLogger(__name__)

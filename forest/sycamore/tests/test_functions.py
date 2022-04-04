@@ -2,7 +2,6 @@ import numpy as np
 import os
 import pandas as pd
 
-
 from forest.sycamore.submits import (get_all_interventions_dict,
                                      survey_submits_no_config)
 from forest.sycamore.common import (aggregate_surveys,
