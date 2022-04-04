@@ -74,6 +74,14 @@ def agg_changed_answers(agg: pd.DataFrame) -> pd.DataFrame:
     # Number of changed answers and time spent answering each question
     agg["time_to_answer"] = agg["last_time"] - agg["first_time"]
 
+    # time to answer is meaningless if the result came from survey_answers,
+    # where all questions in a survey have the same time.
+    agg["time_to_answer"] = np.where(
+        agg["data_stream"] == "survey_answers", agg["time_to_answer"],
+        np.datetime64('NaT')
+    )
+
+
     # Filter agg down to the line of the last question time
     agg = agg.loc[agg["Local time"] == agg["last_time"]]
 
@@ -135,6 +143,15 @@ def agg_changed_answers_summary(
 
     # Update time_to_answer
     detail["time_to_answer"] = detail["last_time"] - detail["first_time"]
+
+    # note that "time to answer is meaningless for answers datastreams because
+    # each question in a survey will have exactly the same time.
+    detail["time_to_answer"] = np.where(
+        detail["data_stream"] == "survey_answers",
+        detail["time_to_answer"],
+        np.datetime64('NaT')
+    )
+
     #####################################################################
 
     summary_cols = ["survey id", "beiwe_id", "question id", "question text",
@@ -236,6 +253,12 @@ def responses_by_submission(agg_data: pd.DataFrame) -> dict:
             survey_df["survey_duration"] = survey_df["end_time"] - survey_df[
                 "start_time"
             ]
+
+            survey_df["survey_duration"] = np.where(
+                survey_df["data_stream"] == "survey_answers",
+                survey_df["survey_duration"],
+                np.datetime64('NaT')
+            )
 
             keep_cols = ["beiwe_id", "start_time", "end_time",
                          "survey_duration"]
