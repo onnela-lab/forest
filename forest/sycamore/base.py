@@ -71,7 +71,7 @@ def survey_stats_main(
             return True
         # Create changed answers detail and summary
         ca_detail, ca_summary = agg_changed_answers_summary(config_path,
-                                                            agg_data)
+                                                            agg_data.copy())
         ca_detail.to_csv(os.path.join(output_folder, "answers_data.csv"),
                          index=False)
         ca_summary.to_csv(os.path.join(output_folder, "answers_summary.csv"),
@@ -83,7 +83,7 @@ def survey_stats_main(
             )
             ss_detail, ss_summary = survey_submits(
                 config_path, time_start, time_end,
-                participant_ids, agg_data, all_interventions_dict
+                participant_ids, agg_data.copy(), all_interventions_dict
             )
             if ss_summary.shape[0] > 0:
                 ss_detail.to_csv(
@@ -98,7 +98,7 @@ def survey_stats_main(
                 logger.error("An Error occurred when "
                              "getting survey submit summaries")
 
-    surveys_dict = responses_by_submission(agg_data)
+    surveys_dict = responses_by_submission(agg_data.copy())
     for survey_id in surveys_dict.keys():
         surveys_dict[survey_id].to_csv(
             os.path.join(output_folder, "by_survey", survey_id + ".csv"),
@@ -109,7 +109,7 @@ def survey_stats_main(
     agg_data.to_csv(os.path.join(output_folder, "agg_survey_data.csv"),
                     index=False)
     # Add alternative survey submits table
-    submits_tbl = survey_submits_no_config(agg_data)
+    submits_tbl = survey_submits_no_config(agg_data.copy())
     submits_tbl.to_csv(os.path.join(output_folder, "submits_alt_summary.csv"),
                        index=False)
     return True
