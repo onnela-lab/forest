@@ -125,10 +125,9 @@ def test_survey_submits_with_no_submissions():
         TEST_DATA_DIR, "sample_intervention_data.json"
     )
     agg_data = aggregate_surveys_config(study_dir, survey_settings_path, "UTC")
-    interventions_dict = get_all_interventions_dict(interventions_path)
     ss_detail, ss_summary = survey_submits(
         survey_settings_path, "2021-12-01", "2021-12-30",
-        ["idr8gqdh"], agg_data, interventions_dict
+        ["idr8gqdh"], agg_data, interventions_path
     )
     assert ss_detail.shape[0] == 0
     assert ss_summary.shape[0] == 0

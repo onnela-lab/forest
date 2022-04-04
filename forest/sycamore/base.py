@@ -22,7 +22,7 @@ def survey_stats_main(
         participant_ids: Optional[List] = None,
         time_start: str = EARLIEST_DATE, time_end: str = TODAY_MIDNIGHT,
         config_path: Optional[str] = None,
-        interventions_filepath: Optional[str] = None,
+        interventions_filepath: str = None,
         augment_with_answers: bool = True
 ) -> bool:
     """Compute statistics on surveys
@@ -86,12 +86,9 @@ def survey_stats_main(
         )
         if time_start is not None and time_end is not None:
             # Create survey submits detail and summary
-            all_interventions_dict = get_all_interventions_dict(
-                interventions_filepath
-            )
             ss_detail, ss_summary = survey_submits(
                 config_path, time_start, time_end,
-                participant_ids, agg_data.copy(), all_interventions_dict
+                participant_ids, agg_data.copy(), interventions_filepath
             )
             if ss_summary.shape[0] > 0:
                 ss_detail.to_csv(os.path.join(output_folder, "summaries",

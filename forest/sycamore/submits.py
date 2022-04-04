@@ -207,7 +207,7 @@ def gen_survey_schedule(
 
 def survey_submits(
         config_path: str, time_start: str, time_end: str, beiwe_ids: list,
-        agg: pd.DataFrame, all_interventions_dict: Optional[dict] = None
+        agg: pd.DataFrame, interventions_filepath: str = None
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Get survey submits for users
 
@@ -221,12 +221,10 @@ def survey_submits(
         beiwe_ids(list):
             List of users in study for which we are generating a survey
             schedule
-        all_interventions_dict(dict):
-            dict containing interventions for each user. Each key in the dict
-            is a beiwe id. Each value is a dict, with a key for each
-            intervention name and a timestamp for each intervention's time
+        interventions_filepath(str):
+            filepath where interventions json file is.
         agg(DataFrame):
-        Dataframe of aggregated data. Output from aggregate_surveys_config
+            Dataframe of aggregated data. Output from aggregate_surveys_config
 
     Returns:
         submit_lines(DataFrame): A DataFrame with all surveys deployed in the
@@ -234,8 +232,11 @@ def survey_submits(
         submit_lines_summary(DataFrame): a DataFrame with all users, total
         surveys received, and responses.
     """
-    if all_interventions_dict is None:
+    if interventions_filepath is None:
         all_interventions_dict = {}
+    else:
+        all_interventions_dict = get_all_interventions_dict(
+            interventions_filepath)
 
     sched = gen_survey_schedule(config_path, time_start, time_end, beiwe_ids,
                                 all_interventions_dict)
