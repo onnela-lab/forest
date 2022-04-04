@@ -7,6 +7,7 @@ from forest.sycamore.submits import (get_all_interventions_dict,
 from forest.sycamore.common import (aggregate_surveys,
                                     aggregate_surveys_no_config,
                                     aggregate_surveys_config,
+                                    filepath_to_timestamp,
                                     read_one_answers_stream,
                                     read_aggregate_answers_stream)
 from forest.sycamore.submits import gen_survey_schedule, survey_submits
@@ -193,3 +194,72 @@ def test_read_empty_dir():
     assert agg_data.shape[0] == 0
     agg_data_no_config = aggregate_surveys_no_config(study_dir, "UTC")
     assert agg_data_no_config.shape[0] == 0
+
+
+def test_restriction_to_no_files():
+    study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
+    survey_settings_path = os.path.join(
+        TEST_DATA_DIR, "sample_study_surveys_and_settings.json"
+    )
+    agg_data = aggregate_surveys_config(
+        study_dir, survey_settings_path, "UTC", time_start="2008-01-01",
+        time_end="2008-05-01"
+    )
+    assert agg_data.shape[0] == 0
+    agg_data_no_config = aggregate_surveys_no_config(
+        study_dir, "UTC", time_start="2008-01-01", time_end="2008-05-01"
+    )
+    assert agg_data_no_config.shape[0] == 0
+
+
+def test_restriction_start():
+    study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
+    survey_settings_path = os.path.join(
+        TEST_DATA_DIR, "sample_study_surveys_and_settings.json"
+    )
+    agg_data = aggregate_surveys_config(
+        study_dir, survey_settings_path, "UTC", time_start="2022-03-12",
+        time_end="2022-04-01"
+    )
+    assert agg_data.shape[0] == 14
+    assert np.mean(agg_data["Local time"] > pd.to_datetime("2022-03-12")) == 1
+    agg_data_no_config = aggregate_surveys_no_config(
+        study_dir, "UTC", time_start="2022-03-12", time_end="2022-04-01"
+    )
+    assert agg_data_no_config.shape[0] == 14
+    assert np.mean(
+        agg_data_no_config["Local time"] > pd.to_datetime("2022-03-12")
+    ) == 1
+
+
+def test_restriction_end():
+    study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
+    survey_settings_path = os.path.join(
+        TEST_DATA_DIR, "sample_study_surveys_and_settings.json"
+    )
+    agg_data = aggregate_surveys_config(
+        study_dir, survey_settings_path, "UTC", time_start="2001-01-01",
+        time_end="2022-03-12"
+
+    )
+    assert agg_data.shape[0] == 38
+    assert np.mean(agg_data["Local time"] < pd.to_datetime("2022-03-12")) == 1
+    agg_data_no_config = aggregate_surveys_no_config(
+        study_dir, "UTC", time_start="2001-01-01", time_end="2022-03-12"
+    )
+    assert agg_data_no_config.shape[0] == 38
+    assert np.mean(
+        agg_data_no_config["Local time"] < pd.to_datetime("2022-03-12")
+    ) == 1
+
+
+def test_file_to_datetime():
+    test_str = os.path.join("dir1", "dir2", "2022-03-14 16_32_56+00_00.csv")
+    expected_timestamp = pd.to_datetime("2022-03-14 16:32:56")
+    assert filepath_to_timestamp(test_str, "UTC") == expected_timestamp
+    test_str2 = "2022-03-14 16_32_56+00_00.csv"
+    assert filepath_to_timestamp(test_str2, "UTC") == expected_timestamp
+    test_str3 = "2022-03-14 17_32_56+01_00.csv"
+    assert filepath_to_timestamp(test_str3, "UTC") == expected_timestamp
+    test_str4 = "2022-03-14 17_32_56+01_00_1.csv"
+    assert filepath_to_timestamp(test_str4, "UTC") == expected_timestamp
