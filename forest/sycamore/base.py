@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 from typing import Optional, List
@@ -12,11 +13,14 @@ from forest.sycamore.submits import (get_all_interventions_dict,
 
 logger = logging.getLogger(__name__)
 
+EARLIEST_DATE = "2000-01-01"
+TODAY_MIDNIGHT = datetime.datetime.today().strftime("%Y-%m-%d")+"T23:59:00"
+
 
 def survey_stats_main(
         study_folder: str, output_folder: str, tz_str: str = "UTC",
         participant_ids: Optional[List] = None,
-        time_start: Optional[str] = None, time_end: Optional[str] = None,
+        time_start: str = EARLIEST_DATE, time_end: str = TODAY_MIDNIGHT,
         config_path: Optional[str] = None,
         interventions_filepath: Optional[str] = None,
         augment_with_answers: bool = True
