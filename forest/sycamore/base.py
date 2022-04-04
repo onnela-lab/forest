@@ -76,10 +76,14 @@ def survey_stats_main(
         # Create changed answers detail and summary
         ca_detail, ca_summary = agg_changed_answers_summary(config_path,
                                                             agg_data.copy())
-        ca_detail.to_csv(os.path.join(output_folder, "answers_data.csv"),
-                         index=False)
-        ca_summary.to_csv(os.path.join(output_folder, "answers_summary.csv"),
-                          index=False)
+        ca_detail.to_csv(
+            os.path.join(output_folder, "summaries", "answers_data.csv"),
+                         index=False
+        )
+        ca_summary.to_csv(
+            os.path.join(output_folder, "summaries", "answers_summary.csv"),
+            index=False
+        )
         if time_start is not None and time_end is not None:
             # Create survey submits detail and summary
             all_interventions_dict = get_all_interventions_dict(
@@ -90,13 +94,12 @@ def survey_stats_main(
                 participant_ids, agg_data.copy(), all_interventions_dict
             )
             if ss_summary.shape[0] > 0:
-                ss_detail.to_csv(
-                    os.path.join(output_folder, "submits_data.csv"),
-                    index=False
-                )
+                ss_detail.to_csv(os.path.join(output_folder, "summaries",
+                                              "submits_and_deliveries.csv"),
+                                 index=False)
                 ss_summary.to_csv(
-                    os.path.join(output_folder, "submits_summary.csv"),
-                    index=False
+                    os.path.join(output_folder, "summaries",
+                                 "submits_summary.csv"), index=False
                 )
             else:
                 logger.error("An Error occurred when "
@@ -110,10 +113,14 @@ def survey_stats_main(
         )
 
     # Write out summaries
-    agg_data.to_csv(os.path.join(output_folder, "agg_survey_data.csv"),
-                    index=False)
+    agg_data.to_csv(
+        os.path.join(output_folder, "summaries", "agg_survey_data.csv"),
+        index=False
+    )
     # Add alternative survey submits table
     submits_tbl = survey_submits_no_config(agg_data.copy())
-    submits_tbl.to_csv(os.path.join(output_folder, "submits_alt_summary.csv"),
-                       index=False)
+    submits_tbl.to_csv(
+        os.path.join(output_folder, "summaries", "submits_only.csv"),
+        index=False
+    )
     return True
