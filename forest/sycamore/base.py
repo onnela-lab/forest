@@ -7,8 +7,7 @@ from forest.sycamore.common import (aggregate_surveys_config,
                                     aggregate_surveys_no_config)
 from forest.sycamore.responses import (agg_changed_answers_summary,
                                        responses_by_submission)
-from forest.sycamore.submits import (get_all_interventions_dict,
-                                     survey_submits,
+from forest.sycamore.submits import (survey_submits,
                                      survey_submits_no_config)
 
 logger = logging.getLogger(__name__)
