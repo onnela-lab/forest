@@ -506,6 +506,11 @@ def read_one_answers_stream(download_folder: str, beiwe_id: str,
             all_files = [file
                          for file in os.listdir(os.path.join(st_path, survey))
                          if file.endswith(".csv")]
+            if len(all_files) == 0:
+                logger.warning("No survey_answers for user %s.", beiwe_id)
+                return pd.DataFrame(columns=["Local time"],
+                                    dtype="datetime64[ns]")
+
             survey_dfs = []
             # We need to enumerate to tell different survey occasions apart
             for i, file in enumerate(all_files):
@@ -528,8 +533,12 @@ def read_one_answers_stream(download_folder: str, beiwe_id: str,
             ].dt.tz_convert(tz_str).dt.tz_localize(None)
 
             all_surveys.append(survey_data)
-
+        if len(all_surveys) == 0:
+            return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
         return pd.concat(all_surveys, axis=0, ignore_index=True)
+    else:
+        logger.warning("No survey_answers for user %s.", beiwe_id)
+        return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
 
 
 def read_aggregate_answers_stream(
@@ -572,6 +581,9 @@ def read_aggregate_answers_stream(
                       for user in participant_ids]
 
     aggregated_data = pd.concat(all_users_list, axis=0, ignore_index=True)
+
+    if aggregated_data.shape[0] == 0:
+        return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
 
     # if a semicolon appears in an answer choice option,
     # our regexp sub/split operation would think there are

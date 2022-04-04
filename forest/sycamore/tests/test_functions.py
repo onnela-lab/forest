@@ -182,3 +182,14 @@ def test_by_responses_by_submission_with_config():
     surveys_dict = responses_by_submission(agg_data)
     assert len(surveys_dict.keys()) == 1
     assert surveys_dict["hkmxse2N7aMGfNyVMQDiWWEP"].shape[0] == 10
+
+
+def test_read_empty_dir():
+    study_dir = os.path.join(TEST_DATA_DIR, "empty_dir")
+    survey_settings_path = os.path.join(
+        TEST_DATA_DIR, "sample_study_surveys_and_settings.json"
+    )
+    agg_data = aggregate_surveys_config(study_dir, survey_settings_path, "UTC")
+    assert agg_data.shape[0] == 0
+    agg_data_no_config = aggregate_surveys_no_config(study_dir, "UTC")
+    assert agg_data_no_config.shape[0] == 0
