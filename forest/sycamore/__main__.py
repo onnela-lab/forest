@@ -49,4 +49,4 @@ survey_stats_main(output_folder=args.output_dir,
                   time_start=args.time_start, time_end=args.time_end,
                   config_path=args.config_path,
                   interventions_filepath=args.interventions_filepath,
-                  augment_with_answers = args.augment_with_answers)
+                  augment_with_answers=args.augment_with_answers)

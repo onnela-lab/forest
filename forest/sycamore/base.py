@@ -56,7 +56,7 @@ def survey_stats_main(
                        "Skipping some summary outputs.")
         agg_data = aggregate_surveys_no_config(
             study_folder, tz_str, users,
-            augment_with_answers = augment_with_answers
+            augment_with_answers=augment_with_answers
         )
         if agg_data.shape[0] == 0:
             logger.error("Error: No survey data found in %s", study_folder)
@@ -64,7 +64,7 @@ def survey_stats_main(
     else:
         agg_data = aggregate_surveys_config(
             study_folder, config_path, tz_str, users,
-            augment_with_answers = augment_with_answers
+            augment_with_answers=augment_with_answers
         )
         if agg_data.shape[0] == 0:
             logger.error("Error: No survey data found in %s", study_folder)

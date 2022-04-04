@@ -80,8 +80,6 @@ def agg_changed_answers(agg: pd.DataFrame) -> pd.DataFrame:
         agg["data_stream"] == "survey_answers", agg["time_to_answer"],
         np.datetime64('NaT')
     )
-
-
     # Filter agg down to the line of the last question time
     agg = agg.loc[agg["Local time"] == agg["last_time"]]
 

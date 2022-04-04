@@ -360,8 +360,10 @@ def aggregate_surveys_config(
     return df_merged.reset_index(drop=True)
 
 
-def aggregate_surveys_no_config(study_dir: str, study_tz: str = "UTC",
-                                users: list = None, augment_with_answers: bool = True) -> pd.DataFrame:
+def aggregate_surveys_no_config(
+        study_dir: str, study_tz: str = "UTC", users: list = None,
+        augment_with_answers: bool = True
+) -> pd.DataFrame:
     """Clean aggregated data
 
     Args:

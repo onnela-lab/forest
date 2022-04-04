@@ -335,8 +335,7 @@ def survey_submits(
         np.array("NaT", dtype="datetime64[ns]")
     )
 
-    ## mark as NA if no submit happened
-
+    # mark as NA if no submit happened
     submit_lines3["time_to_submit"] = np.where(
         submit_lines3["submit_flg"] == 1,
         submit_lines3["time_to_submit"],
