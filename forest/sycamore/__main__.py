@@ -31,6 +31,11 @@ parser.add_argument(
     '--interventions_filepath', default=None, type=str,
     help="Path to interventions json file downloaded from website"
 )
+parser.add_argument(
+    '--augment_with_answers', default=None, type=str,
+    help="whether to augment survey_timings data with survey_answers data when"
+         "data appears to be missing."
+)
 
 args = parser.parse_args()
 
@@ -43,4 +48,5 @@ survey_stats_main(output_folder=args.output_dir,
                   tz_str=args.tz_str, participant_ids=args.beiwe_ids,
                   time_start=args.time_start, time_end=args.time_end,
                   config_path=args.config_path,
-                  interventions_filepath=args.interventions_filepath)
+                  interventions_filepath=args.interventions_filepath,
+                  augment_with_answers = args.augment_with_answers)

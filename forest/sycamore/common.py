@@ -290,7 +290,7 @@ def convert_timezone_df(df_merged: pd.DataFrame, tz_str: str = "UTC",
 
 def aggregate_surveys_config(
         study_dir: str, config_path: str, study_tz: str = "UTC",
-        users: list = None
+        users: list = None, augment_with_answers: bool = True
 ) -> pd.DataFrame:
     """Aggregate surveys when config is available
 
@@ -307,6 +307,9 @@ def aggregate_surveys_config(
             Timezone of study. This defaults to "UTC"
         users(tuple):
             List of beiwe IDs of users to aggregate
+        augment_with_answers(bool):
+            Whether to use the survey_answers stream to fill in missing surveys
+            from survey_timings
 
     Returns:
         df_merged(DataFrame): Merged data frame
@@ -348,15 +351,16 @@ def aggregate_surveys_config(
 
     # Convert to the study's timezone
     df_merged = convert_timezone_df(df_merged, study_tz)
-    df_merged = append_from_answers(df_merged, study_dir,
-                                    participant_ids=users, tz_str=study_tz,
-                                    config_path=config_path)
+    if augment_with_answers:
+        df_merged = append_from_answers(df_merged, study_dir,
+                                        participant_ids=users, tz_str=study_tz,
+                                        config_path=config_path)
 
     return df_merged.reset_index(drop=True)
 
 
 def aggregate_surveys_no_config(study_dir: str, study_tz: str = "UTC",
-                                users: list = None) -> pd.DataFrame:
+                                users: list = None, augment_with_answers: bool = True) -> pd.DataFrame:
     """Clean aggregated data
 
     Args:
@@ -367,6 +371,9 @@ def aggregate_surveys_no_config(study_dir: str, study_tz: str = "UTC",
             Timezone of study. This defaults to "UTC"
         users(tuple):
             List of Beiwe IDs to run
+        augment_with_answers(bool):
+            Whether to use the survey_answers stream to fill in missing surveys
+            from survey_timings
 
     Returns:
         df_merged(DataFrame): Merged data frame
@@ -385,7 +392,8 @@ def aggregate_surveys_no_config(study_dir: str, study_tz: str = "UTC",
 
     # Convert to the study's timezone
     agg_data = convert_timezone_df(agg_data, tz_str=study_tz)
-    agg_data = append_from_answers(agg_data, study_dir, tz_str=study_tz)
+    if augment_with_answers:
+        agg_data = append_from_answers(agg_data, study_dir, tz_str=study_tz)
 
     return agg_data.reset_index(drop=True)
 

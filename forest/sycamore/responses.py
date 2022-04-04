@@ -209,9 +209,8 @@ def responses_by_submission(agg_data: pd.DataFrame) -> dict:
             survey_df.sort_values(by=["beiwe_id", "Local time"],
                                   ascending=True, inplace=True)
             survey_df.reset_index(inplace=True)
-
             # TODO: add an option to take the survey config file to get this
-            # information
+            # information (must be done after survey ID is in the config file)
             id_text_dict = {}.fromkeys(survey_df["question id"].unique())
 
             num_found = 0

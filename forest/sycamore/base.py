@@ -18,7 +18,8 @@ def survey_stats_main(
         participant_ids: Optional[List] = None,
         time_start: Optional[str] = None, time_end: Optional[str] = None,
         config_path: Optional[str] = None,
-        interventions_filepath: Optional[str] = None
+        interventions_filepath: Optional[str] = None,
+        augment_with_answers: bool = True
 ) -> bool:
     """Compute statistics on surveys
 
@@ -39,6 +40,9 @@ def survey_stats_main(
         Timezone of study. This defaults to "UTC"
     interventions_filepath(str):
         filepath where interventions json file is.
+    augment_with_answers(bool):
+        Whether to use the survey_answers stream to fill in missing surveys
+        from survey_timings
 
     """
     os.makedirs(output_folder, exist_ok=True)
@@ -50,12 +54,18 @@ def survey_stats_main(
     if config_path is None:
         logger.warning("No config file provided. "
                        "Skipping some summary outputs.")
-        agg_data = aggregate_surveys_no_config(study_folder, tz_str)
+        agg_data = aggregate_surveys_no_config(
+            study_folder, tz_str, users,
+            augment_with_answers = augment_with_answers
+        )
         if agg_data.shape[0] == 0:
             logger.error("Error: No survey data found in %s", study_folder)
             return True
     else:
-        agg_data = aggregate_surveys_config(study_folder, config_path, tz_str)
+        agg_data = aggregate_surveys_config(
+            study_folder, config_path, tz_str, users,
+            augment_with_answers = augment_with_answers
+        )
         if agg_data.shape[0] == 0:
             logger.error("Error: No survey data found in %s", study_folder)
             return True
