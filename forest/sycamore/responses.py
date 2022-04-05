@@ -1,4 +1,3 @@
-import datetime
 import logging
 from typing import Tuple, Any
 
@@ -144,7 +143,7 @@ def agg_changed_answers_summary(
     detail["time_to_answer"] = (detail["last_time"] - detail["first_time"]
                                 ).dt.total_seconds()
 
-    # note that "time to answer is meaningless for answers datastreams because
+    # note that "time to answer" is meaningless for answers datastreams because
     # each question in a survey will have exactly the same time.
     detail["time_to_answer"] = np.where(
         detail["data_stream"] == "survey_timings",

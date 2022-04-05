@@ -9,7 +9,7 @@ parser.add_argument('--output_dir', default=None, type=str,
                     help="Directory to write Output .csv files")
 parser.add_argument(
     '--beiwe_ids', default=None, type=str, nargs='+',
-    help="IDs of participants to run sycamore on. If not specificed, sycamore "
+    help="IDs of participants to run sycamore on. If not specified, sycamore "
          "analyzes all IDs included in study_folder")
 parser.add_argument(
     '--study_folder', default=None, type=str,

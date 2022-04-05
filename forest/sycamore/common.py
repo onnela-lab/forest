@@ -509,6 +509,8 @@ def append_from_answers(
             The first date of the survey data
         time_end(str):
             The last date of the survey data
+        config_path(str):
+            Filepath to survey config file (downloaded from Beiwe website)
 
     Returns:
         agg_data(DataFrame): Data frame with all survey_timings data, including
