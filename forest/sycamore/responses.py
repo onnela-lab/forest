@@ -250,14 +250,14 @@ def responses_by_submission(agg_data: pd.DataFrame) -> dict:
                     # be safe...
                     break
 
-            survey_df["survey_duration"] = survey_df["end_time"] - survey_df[
+            survey_df["survey_duration"] = (survey_df["end_time"] - survey_df[
                 "start_time"
-            ]
+            ]).dt.total_seconds()
 
             survey_df["survey_duration"] = np.where(
-                survey_df["data_stream"] == "survey_answers",
+                survey_df["data_stream"] == "survey_timings",
                 survey_df["survey_duration"],
-                np.datetime64('NaT')
+                np.NaN
             )
 
             keep_cols = ["beiwe_id", "start_time", "end_time",
