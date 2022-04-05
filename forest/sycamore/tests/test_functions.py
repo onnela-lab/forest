@@ -3,13 +3,13 @@ import os
 import pandas as pd
 
 
-from forest.sycamore.survey_config import (get_all_interventions_dict,
-                                           survey_submits_no_config)
-from forest.sycamore.functions import (aggregate_surveys,
-                                       aggregate_surveys_no_config,
-                                       aggregate_surveys_config)
-from forest.sycamore.survey_config import gen_survey_schedule, survey_submits
-from forest.sycamore.changed_answers import agg_changed_answers_summary
+from forest.sycamore.submits import (get_all_interventions_dict,
+                                     survey_submits_no_config)
+from forest.sycamore.common import (aggregate_surveys,
+                                    aggregate_surveys_no_config,
+                                    aggregate_surveys_config)
+from forest.sycamore.submits import gen_survey_schedule, survey_submits
+from forest.sycamore.responses import agg_changed_answers_summary
 
 TEST_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
