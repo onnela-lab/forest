@@ -49,6 +49,8 @@ def survey_stats_main(
 
     """
     os.makedirs(output_folder, exist_ok=True)
+    os.makedirs(os.path.join(output_folder, "summaries"), exist_ok=True)
+    os.makedirs(os.path.join(output_folder, "by_survey"), exist_ok=True)
     if participant_ids is None:
         participant_ids = [u
                            for u in os.listdir(study_folder)
