@@ -141,14 +141,15 @@ def agg_changed_answers_summary(
     )
 
     # Update time_to_answer
-    detail["time_to_answer"] = detail["last_time"] - detail["first_time"]
+    detail["time_to_answer"] = (detail["last_time"] - detail["first_time"]
+                                ).dt.total_seconds()
 
     # note that "time to answer is meaningless for answers datastreams because
     # each question in a survey will have exactly the same time.
     detail["time_to_answer"] = np.where(
-        detail["data_stream"] == "survey_answers",
+        detail["data_stream"] == "survey_timings",
         detail["time_to_answer"],
-        np.datetime64('NaT')
+        np.NaN
     )
 
     #####################################################################
@@ -156,9 +157,7 @@ def agg_changed_answers_summary(
     summary_cols = ["survey id", "beiwe_id", "question id", "question text",
                     "question type"]
     num_answers = detail.groupby(summary_cols)["num_answers"].count()
-    avg_time = detail.groupby(summary_cols)["time_to_answer"].apply(
-        lambda x: sum(x, datetime.timedelta()) / len(x)
-    )
+    avg_time = detail.groupby(summary_cols)["time_to_answer"].mean()
     avg_chgs = detail.groupby(summary_cols)["num_answers"].mean()
 
     def get_most_common_answer(col):
