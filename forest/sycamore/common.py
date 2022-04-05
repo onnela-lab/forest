@@ -745,7 +745,7 @@ def read_aggregate_answers_stream(
         if config_included:
             question_id = aggregated_data.loc[
                 aggregated_data["question answer options"] == answer_choices,
-                "question_id"
+                "question id"
                 ].unique()[0]
             answer_list = config_surveys.loc[
                 config_surveys["question_id"] == question_id,
