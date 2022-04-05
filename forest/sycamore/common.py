@@ -642,7 +642,7 @@ def read_one_answers_stream(
             # We need to enumerate to tell different survey occasions apart
             for i, file in enumerate(all_files):
                 current_df = pd.read_csv(os.path.join(st_path, survey, file))
-                current_df["UTC time"] = filepath_to_timestamp(file, tz_str)
+                current_df["UTC time"] = filepath_to_timestamp(file, "UTC")
                 current_df["survey id"] = survey
                 current_df["surv_inst_flg"] = i
                 survey_dfs.append(current_df)
