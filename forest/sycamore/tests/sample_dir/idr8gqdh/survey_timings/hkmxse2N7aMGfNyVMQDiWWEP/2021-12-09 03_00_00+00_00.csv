@@ -1,0 +1,18 @@
+timestamp,UTC time,question id,survey id,question type,question text,question answer options,answer,event
+1639019694579,2021-12-09T03:14:54.579,,hkmxse2N7aMGfNyVMQDiWWEP,,,,,expired
+1639021446656,2021-12-09T03:44:06.656,,hkmxse2N7aMGfNyVMQDiWWEP,,,,,expired
+1639021483414,2021-12-09T03:44:43.414,cc18444e-53c5-4014-84b0-a041350d3a36,hkmxse2N7aMGfNyVMQDiWWEP,info_text_box,What is your first name?,,,present
+1639021484459,2021-12-09T03:44:44.459,cc18444e-53c5-4014-84b0-a041350d3a36,hkmxse2N7aMGfNyVMQDiWWEP,info_text_box,What is your first name?,,,unpresent
+1639021484500,2021-12-09T03:44:44.500,fe260986-c52d-4371-953b-4e7877d822c5,hkmxse2N7aMGfNyVMQDiWWEP,slider,What is your last name?,min = 0; max = 10,0,present
+1639021486816,2021-12-09T03:44:46.816,fe260986-c52d-4371-953b-4e7877d822c5,hkmxse2N7aMGfNyVMQDiWWEP,slider,What is your last name?,min = 0; max = 10,0,present
+1639021487424,2021-12-09T03:44:47.424,fe260986-c52d-4371-953b-4e7877d822c5,hkmxse2N7aMGfNyVMQDiWWEP,slider,What is your last name?,min = 0; max = 10,10,changed
+1639021488379,2021-12-09T03:44:48.379,fe260986-c52d-4371-953b-4e7877d822c5,hkmxse2N7aMGfNyVMQDiWWEP,slider,What is your last name?,min = 0; max = 10,10,unpresent
+1639021488410,2021-12-09T03:44:48.410,b4bc0443-0eff-4d12-9c00-f1abde2e4c65,hkmxse2N7aMGfNyVMQDiWWEP,checkbox,What is your hometown?,[Boston;Brookline],,present
+1639021490517,2021-12-09T03:44:50.517,b4bc0443-0eff-4d12-9c00-f1abde2e4c65,hkmxse2N7aMGfNyVMQDiWWEP,checkbox,What is your hometown?,[Boston;Brookline],[Boston],changed
+1639021491052,2021-12-09T03:44:51.052,b4bc0443-0eff-4d12-9c00-f1abde2e4c65,hkmxse2N7aMGfNyVMQDiWWEP,checkbox,What is your hometown?,[Boston;Brookline],[Boston],unpresent
+1639021491081,2021-12-09T03:44:51.081,5edacd0c-d818-4c3e-9553-2b0b6bd55508,hkmxse2N7aMGfNyVMQDiWWEP,free_response,What is your program?,Text-field input type = SINGLE_LINE_TEXT,,present
+1639021493375,2021-12-09T03:44:53.375,5edacd0c-d818-4c3e-9553-2b0b6bd55508,hkmxse2N7aMGfNyVMQDiWWEP,free_response,What is your program?,Text-field input type = SINGLE_LINE_TEXT,Y,changed
+1639021493625,2021-12-09T03:44:53.625,5edacd0c-d818-4c3e-9553-2b0b6bd55508,hkmxse2N7aMGfNyVMQDiWWEP,free_response,What is your program?,Text-field input type = SINGLE_LINE_TEXT,Ye,changed
+1639021493807,2021-12-09T03:44:53.807,5edacd0c-d818-4c3e-9553-2b0b6bd55508,hkmxse2N7aMGfNyVMQDiWWEP,free_response,What is your program?,Text-field input type = SINGLE_LINE_TEXT,Yes,changed
+1639021494877,2021-12-09T03:44:54.877,5edacd0c-d818-4c3e-9553-2b0b6bd55508,hkmxse2N7aMGfNyVMQDiWWEP,free_response,What is your program?,Text-field input type = SINGLE_LINE_TEXT,Yes,unpresent
+1639021494897,2021-12-09T03:44:54.897,,hkmxse2N7aMGfNyVMQDiWWEP,,,,,submitted

@@ -13,5 +13,5 @@ __pycache__/
 /tutorials/gps_output/
 /tutorials/gps_summary.csv
 
-#Remove checkpoints data because we don't need to double-track files
-/tutorials/.ipynb_checkpoints/
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/

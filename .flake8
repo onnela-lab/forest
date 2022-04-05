@@ -5,5 +5,4 @@ exclude =
     forest/jasmine/mobmat2traj.py,
     forest/jasmine/sogp_gps.py,
     forest/poplar,
-    forest/sycamore,
     forest/willow
