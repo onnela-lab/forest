@@ -314,7 +314,7 @@ def survey_submits(
         avg_time_to_submit = submit_lines3.loc[
             submit_lines3.submit_flg == 1
         ].groupby(summary_cols)["time_to_submit"].apply(
-            lambda x: sum(x, datetime.timedelta()) / len(x)
+            lambda x: np.mean(x)
         )
     else:
         # do the groupby on all rows to avoid getting an error
