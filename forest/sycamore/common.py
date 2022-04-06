@@ -15,6 +15,14 @@ logger = logging.getLogger(__name__)
 EARLIEST_DATE = "2000-01-01"
 TODAY_MIDNIGHT = datetime.datetime.today().strftime("%Y-%m-%d")+"T23:59:00"
 
+def read_safe(filepath: str) -> pd.DataFrame:
+    try:
+        df = pd.read_csv(filepath)
+        return df
+    except UnicodeDecodeError:
+        logger.error("Unicode Error When Reading %s", filepath)
+        return pd.DataFrame()
+
 
 def read_json(study_dir: str) -> dict:
     """Read a json file into a dictionary
@@ -134,7 +142,7 @@ def read_and_aggregate(
         timestamp_start = pd.to_datetime(time_start)
         timestamp_end = pd.to_datetime(time_end)
         survey_data_list = [
-            pd.read_csv(file) for file in all_files if
+            read_safe(file) for file in all_files if
             timestamp_start < filepath_to_timestamp(file, tz_str)
             < timestamp_end
         ]
@@ -643,7 +651,9 @@ def read_one_answers_stream(
             survey_dfs = []
             # We need to enumerate to tell different survey occasions apart
             for i, file in enumerate(all_files):
-                current_df = pd.read_csv(os.path.join(st_path, survey, file))
+                current_df = read_safe(os.path.join(st_path, survey, file))
+                if current_df.shape[0] == 0:
+                    continue
                 current_df["UTC time"] = filepath_to_timestamp(file, "UTC")
                 current_df["survey id"] = survey
                 current_df["surv_inst_flg"] = i
