@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 EARLIEST_DATE = "2000-01-01"
 TODAY_MIDNIGHT = datetime.datetime.today().strftime("%Y-%m-%d")+"T23:59:00"
 
+
 def read_safe(filepath: str) -> pd.DataFrame:
     try:
         df = pd.read_csv(filepath)
