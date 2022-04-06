@@ -826,4 +826,9 @@ def read_aggregate_answers_stream(
     )
 
     aggregated_data["data_stream"] = "survey_answers"
+    # Excluding rows without survey answers to be consistent with exclusions
+    # in aggregating survey_timings
+    aggregated_data = aggregated_data.loc[
+        aggregated_data["answer"] != "NOT_PRESENTED", :
+    ]
     return aggregated_data

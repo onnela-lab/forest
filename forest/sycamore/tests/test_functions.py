@@ -69,7 +69,7 @@ def test_gen_survey_schedule():
 def test_aggregate_surveys_no_config():
     filepath = os.path.join(TEST_DATA_DIR, "sample_dir")
     agg_data = aggregate_surveys_no_config(filepath, study_tz="UTC")
-    assert agg_data.shape[0] == 52
+    assert agg_data.shape[0] == 50
     assert len(agg_data.DOW.unique()) == 4
 
 
@@ -80,7 +80,7 @@ def test_aggregate_surveys_config():
     )
 
     agg_data = aggregate_surveys_config(study_dir, survey_settings_path, "UTC")
-    assert agg_data.shape[0] == 52
+    assert agg_data.shape[0] == 50
     assert len(agg_data.DOW.unique()) == 4
 
 
@@ -220,12 +220,12 @@ def test_restriction_start():
         study_dir, survey_settings_path, "UTC", time_start="2022-03-12",
         time_end="2022-04-01"
     )
-    assert agg_data.shape[0] == 14
+    assert agg_data.shape[0] == 12
     assert np.mean(agg_data["Local time"] > pd.to_datetime("2022-03-12")) == 1
     agg_data_no_config = aggregate_surveys_no_config(
         study_dir, "UTC", time_start="2022-03-12", time_end="2022-04-01"
     )
-    assert agg_data_no_config.shape[0] == 14
+    assert agg_data_no_config.shape[0] == 12
     assert np.mean(
         agg_data_no_config["Local time"] > pd.to_datetime("2022-03-12")
     ) == 1
