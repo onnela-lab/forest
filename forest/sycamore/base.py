@@ -34,9 +34,9 @@ def compute_survey_stats(
     config_path(str):
         File path to study configuration file
     time_start(str):
-        The first date of the survey data
+        The earliest date of survey data to read in, in YYYY-MM-DD format
     time_end(str):
-        The last date of the survey data
+        The latest survey data to read in, in YYYY-MM-DD format
     participant_ids(list):
         List of users in study for which we are generating a survey schedule
     tz_str(str):

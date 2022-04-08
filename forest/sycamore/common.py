@@ -26,10 +26,20 @@ MONTH_FROM_TODAY = (datetime.datetime.today()
 
 
 def safe_read_csv(filepath: str) -> pd.DataFrame:
+    """Read a csv file, returning an empty dataframe if the file is corrupted
+
+    Args:
+        filepath: The filepath to read in
+
+    Returns:
+        A pandas DataFrame with information in the csv file (if the file is
+        formatted correctly), or a blank pandas DataFrame.
+    """
     try:
         df = pd.read_csv(filepath)
         return df
     except UnicodeDecodeError:
+        # If a file is corrupted, don't bother reading it in.
         logger.error("Unicode Error When Reading %s", filepath)
         return pd.DataFrame()
 
@@ -38,9 +48,9 @@ def read_json(study_dir: str) -> dict:
     """Read a json file into a dictionary
 
     Args:
-        study_dir (str):  study_dir to json file.
+        study_dir (str):  filepath to json file.
     Returns:
-        dictionary (dict)
+        A dict representation of the json file
     """
     with open(study_dir, "r") as f:
         dictionary = json.load(f)
@@ -63,8 +73,7 @@ QUESTION_TYPES_LOOKUP = {
 
 
 def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
-    """
-    Standardizes question types using a lookup function
+    """Standardizes question types using a lookup function
 
     Args:
         q (str):
@@ -74,7 +83,7 @@ def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
             Based on Josh's dictionary of question types.
 
     Returns:
-        s: string with the corrected question type
+        string with the corrected question type
     """
     if lkp is None:
         lkp = QUESTION_TYPES_LOOKUP
@@ -85,20 +94,20 @@ def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
         return q
 
 
-def filename_to_timestamp(filepath: str, tz_str: str = "UTC"):
-    """
-    Transform a filepath into a datetime.
+def filename_to_timestamp(filepath: str, tz_str: str = "UTC"
+                          ) -> pd.Timestamp:
+    """Extract a datetime from a filepath.
 
     Args:
         filepath(str):
-            a string, formatted like YYYY-MM-DD HH_MM_SS+00_00
+            a string, with a csv file at the end formatted like
+            "YYYY-MM-DD HH_MM_SS+00_00"
         tz_str(str):
             Output Timezone
 
     Returns:
-        time_written(datetime64[ns])
-            The time that the path was written, in tz_str time
-
+        The Timestamp corresponding to the date in the csv filename, in the
+        time zone corresponding to tz_str
     """
     trimmed_path = filepath.split(os.path.sep)[-1][0:25]
     str_to_convert = re.sub("_", ":", trimmed_path)
@@ -115,7 +124,7 @@ def read_and_aggregate(
 ) -> pd.DataFrame:
     """Read and aggregate data for a user
 
-    Reads in all downloaded data for a particular user and data stream and
+    Reads in all survey_timings data for a particular user and data stream and
     stacks the datasets
 
     Args:
@@ -128,19 +137,15 @@ def read_and_aggregate(
             Data stream to aggregate. Must be a datastream name as downloaded
             from the server (TODO: ADD A CHECK)
         time_start(str):
-            The first date of the survey data
+            The first date of the survey data, in YYYY-MM-DD format
         time_end(str):
-            The last date of the survey data
+            The last date of the survey data, in YYYY-MM-DD format
         tz_str(str):
             Time zone corresponding to time_start and time_end
 
-
-
-
-
     Returns:
-        survey_data (DataFrame): dataframe with stacked data, a field for the
-        beiwe ID, a field for the day of week.
+        Dataframe with stacked data, a field for the beiwe ID, a field for the
+        day of week.
     """
     st_path = os.path.join(study_dir, beiwe_id, data_stream)
     if os.path.isdir(st_path):
@@ -180,8 +185,8 @@ def aggregate_surveys(
 ) -> pd.DataFrame:
     """Aggregate Survey Data
 
-    Reads all survey data from a downloaded study folder and stacks data
-    together. Standardizes question types between iOS and Android devices.
+    Reads all survey_timings data from a downloaded study folder and stacks
+    data together. Standardizes question types between iOS and Android devices.
 
     Args:
         study_dir(str):
@@ -190,15 +195,15 @@ def aggregate_surveys(
         users(list):
             List of users to aggregate survey data over
         time_start(str):
-            The first date of the survey data
+            The first date of the survey data, in YYYY-MM-DD format
         time_end(str):
-            The last date of the survey data
+            The last date of the survey data, in YYYY-MM-DD format
         tz_str(str):
             The time zone corresponding to time_start and time_end
 
     Returns:
-        all_data(DataFrame): An aggregated dataframe that has a question index
-        field to understand if there are multiple lines for one question.
+        A DataFrame that has a question index field to understand if there are
+        multiple lines for one question.
     """
     # READ AND AGGREGATE DATA
     # get a list of users (ignoring hidden files and registry file downloaded
@@ -315,7 +320,7 @@ def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
             If True, include question answers in summary
 
     Returns:
-        A dataframe with all surveys, question ids, question texts,
+        A DataFrame with all surveys, question ids, question texts,
         question types
     """
     data = read_json(config_path)
@@ -361,7 +366,7 @@ def convert_timezone_df(df_merged: pd.DataFrame, tz_str: str = "UTC",
             Name of column in data that has UTC time dates
 
     Returns:
-        df_merged(DataFrame):
+        DataFrame with a column "Local time" with the time in local time
 
     """
 
@@ -380,7 +385,8 @@ def aggregate_surveys_config(
     """Aggregate surveys when config is available
 
     Merges stacked survey data with processed configuration file data and
-    removes lines that are not questions or submission lines
+    removes lines that are not questions or submission lines. Uses
+    survey_answers to fill in missing survey_timings data when needed.
 
     Args:
         study_dir (str):
@@ -396,12 +402,12 @@ def aggregate_surveys_config(
             Whether to use the survey_answers stream to fill in missing surveys
             from survey_timings
         time_start(str):
-            The first date of the survey data
+            The first date of the survey data, in YYYY-MM-DD format
         time_end(str):
-            The last date of the survey data
+            The last date of the survey data, in YYYY-MM-DD format
 
     Returns:
-        df_merged(DataFrame): Merged data frame
+        DataFrame of questions and submission lines.
     """
     # Read in aggregated data and survey configuration
     config_surveys = parse_surveys(config_path)
@@ -455,8 +461,7 @@ def aggregate_surveys_no_config(
         time_end: str = MONTH_FROM_TODAY,
         augment_with_answers: bool = True
 ) -> pd.DataFrame:
-    """
-    Clean aggregated data
+    """Clean aggregated data
 
     Args:
         study_dir (str):
@@ -467,15 +472,15 @@ def aggregate_surveys_no_config(
         users(tuple):
             List of Beiwe IDs to run
         time_start(str):
-            The first date of the survey data
+            The first date of the survey data, in YYYY-MM-DD format
         time_end(str):
-            The last date of the survey data
+            The last date of the survey data, in YYYY-MM-DD format
         augment_with_answers(bool):
             Whether to use the survey_answers stream to fill in missing surveys
             from survey_timings
 
     Returns:
-        df_merged(DataFrame): Merged data frame
+        DataFrame of questions and submission lines
     """
     agg_data = aggregate_surveys(study_dir, users, time_start, time_end,
                                  study_tz)
@@ -506,9 +511,11 @@ def append_from_answers(
         time_start: str = EARLIEST_DATE, time_end: str = MONTH_FROM_TODAY,
         config_path: str = None
 ) -> pd.DataFrame:
-    """
-    Append surveys included in survey_answers to data from survey_timings when
-    there is no existing survey in the data from survey_answers
+    """Append surveys included in survey_answers to data from survey_timings.
+
+    Sometimes, a survey is missing from survey_timings. If survey_answers
+    contains a survey that is missing from survey_timings, this function adds
+    the less complete information from survey_answers to fill in the gaps.
 
     Args:
         agg_data(DataFrame): Dataframe with aggregated data (output from
@@ -522,15 +529,15 @@ def append_from_answers(
         participant_ids(list):
             List of Beiwe IDs used to augment with data
         time_start(str):
-            The first date of the survey data
+            The first date of the survey data, in YYYY-MM-DD format
         time_end(str):
-            The last date of the survey data
+            The last date of the survey data, in YYYY-MM-DD format
         config_path(str):
             Filepath to survey config file (downloaded from Beiwe website)
 
     Returns:
-        agg_data(DataFrame): Data frame with all survey_timings data, including
-        data from survey_answers where survey_timings data is missing.
+        Data frame with all survey_timings data, including data from
+        survey_answers where survey_timings data is missing.
     """
     answers_data = read_aggregate_answers_stream(
         download_folder, participant_ids, tz_str, config_path, time_start,
@@ -604,9 +611,11 @@ def read_user_answers_stream(
         download_folder: str, beiwe_id: str, tz_str: str = "UTC",
         time_start: str = EARLIEST_DATE, time_end: str = MONTH_FROM_TODAY
 ) -> pd.DataFrame:
-    """
-    Reads in all answers data for a user and creates a column with the survey
+    """Reads in all survey_answers data for a user
+
+    Reads survey_answers data and creates a column with the survey
     ID, as well as a column for the date from the filename.
+
     Args:
         download_folder (str):
             path to downloaded data. A folder wiith the user ID should be a
@@ -618,14 +627,13 @@ def read_user_answers_stream(
             https://en.wikipedia.org/wiki/List_of_tz_database_time_zones for
             options
         time_start(str):
-            The first date of the survey data
+            The first date of the survey data, in YYYY-MM-DD format
         time_end(str):
-            The last date of the survey data
+            The last date of the survey data, in YYYY-MM-DD format
 
     Returns:
-        aggregated_data (DataFrame): dataframe with stacked data, a field for
-        the beiwe ID, a field for the survey, and a filed with the time in
-        the filename.
+        DataFrame with stacked data, a field for the beiwe ID, a field for the
+        survey, and a filed with the time in the filename.
     """
     data_stream = "survey_answers"
     st_path = os.path.join(download_folder, beiwe_id, data_stream)
@@ -684,9 +692,9 @@ def read_aggregate_answers_stream(
         tz_str: str = "UTC", config_path: str = None,
         time_start: str = EARLIEST_DATE, time_end: str = MONTH_FROM_TODAY,
 ) -> pd.DataFrame:
-    """
-    Reads in all answers data for many users and fixes Android users to have
+    """Reads in all answers data for many users and fixes Android users to have
     an answer instead of an integer
+
     Args:
         download_folder (str):
             path to downloaded data. This folder should have Beiwe IDs as
@@ -702,12 +710,12 @@ def read_aggregate_answers_stream(
             answers lists. If this is not included, the function attempt to use
             iPhone responses to resolve semicolons.
         time_start(str):
-            The first date of the survey data
+            The first date of the survey data, in YYYY-MM-DD format
         time_end(str):
-            The last date of the survey data
+            The last date of the survey data, in YYYY-MM-DD format
     Returns:
-        aggregated_data (DataFrame): dataframe with stacked data, a field for
-        the beiwe ID, a field for the day of week.
+        DataFrame with stacked data, a field for the beiwe ID, a field for the
+        day of week.
     """
     if config_path is not None:
         config_surveys = parse_surveys(config_path, answers_l=True)
@@ -838,6 +846,14 @@ def read_aggregate_answers_stream(
 
 
 def get_users_in_dir(study_folder: str) -> list:
+    """Get users in directory
+
+    Args:
+        study_folder(str): Filepath to the folder containing Beiwe IDs
+
+    Returns:
+        List of subdirectories of the study_folder.
+    """
     list_of_users = []
     for user in os.listdir(study_folder):
         if not user.startswith(".") and user != "registry":

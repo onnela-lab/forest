@@ -21,8 +21,7 @@ def subset_answer_choices(answer: list) -> list:
             List of changed answers
 
     Returns:
-        answer(list):
-            List of changed answers with redundant answers removed
+        List of changed answers with redundant answers removed
     """
     if isinstance(answer[0], float):
         answer = answer[1:]
@@ -45,10 +44,9 @@ def agg_changed_answers(agg: pd.DataFrame) -> pd.DataFrame:
 
 
     Returns:
-        agg(DataFrame):
-            Dataframe with aggregated data, one line per question answered,
-            with changed answers aggregated into a list.
-            The Final answer is in the "last_answer" field
+        Dataframe with aggregated data, one line per question answered, with
+        changed answers aggregated into a list. The Final answer is in the
+        "last_answer" field
     """
     cols = ["survey id", "beiwe_id", "question id", "question text",
             "question type", "question index"]
@@ -100,13 +98,12 @@ def agg_changed_answers_summary(
 
 
     Returns:
-        detail(DataFrame):
-            Dataframe with aggregated data, one line per question answered,
-            with changed answers aggregated into a list.
-            The Final answer is in the "last_answer" field
-        out(DataFrame):
-            Summary of how an individual answered each question, with their
-            most common answer, time to answer, etc
+        Dataframe with aggregated data, one line per question answered, with
+        changed answers aggregated into a list. The Final answer is in the
+        "last_answer" field
+
+        DataFrame with a Summary of how an individual answered each question,
+        with their most common answer, time to answer, etc
     """
     agg = agg.copy()
     detail = agg_changed_answers(agg)
@@ -188,16 +185,18 @@ def agg_changed_answers_summary(
 
 
 def responses_by_submission(agg_data: pd.DataFrame) -> dict:
-    """
-    Takes aggregated answers and writes individual csv files for each survey
+    """Format survey answers with one line per survey submission
+
+    For each survey, create a DataFrame with one column for each question, and
+    one row for each submission.
 
     Args:
         agg_data(DataFrame): output from aggregate_surveys_config or
             aggregate_surveys_no_config
 
     Returns:
-        surveys_dict(dict): Dict with a key for each survey ID in agg_data.
-        Each value is a dataframe with readable survey submission information.
+        Dict with a key for each survey ID in agg_data. Each value is a
+        dataframe with readable survey submission information.
 
     """
     agg_data = agg_data.copy()
