@@ -12,8 +12,17 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-EARLIEST_DATE = "2000-01-01"
-TODAY_MIDNIGHT = datetime.datetime.today().strftime("%Y-%m-%d")+"T23:59:00"
+EARLIEST_DATE = "2010-01-01"
+# We want our default date to be farther in the past than any Beiwe data could
+# have been collected, so we never cut off data by default. But, if we set our
+# default date too far in the past, we would generate too many weekly survey
+# timings
+
+MONTH_FROM_TODAY = (datetime.datetime.today()
+                    + datetime.timedelta(30)).strftime("%Y-%m-%d")
+# We want our default end date to be far enough from today that we will never
+# cut off data, even if the package is loaded at the start of a multi-day
+# process
 
 
 def safe_read_csv(filepath: str) -> pd.DataFrame:
@@ -101,7 +110,7 @@ def filename_to_timestamp(filepath: str, tz_str: str = "UTC"):
 def read_and_aggregate(
         study_dir: str, beiwe_id: str, data_stream: str,
         time_start: str = EARLIEST_DATE,
-        time_end: str = TODAY_MIDNIGHT,
+        time_end: str = MONTH_FROM_TODAY,
         tz_str: str = "UTC"
 ) -> pd.DataFrame:
     """Read and aggregate data for a user
@@ -167,7 +176,7 @@ def read_and_aggregate(
 def aggregate_surveys(
         study_dir: str, users: list = None,
         time_start: str = EARLIEST_DATE,
-        time_end: str = TODAY_MIDNIGHT, tz_str: str = "UTC"
+        time_end: str = MONTH_FROM_TODAY, tz_str: str = "UTC"
 ) -> pd.DataFrame:
     """Aggregate Survey Data
 
@@ -366,7 +375,7 @@ def convert_timezone_df(df_merged: pd.DataFrame, tz_str: str = "UTC",
 def aggregate_surveys_config(
         study_dir: str, config_path: str, study_tz: str = "UTC",
         users: list = None, time_start: str = EARLIEST_DATE,
-        time_end: str = TODAY_MIDNIGHT, augment_with_answers: bool = True
+        time_end: str = MONTH_FROM_TODAY, augment_with_answers: bool = True
 ) -> pd.DataFrame:
     """Aggregate surveys when config is available
 
@@ -443,7 +452,7 @@ def aggregate_surveys_config(
 def aggregate_surveys_no_config(
         study_dir: str, study_tz: str = "UTC", users: list = None,
         time_start: str = EARLIEST_DATE,
-        time_end: str = TODAY_MIDNIGHT,
+        time_end: str = MONTH_FROM_TODAY,
         augment_with_answers: bool = True
 ) -> pd.DataFrame:
     """
@@ -494,7 +503,7 @@ def aggregate_surveys_no_config(
 def append_from_answers(
         agg_data: pd.DataFrame, download_folder: str,
         participant_ids: list = None, tz_str: str = "UTC",
-        time_start: str = EARLIEST_DATE, time_end: str = TODAY_MIDNIGHT,
+        time_start: str = EARLIEST_DATE, time_end: str = MONTH_FROM_TODAY,
         config_path: str = None
 ) -> pd.DataFrame:
     """
@@ -593,7 +602,7 @@ def append_from_answers(
 
 def read_user_answers_stream(
         download_folder: str, beiwe_id: str, tz_str: str = "UTC",
-        time_start: str = EARLIEST_DATE, time_end: str = TODAY_MIDNIGHT
+        time_start: str = EARLIEST_DATE, time_end: str = MONTH_FROM_TODAY
 ) -> pd.DataFrame:
     """
     Reads in all answers data for a user and creates a column with the survey
@@ -673,7 +682,7 @@ def read_user_answers_stream(
 def read_aggregate_answers_stream(
         download_folder: str, participant_ids: list = None,
         tz_str: str = "UTC", config_path: str = None,
-        time_start: str = EARLIEST_DATE, time_end: str = TODAY_MIDNIGHT,
+        time_start: str = EARLIEST_DATE, time_end: str = MONTH_FROM_TODAY,
 ) -> pd.DataFrame:
     """
     Reads in all answers data for many users and fixes Android users to have

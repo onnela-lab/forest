@@ -5,7 +5,9 @@ from typing import Optional, List
 
 from forest.sycamore.common import (aggregate_surveys_config,
                                     aggregate_surveys_no_config,
-                                    get_users_in_dir)
+                                    get_users_in_dir,
+                                    EARLIEST_DATE,
+                                    MONTH_FROM_TODAY)
 from forest.sycamore.responses import (agg_changed_answers_summary,
                                        responses_by_submission)
 from forest.sycamore.submits import (survey_submits,
@@ -13,14 +15,11 @@ from forest.sycamore.submits import (survey_submits,
 
 logger = logging.getLogger(__name__)
 
-EARLIEST_DATE = "2000-01-01"
-TODAY_MIDNIGHT = datetime.datetime.today().strftime("%Y-%m-%d")+"T23:59:00"
-
 
 def compute_survey_stats(
         study_folder: str, output_folder: str, tz_str: str = "UTC",
         participant_ids: Optional[List] = None,
-        time_start: str = EARLIEST_DATE, time_end: str = TODAY_MIDNIGHT,
+        time_start: str = EARLIEST_DATE, time_end: str = MONTH_FROM_TODAY,
         config_path: Optional[str] = None,
         interventions_filepath: str = None,
         augment_with_answers: bool = True
