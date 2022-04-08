@@ -196,7 +196,7 @@ def test_aggregate_surveys_config_empty_dir():
     assert agg_data_no_config.shape[0] == 0
 
 
-def test_restriction_to_no_files():
+def test_aggregate_surveys_config_time_no_files():
     study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
     survey_settings_path = os.path.join(
         TEST_DATA_DIR, "sample_study_surveys_and_settings.json"
@@ -206,6 +206,10 @@ def test_restriction_to_no_files():
         time_end="2008-05-01"
     )
     assert agg_data.shape[0] == 0
+
+
+def test_aggregate_surveys_no_config_time_no_files():
+    study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
     agg_data_no_config = aggregate_surveys_no_config(
         study_dir, "UTC", time_start="2008-01-01", time_end="2008-05-01"
     )
