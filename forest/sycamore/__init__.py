@@ -1,4 +1,4 @@
-__all__ = ["survey_stats_main", "aggregate_surveys_config",
+__all__ = ["compute_survey_stats", "aggregate_surveys_config",
            "agg_changed_answers_summary", "survey_submits",
            "survey_submits_no_config", "format_responses_by_submission"]
 
