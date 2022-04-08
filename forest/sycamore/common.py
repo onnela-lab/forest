@@ -156,11 +156,11 @@ def read_and_aggregate(
         # Read in all files
         timestamp_start = pd.to_datetime(time_start)
         timestamp_end = pd.to_datetime(time_end)
-        survey_data_list = [
-            safe_read_csv(file) for file in all_files if
-            timestamp_start < filename_to_timestamp(file, tz_str)
-            < timestamp_end
-        ]
+        survey_data_list = []
+        for file in all_files:
+            if (timestamp_start < filename_to_timestamp(file, tz_str)
+                    < timestamp_end):
+                survey_data_list.append(safe_read_csv(file))
         if len(survey_data_list) == 0:
             logger.warning("No survey_timings for user %s.", beiwe_id)
             return pd.DataFrame(columns=["UTC time"], dtype="datetime64[ns]")
@@ -209,7 +209,7 @@ def aggregate_surveys(
     # get a list of users (ignoring hidden files and registry file downloaded
     # when using mano)
     if users is None:
-        users = get_users_in_dir(study_dir)
+        users = get_subdirs(study_dir)
 
     if len(users) == 0:
         logger.error("No users in directory %s", study_dir)
@@ -547,7 +547,7 @@ def append_from_answers(
         return agg_data
 
     if participant_ids is None:
-        participant_ids = get_users_in_dir(download_folder)
+        participant_ids = get_subdirs(download_folder)
     missing_submission_data = []  # list of surveys to add on to end
 
     for u in participant_ids:
@@ -640,9 +640,7 @@ def read_user_answers_stream(
     if os.path.isdir(st_path):
         # get all survey IDs included for this user (data will have one folder
         # per survey)
-        survey_ids = [subdir
-                      for subdir in os.listdir(st_path)
-                      if not subdir.startswith(".") and subdir != "registry"]
+        survey_ids = get_subdirs(st_path)
         all_surveys = []
         timestamp_start = pd.to_datetime(time_start)
         timestamp_end = pd.to_datetime(time_end)
@@ -724,7 +722,7 @@ def read_aggregate_answers_stream(
         config_surveys = pd.DataFrame(None)
         config_included = False
     if participant_ids is None:
-        participant_ids = get_users_in_dir(download_folder)
+        participant_ids = get_subdirs(download_folder)
 
     all_users_list = [
         read_user_answers_stream(download_folder, user, tz_str, time_start,
@@ -845,7 +843,7 @@ def read_aggregate_answers_stream(
     return aggregated_data
 
 
-def get_users_in_dir(study_folder: str) -> list:
+def get_subdirs(study_folder: str) -> list:
     """Get users in directory
 
     Args:

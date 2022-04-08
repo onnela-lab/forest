@@ -8,7 +8,7 @@ from forest.sycamore.common import (aggregate_surveys,
                                     aggregate_surveys_no_config,
                                     aggregate_surveys_config,
                                     filename_to_timestamp,
-                                    get_users_in_dir,
+                                    get_subdirs,
                                     read_user_answers_stream,
                                     read_aggregate_answers_stream)
 from forest.sycamore.submits import gen_survey_schedule, survey_submits
@@ -265,7 +265,7 @@ def test_file_to_datetime():
     assert filename_to_timestamp(test_str4, "UTC") == expected_timestamp
 
 
-def test_get_users_in_dir():
+def test_get_subdirs():
     study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
-    users_list = get_users_in_dir(study_dir)
+    users_list = get_subdirs(study_dir)
     assert len(users_list) == 2
