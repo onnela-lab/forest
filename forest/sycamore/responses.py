@@ -84,7 +84,7 @@ def agg_changed_answers(agg: pd.DataFrame) -> pd.DataFrame:
 
 
 def agg_changed_answers_summary(
-        config_path: str, agg: pd.DataFrame
+        config_path: str, input_agg: pd.DataFrame
 ) -> Tuple[Any, DataFrame]:
     """Create Summary File with survey, beiwe id, question id, average
     number of changed answers, average time spent answering question
@@ -92,7 +92,7 @@ def agg_changed_answers_summary(
     Args:
         config_path(str):
             File path to study configuration file
-        agg(DataFrame):
+        input_agg(DataFrame):
             Dataframe with aggregated data (output from
             aggregate_surveys_config)
 
@@ -105,7 +105,7 @@ def agg_changed_answers_summary(
         DataFrame with a Summary of how an individual answered each question,
         with their most common answer, time to answer, etc
     """
-    agg = agg.copy()
+    agg = input_agg.copy()
     detail = agg_changed_answers(agg)
     #####################################################################
     # Add instance id and update first time to be the last time if there
@@ -184,14 +184,14 @@ def agg_changed_answers_summary(
     return detail, out
 
 
-def format_responses_by_submission(agg_data: pd.DataFrame) -> dict:
+def format_responses_by_submission(input_agg_data: pd.DataFrame) -> dict:
     """Format survey answers with one line per survey submission
 
     For each survey, create a DataFrame with one column for each question, and
     one row for each submission.
 
     Args:
-        agg_data(DataFrame): output from aggregate_surveys_config or
+        input_agg_data(DataFrame): output from aggregate_surveys_config or
             aggregate_surveys_no_config
 
     Returns:
@@ -199,7 +199,7 @@ def format_responses_by_submission(agg_data: pd.DataFrame) -> dict:
         dataframe with readable survey submission information.
 
     """
-    agg_data = agg_data.copy()
+    agg_data = input_agg_data.copy()
     surveys_dict = {}
 
     for survey_id in agg_data["survey id"].unique():

@@ -208,7 +208,7 @@ def gen_survey_schedule(
 
 def survey_submits(
         config_path: str, time_start: str, time_end: str, beiwe_ids: list,
-        agg: pd.DataFrame, interventions_filepath: str = None
+        input_agg: pd.DataFrame, interventions_filepath: str = None
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Get survey submits for users
 
@@ -224,7 +224,7 @@ def survey_submits(
             schedule
         interventions_filepath(str):
             filepath where interventions json file is.
-        agg(DataFrame):
+        input_agg(DataFrame):
             Dataframe of aggregated data. Output from aggregate_surveys_config
 
     Returns:
@@ -233,7 +233,7 @@ def survey_submits(
 
         A DataFrame with all users, total surveys received, and responses.
     """
-    agg = agg.copy()
+    agg = input_agg.copy()
     if interventions_filepath is None:
         all_interventions_dict = {}
     else:
@@ -350,19 +350,19 @@ def survey_submits(
     ).drop_duplicates(), submit_lines_summary
 
 
-def survey_submits_no_config(agg: pd.DataFrame) -> pd.DataFrame:
+def survey_submits_no_config(input_agg: pd.DataFrame) -> pd.DataFrame:
     """Get survey submits without config file
 
     Alternative function for getting the survey completions (doesn't have
     expected times of surveys)
     Args:
-        agg(DataFrame):
+        input_agg(DataFrame):
             Dataframe of Aggregated Data
     Returns:
         Dataframe with one line per survey submission.
 
     """
-    agg = agg.copy()
+    agg = input_agg.copy()
 
     def summarize_submits(df):
         temp_dict = {"min_time": df.min(), "max_time": df.max()}
