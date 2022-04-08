@@ -216,9 +216,9 @@ def aggregate_surveys(
         return pd.DataFrame(columns=["UTC time"], dtype="datetime64[ns]")
 
     all_data_list = []
-    for u in users:
+    for usr in users:
         all_data_list.append(
-            read_and_aggregate(study_dir, u, "survey_timings", time_start,
+            read_and_aggregate(study_dir, usr, "survey_timings", time_start,
                                time_end, tz_str)
         )
 
@@ -550,16 +550,16 @@ def append_from_answers(
         participant_ids = get_subdirs(download_folder)
     missing_submission_data = []  # list of surveys to add on to end
 
-    for u in participant_ids:
+    for usr in participant_ids:
         for survey_id in agg_data["survey id"].unique():
             known_timings_submits = agg_data.loc[
-                (agg_data["beiwe_id"] == u)
+                (agg_data["beiwe_id"] == usr)
                 & (agg_data["survey id"] == survey_id),
                 "Local time"
             ].unique()
 
             known_answers_submits = answers_data.loc[
-                (answers_data["beiwe_id"] == u)
+                (answers_data["beiwe_id"] == usr)
                 & (answers_data["survey id"] == survey_id),
                 "Local time"
             ].unique()
@@ -576,7 +576,7 @@ def append_from_answers(
                     missing_times.append(time)
             if len(missing_times) > 0:
                 missing_data = answers_data.loc[
-                        (answers_data["beiwe_id"] == u)
+                        (answers_data["beiwe_id"] == usr)
                         & (answers_data["survey id"] == survey_id)
                         & (answers_data["Local time"].isin(missing_times)),
                         :
@@ -584,7 +584,7 @@ def append_from_answers(
                 # Get the max survey flag from agg_data so we don't overlap any
                 # survey flags after merging
                 max_surv_inst_flg = agg_data.loc[
-                        (agg_data["beiwe_id"] == u)
+                        (agg_data["beiwe_id"] == usr)
                         & (agg_data["survey id"] == survey_id),
                         "surv_inst_flg"
                 ].max()
