@@ -27,14 +27,17 @@ SAMPLE_DIR = os.path.join(TEST_DATA_DIR, "sample_dir")
 SURVEY_SETTINGS_PATH = os.path.join(TEST_DATA_DIR,
                                     "sample_study_surveys_and_settings.json")
 
+
 @pytest.fixture
 def agg_data_config():
     return aggregate_surveys_config(SAMPLE_DIR, SURVEY_SETTINGS_PATH,
-                                        "UTC")
+                                    "UTC")
+
 
 @pytest.fixture
 def agg_data_no_config():
-    return aggregate_surveys_no_config(SAMPLE_DIR, study_tz = "UTC")
+    return aggregate_surveys_no_config(SAMPLE_DIR, study_tz="UTC")
+
 
 def test_get_empty_intervention():
     empty_path = os.path.join(TEST_DATA_DIR, "empty_intervention_data.json")
