@@ -16,7 +16,7 @@ EARLIEST_DATE = "2000-01-01"
 TODAY_MIDNIGHT = datetime.datetime.today().strftime("%Y-%m-%d")+"T23:59:00"
 
 
-def read_safe(filepath: str) -> pd.DataFrame:
+def safe_read_csv(filepath: str) -> pd.DataFrame:
     try:
         df = pd.read_csv(filepath)
         return df
@@ -76,7 +76,7 @@ def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
         return q
 
 
-def filepath_to_timestamp(filepath: str, tz_str: str = "UTC"):
+def filename_to_timestamp(filepath: str, tz_str: str = "UTC"):
     """
     Transform a filepath into a datetime.
 
@@ -143,8 +143,8 @@ def read_and_aggregate(
         timestamp_start = pd.to_datetime(time_start)
         timestamp_end = pd.to_datetime(time_end)
         survey_data_list = [
-            read_safe(file) for file in all_files if
-            timestamp_start < filepath_to_timestamp(file, tz_str)
+            safe_read_csv(file) for file in all_files if
+            timestamp_start < filename_to_timestamp(file, tz_str)
             < timestamp_end
         ]
         if len(survey_data_list) == 0:
@@ -595,7 +595,7 @@ def append_from_answers(
     return pd.concat(data_to_return)
 
 
-def read_one_answers_stream(
+def read_user_answers_stream(
         download_folder: str, beiwe_id: str, tz_str: str = "UTC",
         time_start: str = EARLIEST_DATE, time_end: str = TODAY_MIDNIGHT
 ) -> pd.DataFrame:
@@ -640,7 +640,7 @@ def read_one_answers_stream(
                          if file.endswith(".csv")]
             all_files = [
                 file for file in all_files if
-                timestamp_start < filepath_to_timestamp(file, tz_str)
+                timestamp_start < filename_to_timestamp(file, tz_str)
                 < timestamp_end
             ]
             if len(all_files) == 0:
@@ -652,10 +652,10 @@ def read_one_answers_stream(
             survey_dfs = []
             # We need to enumerate to tell different survey occasions apart
             for i, file in enumerate(all_files):
-                current_df = read_safe(os.path.join(st_path, survey, file))
+                current_df = safe_read_csv(os.path.join(st_path, survey, file))
                 if current_df.shape[0] == 0:
                     continue
-                current_df["UTC time"] = filepath_to_timestamp(file, "UTC")
+                current_df["UTC time"] = filename_to_timestamp(file, "UTC")
                 current_df["survey id"] = survey
                 current_df["surv_inst_flg"] = i
                 survey_dfs.append(current_df)
@@ -716,8 +716,8 @@ def read_aggregate_answers_stream(
                            if not u.startswith(".") and u != "registry"]
 
     all_users_list = [
-        read_one_answers_stream(download_folder, user, tz_str, time_start,
-                                time_end)
+        read_user_answers_stream(download_folder, user, tz_str, time_start,
+                                 time_end)
         for user in participant_ids
     ]
 

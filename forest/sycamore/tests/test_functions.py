@@ -7,8 +7,8 @@ from forest.sycamore.submits import (get_all_interventions_dict,
 from forest.sycamore.common import (aggregate_surveys,
                                     aggregate_surveys_no_config,
                                     aggregate_surveys_config,
-                                    filepath_to_timestamp,
-                                    read_one_answers_stream,
+                                    filename_to_timestamp,
+                                    read_user_answers_stream,
                                     read_aggregate_answers_stream)
 from forest.sycamore.submits import gen_survey_schedule, survey_submits
 from forest.sycamore.responses import (agg_changed_answers_summary,
@@ -152,9 +152,9 @@ def test_survey_submits_no_config_with_config_input():
     assert submits_tbl.shape[0] == 6
 
 
-def test_read_one_answers_stream():
+def test_read_user_answers_stream():
     study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
-    df = read_one_answers_stream(study_dir, "idr8gqdh", "UTC")
+    df = read_user_answers_stream(study_dir, "idr8gqdh", "UTC")
     assert len(df["Local time"].unique()) == 2
 
 
@@ -173,7 +173,7 @@ def test_responses_by_submission():
     assert surveys_dict["hkmxse2N7aMGfNyVMQDiWWEP"].shape[0] == 10
 
 
-def test_by_responses_by_submission_with_config():
+def test_responses_by_submission_with_config():
     study_dir = os.path.join(TEST_DATA_DIR, "sample_dir")
     survey_settings_path = os.path.join(
         TEST_DATA_DIR, "sample_study_surveys_and_settings.json"
@@ -184,7 +184,7 @@ def test_by_responses_by_submission_with_config():
     assert surveys_dict["hkmxse2N7aMGfNyVMQDiWWEP"].shape[0] == 10
 
 
-def test_read_empty_dir():
+def test_aggregate_surveys_config_empty_dir():
     study_dir = os.path.join(TEST_DATA_DIR, "empty_dir")
     survey_settings_path = os.path.join(
         TEST_DATA_DIR, "sample_study_surveys_and_settings.json"
@@ -255,10 +255,10 @@ def test_restriction_end():
 def test_file_to_datetime():
     test_str = os.path.join("dir1", "dir2", "2022-03-14 16_32_56+00_00.csv")
     expected_timestamp = pd.to_datetime("2022-03-14 16:32:56")
-    assert filepath_to_timestamp(test_str, "UTC") == expected_timestamp
+    assert filename_to_timestamp(test_str, "UTC") == expected_timestamp
     test_str2 = "2022-03-14 16_32_56+00_00.csv"
-    assert filepath_to_timestamp(test_str2, "UTC") == expected_timestamp
+    assert filename_to_timestamp(test_str2, "UTC") == expected_timestamp
     test_str3 = "2022-03-14 17_32_56+01_00.csv"
-    assert filepath_to_timestamp(test_str3, "UTC") == expected_timestamp
+    assert filename_to_timestamp(test_str3, "UTC") == expected_timestamp
     test_str4 = "2022-03-14 17_32_56+01_00_1.csv"
-    assert filepath_to_timestamp(test_str4, "UTC") == expected_timestamp
+    assert filename_to_timestamp(test_str4, "UTC") == expected_timestamp

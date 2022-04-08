@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from forest.sycamore.base import survey_stats_main
+from forest.sycamore.base import compute_survey_stats
 
 parser = argparse.ArgumentParser(description='Run Sycamore Locally')
 
@@ -43,10 +43,10 @@ if args.study_folder is None or args.output_folder is None:
     parser.print_help()
     sys.exit()
 
-survey_stats_main(output_folder=args.output_dir,
-                  study_folder=args.study_folder,
-                  tz_str=args.tz_str, participant_ids=args.beiwe_ids,
-                  time_start=args.time_start, time_end=args.time_end,
-                  config_path=args.config_path,
-                  interventions_filepath=args.interventions_filepath,
-                  augment_with_answers=args.augment_with_answers)
+compute_survey_stats(output_folder=args.output_dir,
+                     study_folder=args.study_folder,
+                     tz_str=args.tz_str, participant_ids=args.beiwe_ids,
+                     time_start=args.time_start, time_end=args.time_end,
+                     config_path=args.config_path,
+                     interventions_filepath=args.interventions_filepath,
+                     augment_with_answers=args.augment_with_answers)

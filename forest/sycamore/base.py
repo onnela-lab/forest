@@ -16,7 +16,7 @@ EARLIEST_DATE = "2000-01-01"
 TODAY_MIDNIGHT = datetime.datetime.today().strftime("%Y-%m-%d")+"T23:59:00"
 
 
-def survey_stats_main(
+def compute_survey_stats(
         study_folder: str, output_folder: str, tz_str: str = "UTC",
         participant_ids: Optional[List] = None,
         time_start: str = EARLIEST_DATE, time_end: str = TODAY_MIDNIGHT,
