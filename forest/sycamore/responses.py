@@ -184,7 +184,7 @@ def agg_changed_answers_summary(
     return detail, out
 
 
-def responses_by_submission(agg_data: pd.DataFrame) -> dict:
+def format_responses_by_submission(agg_data: pd.DataFrame) -> dict:
     """Format survey answers with one line per survey submission
 
     For each survey, create a DataFrame with one column for each question, and

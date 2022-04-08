@@ -9,7 +9,7 @@ from forest.sycamore.common import (aggregate_surveys_config,
                                     EARLIEST_DATE,
                                     MONTH_FROM_TODAY)
 from forest.sycamore.responses import (agg_changed_answers_summary,
-                                       responses_by_submission)
+                                       format_responses_by_submission)
 from forest.sycamore.submits import (survey_submits,
                                      survey_submits_no_config)
 
@@ -101,7 +101,7 @@ def compute_survey_stats(
                 logger.error("An Error occurred when "
                              "getting survey submit summaries")
 
-    surveys_dict = responses_by_submission(agg_data)
+    surveys_dict = format_responses_by_submission(agg_data)
     for survey_id in surveys_dict.keys():
         surveys_dict[survey_id].to_csv(
             os.path.join(output_folder, "by_survey", survey_id + ".csv"),
