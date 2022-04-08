@@ -602,9 +602,8 @@ def append_from_answers(
 
                 missing_data.drop(["time_prev"], axis=1, inplace=True)
                 missing_submission_data.append(missing_data)
-    data_to_return = [agg_data] + missing_submission_data
 
-    return pd.concat(data_to_return)
+    return pd.concat([agg_data] + missing_submission_data)
 
 
 def read_user_answers_stream(
@@ -635,19 +634,18 @@ def read_user_answers_stream(
         DataFrame with stacked data, a field for the beiwe ID, a field for the
         survey, and a filed with the time in the filename.
     """
-    data_stream = "survey_answers"
-    st_path = os.path.join(download_folder, beiwe_id, data_stream)
-    if os.path.isdir(st_path):
+    ans_dir = os.path.join(download_folder, beiwe_id, "survey_answers")
+    if os.path.isdir(ans_dir):
         # get all survey IDs included for this user (data will have one folder
         # per survey)
-        survey_ids = get_subdirs(st_path)
+        survey_ids = get_subdirs(ans_dir)
         all_surveys = []
         timestamp_start = pd.to_datetime(time_start)
         timestamp_end = pd.to_datetime(time_end)
         for survey in survey_ids:
             # get all csv files in the survey subdirectory
             all_files = [file
-                         for file in os.listdir(os.path.join(st_path, survey))
+                         for file in os.listdir(os.path.join(ans_dir, survey))
                          if file.endswith(".csv")]
             all_files = [
                 file for file in all_files if
@@ -663,7 +661,7 @@ def read_user_answers_stream(
             survey_dfs = []
             # We need to enumerate to tell different survey occasions apart
             for i, file in enumerate(all_files):
-                current_df = safe_read_csv(os.path.join(st_path, survey, file))
+                current_df = safe_read_csv(os.path.join(ans_dir, survey, file))
                 if current_df.shape[0] == 0:
                     continue
                 current_df["UTC time"] = filename_to_timestamp(file, "UTC")
