@@ -4,7 +4,8 @@ import os
 from typing import Optional, List
 
 from forest.sycamore.common import (aggregate_surveys_config,
-                                    aggregate_surveys_no_config)
+                                    aggregate_surveys_no_config,
+                                    get_users_in_dir)
 from forest.sycamore.responses import (agg_changed_answers_summary,
                                        responses_by_submission)
 from forest.sycamore.submits import (survey_submits,
@@ -52,9 +53,7 @@ def compute_survey_stats(
     os.makedirs(os.path.join(output_folder, "summaries"), exist_ok=True)
     os.makedirs(os.path.join(output_folder, "by_survey"), exist_ok=True)
     if participant_ids is None:
-        participant_ids = [u
-                           for u in os.listdir(study_folder)
-                           if not u.startswith(".") and u != "registry"]
+        participant_ids = get_users_in_dir(study_folder)
     # Read, aggregate and clean data
     if config_path is None:
         logger.warning("No config file provided. "

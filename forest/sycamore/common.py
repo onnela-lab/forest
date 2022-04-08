@@ -195,9 +195,7 @@ def aggregate_surveys(
     # get a list of users (ignoring hidden files and registry file downloaded
     # when using mano)
     if users is None:
-        users = [u
-                 for u in os.listdir(study_dir)
-                 if not u.startswith(".") and u != "registry"]
+        users = get_users_in_dir(study_dir)
 
     if len(users) == 0:
         logger.error("No users in directory %s", study_dir)
@@ -533,9 +531,7 @@ def append_from_answers(
         return agg_data
 
     if participant_ids is None:
-        participant_ids = [u
-                           for u in os.listdir(download_folder)
-                           if not u.startswith(".") and u != "registry"]
+        participant_ids = get_users_in_dir(download_folder)
     missing_submission_data = []  # list of surveys to add on to end
 
     for u in participant_ids:
@@ -711,9 +707,7 @@ def read_aggregate_answers_stream(
         config_surveys = pd.DataFrame(None)
         config_included = False
     if participant_ids is None:
-        participant_ids = [u
-                           for u in os.listdir(download_folder)
-                           if not u.startswith(".") and u != "registry"]
+        participant_ids = get_users_in_dir(download_folder)
 
     all_users_list = [
         read_user_answers_stream(download_folder, user, tz_str, time_start,
@@ -832,3 +826,11 @@ def read_aggregate_answers_stream(
         aggregated_data["answer"] != "NOT_PRESENTED", :
     ]
     return aggregated_data
+
+
+def get_users_in_dir(study_folder: str) -> list:
+    list_of_users = []
+    for user in os.listdir(study_folder):
+        if not user.startswith(".") and user != "registry":
+            list_of_users.append(user)
+    return list_of_users
