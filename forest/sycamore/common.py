@@ -588,6 +588,8 @@ def append_from_answers(
                         & (agg_data["survey id"] == survey_id),
                         "surv_inst_flg"
                 ].max()
+                if np.isnan(max_surv_inst_flg):
+                    max_surv_inst_flg = 0
                 # add the max submit flag to the inst_flags we have
                 missing_data["surv_inst_flg"] = missing_data[
                                                     "surv_inst_flg"
