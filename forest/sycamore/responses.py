@@ -213,9 +213,9 @@ def format_responses_by_submission(agg_data: pd.DataFrame) -> dict:
             "Local time"
         ].transform("last")
 
-        survey_df = survey_df.loc[survey_df["submit_line"] != 1]
         # needs to come after finding start and end times because
         # the "user hit submit" line contains end times
+        survey_df = survey_df.loc[survey_df["submit_line"] != 1]
 
         if survey_df.shape[0] > 0:  # We need to have data to read
             survey_df.sort_values(by=["beiwe_id", "Local time"],
