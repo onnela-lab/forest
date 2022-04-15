@@ -102,7 +102,7 @@ def filename_to_timestamp(filepath: str, tz_str: str = "UTC"
 
 
 def read_and_aggregate(
-        study_dir: str, beiwe_id: str, data_stream: str,
+        study_dir: str, user: str, data_stream: str,
         time_start: str = EARLIEST_DATE,
         time_end: str = None,
         tz_str: str = "UTC"
@@ -116,7 +116,7 @@ def read_and_aggregate(
         study_dir (str):
             path to downloaded data. This is a folder that includes the user
             data in a subfolder with the beiwe_id as the subfolder name
-        beiwe_id (str):
+        user (str):
             ID of user to aggregate data
         data_stream (str):
             Data stream to aggregate. Must be a datastream name as downloaded
@@ -134,7 +134,7 @@ def read_and_aggregate(
     """
     if time_end is None:
         time_end = get_month_from_today()
-    st_path = os.path.join(study_dir, beiwe_id, data_stream)
+    st_path = os.path.join(study_dir, user, data_stream)
     if os.path.isdir(st_path):
         # get all survey timings files
         all_files = glob.glob(os.path.join(st_path, "*/*.csv"))
@@ -149,24 +149,24 @@ def read_and_aggregate(
                     < timestamp_end):
                 survey_data_list.append(safe_read_csv(file))
         if len(survey_data_list) == 0:
-            logger.warning("No survey_timings for user %s.", beiwe_id)
+            logger.warning("No survey_timings for user %s.", user)
             return pd.DataFrame(columns=["UTC time"], dtype="datetime64[ns]")
 
         survey_data: pd.DataFrame = pd.concat(survey_data_list,
                                               axis=0, ignore_index=False)
-        survey_data["beiwe_id"] = beiwe_id
+        survey_data["beiwe_id"] = user
         survey_data["UTC time"] = survey_data["UTC time"].astype(
             "datetime64[ns]"
         )
         survey_data["DOW"] = survey_data["UTC time"].dt.dayofweek
         return survey_data
     else:
-        logger.warning("No survey_timings for user %s.", beiwe_id)
+        logger.warning("No survey_timings for user %s.", user)
         return pd.DataFrame(columns=["UTC time"], dtype="datetime64[ns]")
 
 
 def aggregate_surveys(
-        study_dir: str, users: list = None,
+        study_dir: str, beiwe_ids: list = None,
         time_start: str = EARLIEST_DATE,
         time_end: str = None, tz_str: str = "UTC"
 ) -> pd.DataFrame:
@@ -179,7 +179,7 @@ def aggregate_surveys(
         study_dir(str):
             path to downloaded data. This is a folder that includes the user
             data in a subfolder with the beiwe_id as the subfolder name
-        users(list):
+        beiwe_ids(list):
             List of users to aggregate survey data over
         time_start(str):
             The first date of the survey data, in YYYY-MM-DD format
@@ -195,19 +195,19 @@ def aggregate_surveys(
     # READ AND AGGREGATE DATA
     # get a list of users (ignoring hidden files and registry file downloaded
     # when using mano)
-    if users is None:
-        users = get_subdirs(study_dir)
+    if beiwe_ids is None:
+        beiwe_ids = get_subdirs(study_dir)
     if time_end is None:
         time_end = get_month_from_today()
 
-    if len(users) == 0:
+    if len(beiwe_ids) == 0:
         logger.error("No users in directory %s", study_dir)
         return pd.DataFrame(columns=["UTC time"], dtype="datetime64[ns]")
 
     all_data_list = []
-    for usr in users:
+    for user in beiwe_ids:
         all_data_list.append(
-            read_and_aggregate(study_dir, usr, "survey_timings", time_start,
+            read_and_aggregate(study_dir, user, "survey_timings", time_start,
                                time_end, tz_str)
         )
 
@@ -371,7 +371,7 @@ def convert_timezone_df(df_merged: pd.DataFrame, tz_str: str = "UTC",
 
 def aggregate_surveys_config(
         study_dir: str, config_path: str, study_tz: str = "UTC",
-        users: list = None, time_start: str = EARLIEST_DATE,
+        beiwe_ids: list = None, time_start: str = EARLIEST_DATE,
         time_end: str = None, augment_with_answers: bool = True
 ) -> pd.DataFrame:
     """Aggregate surveys when config is available
@@ -388,7 +388,7 @@ def aggregate_surveys_config(
             path to the study configuration file
         study_tz(str):
             Timezone of study. This defaults to "UTC"
-        users(tuple):
+        beiwe_ids(tuple):
             List of beiwe IDs of users to aggregate
         augment_with_answers(bool):
             Whether to use the survey_answers stream to fill in missing surveys
@@ -405,7 +405,7 @@ def aggregate_surveys_config(
         time_end = get_month_from_today()
     # Read in aggregated data and survey configuration
     config_surveys = parse_surveys(config_path)
-    agg_data = aggregate_surveys(study_dir, users, time_start, time_end,
+    agg_data = aggregate_surveys(study_dir, beiwe_ids, time_start, time_end,
                                  study_tz)
     if agg_data.shape[0] == 0:
         return agg_data
@@ -443,14 +443,15 @@ def aggregate_surveys_config(
     df_merged = convert_timezone_df(df_merged, study_tz)
     if augment_with_answers:
         df_merged["data_stream"] = "survey_timings"
-        df_merged = append_from_answers(df_merged, study_dir, users, study_tz,
-                                        time_start, time_end, config_path)
+        df_merged = append_from_answers(df_merged, study_dir, beiwe_ids,
+                                        study_tz, time_start, time_end,
+                                        config_path)
 
     return df_merged.reset_index(drop=True)
 
 
 def aggregate_surveys_no_config(
-        study_dir: str, study_tz: str = "UTC", users: list = None,
+        study_dir: str, study_tz: str = "UTC", beiwe_ids: list = None,
         time_start: str = EARLIEST_DATE,
         time_end: str = None,
         augment_with_answers: bool = True
@@ -463,7 +464,7 @@ def aggregate_surveys_no_config(
             data in a subfolder with the beiwe_id as the subfolder name
         study_tz(str):
             Timezone of study. This defaults to "UTC"
-        users(tuple):
+        beiwe_ids(tuple):
             List of Beiwe IDs to run
         time_start(str):
             The first date of the survey data, in YYYY-MM-DD format
@@ -478,7 +479,7 @@ def aggregate_surveys_no_config(
     """
     if time_end is None:
         time_end = get_month_from_today()
-    agg_data = aggregate_surveys(study_dir, users, time_start, time_end,
+    agg_data = aggregate_surveys(study_dir, beiwe_ids, time_start, time_end,
                                  study_tz)
     if agg_data.shape[0] == 0:
         return agg_data
@@ -495,15 +496,15 @@ def aggregate_surveys_no_config(
     agg_data = convert_timezone_df(agg_data, tz_str=study_tz)
     if augment_with_answers:
         agg_data["data_stream"] = "survey_timings"
-        agg_data = append_from_answers(agg_data, study_dir, users, study_tz,
-                                       time_start, time_end)
+        agg_data = append_from_answers(agg_data, study_dir, beiwe_ids,
+                                       study_tz, time_start, time_end)
 
     return agg_data.reset_index(drop=True)
 
 
 def append_from_answers(
         agg_data: pd.DataFrame, download_folder: str,
-        participant_ids: list = None, tz_str: str = "UTC",
+        beiwe_ids: list = None, tz_str: str = "UTC",
         time_start: str = EARLIEST_DATE, time_end: str = None,
         config_path: str = None
 ) -> pd.DataFrame:
@@ -522,7 +523,7 @@ def append_from_answers(
         tz_str(str):
             Timezone to use for "Local time" column values. This defaults to
             "UTC"
-        participant_ids(list):
+        beiwe_ids(list):
             List of Beiwe IDs used to augment with data
         time_start(str):
             The first date of the survey data, in YYYY-MM-DD format
@@ -538,26 +539,26 @@ def append_from_answers(
     if time_end is None:
         time_end = get_month_from_today()
     answers_data = read_aggregate_answers_stream(
-        download_folder, participant_ids, tz_str, config_path, time_start,
+        download_folder, beiwe_ids, tz_str, config_path, time_start,
         time_end
     )
     if answers_data.shape[0] == 0:
         return agg_data
 
-    if participant_ids is None:
-        participant_ids = get_subdirs(download_folder)
+    if beiwe_ids is None:
+        beiwe_ids = get_subdirs(download_folder)
     missing_submission_data = []  # list of surveys to add on to end
 
-    for usr in participant_ids:
+    for user in beiwe_ids:
         for survey_id in agg_data["survey id"].unique():
             known_timings_submits = agg_data.loc[
-                (agg_data["beiwe_id"] == usr)
+                (agg_data["beiwe_id"] == user)
                 & (agg_data["survey id"] == survey_id),
                 "Local time"
             ].unique()
 
             known_answers_submits = answers_data.loc[
-                (answers_data["beiwe_id"] == usr)
+                (answers_data["beiwe_id"] == user)
                 & (answers_data["survey id"] == survey_id),
                 "Local time"
             ].unique()
@@ -574,7 +575,7 @@ def append_from_answers(
                     missing_times.append(time)
             if len(missing_times) > 0:
                 missing_data = answers_data.loc[
-                        (answers_data["beiwe_id"] == usr)
+                        (answers_data["beiwe_id"] == user)
                         & (answers_data["survey id"] == survey_id)
                         & (answers_data["Local time"].isin(missing_times)),
                         :
@@ -582,7 +583,7 @@ def append_from_answers(
                 # Get the max survey flag from agg_data so we don't overlap any
                 # survey flags after merging
                 max_surv_inst_flg = agg_data.loc[
-                        (agg_data["beiwe_id"] == usr)
+                        (agg_data["beiwe_id"] == user)
                         & (agg_data["survey id"] == survey_id),
                         "surv_inst_flg"
                 ].max()
@@ -607,7 +608,7 @@ def append_from_answers(
 
 
 def read_user_answers_stream(
-        download_folder: str, beiwe_id: str, tz_str: str = "UTC",
+        download_folder: str, user: str, tz_str: str = "UTC",
         time_start: str = EARLIEST_DATE, time_end: str = None
 ) -> pd.DataFrame:
     """Reads in all survey_answers data for a user
@@ -619,7 +620,7 @@ def read_user_answers_stream(
         download_folder (str):
             path to downloaded data. A folder wiith the user ID should be a
             subdirectory of this path.
-        beiwe_id (str):
+        user (str):
             ID of user to aggregate data
         tz_str (str):
             Time Zone to include in Local time column of output. See
@@ -636,7 +637,7 @@ def read_user_answers_stream(
     """
     if time_end is None:
         time_end = get_month_from_today()
-    ans_dir = os.path.join(download_folder, beiwe_id, "survey_answers")
+    ans_dir = os.path.join(download_folder, user, "survey_answers")
     if os.path.isdir(ans_dir):
         # get all survey IDs included for this user (data will have one folder
         # per survey)
@@ -656,7 +657,7 @@ def read_user_answers_stream(
             ]
             if len(all_files) == 0:
                 logger.warning("No survey_answers for user %s in given time "
-                               "frames.", beiwe_id)
+                               "frames.", user)
                 return pd.DataFrame(columns=["Local time"],
                                     dtype="datetime64[ns]")
 
@@ -671,11 +672,11 @@ def read_user_answers_stream(
                 current_df["surv_inst_flg"] = i
                 survey_dfs.append(current_df)
             if len(survey_dfs) == 0:
-                logger.warning("No survey_answers for user %s.", beiwe_id)
+                logger.warning("No survey_answers for user %s.", user)
                 return pd.DataFrame(columns=["UTC time"],
                                     dtype="datetime64[ns]")
             survey_data = pd.concat(survey_dfs, axis=0, ignore_index=True)
-            survey_data["beiwe_id"] = beiwe_id
+            survey_data["beiwe_id"] = user
             survey_data["Local time"] = survey_data[
                 "UTC time"
             ].dt.tz_localize("UTC").dt.tz_convert(tz_str).dt.tz_localize(None)
@@ -685,12 +686,12 @@ def read_user_answers_stream(
             return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
         return pd.concat(all_surveys, axis=0, ignore_index=True)
     else:
-        logger.warning("No survey_answers for user %s.", beiwe_id)
+        logger.warning("No survey_answers for user %s.", user)
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
 
 
 def read_aggregate_answers_stream(
-        download_folder: str, participant_ids: list = None,
+        download_folder: str, beiwe_ids: list = None,
         tz_str: str = "UTC", config_path: str = None,
         time_start: str = EARLIEST_DATE, time_end: str = None,
 ) -> pd.DataFrame:
@@ -701,7 +702,7 @@ def read_aggregate_answers_stream(
         download_folder (str):
             path to downloaded data. This folder should have Beiwe IDs as
             subdirectories.
-        participant_ids (str):
+        beiwe_ids (str):
             List of IDs of users to aggregate data on
         tz_str (str):
             Time Zone to include in Local time column of output. See
@@ -727,16 +728,16 @@ def read_aggregate_answers_stream(
     else:
         config_surveys = pd.DataFrame(None)
         config_included = False
-    if participant_ids is None:
-        participant_ids = get_subdirs(download_folder)
-    if len(participant_ids) == 0:
+    if beiwe_ids is None:
+        beiwe_ids = get_subdirs(download_folder)
+    if len(beiwe_ids) == 0:
         logger.warning("No users found")
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
 
     all_users_list = [
         read_user_answers_stream(download_folder, user, tz_str, time_start,
                                  time_end)
-        for user in participant_ids
+        for user in beiwe_ids
     ]
 
     aggregated_data = pd.concat(all_users_list, axis=0, ignore_index=True)
@@ -861,8 +862,8 @@ def get_subdirs(study_folder: str) -> list:
     Returns:
         List of subdirectories of the study_folder.
     """
-    list_of_users = []
-    for user in os.listdir(study_folder):
-        if not user.startswith(".") and user != "registry":
-            list_of_users.append(user)
-    return list_of_users
+    list_of_dirs = []
+    for subdir in os.listdir(study_folder):
+        if not subdir.startswith(".") and subdir != "registry":
+            list_of_dirs.append(subdir)
+    return list_of_dirs

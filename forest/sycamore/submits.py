@@ -156,7 +156,7 @@ def gen_survey_schedule(
     surveys = read_json(config_path)["surveys"]
     # For each survey create a list of survey times
     times_sur = []
-    for u_id in beiwe_ids:
+    for user in beiwe_ids:
         for i, s in enumerate(surveys):
             s_times: list = []
             if s["timings"]:
@@ -171,14 +171,14 @@ def gen_survey_schedule(
                 )
             if s["relative_timings"]:
                 # We can only get relative timings if we have an index time
-                if all_interventions_dict[u_id]:
+                if all_interventions_dict[user]:
                     s_times = s_times + generate_survey_times(
                         time_start, time_end, timings=s["relative_timings"],
                         survey_type="relative",
-                        intervention_dict=all_interventions_dict[u_id]
+                        intervention_dict=all_interventions_dict[user]
                     )
                 else:
-                    logger.warning("error: no index time found for %s", u_id)
+                    logger.warning("error: no index time found for %s", user)
             tbl = pd.DataFrame({"delivery_time": s_times})
             # May not be necessary, but I"m leaving this in case timestamps are
             # in different formats
@@ -189,7 +189,7 @@ def gen_survey_schedule(
             # the survey will be deployed
             tbl["next_delivery_time"] = tbl.delivery_time.shift(-1)
             tbl["id"] = i
-            tbl["beiwe_id"] = u_id
+            tbl["beiwe_id"] = user
             # Get all question IDs for the survey
             qs = [q["question_id"]
                   for q in s["content"] if "question_id" in q.keys()]

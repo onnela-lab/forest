@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 def compute_survey_stats(
         study_folder: str, output_folder: str, tz_str: str = "UTC",
-        participant_ids: Optional[List] = None,
+        beiwe_ids: Optional[List] = None,
         time_start: str = EARLIEST_DATE, time_end: str = None,
         config_path: Optional[str] = None,
         interventions_filepath: str = None,
@@ -37,7 +37,7 @@ def compute_survey_stats(
         The earliest date of survey data to read in, in YYYY-MM-DD format
     time_end(str):
         The latest survey data to read in, in YYYY-MM-DD format
-    participant_ids(list):
+    beiwe_ids(list):
         List of users in study for which we are generating a survey schedule
     tz_str(str):
         Timezone of study. This defaults to "UTC"
@@ -51,8 +51,8 @@ def compute_survey_stats(
     os.makedirs(output_folder, exist_ok=True)
     os.makedirs(os.path.join(output_folder, "summaries"), exist_ok=True)
     os.makedirs(os.path.join(output_folder, "by_survey"), exist_ok=True)
-    if participant_ids is None:
-        participant_ids = get_subdirs(study_folder)
+    if beiwe_ids is None:
+        beiwe_ids = get_subdirs(study_folder)
     if time_end is None:
         time_end = get_month_from_today()
     # Read, aggregate and clean data
@@ -60,7 +60,7 @@ def compute_survey_stats(
         logger.warning("No config file provided. "
                        "Skipping some summary outputs.")
         agg_data = aggregate_surveys_no_config(
-            study_folder, tz_str, participant_ids, time_start, time_end,
+            study_folder, tz_str, beiwe_ids, time_start, time_end,
             augment_with_answers
         )
         if agg_data.shape[0] == 0:
@@ -68,7 +68,7 @@ def compute_survey_stats(
             return True
     else:
         agg_data = aggregate_surveys_config(
-            study_folder, config_path, tz_str, participant_ids, time_start,
+            study_folder, config_path, tz_str, beiwe_ids, time_start,
             time_end,  augment_with_answers
         )
         if agg_data.shape[0] == 0:
@@ -89,7 +89,7 @@ def compute_survey_stats(
             # Create survey submits detail and summary
             ss_detail, ss_summary = survey_submits(
                 config_path, time_start, time_end,
-                participant_ids, agg_data, interventions_filepath
+                beiwe_ids, agg_data, interventions_filepath
             )
             if ss_summary.shape[0] > 0:
                 ss_detail.to_csv(os.path.join(output_folder, "summaries",
