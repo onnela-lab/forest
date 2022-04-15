@@ -552,60 +552,84 @@ def append_from_answers(
 
     for user in beiwe_ids:
         for survey_id in agg_data["survey id"].unique():
-            known_timings_submits = agg_data.loc[
-                (agg_data["beiwe_id"] == user)
-                & (agg_data["survey id"] == survey_id),
-                "Local time"
-            ].unique()
-
-            known_answers_submits = answers_data.loc[
-                (answers_data["beiwe_id"] == user)
-                & (answers_data["survey id"] == survey_id),
-                "Local time"
-            ].unique()
-            missing_times = []
-            for time in known_answers_submits:
-
-                hours_from_nearest = np.min(
-                    np.abs((pd.to_datetime(known_timings_submits)
-                            - pd.to_datetime(time)).total_seconds())
-                ) / 60/60
-                # add on the data if there is more than 1/2 hour between an
-                # answers submission and a timing submission.
-                if hours_from_nearest > .5 or len(known_timings_submits) == 0:
-                    missing_times.append(time)
-            if len(missing_times) > 0:
-                missing_data = answers_data.loc[
-                        (answers_data["beiwe_id"] == user)
-                        & (answers_data["survey id"] == survey_id)
-                        & (answers_data["Local time"].isin(missing_times)),
-                        :
-                    ].copy()
-                # Get the max survey flag from agg_data so we don't overlap any
-                # survey flags after merging
-                max_surv_inst_flg = agg_data.loc[
-                        (agg_data["beiwe_id"] == user)
-                        & (agg_data["survey id"] == survey_id),
-                        "surv_inst_flg"
-                ].max()
-                if np.isnan(max_surv_inst_flg):
-                    max_surv_inst_flg = 0
-                # add the max submit flag to the inst_flags we have
-                missing_data["surv_inst_flg"] = missing_data[
-                                                    "surv_inst_flg"
-                                                ] + max_surv_inst_flg + 1
-
-                missing_data["time_prev"] = missing_data["Local time"].shift(1)
-                # one line in the survey will have a submission flag
-                missing_data.loc[
-                    missing_data["time_prev"] != missing_data["Local time"],
-                    "submit_flg"
-                ] = 1
-
-                missing_data.drop(["time_prev"], axis=1, inplace=True)
-                missing_submission_data.append(missing_data)
+            missing_data = find_missing_data(user, survey_id, agg_data,
+                                             answers_data)
+            missing_submission_data.append(missing_data)
 
     return pd.concat([agg_data] + missing_submission_data)
+
+
+def find_missing_data(user: str, survey_id: str, agg_data: pd.DataFrame,
+                      answers_data: pd.DataFrame) -> pd.DataFrame:
+    """Get data present in answers_data that is missing from agg_Data
+
+    Args:
+        user: String with the Beiwe ID to look for missing data
+        survey_id: String with the survey ID to look for missing data in
+        agg_data: Dataframe with aggregated timings data (output from
+            aggregate_surveys_config)
+        answers_data: Dataframe with aggregated answers data (output from
+            read_aggregate_answers_stream)
+
+    Returns:
+        A DataFrame with any survey data that is present in
+            answers_data but missing in agg_data
+
+    """
+    known_timings_submits = agg_data.loc[
+        (agg_data["beiwe_id"] == user)
+        & (agg_data["survey id"] == survey_id),
+        "Local time"
+    ].unique()
+
+    known_answers_submits = answers_data.loc[
+        (answers_data["beiwe_id"] == user)
+        & (answers_data["survey id"] == survey_id),
+        "Local time"
+    ].unique()
+    missing_times = []
+    for time in known_answers_submits:
+
+        hours_from_nearest = np.min(
+            np.abs((pd.to_datetime(known_timings_submits)
+                    - pd.to_datetime(time)).total_seconds())
+        ) / 60 / 60
+        # add on the data if there is more than 1/2 hour between an
+        # answers submission and a timing submission.
+        if hours_from_nearest > .5 or len(known_timings_submits) == 0:
+            missing_times.append(time)
+    if len(missing_times) > 0:
+        missing_data = answers_data.loc[
+                       (answers_data["beiwe_id"] == user)
+                       & (answers_data["survey id"] == survey_id)
+                       & (answers_data["Local time"].isin(missing_times)),
+                       :
+                       ].copy()
+        # Get the max survey flag from agg_data so we don't overlap any
+        # survey flags after merging
+        max_surv_inst_flg = agg_data.loc[
+            (agg_data["beiwe_id"] == user)
+            & (agg_data["survey id"] == survey_id),
+            "surv_inst_flg"
+        ].max()
+        if np.isnan(max_surv_inst_flg):
+            max_surv_inst_flg = 0
+        # add the max submit flag to the inst_flags we have
+        missing_data["surv_inst_flg"] = missing_data[
+                                            "surv_inst_flg"
+                                        ] + max_surv_inst_flg + 1
+
+        missing_data["time_prev"] = missing_data["Local time"].shift(1)
+        # one line in the survey will have a submission flag
+        missing_data.loc[
+            missing_data["time_prev"] != missing_data["Local time"],
+            "submit_flg"
+        ] = 1
+
+        missing_data.drop(["time_prev"], axis=1, inplace=True)
+        return missing_data
+    else:
+        return pd.DataFrame()
 
 
 def read_user_answers_stream(
