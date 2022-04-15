@@ -349,6 +349,9 @@ def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
                             surv["answer_" + str(j)] = a["text"]
 
                 output.append(pd.DataFrame([surv]))
+    if len(output) == 0:
+        logger.warning("No Data Found")
+        return pd.DataFrame()
     output = pd.concat(output).reset_index(drop=True)
     return output
 
@@ -670,6 +673,10 @@ def read_user_answers_stream(
                 current_df["survey id"] = survey
                 current_df["surv_inst_flg"] = i
                 survey_dfs.append(current_df)
+            if len(survey_dfs) == 0:
+                logger.warning("No survey_answers for user %s.", beiwe_id)
+                return pd.DataFrame(columns=["UTC time"],
+                                    dtype="datetime64[ns]")
             survey_data = pd.concat(survey_dfs, axis=0, ignore_index=True)
             survey_data["beiwe_id"] = beiwe_id
             survey_data["Local time"] = survey_data[
@@ -723,6 +730,10 @@ def read_aggregate_answers_stream(
         config_included = False
     if participant_ids is None:
         participant_ids = get_subdirs(download_folder)
+    if len(participant_ids) == 0:
+        logger.warning("No users found")
+        return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
+
 
     all_users_list = [
         read_user_answers_stream(download_folder, user, tz_str, time_start,
@@ -733,6 +744,7 @@ def read_aggregate_answers_stream(
     aggregated_data = pd.concat(all_users_list, axis=0, ignore_index=True)
 
     if aggregated_data.shape[0] == 0:
+        logger.warning("No survey_answers data found")
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
 
     # if a semicolon appears in an answer choice option,
