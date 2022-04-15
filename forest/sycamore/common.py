@@ -783,7 +783,6 @@ def read_aggregate_answers_stream(
                 config_surveys["question_id"] == question_id,
                 config_surveys.columns[range(5, len(config_surveys.columns))]
             ].stack().unique()
-            pass
         else:
             answer_list = aggregated_data.loc[
                 aggregated_data[
@@ -839,8 +838,8 @@ def read_aggregate_answers_stream(
     # convert to the iOS question types text
     aggregated_data["question type"] = aggregated_data["question type"].apply(
         lambda x:
-        QUESTION_TYPES_LOOKUP["Android"][x] if x in QUESTION_TYPES_LOOKUP[
-            "Android"].keys()
+        QUESTION_TYPES_LOOKUP["Android"][x]
+        if x in QUESTION_TYPES_LOOKUP["Android"].keys()
         else x
     )
 
