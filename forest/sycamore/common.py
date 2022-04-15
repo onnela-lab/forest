@@ -9,7 +9,8 @@ import glob
 import numpy as np
 import pandas as pd
 
-from forest.sycamore.constants import (EARLIEST_DATE, QUESTION_TYPES_LOOKUP)
+from forest.sycamore.constants import (EARLIEST_DATE, QUESTION_TYPES_LOOKUP,
+                                       DATE_ANDROID_RADIO_CHANGE)
 
 
 logger = logging.getLogger(__name__)
@@ -818,6 +819,9 @@ def read_aggregate_answers_stream(
         # find radio button questions. These are the ones that show up weird
         # on Android.
         (aggregated_data["question type"] == "Radio Button Question")
+        # only include answers after they started listing radio button answers
+        # as ints in the Android app
+        & (aggregated_data["UTC time"] > DATE_ANDROID_RADIO_CHANGE)
         # they will have ints in their answer field.
         & (aggregated_data["answer"].apply(
             lambda x: x.isdigit() if isinstance(x, str)
