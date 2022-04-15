@@ -119,12 +119,13 @@ def test_survey_submits_with_no_submissions(agg_data_config):
     assert ss_summary.shape[0] == 0
 
 
-def test_survey_submits_no_config(agg_data_config, agg_data_no_config):
+def test_survey_submits_no_config_adc(agg_data_config):
     # Ensure that survey_submits_no_config generates the same information
     # regardless of whether the passed data was generated from a config file.
     submits_tbl = survey_submits_no_config(agg_data_config)
     assert submits_tbl.shape[0] == 6
 
+def test_survey_submits_no_config_adnc(agg_data_no_config):
     submits_tbl = survey_submits_no_config(agg_data_no_config)
     assert submits_tbl.shape[0] == 6
 
@@ -140,10 +141,12 @@ def test_read_aggregate_answers_stream():
     assert df.shape[1] == 11
 
 
-def test_format_responses_by_submission(agg_data_config, agg_data_no_config):
+def test_format_responses_by_submission_adnc(agg_data_no_config):
     surveys_dict = format_responses_by_submission(agg_data_no_config)
     assert len(surveys_dict.keys()) == 1
     assert surveys_dict["hkmxse2N7aMGfNyVMQDiWWEP"].shape[0] == 10
+
+def test_format_responses_by_submission_adc(agg_data_config):
     surveys_dict = format_responses_by_submission(agg_data_config)
     assert len(surveys_dict.keys()) == 1
     assert surveys_dict["hkmxse2N7aMGfNyVMQDiWWEP"].shape[0] == 10
@@ -153,6 +156,9 @@ def test_aggregate_surveys_config_empty_dir():
     empty_dir = os.path.join(TEST_DATA_DIR, "empty_dir")
     agg_data = aggregate_surveys_config(empty_dir, SURVEY_SETTINGS_PATH, "UTC")
     assert agg_data.shape[0] == 0
+
+def test_aggregate_surveys_no_config_empty_dir():
+    empty_dir = os.path.join(TEST_DATA_DIR, "empty_dir")
     agg_data_no_config = aggregate_surveys_no_config(empty_dir, "UTC")
     assert agg_data_no_config.shape[0] == 0
 
