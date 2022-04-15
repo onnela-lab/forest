@@ -847,17 +847,17 @@ def read_aggregate_answers_stream(
     aggregated_data["data_stream"] = "survey_answers"
     # Excluding rows without survey answers to be consistent with exclusions
     # in aggregating survey_timings
-    aggregated_data = aggregated_data.loc[
+    return aggregated_data.loc[
         aggregated_data["answer"] != "NOT_PRESENTED", :
     ]
-    return aggregated_data
 
 
 def get_subdirs(study_folder: str) -> list:
-    """Get users in directory
+    """Get subfolders in directory, excluding registry and hidden folders
 
     Args:
-        study_folder(str): Filepath to the folder containing Beiwe IDs
+        study_folder(str): Filepath to the folder containing desired
+            subdirectories
 
     Returns:
         List of subdirectories of the study_folder.
