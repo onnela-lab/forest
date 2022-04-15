@@ -102,6 +102,7 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
     stamp_start = 1e12
     stamp_end = 0.
     folder_path = study_folder + "/" + beiwe_id + "/" + str(datastream)
+    files_in_range = []
     # if text folder exists, call folder must exists
     if not os.path.exists(study_folder + "/" + beiwe_id):
         print('User ' + str(beiwe_id) +
@@ -172,7 +173,7 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
                     if df.shape[0] == 0:
                         df = hour_data
                     else:
-                        df = df.append(hour_data, ignore_index=True)
+                        df = pd.concat([df, hour_data], ignore_index=True)
 
     if datastream == "accelerometer":
         return files_in_range, stamp_start, stamp_end
