@@ -42,6 +42,10 @@ def safe_read_csv(filepath: str) -> pd.DataFrame:
         # If a file is corrupted, don't bother reading it in.
         logger.error("Unicode Error When Reading %s", filepath)
         return pd.DataFrame()
+    except pd.errors.ParserError:
+        # another way the file can be corrupted
+        logger.error("Parser Error When Reading %s", filepath)
+        return pd.DataFrame()
 
 
 def read_json(study_dir: str) -> dict:
