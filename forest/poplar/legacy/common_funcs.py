@@ -5,9 +5,11 @@ import pandas as pd
 import sys
 from datetime import datetime
 from pytz import timezone
+from typing import Optional, Any, List, Union
 
 
-def datetime2stamp(time_list, tz_str):
+
+def datetime2stamp(time_list: Union[list, tuple], tz_str: str) -> int:
     """
     Docstring
     Args: time_list: a list of integers [year, month, day, hour (0-23), min,
@@ -30,7 +32,7 @@ def datetime2stamp(time_list, tz_str):
     return timestamp
 
 
-def stamp2datetime(stamp, tz_str):
+def stamp2datetime(stamp: Union[float, int], tz_str: str) -> list:
     """
     Docstring
     Args: stamp: Unix time, integer, the timestamp in Beiwe
@@ -50,7 +52,7 @@ def stamp2datetime(stamp, tz_str):
             loc_dt.second]
 
 
-def filename2stamp(filename):
+def filename2stamp(filename: str) -> float:
     """
     Docstring
     Args: filename (str), the filename of communication log
@@ -64,7 +66,8 @@ def filename2stamp(filename):
 
 
 def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
-              time_start, time_end):
+              time_start: Optional[List[Any]], time_end: Optional[List[Any]]
+              ) -> pd.DataFrame:
     """
     Docstring
     Args: beiwe_id: beiwe ID; study_folder: the path of the folder which
@@ -97,7 +100,7 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
     """
     df = pd.DataFrame()
     stamp_start = 1e12
-    stamp_end = 0
+    stamp_end = 0.
     folder_path = study_folder + "/" + beiwe_id + "/" + str(datastream)
     # if text folder exists, call folder must exists
     if not os.path.exists(study_folder + "/" + beiwe_id):
@@ -177,7 +180,8 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
         return df, stamp_start, stamp_end
 
 
-def write_all_summaries(beiwe_id, stats_pdframe, output_folder):
+def write_all_summaries(beiwe_id: str, stats_pdframe: pd.DataFrame,
+                        output_folder: str):
     """
     Docstring
     Args: beiwe_id: str, stats_pdframe is pd dataframe (summary stats)
