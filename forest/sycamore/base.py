@@ -5,9 +5,9 @@ from typing import Optional, List
 from forest.sycamore.common import (aggregate_surveys_config,
                                     aggregate_surveys_no_config,
                                     get_subdirs,
-                                    get_month_from_today,
-                                    EARLIEST_DATE
+                                    get_month_from_today
                                     )
+from forest.sycamore.constants import EARLIEST_DATE
 from forest.sycamore.responses import (agg_changed_answers_summary,
                                        format_responses_by_submission)
 from forest.sycamore.submits import (survey_submits,
