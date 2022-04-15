@@ -80,12 +80,12 @@ def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
         return q
 
 
-def filename_to_timestamp(filepath: str, tz_str: str = "UTC"
+def filename_to_timestamp(filename: str, tz_str: str = "UTC"
                           ) -> pd.Timestamp:
     """Extract a datetime from a filepath.
 
     Args:
-        filepath(str):
+        filename(str):
             a string, with a csv file at the end formatted like
             "YYYY-MM-DD HH_MM_SS+00_00"
         tz_str(str):
@@ -95,8 +95,7 @@ def filename_to_timestamp(filepath: str, tz_str: str = "UTC"
         The Timestamp corresponding to the date in the csv filename, in the
         time zone corresponding to tz_str
     """
-    trimmed_path = filepath.split(os.path.sep)[-1][0:25]
-    str_to_convert = re.sub("_", ":", trimmed_path)
+    str_to_convert = re.sub("_", ":", filename)[0:25]
     time_written = pd.to_datetime(str_to_convert
                                   ).tz_convert(tz_str).tz_localize(None)
     return time_written
@@ -146,7 +145,8 @@ def read_and_aggregate(
         timestamp_end = pd.to_datetime(time_end)
         survey_data_list = []
         for file in all_files:
-            if (timestamp_start < filename_to_timestamp(file, tz_str)
+            filename = os.path.basename(file)
+            if (timestamp_start < filename_to_timestamp(filename, tz_str)
                     < timestamp_end):
                 survey_data_list.append(safe_read_csv(file))
         if len(survey_data_list) == 0:
@@ -648,14 +648,16 @@ def read_user_answers_stream(
         timestamp_end = pd.to_datetime(time_end)
         for survey in survey_ids:
             # get all csv files in the survey subdirectory
-            all_files = [file
-                         for file in os.listdir(os.path.join(ans_dir, survey))
-                         if file.endswith(".csv")]
-            all_files = [
-                file for file in all_files if
-                timestamp_start < filename_to_timestamp(file, tz_str)
-                < timestamp_end
-            ]
+            all_files = []
+            for filepath in os.listdir(os.path.join(ans_dir, survey)):
+                filename = os.path.basename(filepath)
+                valid_file = (filepath.endswith(".csv")
+                              and (timestamp_start
+                                   < filename_to_timestamp(filename, tz_str)
+                                   < timestamp_end))
+                if valid_file:
+                    all_files.append(filepath)
+
             if len(all_files) == 0:
                 logger.warning("No survey_answers for user %s in given time "
                                "frames.", user)
@@ -668,7 +670,8 @@ def read_user_answers_stream(
                 current_df = safe_read_csv(os.path.join(ans_dir, survey, file))
                 if current_df.shape[0] == 0:
                     continue
-                current_df["UTC time"] = filename_to_timestamp(file, "UTC")
+                filename = os.path.basename(file)
+                current_df["UTC time"] = filename_to_timestamp(filename, "UTC")
                 current_df["survey id"] = survey
                 current_df["surv_inst_flg"] = i
                 survey_dfs.append(current_df)

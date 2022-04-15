@@ -220,7 +220,7 @@ def test_aggregate_surveys_no_config_restriction_end():
 
 
 def test_file_to_datetime():
-    test_str = os.path.join("dir1", "dir2", "2022-03-14 16_32_56+00_00.csv")
+    test_str = "2022-03-14 16_32_56+00_00.csv"
     expected_timestamp = pd.to_datetime("2022-03-14 16:32:56")
     assert filename_to_timestamp(test_str, "UTC") == expected_timestamp
     test_str2 = "2022-03-14 16_32_56+00_00.csv"
