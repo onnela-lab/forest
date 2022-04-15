@@ -12,17 +12,17 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-EARLIEST_DATE = "2010-01-01"
 # We want our default date to be farther in the past than any Beiwe data could
 # have been collected, so we never cut off data by default. But, if we set our
 # default date too far in the past, we would generate too many weekly survey
 # timings
+EARLIEST_DATE = "2010-01-01"
 
-MONTH_FROM_TODAY = (datetime.datetime.today()
-                    + datetime.timedelta(30)).strftime("%Y-%m-%d")
-# We want our default end date to be far enough from today that we will never
-# cut off data, even if the package is loaded at the start of a multi-day
-# process
+
+def get_month_from_today():
+    """Get the date 31 days from today, in YYYY-MM-DD format"""
+    return (datetime.datetime.today() +
+            datetime.timedelta(31)).strftime("%Y-%m-%d")
 
 
 def safe_read_csv(filepath: str) -> pd.DataFrame:
@@ -123,7 +123,7 @@ def filename_to_timestamp(filepath: str, tz_str: str = "UTC"
 def read_and_aggregate(
         study_dir: str, beiwe_id: str, data_stream: str,
         time_start: str = EARLIEST_DATE,
-        time_end: str = MONTH_FROM_TODAY,
+        time_end: str = None,
         tz_str: str = "UTC"
 ) -> pd.DataFrame:
     """Read and aggregate data for a user
@@ -151,6 +151,8 @@ def read_and_aggregate(
         Dataframe with stacked data, a field for the beiwe ID, a field for the
         day of week.
     """
+    if time_end is None:
+        time_end = get_month_from_today()
     st_path = os.path.join(study_dir, beiwe_id, data_stream)
     if os.path.isdir(st_path):
         # get all survey timings files
@@ -185,7 +187,7 @@ def read_and_aggregate(
 def aggregate_surveys(
         study_dir: str, users: list = None,
         time_start: str = EARLIEST_DATE,
-        time_end: str = MONTH_FROM_TODAY, tz_str: str = "UTC"
+        time_end: str = None, tz_str: str = "UTC"
 ) -> pd.DataFrame:
     """Aggregate Survey Data
 
@@ -214,6 +216,8 @@ def aggregate_surveys(
     # when using mano)
     if users is None:
         users = get_subdirs(study_dir)
+    if time_end is None:
+        time_end = get_month_from_today()
 
     if len(users) == 0:
         logger.error("No users in directory %s", study_dir)
@@ -387,7 +391,7 @@ def convert_timezone_df(df_merged: pd.DataFrame, tz_str: str = "UTC",
 def aggregate_surveys_config(
         study_dir: str, config_path: str, study_tz: str = "UTC",
         users: list = None, time_start: str = EARLIEST_DATE,
-        time_end: str = MONTH_FROM_TODAY, augment_with_answers: bool = True
+        time_end: str = None, augment_with_answers: bool = True
 ) -> pd.DataFrame:
     """Aggregate surveys when config is available
 
@@ -416,6 +420,8 @@ def aggregate_surveys_config(
     Returns:
         DataFrame of questions and submission lines.
     """
+    if time_end is None:
+        time_end = get_month_from_today()
     # Read in aggregated data and survey configuration
     config_surveys = parse_surveys(config_path)
     agg_data = aggregate_surveys(study_dir, users, time_start, time_end,
@@ -465,7 +471,7 @@ def aggregate_surveys_config(
 def aggregate_surveys_no_config(
         study_dir: str, study_tz: str = "UTC", users: list = None,
         time_start: str = EARLIEST_DATE,
-        time_end: str = MONTH_FROM_TODAY,
+        time_end: str = None,
         augment_with_answers: bool = True
 ) -> pd.DataFrame:
     """Clean aggregated data
@@ -489,6 +495,8 @@ def aggregate_surveys_no_config(
     Returns:
         DataFrame of questions and submission lines
     """
+    if time_end is None:
+        time_end = get_month_from_today()
     agg_data = aggregate_surveys(study_dir, users, time_start, time_end,
                                  study_tz)
     if agg_data.shape[0] == 0:
@@ -515,7 +523,7 @@ def aggregate_surveys_no_config(
 def append_from_answers(
         agg_data: pd.DataFrame, download_folder: str,
         participant_ids: list = None, tz_str: str = "UTC",
-        time_start: str = EARLIEST_DATE, time_end: str = MONTH_FROM_TODAY,
+        time_start: str = EARLIEST_DATE, time_end: str = None,
         config_path: str = None
 ) -> pd.DataFrame:
     """Append surveys included in survey_answers to data from survey_timings.
@@ -546,6 +554,8 @@ def append_from_answers(
         Data frame with all survey_timings data, including data from
         survey_answers where survey_timings data is missing.
     """
+    if time_end is None:
+        time_end = get_month_from_today()
     answers_data = read_aggregate_answers_stream(
         download_folder, participant_ids, tz_str, config_path, time_start,
         time_end
@@ -617,7 +627,7 @@ def append_from_answers(
 
 def read_user_answers_stream(
         download_folder: str, beiwe_id: str, tz_str: str = "UTC",
-        time_start: str = EARLIEST_DATE, time_end: str = MONTH_FROM_TODAY
+        time_start: str = EARLIEST_DATE, time_end: str = None
 ) -> pd.DataFrame:
     """Reads in all survey_answers data for a user
 
@@ -643,6 +653,8 @@ def read_user_answers_stream(
         DataFrame with stacked data, a field for the beiwe ID, a field for the
         survey, and a filed with the time in the filename.
     """
+    if time_end is None:
+        time_end = get_month_from_today()
     ans_dir = os.path.join(download_folder, beiwe_id, "survey_answers")
     if os.path.isdir(ans_dir):
         # get all survey IDs included for this user (data will have one folder
@@ -699,7 +711,7 @@ def read_user_answers_stream(
 def read_aggregate_answers_stream(
         download_folder: str, participant_ids: list = None,
         tz_str: str = "UTC", config_path: str = None,
-        time_start: str = EARLIEST_DATE, time_end: str = MONTH_FROM_TODAY,
+        time_start: str = EARLIEST_DATE, time_end: str = None,
 ) -> pd.DataFrame:
     """Reads in all answers data for many users and fixes Android users to have
     an answer instead of an integer
@@ -726,6 +738,8 @@ def read_aggregate_answers_stream(
         DataFrame with stacked data, a field for the beiwe ID, a field for the
         day of week.
     """
+    if time_end is None:
+        time_end = get_month_from_today()
     if config_path is not None:
         config_surveys = parse_surveys(config_path, answers_l=True)
         config_included = True
@@ -737,7 +751,6 @@ def read_aggregate_answers_stream(
     if len(participant_ids) == 0:
         logger.warning("No users found")
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
-
 
     all_users_list = [
         read_user_answers_stream(download_folder, user, tz_str, time_start,

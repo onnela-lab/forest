@@ -5,8 +5,9 @@ from typing import Optional, List
 from forest.sycamore.common import (aggregate_surveys_config,
                                     aggregate_surveys_no_config,
                                     get_subdirs,
-                                    EARLIEST_DATE,
-                                    MONTH_FROM_TODAY)
+                                    get_month_from_today,
+                                    EARLIEST_DATE
+                                    )
 from forest.sycamore.responses import (agg_changed_answers_summary,
                                        format_responses_by_submission)
 from forest.sycamore.submits import (survey_submits,
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 def compute_survey_stats(
         study_folder: str, output_folder: str, tz_str: str = "UTC",
         participant_ids: Optional[List] = None,
-        time_start: str = EARLIEST_DATE, time_end: str = MONTH_FROM_TODAY,
+        time_start: str = EARLIEST_DATE, time_end: str = None,
         config_path: Optional[str] = None,
         interventions_filepath: str = None,
         augment_with_answers: bool = True
@@ -52,6 +53,8 @@ def compute_survey_stats(
     os.makedirs(os.path.join(output_folder, "by_survey"), exist_ok=True)
     if participant_ids is None:
         participant_ids = get_subdirs(study_folder)
+    if time_end is None:
+        time_end = get_month_from_today()
     # Read, aggregate and clean data
     if config_path is None:
         logger.warning("No config file provided. "
