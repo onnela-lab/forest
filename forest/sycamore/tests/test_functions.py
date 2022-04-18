@@ -68,7 +68,7 @@ def test_gen_survey_schedule():
         beiwe_ids=["idr8gqdh"],
         all_interventions_dict=interventions_dict)
 
-    assert sample_schedule.shape[0] == 9
+    assert sample_schedule.shape[0] == 6
     assert np.mean(
         sample_schedule.columns ==
         pd.Index(["delivery_time", "next_delivery_time", "id", "beiwe_id",
@@ -84,6 +84,23 @@ def test_gen_survey_schedule_one_weekly():
         time_end=pd.to_datetime("2021-12-08"),
         beiwe_ids=["idr8gqdh"],
         all_interventions_dict=interventions_dict)
+    assert sample_schedule.shape[0] == 1
+    assert np.mean(
+        sample_schedule.columns ==
+        pd.Index(["delivery_time", "next_delivery_time", "id", "beiwe_id",
+                  "question_id"])
+    ) == 1.0
+
+
+def test_gen_survey_schedule_cutoff_relative():
+    interventions_dict = get_all_interventions_dict(INTERVENTIONS_PATH)
+    sample_schedule = gen_survey_schedule(
+        os.path.join(TEST_DATA_DIR, "far_relative_survey.json"),
+        time_start=pd.to_datetime("2021-12-01"),
+        time_end=pd.to_datetime("2021-12-08"),
+        beiwe_ids=["idr8gqdh"],
+        all_interventions_dict=interventions_dict)
+    # should include one survey schedule and cutoff the other one
     assert sample_schedule.shape[0] == 1
     assert np.mean(
         sample_schedule.columns ==

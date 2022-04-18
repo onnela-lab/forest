@@ -202,6 +202,11 @@ def gen_survey_schedule(
             # Remove the placeholder delivery times which were only necessary
             # for calculating the next_delivery_time column
             tbl = tbl.loc[tbl['delivery_time'] != week_after_last, ]
+            # remove any rows outside our time interval
+            tbl = tbl.loc[(pd.to_datetime(time_start)
+                          < tbl['delivery_time'])
+                          & (tbl['delivery_time']
+                          < pd.to_datetime(time_end)), ]
             tbl["id"] = i
             tbl["beiwe_id"] = user
             # Get all question IDs for the survey
