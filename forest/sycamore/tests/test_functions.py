@@ -67,7 +67,24 @@ def test_gen_survey_schedule():
         time_end=pd.to_datetime("2021-12-30"),
         beiwe_ids=["idr8gqdh"],
         all_interventions_dict=interventions_dict)
-    assert sample_schedule.shape[0] == 7
+
+    assert sample_schedule.shape[0] == 9
+    assert np.mean(
+        sample_schedule.columns ==
+        pd.Index(["delivery_time", "next_delivery_time", "id", "beiwe_id",
+                  "question_id"])
+    ) == 1.0
+
+
+def test_gen_survey_schedule_one_weekly():
+    interventions_dict = get_all_interventions_dict(INTERVENTIONS_PATH)
+    sample_schedule = gen_survey_schedule(
+        os.path.join(TEST_DATA_DIR, "one_weekly_survey.json"),
+        time_start=pd.to_datetime("2021-12-01"),
+        time_end=pd.to_datetime("2021-12-08"),
+        beiwe_ids=["idr8gqdh"],
+        all_interventions_dict=interventions_dict)
+    assert sample_schedule.shape[0] == 1
     assert np.mean(
         sample_schedule.columns ==
         pd.Index(["delivery_time", "next_delivery_time", "id", "beiwe_id",

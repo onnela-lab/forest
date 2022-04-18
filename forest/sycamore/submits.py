@@ -90,7 +90,7 @@ def generate_survey_times(
 
         weeks = pd.Timedelta(t_end - t_start).days
         # Get ceiling number of weeks
-        weeks = math.ceil(weeks / 7.0)
+        weeks = math.floor(weeks / 7.0)
 
         # Roll dates
         t_lag = list(np.roll(np.array(timings, dtype="object"), -1))
@@ -132,6 +132,10 @@ def gen_survey_schedule(
         all_interventions_dict: dict
 ) -> pd.DataFrame:
     """Get survey schedule for a number of users
+
+    This generates a DataFrame with the times surveys were delivered for each
+    user. In addition, another delivery time is added a week after the last
+    delivery time to catch the survey submitted after the last delivery.
 
     Args:
         config_path(str):
@@ -183,11 +187,21 @@ def gen_survey_schedule(
             # May not be necessary, but I"m leaving this in case timestamps are
             # in different formats
             tbl["delivery_time"] = pd.to_datetime(tbl["delivery_time"])
+            # add a delivery time a week in the future to capture the last
+            # delivery
+            week_after_last = tbl.delivery_time.max() + pd.Timedelta(7, "d")
+            tbl = pd.concat(
+                [tbl, pd.DataFrame({"delivery_time": [week_after_last]})],
+                axis = 0
+            )
             tbl.sort_values("delivery_time", inplace=True)
             tbl.reset_index(drop=True, inplace=True)
             # Create the "next" time column too, which indicates the next time
             # the survey will be deployed
             tbl["next_delivery_time"] = tbl.delivery_time.shift(-1)
+            # Remove the placeholder delivery times which were only necessary
+            # for calculating the next_delivery_time column
+            tbl = tbl.loc[tbl['delivery_time'] != week_after_last, ]
             tbl["id"] = i
             tbl["beiwe_id"] = user
             # Get all question IDs for the survey
