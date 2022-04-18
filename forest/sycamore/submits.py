@@ -192,7 +192,7 @@ def gen_survey_schedule(
             week_after_last = tbl.delivery_time.max() + pd.Timedelta(7, "d")
             tbl = pd.concat(
                 [tbl, pd.DataFrame({"delivery_time": [week_after_last]})],
-                axis = 0
+                axis=0
             )
             tbl.sort_values("delivery_time", inplace=True)
             tbl.reset_index(drop=True, inplace=True)
