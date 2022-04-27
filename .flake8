@@ -4,5 +4,8 @@ exclude =
     forest/jasmine/data2mobmat.py,
     forest/jasmine/mobmat2traj.py,
     forest/jasmine/sogp_gps.py,
-    forest/poplar,
-    forest/willow
+    forest/poplar/classes,
+    forest/poplar/constants,
+    forest/poplar/functions,
+    forest/poplar/raw,
+    forest/willow/log_stats.py
