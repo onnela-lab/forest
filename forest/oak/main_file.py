@@ -15,7 +15,6 @@ import numpy as np
 import os
 import pandas as pd
 from scipy import interpolate
-from scipy.interpolate import interp2d
 from scipy.signal import find_peaks, tukey
 import sys
 
@@ -205,7 +204,7 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
         # interpolate spectrogram
         freqs = out[2]
         freqs_interp = np.arange(0.5, 4.5, 0.05)
-        ip = interp2d(range(coefs.shape[1]), freqs, coefs)
+        ip = interpolate.interp2d(range(coefs.shape[1]), freqs, coefs)
         coefs_interp = ip(range(coefs.shape[1]), freqs_interp)
 
         # trim spectrogram from the coi
