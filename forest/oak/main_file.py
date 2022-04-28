@@ -594,8 +594,8 @@ study_folder = "C:/Users/User1/Documents/project/data"
 output_folder = "C:/Users/User1/Documents/project/results"
 
 tz_str = "America/New_York"
-time_start = "2018-01-01 %H_%M_%S"
-time_end = "2022-01-01 %H_%M_%S"
+time_start = "2018-01-01 00_00_00"
+time_end = "2022-01-01 00_00_00"
 
 # main function
 main_function(study_folder, output_folder, tz_str, option=None,
