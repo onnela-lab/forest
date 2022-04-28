@@ -377,7 +377,7 @@ def main_function(study_folder: str, output_folder: str, tz_str: str,
     fmt = '%Y-%m-%d %H_%M_%S'
     from_zone = tz.gettz('UTC')
     if tz_str is None:
-        tz_str = "America/New_York"
+        tz_str = 'UTC'
     to_zone = tz.gettz(tz_str)
 
     # create folders for results
@@ -595,9 +595,9 @@ study_folder = "C:/Users/User1/Documents/project/data"
 output_folder = "C:/Users/User1/Documents/project/results"
 
 tz_str = "America/New_York"
-time_start = "2018-01-01"
-time_end = "2022-01-01"
+time_start = "2018-01-01 %H_%M_%S"
+time_end = "2022-01-01 %H_%M_%S"
 
 # main function
 main_function(study_folder, output_folder, tz_str, option=None,
-              time_start=None, time_end=None, beiwe_id={"4aczi869"})
+              time_start=None, time_end=None, beiwe_id=None)
