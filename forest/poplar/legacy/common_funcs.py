@@ -65,6 +65,24 @@ def filename2stamp(filename: str) -> int:
     return stamp
 
 
+def get_files_timestamps(folder_path: str) -> np.array:
+    """Get List of Files and Timestamps in a folder
+    Args:
+        folder_path: The directory containing files
+    Returns:
+        filenames: An np.array containing all csv files in the directory
+        filestamps: An np.array containing all timestamps of csv files in
+            directory, in the same order as those in filenames
+    """
+    # get list of all files in path
+    filenames = np.sort(np.array(
+        [file for file in os.listdir(folder_path) if not file.startswith(".")]
+    ))
+    # create a list to convert all filenames to UNIX time
+    filestamps = np.array(
+        [filename2stamp(filename) for filename in filenames])
+    return filenames, filestamps
+
 def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
               time_start: Optional[List[Any]], time_end: Optional[List[Any]]
               ) -> pd.DataFrame:
@@ -111,17 +129,13 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
         print('User ' + str(beiwe_id) + ' : ' + str(
             datastream) + ' data are not collected.')
     else:
-        filenames = np.sort(np.array(os.listdir(folder_path)))
-        filenames = np.array(
-            [file for file in filenames if not file.startswith(".")]
-        )
-        # create a list to convert all filenames to UNIX time
-        filestamps = np.array(
-            [filename2stamp(filename) for filename in filenames])
+        filenames, filestamps = get_files_timestamps(folder_path)
+
         # find the timestamp in the identifier (when the user was enrolled)
         if os.path.exists(os.path.join(study_folder, beiwe_id, "identifiers")):
-            identifier_files = os.listdir(
-                os.path.join(study_folder, beiwe_id, "identifiers"))
+            identifier_files, stamps = get_files_timestamps(
+                os.path.join(study_folder, beiwe_id, "identifiers")
+            )
             identifiers = pd.read_csv(
                 os.path.join(study_folder, beiwe_id, "identifiers",
                              identifier_files[0]), sep=","
@@ -145,16 +159,22 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
             stamp_start = max(stamp_start1, stamp_start2)
         # Last hour: look at all the subject's directories (except survey) and
         # find the latest date for each directory
-        directories = os.listdir(os.path.join(study_folder, beiwe_id))
+        directories = [
+            dir for dir in os.listdir(os.path.join(study_folder, beiwe_id))
+            if os.path.isdir(os.path.join(study_folder, beiwe_id, dir))
+        ]
+
         directories = list(set(directories) - {
-            "survey_answers", "survey_timings", "audio_recordings"})
+            "survey_answers", "survey_timings", "audio_recordings"
+        })
         all_timestamps = []
+
         for i in directories:
-            files = os.listdir(os.path.join(study_folder, beiwe_id, i))
-            all_timestamps += [filename2stamp(filename) for filename in files]
-        ordered_timestamps = sorted(
-            [timestamp for timestamp in all_timestamps if
-             timestamp is not None])
+            filenames, filestamps = get_files_timestamps(
+                os.path.join(study_folder, beiwe_id, i)
+            )
+            all_timestamps = all_timestamps + filestamps.tolist()
+        ordered_timestamps = sorted(all_timestamps)
         stamp_end1 = ordered_timestamps[-1]
         if time_end is None:
             stamp_end = stamp_end1
