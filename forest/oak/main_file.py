@@ -21,7 +21,7 @@ from scipy.signal import find_peaks, tukey
 from ssqueezepy import ssq_cwt
 
 
-def rle(inarray: np.ndarray) -> [np.ndarray, np.ndarray, np.ndarray]:
+def rle(inarray: np.ndarray) -> tuple:
     """Runs length encoding.
 
     Args:
@@ -37,7 +37,7 @@ def rle(inarray: np.ndarray) -> [np.ndarray, np.ndarray, np.ndarray]:
     """
     array_length = len(inarray)
     if array_length == 0:
-        return None, None, None
+        return (None, None, None)
     else:
         pairwise_unequal = inarray[1:] != inarray[:-1]  # pairwise unequal
         ind = np.append(np.where(pairwise_unequal),
@@ -45,12 +45,11 @@ def rle(inarray: np.ndarray) -> [np.ndarray, np.ndarray, np.ndarray]:
         run_length = np.diff(np.append(-1, ind))  # run lengths
         start_ind = np.cumsum(np.append(0, run_length))[:-1]  # positions
         val = inarray[ind]
-        return run_length, start_ind, val
+        return (run_length, start_ind, val)
 
 
 def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
-                    z_bout: np.ndarray) -> [np.ndarray, np.ndarray,
-                                            np.ndarray]:
+                    z_bout: np.ndarray) -> tuple:
     """Preprocesses accelerometer bout to a common format.
 
     Resample 3-axial input signal to a predefined sampling rate and compute
@@ -110,7 +109,7 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
 
     vm_bout = np.sqrt(x_bout**2+y_bout**2+z_bout**2)-1
 
-    return x_bout, y_bout, z_bout, vm_bout
+    return (x_bout, y_bout, z_bout, vm_bout)
 
 
 def adjust_bout(vm_bout: np.ndarray, fs: int) -> np.ndarray:
