@@ -142,8 +142,8 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
         # Last hour: look at all the subject's directories (except survey) and
         # find the latest date for each directory
         directories = os.listdir(study_folder + "/" + beiwe_id)
-        directories = list(set(directories) - set(
-            ["survey_answers", "survey_timings", "audio_recordings"]))
+        directories = list(set(directories) - {
+            "survey_answers", "survey_timings", "audio_recordings"})
         all_timestamps = []
         for i in directories:
             files = os.listdir(study_folder + "/" + beiwe_id + "/" + i)
