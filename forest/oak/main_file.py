@@ -550,9 +550,9 @@ def main_function(study_folder: str, output_folder: str, tz_str: str = None,
                     print('Empty file')
 
             if option is None or option == 'both' or option == 'daily':
-                        cadence_temp_daily = [item for sublist in
-                                               cadence_temp_daily
-                                               for item in sublist]
+                cadence_temp_daily = [item for sublist in
+                                      cadence_temp_daily
+                                      for item in sublist]
 
                 walkingtime_daily[d_ind] = len(cadence_temp_daily)
                 steps_daily[d_ind] = int(np.sum(cadence_temp_daily))
