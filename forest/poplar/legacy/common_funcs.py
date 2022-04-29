@@ -112,13 +112,14 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
             datastream) + ' data are not collected.')
     else:
         filenames = np.sort(np.array(os.listdir(folder_path)))
+        filenames = [file for file in filenames if not file.startswith(".")]
         # create a list to convert all filenames to UNIX time
         filestamps = np.array(
             [filename2stamp(filename) for filename in filenames])
         # find the timestamp in the identifier (when the user was enrolled)
         if os.path.exists(os.path.join(study_folder, beiwe_id, "identifiers")):
             identifier_files = os.listdir(
-                os.path.join(study_folder, beiwe_id,"identifiers"))
+                os.path.join(study_folder, beiwe_id, "identifiers"))
             identifiers = pd.read_csv(
                 os.path.join(study_folder, beiwe_id, "identifiers",
                              identifier_files[0]), sep=","
@@ -142,7 +143,7 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
             stamp_start = max(stamp_start1, stamp_start2)
         # Last hour: look at all the subject's directories (except survey) and
         # find the latest date for each directory
-        directories = os.listdir(os.path.join(study_folder,beiwe_id))
+        directories = os.listdir(os.path.join(study_folder, beiwe_id))
         directories = list(set(directories) - {
             "survey_answers", "survey_timings", "audio_recordings"})
         all_timestamps = []
