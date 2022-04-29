@@ -190,7 +190,6 @@ def write_all_summaries(beiwe_id: str, stats_pdframe: pd.DataFrame,
           output
     Return: write out as csv files named by user ID
     """
-    if not os.path.exists(output_folder):
-        os.mkdir(output_folder)
+    os.makedirs(output_folder, exist_ok=True)
     stats_pdframe.to_csv(output_folder + "/" + str(beiwe_id) + ".csv",
                          index=False)
