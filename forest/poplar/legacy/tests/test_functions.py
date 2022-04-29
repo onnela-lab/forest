@@ -3,8 +3,12 @@ import os
 import numpy as np
 import pandas as pd
 import pytest
+from tempfile import TemporaryDirectory
 
-TEST_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
+from forest.poplar.legacy.common_funcs import *
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+TEST_DATA_DIR = os.path.join(CURRENT_DIR, "test_data")
 
 def test_datetime2stamp():
     time_list = [2020, 11, 1, 12, 9, 50]
@@ -66,9 +70,18 @@ def test_filename2stamp():
     assert filename2stamp(filename) == 1612483200
 
 
+def test_read_data():
+    tuple = read_data("idr8gqdh", TEST_DATA_DIR, "gps", "America/New_York",
+                      time_start = [2020, 11, 1, 20, 9, 50],
+                      time_end = [2022, 11, 1, 20, 9, 50])
+    assert tuple[0].shape[0] == 23
+    assert tuple[0].shape[1] == 6
+    assert tuple[1] == 1639530000
+    assert tuple[2] == 1639699200
 
 
-
-
-
-
+def test_write_all_summaries():
+    df_to_write = pd.DataFrame({"x": [5, 8], "y": [4, 9]})
+    with TemporaryDirectory() as tempdir:
+        write_all_summaries("test_id", df_to_write, tempdir)
+        assert os.listdir(tempdir) == ['test_id.csv']
