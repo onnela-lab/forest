@@ -268,4 +268,4 @@ def test_file_to_datetime():
 
 def test_get_ids():
     users_list = get_ids(SAMPLE_DIR)
-    assert set(users_list) == set(["16au2moz", "idr8gqdh"])
+    assert set(users_list) == {"16au2moz", "idr8gqdh"}
