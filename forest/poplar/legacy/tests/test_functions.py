@@ -115,3 +115,18 @@ def test_write_all_summaries():
     with TemporaryDirectory() as tempdir:
         write_all_summaries("test_id", df_to_write, tempdir)
         assert os.listdir(tempdir) == ['test_id.csv']
+
+
+def test_get_files_timestamps():
+    file_list, timestamp_list = get_files_timestamps(
+        os.path.join(TEST_DATA_DIR, "idr8gqdh", "gps")
+    )
+
+    assert np.array_equal(file_list, np.array(
+        ['2021-12-15 01_00_00+00_00.csv', '2021-12-16 21_00_00+00_00.csv',
+         '2021-12-17 00_00_00+00_00.csv']
+    ))
+    print(timestamp_list)
+    assert np.array_equal(timestamp_list, np.array(
+        [1639530000, 1639688400, 1639699200]
+    ))
