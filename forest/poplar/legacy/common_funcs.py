@@ -52,7 +52,7 @@ def stamp2datetime(stamp: Union[float, int], tz_str: str) -> list:
             loc_dt.second]
 
 
-def filename2stamp(filename: str) -> float:
+def filename2stamp(filename: str) -> int:
     """
     Docstring
     Args: filename (str), the filename of communication log
@@ -100,7 +100,7 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
     """
     df = pd.DataFrame()
     stamp_start = 1e12
-    stamp_end = 0.
+    stamp_end: int = 0
     folder_path = study_folder + "/" + beiwe_id + "/" + str(datastream)
     files_in_range = []
     # if text folder exists, call folder must exists
