@@ -452,14 +452,14 @@ def main_function(study_folder: str, output_folder: str, tz_str: str = None,
 
             # initiate temporal metric
             if option is None or option == 'both' or option == 'daily':
-                cadence_temp_daily = []
+                cadence_temp_daily = list()
 
             for f in file_ind:
                 sys.stdout.write('File: ' + str(f) + '\n')
 
                 # initiate temporal metric
                 if option is None or option == 'both' or option == 'hourly':
-                    cadence_temp_hourly = []
+                    cadence_temp_hourly = list()
                     # hour of the day
                     h_ind = int((dates[f]-dates_shifted[f]).seconds/60/60)
 
@@ -528,15 +528,16 @@ def main_function(study_folder: str, output_folder: str, tz_str: str = None,
                                                                  > 0)]
                             if (option is None or option == 'both' or
                                     option == 'daily'):
-                                cadence_temp_daily = np.concatenate((
-                                    cadence_temp_daily, cadence_bout))
+                                cadence_temp_daily.append(cadence_bout)
                             if (option is None or option == 'both' or
                                     option == 'hourly'):
-                                cadence_temp_hourly = np.concatenate((
-                                    cadence_temp_hourly, cadence_bout))
+                                cadence_temp_hourly.append(cadence_bout)
 
                     if (option is None or option == 'both' or
                             option == 'hourly'):
+                        cadence_temp_hourly = np.array(
+                            cadence_temp_hourly).flatten()
+
                         walkingtime_hourly[d_ind, h_ind] = len(
                             cadence_temp_hourly)
                         steps_hourly[d_ind, h_ind] = int(np.sum(
@@ -548,6 +549,9 @@ def main_function(study_folder: str, output_folder: str, tz_str: str = None,
                     print('Empty file')
 
             if option is None or option == 'both' or option == 'daily':
+                cadence_temp_daily = np.array(
+                    cadence_temp_daily).flatten()
+
                 walkingtime_daily[d_ind] = len(cadence_temp_daily)
                 steps_daily[d_ind] = int(np.sum(cadence_temp_daily))
                 cadence_daily[d_ind] = np.mean(cadence_temp_daily)
