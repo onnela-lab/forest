@@ -21,7 +21,7 @@ QUESTION_TYPES_LOOKUP = {
 }
 
 # On 6 Dec 2016, a commit was pushed which changed the behavior of Android
-# Radio question answers. The pull request was called "Gets nullable Integer
+# Radio question answers. The commit was called "Gets nullable Integer
 # answers from sliders and radio button questions"
 # and can be found at
 # https://github.com/onnela-lab/beiwe-android/commit/6341eb5498ceeffcb64d65c2dd2bcfdab9b982f2
