@@ -1,12 +1,12 @@
 import datetime
+import logging
 import math
 from typing import Optional, Tuple, Dict
-import logging
 
 import numpy as np
 import pandas as pd
 
-from forest.sycamore.common import read_json, aggregate_surveys_no_config
+from forest.sycamore.common import read_json
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,9 @@ def convert_time_to_date(submit_time: datetime.datetime,
             desired day of week
         time(list):
             List of timings times from the configuration surveys information
+
+    Returns:
+        List of dates corresponding to the times
     """
     # Convert inputted desired day into an integer between 0 and 6
     day = day % 7
@@ -68,9 +71,8 @@ def generate_survey_times(
             a timestamp object
             (only needed for relative surveys)
     Returns:
-        surveys(list):
-            A list of all survey times that occur between the time_start and
-            time_end per the given survey timings schedule
+        A list of all survey times that occur between the time_start and
+        time_end per the given survey timings schedule
     """
     if survey_type not in ["weekly", "absolute", "relative"]:
         raise ValueError("Incorrect type of survey."
@@ -88,7 +90,7 @@ def generate_survey_times(
 
         weeks = pd.Timedelta(t_end - t_start).days
         # Get ceiling number of weeks
-        weeks = math.ceil(weeks / 7.0)
+        weeks = math.floor(weeks / 7.0)
 
         # Roll dates
         t_lag = list(np.roll(np.array(timings, dtype="object"), -1))
@@ -126,19 +128,23 @@ def generate_survey_times(
 
 
 def gen_survey_schedule(
-        config_path: str, time_start: str, time_end: str, beiwe_ids: list,
+        config_path: str, time_start: str, time_end: str, users: list,
         all_interventions_dict: dict
 ) -> pd.DataFrame:
     """Get survey schedule for a number of users
+
+    This generates a DataFrame with the times surveys were delivered for each
+    user. In addition, another delivery time is added a week after the last
+    delivery time to catch the survey submitted after the last delivery.
 
     Args:
         config_path(str):
             File path to study configuration file
         time_start(str):
-            The first date of the survey data
+            The first date of the survey data, in YYYY-MM-DD format
         time_end(str):
-            The last date of the survey data
-        beiwe_ids(list):
+            The last date of the survey data, in YYYY-MM-DD format
+        users(list):
             List of users in study for which we are generating a survey
             schedule
         all_interventions_dict(dict):
@@ -147,15 +153,14 @@ def gen_survey_schedule(
             and a timestamp for each intervention time
 
     Returns:
-        times_sur(DataFrame):
-            DataFrame with a line for every survey deployed to every user in
-            the study for the given time range
+        DataFrame with a line for every survey deployed to every user in
+        the study for the given time range
     """
     # List of surveys
     surveys = read_json(config_path)["surveys"]
     # For each survey create a list of survey times
     times_sur = []
-    for u_id in beiwe_ids:
+    for user in users:
         for i, s in enumerate(surveys):
             s_times: list = []
             if s["timings"]:
@@ -170,25 +175,40 @@ def gen_survey_schedule(
                 )
             if s["relative_timings"]:
                 # We can only get relative timings if we have an index time
-                if all_interventions_dict[u_id]:
+                if all_interventions_dict[user]:
                     s_times = s_times + generate_survey_times(
                         time_start, time_end, timings=s["relative_timings"],
                         survey_type="relative",
-                        intervention_dict=all_interventions_dict[u_id]
+                        intervention_dict=all_interventions_dict[user]
                     )
                 else:
-                    logger.warning("error: no index time found for %s", u_id)
+                    logger.warning("error: no index time found for %s", user)
             tbl = pd.DataFrame({"delivery_time": s_times})
             # May not be necessary, but I"m leaving this in case timestamps are
             # in different formats
             tbl["delivery_time"] = pd.to_datetime(tbl["delivery_time"])
+            # add a delivery time a week in the future to capture the last
+            # delivery
+            week_after_last = tbl.delivery_time.max() + pd.Timedelta(7, "d")
+            tbl = pd.concat(
+                [tbl, pd.DataFrame({"delivery_time": [week_after_last]})],
+                axis=0
+            )
             tbl.sort_values("delivery_time", inplace=True)
             tbl.reset_index(drop=True, inplace=True)
             # Create the "next" time column too, which indicates the next time
             # the survey will be deployed
             tbl["next_delivery_time"] = tbl.delivery_time.shift(-1)
+            # Remove the placeholder delivery times which were only necessary
+            # for calculating the next_delivery_time column
+            tbl = tbl.loc[tbl['delivery_time'] != week_after_last, ]
+            # remove any rows outside our time interval
+            tbl = tbl.loc[(pd.to_datetime(time_start)
+                          < tbl['delivery_time'])
+                          & (tbl['delivery_time']
+                          < pd.to_datetime(time_end)), ]
             tbl["id"] = i
-            tbl["beiwe_id"] = u_id
+            tbl["beiwe_id"] = user
             # Get all question IDs for the survey
             qs = [q["question_id"]
                   for q in s["content"] if "question_id" in q.keys()]
@@ -206,8 +226,8 @@ def gen_survey_schedule(
 
 
 def survey_submits(
-        config_path: str, time_start: str, time_end: str, beiwe_ids: list,
-        agg: pd.DataFrame, all_interventions_dict: Optional[dict] = None
+        config_path: str, time_start: str, time_end: str, users: list,
+        aggregated_data: pd.DataFrame, interventions_filepath: str = None
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Get survey submits for users
 
@@ -215,29 +235,31 @@ def survey_submits(
         config_path(str):
             File path to study configuration file
         time_start(str):
-            The first date of the survey data
+            The first date of the survey data, in YYYY-MM-DD format
         time_end(str):
-            The last date of the survey data
-        beiwe_ids(list):
+            The last date of the survey data, in YYYY-MM-DD format
+        users(list):
             List of users in study for which we are generating a survey
             schedule
-        all_interventions_dict(dict):
-            dict containing interventions for each user. Each key in the dict
-            is a beiwe id. Each value is a dict, with a key for each
-            intervention name and a timestamp for each intervention's time
-        agg(DataFrame):
-        Dataframe of aggregated data. Output from aggregate_surveys_config
+        interventions_filepath(str):
+            filepath where interventions json file is.
+        aggregated_data(DataFrame):
+            Dataframe of aggregated data. Output from aggregate_surveys_config
 
     Returns:
-        submit_lines(DataFrame): A DataFrame with all surveys deployed in the
-        given timeframe on the study to the users with completion times
-        submit_lines_summary(DataFrame): a DataFrame with all users, total
-        surveys received, and responses.
-    """
-    if all_interventions_dict is None:
-        all_interventions_dict = {}
+        A DataFrame with all surveys deployed in the given timeframe on the
+        study to the users with completion times
 
-    sched = gen_survey_schedule(config_path, time_start, time_end, beiwe_ids,
+        A DataFrame with all users, total surveys received, and responses.
+    """
+    agg = aggregated_data.copy()
+    if interventions_filepath is None:
+        all_interventions_dict = {}
+    else:
+        all_interventions_dict = get_all_interventions_dict(
+            interventions_filepath)
+
+    sched = gen_survey_schedule(config_path, time_start, time_end, users,
                                 all_interventions_dict)
 
     if sched.shape[0] == 0:  # return empty dataframes
@@ -294,6 +316,9 @@ def survey_submits(
 
     submit_lines3["time_to_submit"] = submit_lines3["submit_time"] - \
         submit_lines3["delivery_time"]
+    submit_lines3["time_to_submit"] = [
+        t.seconds for t in submit_lines3["time_to_submit"]
+    ]
 
     # Create a summary that has survey_id, beiwe_id, num_surveys, num
     # submitted surveys, average time to submit
@@ -309,7 +334,7 @@ def survey_submits(
         avg_time_to_submit = submit_lines3.loc[
             submit_lines3.submit_flg == 1
         ].groupby(summary_cols)["time_to_submit"].apply(
-            lambda x: sum(x, datetime.timedelta()) / len(x)
+            lambda x: np.mean(x)
         )
     else:
         # do the groupby on all rows to avoid getting an error
@@ -332,10 +357,11 @@ def survey_submits(
         np.array("NaT", dtype="datetime64[ns]")
     )
 
+    # mark as NA if no submit happened
     submit_lines3["time_to_submit"] = np.where(
         submit_lines3["submit_flg"] == 1,
         submit_lines3["time_to_submit"],
-        np.array("NaT", dtype="datetime64[ns]")
+        np.NaN
     )
 
     return submit_lines3.sort_values(
@@ -343,33 +369,33 @@ def survey_submits(
     ).drop_duplicates(), submit_lines_summary
 
 
-def survey_submits_no_config(study_dir: str,
-                             study_tz: str = "UTC") -> pd.DataFrame:
+def survey_submits_no_config(input_agg: pd.DataFrame) -> pd.DataFrame:
     """Get survey submits without config file
 
     Alternative function for getting the survey completions (doesn't have
     expected times of surveys)
     Args:
-        study_dir(str):
-            Directory where information is located
-        study_tz(str):
-            Time zone for local time
+        input_agg(DataFrame):
+            Dataframe of Aggregated Data
+    Returns:
+        Dataframe with one line per survey submission.
+
     """
-    tmp = aggregate_surveys_no_config(study_dir, study_tz)
+    agg = input_agg.copy()
 
     def summarize_submits(df):
         temp_dict = {"min_time": df.min(), "max_time": df.max()}
         return pd.Series(temp_dict, index=pd.Index(["min_time", "max_time"]))
 
-    tmp = tmp.groupby(["survey id", "beiwe_id", "surv_inst_flg"])[
+    agg = agg.groupby(["survey id", "beiwe_id", "surv_inst_flg"])[
         "Local time"
     ].apply(summarize_submits).reset_index()
-    tmp = tmp.pivot(index=["survey id", "beiwe_id", "surv_inst_flg"],
+    agg = agg.pivot(index=["survey id", "beiwe_id", "surv_inst_flg"],
                     columns="level_3",
                     values="Local time").reset_index()
-    tmp["time_to_complete"] = tmp["max_time"] - tmp["min_time"]
-    tmp["time_to_complete"] = [t.seconds for t in tmp["time_to_complete"]]
-    return tmp.sort_values(["beiwe_id", "survey id"])
+    agg["time_to_complete"] = agg["max_time"] - agg["min_time"]
+    agg["time_to_complete"] = [t.seconds for t in agg["time_to_complete"]]
+    return agg.sort_values(["beiwe_id", "survey id"])
 
 
 def get_all_interventions_dict(filepath: Optional[str]) -> dict:
@@ -384,7 +410,6 @@ def get_all_interventions_dict(filepath: Optional[str]) -> dict:
         a dict with one key for each beiwe_id in the study. The value for each
         key is a dict with a key for each intervention in the study, and a
         value which is the timestamp
-    filepath(str)
     """
     if filepath is None:
         return {}
