@@ -112,7 +112,9 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
             datastream) + ' data are not collected.')
     else:
         filenames = np.sort(np.array(os.listdir(folder_path)))
-        filenames = [file for file in filenames if not file.startswith(".")]
+        filenames = np.array(
+            [file for file in filenames if not file.startswith(".")]
+        )
         # create a list to convert all filenames to UNIX time
         filestamps = np.array(
             [filename2stamp(filename) for filename in filenames])
@@ -162,7 +164,8 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
 
         # extract the filenames in range
         files_in_range = filenames[
-            (filestamps >= stamp_start) * (filestamps < stamp_end)]
+            (filestamps >= stamp_start) * (filestamps < stamp_end)
+        ]
         if len(files_in_range) == 0:
             sys.stdout.write('User ' + str(beiwe_id) + ' : There are no ' +
                              str(datastream) + ' data in range.' + '\n')
