@@ -8,6 +8,7 @@ from typing import Optional, Any, List, Union
 import numpy as np
 import pandas as pd
 
+
 def datetime2stamp(time_list: Union[list, tuple], tz_str: str) -> int:
     """
     Docstring
