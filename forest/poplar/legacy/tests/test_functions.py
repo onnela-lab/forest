@@ -2,7 +2,6 @@ import os
 
 import numpy as np
 import pandas as pd
-import pytest
 from tempfile import TemporaryDirectory
 
 from forest.poplar.legacy.common_funcs import (

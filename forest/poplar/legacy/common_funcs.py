@@ -3,7 +3,6 @@ from datetime import datetime
 import logging
 import os
 from pytz import timezone
-import sys
 from typing import Optional, Any, List, Union, Tuple
 
 import numpy as np
