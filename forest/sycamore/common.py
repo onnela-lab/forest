@@ -33,8 +33,7 @@ def safe_read_csv(filepath: str) -> pd.DataFrame:
         formatted correctly), or a blank pandas DataFrame.
     """
     try:
-        df = pd.read_csv(filepath)
-        return df
+        return pd.read_csv(filepath)
     except UnicodeDecodeError:
         # If a file is corrupted, don't bother reading it in.
         logger.error("Unicode Error When Reading %s", filepath)
