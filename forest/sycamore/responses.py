@@ -85,7 +85,7 @@ def agg_changed_answers(agg: pd.DataFrame) -> pd.DataFrame:
 
 def agg_changed_answers_summary(
         config_path: str, agg: pd.DataFrame
-) -> Tuple[Any, DataFrame]:
+) -> Tuple[Any, pd.DataFrame]:
     """Create Summary File with survey, beiwe id, question id, average
     number of changed answers, average time spent answering question
 
