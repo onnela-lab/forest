@@ -101,10 +101,10 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
     df = pd.DataFrame()
     stamp_start = 1e12
     stamp_end: int = 0
-    folder_path = study_folder + "/" + beiwe_id + "/" + str(datastream)
+    folder_path = os.path.join(study_folder, beiwe_id, datastream)
     files_in_range = []
     # if text folder exists, call folder must exists
-    if not os.path.exists(study_folder + "/" + beiwe_id):
+    if not os.path.exists(os.path.join(study_folder, beiwe_id)):
         print('User ' + str(beiwe_id) +
               ' does not exist, please check the ID again.')
     elif not os.path.exists(folder_path):
@@ -116,12 +116,13 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
         filestamps = np.array(
             [filename2stamp(filename) for filename in filenames])
         # find the timestamp in the identifier (when the user was enrolled)
-        if os.path.exists(study_folder + "/" + beiwe_id + "/identifiers"):
+        if os.path.exists(os.path.join(study_folder, beiwe_id, "identifiers")):
             identifier_files = os.listdir(
-                study_folder + "/" + beiwe_id + "/identifiers")
+                os.path.join(study_folder, beiwe_id,"identifiers"))
             identifiers = pd.read_csv(
-                study_folder + "/" + beiwe_id + "/identifiers/" +
-                identifier_files[0], sep=",")
+                os.path.join(study_folder, beiwe_id, "identifiers",
+                             identifier_files[0]), sep=","
+            )
             # now determine the starting and ending time according to the
             # Docstring
             if identifiers.index[0] > 10 ** 10:
@@ -141,12 +142,12 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
             stamp_start = max(stamp_start1, stamp_start2)
         # Last hour: look at all the subject's directories (except survey) and
         # find the latest date for each directory
-        directories = os.listdir(study_folder + "/" + beiwe_id)
+        directories = os.listdir(os.path.join(study_folder,beiwe_id))
         directories = list(set(directories) - {
             "survey_answers", "survey_timings", "audio_recordings"})
         all_timestamps = []
         for i in directories:
-            files = os.listdir(study_folder + "/" + beiwe_id + "/" + i)
+            files = os.listdir(os.path.join(study_folder, beiwe_id, i))
             all_timestamps += [filename2stamp(filename) for filename in files]
         ordered_timestamps = sorted(
             [timestamp for timestamp in all_timestamps if
@@ -168,7 +169,7 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
             if datastream != 'accelerometer':
                 # read in the data one by one file and stack them
                 for data_file in files_in_range:
-                    dest_path = folder_path + "/" + data_file
+                    dest_path = os.path.join(folder_path, data_file)
                     hour_data = pd.read_csv(dest_path)
                     if df.shape[0] == 0:
                         df = hour_data
@@ -191,5 +192,5 @@ def write_all_summaries(beiwe_id: str, stats_pdframe: pd.DataFrame,
     Return: write out as csv files named by user ID
     """
     os.makedirs(output_folder, exist_ok=True)
-    stats_pdframe.to_csv(output_folder + "/" + str(beiwe_id) + ".csv",
+    stats_pdframe.to_csv(os.path.join(output_folder, str(beiwe_id) + ".csv"),
                          index=False)
