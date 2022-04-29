@@ -9,15 +9,15 @@ by module are walking time and gait speed (cadence).
 Results may be outputted in hourly and daily intervals.
 """
 
-from dateutil import tz
 from datetime import datetime, timedelta
-import numpy as np
 import os
+import sys
+
+from dateutil import tz
+import numpy as np
 import pandas as pd
 from scipy import interpolate
 from scipy.signal import find_peaks, tukey
-import sys
-
 from ssqueezepy import ssq_cwt
 
 
