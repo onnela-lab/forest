@@ -66,7 +66,7 @@ def test_gen_survey_schedule():
         SURVEY_SETTINGS_PATH,
         time_start=pd.to_datetime("2021-12-01"),
         time_end=pd.to_datetime("2021-12-30"),
-        beiwe_ids=["idr8gqdh"],
+        users=["idr8gqdh"],
         all_interventions_dict=interventions_dict)
 
     assert sample_schedule.shape[0] == 6
@@ -83,7 +83,7 @@ def test_gen_survey_schedule_one_weekly():
         os.path.join(TEST_DATA_DIR, "one_weekly_survey.json"),
         time_start=pd.to_datetime("2021-12-01"),
         time_end=pd.to_datetime("2021-12-08"),
-        beiwe_ids=["idr8gqdh"],
+        users=["idr8gqdh"],
         all_interventions_dict=interventions_dict)
     assert sample_schedule.shape[0] == 1
     assert np.mean(
@@ -99,7 +99,7 @@ def test_gen_survey_schedule_cutoff_relative():
         os.path.join(TEST_DATA_DIR, "far_relative_survey.json"),
         time_start=pd.to_datetime("2021-12-01"),
         time_end=pd.to_datetime("2021-12-08"),
-        beiwe_ids=["idr8gqdh"],
+        users=["idr8gqdh"],
         all_interventions_dict=interventions_dict)
     # should include one survey schedule and cutoff the other one
     assert sample_schedule.shape[0] == 1

@@ -128,7 +128,7 @@ def generate_survey_times(
 
 
 def gen_survey_schedule(
-        config_path: str, time_start: str, time_end: str, beiwe_ids: list,
+        config_path: str, time_start: str, time_end: str, users: list,
         all_interventions_dict: dict
 ) -> pd.DataFrame:
     """Get survey schedule for a number of users
@@ -144,7 +144,7 @@ def gen_survey_schedule(
             The first date of the survey data, in YYYY-MM-DD format
         time_end(str):
             The last date of the survey data, in YYYY-MM-DD format
-        beiwe_ids(list):
+        users(list):
             List of users in study for which we are generating a survey
             schedule
         all_interventions_dict(dict):
@@ -160,7 +160,7 @@ def gen_survey_schedule(
     surveys = read_json(config_path)["surveys"]
     # For each survey create a list of survey times
     times_sur = []
-    for user in beiwe_ids:
+    for user in users:
         for i, s in enumerate(surveys):
             s_times: list = []
             if s["timings"]:
@@ -226,7 +226,7 @@ def gen_survey_schedule(
 
 
 def survey_submits(
-        config_path: str, time_start: str, time_end: str, beiwe_ids: list,
+        config_path: str, time_start: str, time_end: str, users: list,
         aggregated_data: pd.DataFrame, interventions_filepath: str = None
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Get survey submits for users
@@ -238,7 +238,7 @@ def survey_submits(
             The first date of the survey data, in YYYY-MM-DD format
         time_end(str):
             The last date of the survey data, in YYYY-MM-DD format
-        beiwe_ids(list):
+        users(list):
             List of users in study for which we are generating a survey
             schedule
         interventions_filepath(str):
@@ -259,7 +259,7 @@ def survey_submits(
         all_interventions_dict = get_all_interventions_dict(
             interventions_filepath)
 
-    sched = gen_survey_schedule(config_path, time_start, time_end, beiwe_ids,
+    sched = gen_survey_schedule(config_path, time_start, time_end, users,
                                 all_interventions_dict)
 
     if sched.shape[0] == 0:  # return empty dataframes

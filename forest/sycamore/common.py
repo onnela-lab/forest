@@ -166,7 +166,7 @@ def read_and_aggregate(
 
 
 def aggregate_surveys(
-        study_dir: str, beiwe_ids: list = None,
+        study_dir: str, users: list = None,
         time_start: str = EARLIEST_DATE,
         time_end: str = None, tz_str: str = "UTC"
 ) -> pd.DataFrame:
@@ -179,7 +179,7 @@ def aggregate_surveys(
         study_dir(str):
             path to downloaded data. This is a folder that includes the user
             data in a subfolder with the beiwe_id as the subfolder name
-        beiwe_ids(list):
+        users(list):
             List of users to aggregate survey data over
         time_start(str):
             The first date of the survey data, in YYYY-MM-DD format
@@ -195,17 +195,17 @@ def aggregate_surveys(
     # READ AND AGGREGATE DATA
     # get a list of users (ignoring hidden files and registry file downloaded
     # when using mano)
-    if beiwe_ids is None:
-        beiwe_ids = get_subdirs(study_dir)
+    if users is None:
+        users = get_subdirs(study_dir)
     if time_end is None:
         time_end = get_month_from_today()
 
-    if len(beiwe_ids) == 0:
+    if len(users) == 0:
         logger.error("No users in directory %s", study_dir)
         return pd.DataFrame(columns=["UTC time"], dtype="datetime64[ns]")
 
     all_data_list = []
-    for user in beiwe_ids:
+    for user in users:
         all_data_list.append(
             read_and_aggregate(study_dir, user, "survey_timings", time_start,
                                time_end, tz_str)
@@ -371,7 +371,7 @@ def convert_timezone_df(df_merged: pd.DataFrame, tz_str: str = "UTC",
 
 def aggregate_surveys_config(
         study_dir: str, config_path: str, study_tz: str = "UTC",
-        beiwe_ids: list = None, time_start: str = EARLIEST_DATE,
+        users: list = None, time_start: str = EARLIEST_DATE,
         time_end: str = None, augment_with_answers: bool = True
 ) -> pd.DataFrame:
     """Aggregate surveys when config is available
@@ -388,7 +388,7 @@ def aggregate_surveys_config(
             path to the study configuration file
         study_tz(str):
             Timezone of study. This defaults to "UTC"
-        beiwe_ids(tuple):
+        users(tuple):
             List of beiwe IDs of users to aggregate
         augment_with_answers(bool):
             Whether to use the survey_answers stream to fill in missing surveys
@@ -405,7 +405,7 @@ def aggregate_surveys_config(
         time_end = get_month_from_today()
     # Read in aggregated data and survey configuration
     config_surveys = parse_surveys(config_path)
-    agg_data = aggregate_surveys(study_dir, beiwe_ids, time_start, time_end,
+    agg_data = aggregate_surveys(study_dir, users, time_start, time_end,
                                  study_tz)
     if agg_data.shape[0] == 0:
         return agg_data
@@ -443,7 +443,7 @@ def aggregate_surveys_config(
     df_merged = convert_timezone_df(df_merged, study_tz)
     if augment_with_answers:
         df_merged["data_stream"] = "survey_timings"
-        df_merged = append_from_answers(df_merged, study_dir, beiwe_ids,
+        df_merged = append_from_answers(df_merged, study_dir, users,
                                         study_tz, time_start, time_end,
                                         config_path)
 
@@ -451,7 +451,7 @@ def aggregate_surveys_config(
 
 
 def aggregate_surveys_no_config(
-        study_dir: str, study_tz: str = "UTC", beiwe_ids: list = None,
+        study_dir: str, study_tz: str = "UTC", users: list = None,
         time_start: str = EARLIEST_DATE,
         time_end: str = None,
         augment_with_answers: bool = True
@@ -464,7 +464,7 @@ def aggregate_surveys_no_config(
             data in a subfolder with the beiwe_id as the subfolder name
         study_tz(str):
             Timezone of study. This defaults to "UTC"
-        beiwe_ids(tuple):
+        users(tuple):
             List of Beiwe IDs to run
         time_start(str):
             The first date of the survey data, in YYYY-MM-DD format
@@ -479,7 +479,7 @@ def aggregate_surveys_no_config(
     """
     if time_end is None:
         time_end = get_month_from_today()
-    agg_data = aggregate_surveys(study_dir, beiwe_ids, time_start, time_end,
+    agg_data = aggregate_surveys(study_dir, users, time_start, time_end,
                                  study_tz)
     if agg_data.shape[0] == 0:
         return agg_data
@@ -496,7 +496,7 @@ def aggregate_surveys_no_config(
     agg_data = convert_timezone_df(agg_data, tz_str=study_tz)
     if augment_with_answers:
         agg_data["data_stream"] = "survey_timings"
-        agg_data = append_from_answers(agg_data, study_dir, beiwe_ids,
+        agg_data = append_from_answers(agg_data, study_dir, users,
                                        study_tz, time_start, time_end)
 
     return agg_data.reset_index(drop=True)
@@ -504,7 +504,7 @@ def aggregate_surveys_no_config(
 
 def append_from_answers(
         agg_data: pd.DataFrame, download_folder: str,
-        beiwe_ids: list = None, tz_str: str = "UTC",
+        users: list = None, tz_str: str = "UTC",
         time_start: str = EARLIEST_DATE, time_end: str = None,
         config_path: str = None
 ) -> pd.DataFrame:
@@ -523,7 +523,7 @@ def append_from_answers(
         tz_str(str):
             Timezone to use for "Local time" column values. This defaults to
             "UTC"
-        beiwe_ids(list):
+        users(list):
             List of Beiwe IDs used to augment with data
         time_start(str):
             The first date of the survey data, in YYYY-MM-DD format
@@ -539,17 +539,17 @@ def append_from_answers(
     if time_end is None:
         time_end = get_month_from_today()
     answers_data = read_aggregate_answers_stream(
-        download_folder, beiwe_ids, tz_str, config_path, time_start,
+        download_folder, users, tz_str, config_path, time_start,
         time_end
     )
     if answers_data.shape[0] == 0:
         return agg_data
 
-    if beiwe_ids is None:
-        beiwe_ids = get_subdirs(download_folder)
+    if users is None:
+        users = get_subdirs(download_folder)
     missing_submission_data = []  # list of surveys to add on to end
 
-    for user in beiwe_ids:
+    for user in users:
         for survey_id in agg_data["survey id"].unique():
             missing_data = find_missing_data(user, survey_id, agg_data,
                                              answers_data)
@@ -718,7 +718,7 @@ def read_user_answers_stream(
 
 
 def read_aggregate_answers_stream(
-        download_folder: str, beiwe_ids: list = None,
+        download_folder: str, users: list = None,
         tz_str: str = "UTC", config_path: str = None,
         time_start: str = EARLIEST_DATE, time_end: str = None,
 ) -> pd.DataFrame:
@@ -729,7 +729,7 @@ def read_aggregate_answers_stream(
         download_folder (str):
             path to downloaded data. This folder should have Beiwe IDs as
             subdirectories.
-        beiwe_ids (str):
+        users (str):
             List of IDs of users to aggregate data on
         tz_str (str):
             Time Zone to include in Local time column of output. See
@@ -755,16 +755,16 @@ def read_aggregate_answers_stream(
     else:
         config_surveys = pd.DataFrame(None)
         config_included = False
-    if beiwe_ids is None:
-        beiwe_ids = get_subdirs(download_folder)
-    if len(beiwe_ids) == 0:
+    if users is None:
+        users = get_subdirs(download_folder)
+    if len(users) == 0:
         logger.warning("No users found")
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
 
     all_users_list = [
         read_user_answers_stream(download_folder, user, tz_str, time_start,
                                  time_end)
-        for user in beiwe_ids
+        for user in users
     ]
 
     aggregated_data = pd.concat(all_users_list, axis=0, ignore_index=True)
