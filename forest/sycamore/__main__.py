@@ -45,8 +45,8 @@ if args.study_folder is None or args.output_folder is None:
 
 compute_survey_stats(output_folder=args.output_dir,
                      study_folder=args.study_folder,
-                     tz_str=args.tz_str, beiwe_ids=args.beiwe_ids,
-                     time_start=args.time_start, time_end=args.time_end,
+                     tz_str=args.tz_str, users=args.beiwe_ids,
+                     start_date=args.time_start, end_date=args.time_end,
                      config_path=args.config_path,
                      interventions_filepath=args.interventions_filepath,
                      augment_with_answers=args.augment_with_answers)
