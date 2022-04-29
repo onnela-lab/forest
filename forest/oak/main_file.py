@@ -139,7 +139,7 @@ def adjust_bout(vm_bout: np.ndarray, fs: int) -> np.ndarray:
 
 
 def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
-                 step_freq: float, alpha: float, beta: float, epsilon: int,
+                 step_freq: tuple, alpha: float, beta: float, epsilon: int,
                  delta: int) -> np.ndarray:
     """Finds walking and calculate steps from raw acceleration data.
 
@@ -350,8 +350,8 @@ def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
 
 
 def main_function(study_folder: str, output_folder: str, tz_str: str,
-                  option: str, time_start=None, time_end=None,
-                  beiwe_id=None) -> None:
+                  option: str, time_start: str, time_end: str,
+                  beiwe_id: list) -> None:
     """Runs walking recognition and step counting algorithm over dataset.
 
     Determine paths to input and output folders, set analysis time frames,
@@ -598,5 +598,5 @@ time_start = "2018-01-01 00_00_00"
 time_end = "2022-01-01 00_00_00"
 
 # main function
-main_function(study_folder, output_folder, tz_str, option=None,
+main_function(study_folder, output_folder, tz_str=None, option=None,
               time_start=None, time_end=None, beiwe_id=None)
