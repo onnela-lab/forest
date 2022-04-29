@@ -227,7 +227,7 @@ def gen_survey_schedule(
 
 def survey_submits(
         config_path: str, time_start: str, time_end: str, beiwe_ids: list,
-        input_agg: pd.DataFrame, interventions_filepath: str = None
+        aggregated_data: pd.DataFrame, interventions_filepath: str = None
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Get survey submits for users
 
@@ -243,7 +243,7 @@ def survey_submits(
             schedule
         interventions_filepath(str):
             filepath where interventions json file is.
-        input_agg(DataFrame):
+        aggregated_data(DataFrame):
             Dataframe of aggregated data. Output from aggregate_surveys_config
 
     Returns:
@@ -252,7 +252,7 @@ def survey_submits(
 
         A DataFrame with all users, total surveys received, and responses.
     """
-    agg = input_agg.copy()
+    agg = aggregated_data.copy()
     if interventions_filepath is None:
         all_interventions_dict = {}
     else:
