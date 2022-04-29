@@ -196,7 +196,7 @@ def aggregate_surveys(
     # get a list of users (ignoring hidden files and registry file downloaded
     # when using mano)
     if users is None:
-        users = get_subdirs(study_dir)
+        users = get_ids(study_dir)
     if time_end is None:
         time_end = get_month_from_today()
 
@@ -546,7 +546,7 @@ def append_from_answers(
         return agg_data
 
     if users is None:
-        users = get_subdirs(download_folder)
+        users = get_ids(download_folder)
     missing_submission_data = []  # list of surveys to add on to end
 
     for user in users:
@@ -665,7 +665,7 @@ def read_user_answers_stream(
     if os.path.isdir(ans_dir):
         # get all survey IDs included for this user (data will have one folder
         # per survey)
-        survey_ids = get_subdirs(ans_dir)
+        survey_ids = get_ids(ans_dir)
         all_surveys = []
         timestamp_start = pd.to_datetime(time_start)
         timestamp_end = pd.to_datetime(time_end)
@@ -756,7 +756,7 @@ def read_aggregate_answers_stream(
         config_surveys = pd.DataFrame(None)
         config_included = False
     if users is None:
-        users = get_subdirs(download_folder)
+        users = get_ids(download_folder)
     if len(users) == 0:
         logger.warning("No users found")
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
@@ -882,7 +882,7 @@ def read_aggregate_answers_stream(
     ]
 
 
-def get_subdirs(study_folder: str) -> list:
+def get_ids(study_folder: str) -> list:
     """Get subfolders in directory, excluding registry and hidden folders
 
     Args:

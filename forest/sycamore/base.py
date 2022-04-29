@@ -4,7 +4,7 @@ from typing import Optional, List
 
 from forest.sycamore.common import (aggregate_surveys_config,
                                     aggregate_surveys_no_config,
-                                    get_subdirs,
+                                    get_ids,
                                     get_month_from_today
                                     )
 from forest.sycamore.constants import EARLIEST_DATE
@@ -52,7 +52,7 @@ def compute_survey_stats(
     os.makedirs(os.path.join(output_folder, "summaries"), exist_ok=True)
     os.makedirs(os.path.join(output_folder, "by_survey"), exist_ok=True)
     if users is None:
-        users = get_subdirs(study_folder)
+        users = get_ids(study_folder)
     if end_date is None:
         end_date = get_month_from_today()
     # Read, aggregate and clean data

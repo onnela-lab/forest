@@ -10,7 +10,7 @@ from forest.sycamore.common import (aggregate_surveys,
                                     aggregate_surveys_no_config,
                                     aggregate_surveys_config,
                                     filename_to_timestamp,
-                                    get_subdirs,
+                                    get_ids,
                                     read_user_answers_stream,
                                     read_aggregate_answers_stream)
 from forest.sycamore.submits import gen_survey_schedule, survey_submits
@@ -266,6 +266,6 @@ def test_file_to_datetime():
     assert filename_to_timestamp(test_str4, "UTC") == expected_timestamp
 
 
-def test_get_subdirs():
-    users_list = get_subdirs(SAMPLE_DIR)
+def test_get_ids():
+    users_list = get_ids(SAMPLE_DIR)
     assert set(users_list) == set(["16au2moz", "idr8gqdh"])
