@@ -25,4 +25,4 @@ QUESTION_TYPES_LOOKUP = {
 # answers from sliders and radio button questions"
 # and can be found at
 # https://github.com/onnela-lab/beiwe-android/commit/6341eb5498ceeffcb64d65c2dd2bcfdab9b982f2
-DATE_ANDROID_RADIO_CHANGE = pd.to_datetime("2016-12-06")
+ANDROID_NULLABLE_ANSWER_CHANGE_DATE = pd.to_datetime("2016-12-06")
