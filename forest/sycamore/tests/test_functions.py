@@ -268,4 +268,4 @@ def test_file_to_datetime():
 
 def test_get_subdirs():
     users_list = get_subdirs(SAMPLE_DIR)
-    assert len(users_list) == 2
+    assert set(users_list) == set(["16au2moz", "idr8gqdh"])
