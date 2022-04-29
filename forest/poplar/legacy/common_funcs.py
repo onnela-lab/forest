@@ -4,12 +4,13 @@ import logging
 import os
 from pytz import timezone
 import sys
-from typing import Optional, Any, List, Union
+from typing import Optional, Any, List, Union, Tuple
 
 import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
+
 
 def datetime2stamp(time_list: Union[list, tuple], tz_str: str) -> int:
     """
@@ -67,7 +68,7 @@ def filename2stamp(filename: str) -> int:
     return stamp
 
 
-def get_files_timestamps(folder_path: str) -> np.array:
+def get_files_timestamps(folder_path: str) -> Tuple[np.ndarray, np.ndarray]:
     """Get List of Files and Timestamps in a folder
     Args:
         folder_path: The directory containing files
@@ -84,6 +85,7 @@ def get_files_timestamps(folder_path: str) -> np.array:
     filestamps = np.array(
         [filename2stamp(filename) for filename in filenames])
     return filenames, filestamps
+
 
 def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
               time_start: Optional[List[Any]], time_end: Optional[List[Any]]
@@ -169,7 +171,7 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
         directories = list(set(directories) - {
             "survey_answers", "survey_timings", "audio_recordings"
         })
-        all_timestamps = []
+        all_timestamps: list = []
 
         for i in directories:
             filenames, filestamps = get_files_timestamps(
