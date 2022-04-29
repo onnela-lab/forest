@@ -1,5 +1,6 @@
 import calendar
 from datetime import datetime
+import logging
 import os
 from pytz import timezone
 import sys
@@ -8,6 +9,7 @@ from typing import Optional, Any, List, Union
 import numpy as np
 import pandas as pd
 
+logger = logging.getLogger(__name__)
 
 def datetime2stamp(time_list: Union[list, tuple], tz_str: str) -> int:
     """
@@ -123,11 +125,11 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
     files_in_range = []
     # if text folder exists, call folder must exists
     if not os.path.exists(os.path.join(study_folder, beiwe_id)):
-        print('User ' + str(beiwe_id) +
-              ' does not exist, please check the ID again.')
+        logger.warning('User %s does not exist, please check the ID again.',
+                       beiwe_id)
     elif not os.path.exists(folder_path):
-        print('User ' + str(beiwe_id) + ' : ' + str(
-            datastream) + ' data are not collected.')
+        logger.warning('User %s: %s data are not collected.', beiwe_id,
+                       datastream)
     else:
         filenames, filestamps = get_files_timestamps(folder_path)
 
@@ -187,8 +189,8 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
             (filestamps >= stamp_start) * (filestamps < stamp_end)
         ]
         if len(files_in_range) == 0:
-            sys.stdout.write('User ' + str(beiwe_id) + ' : There are no ' +
-                             str(datastream) + ' data in range.' + '\n')
+            logger.warning('User %s: There are no %s data in range.',
+                           beiwe_id, datastream)
         else:
             if datastream != 'accelerometer':
                 # read in the data one by one file and stack them
