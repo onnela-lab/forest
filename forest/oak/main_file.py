@@ -349,9 +349,9 @@ def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
     return cp
 
 
-def main_function(study_folder: str, output_folder: str, tz_str: str,
-                  option: str, time_start: str, time_end: str,
-                  beiwe_id: list) -> None:
+def main_function(study_folder: str, output_folder: str, tz_str: str = None,
+                  option: str = None, time_start: str = None,
+                  time_end: str = None, beiwe_id: list = None) -> None:
     """Runs walking recognition and step counting algorithm over dataset.
 
     Determine paths to input and output folders, set analysis time frames,
@@ -579,7 +579,7 @@ gravity = 9.80665
 
 # tuning parameters for walking recognition:
 min_amp = 0.3  # minimum peak-to-peak amplitude (in gravitational units (g))
-step_freq = [1.4, 2.3]  # step frequency (in Hz) - sfr
+step_freq = (1.4, 2.3)  # step frequency (in Hz) - sfr
 alpha = 0.6  # maximum ratio between dominant peak below and within sfr
 beta = 2.5  # maximum ratio between dominant peak above and within sfr
 delta = 20  # maximum change of step frequency between two one-second
@@ -596,7 +596,9 @@ output_folder = "C:/Users/User1/Documents/project/results"
 tz_str = "America/New_York"
 time_start = "2018-01-01 00_00_00"
 time_end = "2022-01-01 00_00_00"
+option = "Both"
+beiwe_id = None
 
 # main function
-main_function(study_folder, output_folder, tz_str=None, option=None,
-              time_start=None, time_end=None, beiwe_id=None)
+main_function(study_folder, output_folder, tz_str, option,
+              time_start, time_end, beiwe_id)
