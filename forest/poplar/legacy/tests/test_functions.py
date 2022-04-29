@@ -75,13 +75,33 @@ def test_filename2stamp():
 
 
 def test_read_data():
-    tuple = read_data("idr8gqdh", TEST_DATA_DIR, "gps", "America/New_York",
-                      time_start=[2020, 11, 1, 20, 9, 50],
-                      time_end=[2022, 11, 1, 20, 9, 50])
-    assert tuple[0].shape[0] == 23
-    assert tuple[0].shape[1] == 6
-    assert tuple[1] == 1639530000
-    assert tuple[2] == 1639699200
+    output_data = read_data("idr8gqdh", TEST_DATA_DIR, "gps", "America/New_York",
+                            time_start=[2020, 11, 1, 20, 9, 50],
+                            time_end=[2022, 11, 1, 20, 9, 50])
+    assert output_data[0].shape[0] == 23
+    assert output_data[0].shape[1] == 6
+    assert output_data[1] == 1639530000
+    assert output_data[2] == 1639699200
+
+
+def test_read_data_restriction_front():
+    output_data = read_data("idr8gqdh", TEST_DATA_DIR, "gps", "America/New_York",
+                            time_start=[2021, 12, 15, 20, 9, 50],
+                            time_end=[2022, 11, 1, 20, 9, 50])
+    assert output_data[0].shape[0] == 14
+    assert output_data[0].shape[1] == 6
+    assert output_data[1] == 1639616990
+    assert output_data[2] == 1639699200
+
+
+def test_read_data_restriction_back():
+    output_data = read_data("idr8gqdh", TEST_DATA_DIR, "gps", "America/New_York",
+                            time_start=[2020, 11, 1, 20, 9, 50],
+                            time_end=[2021, 12, 15, 20, 9, 50])
+    assert output_data[0].shape[0] == 9
+    assert output_data[0].shape[1] == 6
+    assert output_data[1] == 1639530000
+    assert output_data[2] == 1639616990
 
 
 def test_write_all_summaries():
