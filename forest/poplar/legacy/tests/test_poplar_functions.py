@@ -125,7 +125,6 @@ def test_get_files_timestamps():
         ['2021-12-15 01_00_00+00_00.csv', '2021-12-16 21_00_00+00_00.csv',
          '2021-12-17 00_00_00+00_00.csv']
     ))
-    print(timestamp_list)
     assert np.array_equal(timestamp_list, np.array(
         [1639530000, 1639688400, 1639699200]
     ))
