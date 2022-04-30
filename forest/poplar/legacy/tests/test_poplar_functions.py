@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
+import pytest
 from tempfile import TemporaryDirectory
 
 from forest.poplar.legacy.common_funcs import (
@@ -21,42 +22,34 @@ def test_datetime2stamp():
                           tz_str="America/Chicago") == 1604254190
 
 
-def test_datetime2stamp_bad_values():
-    second_error_caught = False
-    minute_error_caught = False
-    hour_error_caught = False
-    day_error_caught = False
-    month_error_caught = False
-    try:
+def test_datetime2stamp_bad_seconds():
+    with pytest.raises(ValueError):
         datetime2stamp(time_list=[2020, 11, 1, 12, 9, 150],
                        tz_str="America/New_York")
-    except ValueError:
-        second_error_caught = True
-    assert second_error_caught
-    try:
+
+
+def test_datetime2stamp_bad_minutes():
+    with pytest.raises(ValueError):
         datetime2stamp(time_list=[2020, 11, 1, 12, 209, 50],
                        tz_str="America/New_York")
-    except ValueError:
-        minute_error_caught = True
-    assert minute_error_caught
-    try:
+
+
+def test_datetime2stamp_bad_hours():
+    with pytest.raises(ValueError):
         datetime2stamp(time_list=[2020, 11, 1, 35, 20, 50],
                        tz_str="America/New_York")
-    except ValueError:
-        hour_error_caught = True
-    assert hour_error_caught
-    try:
+
+
+def test_datetime2stamp_bad_days():
+    with pytest.raises(ValueError):
         datetime2stamp(time_list=[2020, 11, 35, 5, 20, 50],
                        tz_str="America/New_York")
-    except ValueError:
-        day_error_caught = True
-    assert day_error_caught
-    try:
+
+
+def test_datetime2stamp_bad_months():
+    with pytest.raises(ValueError):
         datetime2stamp(time_list=[2020, 15, 20, 5, 20, 50],
                        tz_str="America/New_York")
-    except ValueError:
-        month_error_caught = True
-    assert month_error_caught
 
 
 def test_stamp2datetime():
