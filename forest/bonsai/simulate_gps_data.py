@@ -1386,7 +1386,7 @@ def sim_gps_data(
         obs = remove_data(all_traj, cycle, percentage, no_of_days)
         obs_pd = prepare_data(obs, timestamp_s / 1000, tz_str)
         obs_pd['user'] = user + 1
-        gps_data = gps_data.append(obs_pd)
+        gps_data = pd.concat([gps_data, obs_pd])
 
         user += 1
         ind += 1
