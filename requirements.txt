@@ -1,8 +1,8 @@
-flake8==3.9.2
-mypy==0.910
-pytest==6.2.5
-pytest-mock==3.6.1
-types-dataclasses==0.6.1
-types-pytz==2021.3.0
-types-requests==2.26.0
-types-setuptools==57.4.2
+flake8==4.0.1
+mypy==0.950
+pytest==7.1.2
+pytest-mock==3.7.0
+types-dataclasses==0.6.5
+types-pytz==2021.3.7
+types-requests==2.27.25
+types-setuptools==57.4.14
