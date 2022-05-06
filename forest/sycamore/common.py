@@ -894,6 +894,7 @@ def get_ids(study_folder: str) -> list:
     """
     list_of_dirs = []
     for subdir in os.listdir(study_folder):
-        if not subdir.startswith(".") and subdir != "registry":
+        is_folder = os.path.isdir(os.path.join(study_folder, subdir))
+        if (not subdir.startswith(".")) and subdir != "registry" and is_folder:
             list_of_dirs.append(subdir)
     return list_of_dirs
