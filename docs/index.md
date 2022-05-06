@@ -1,33 +1,28 @@
-[![build](https://github.com/onnela-lab/forest/actions/workflows/build.yml/badge.svg)](https://github.com/onnela-lab/forest/actions/workflows/build.yml)
+![forest logo](forest-logo-color.png)
 
-![Forest logo](docs/forest-logo-color.png)
-
-# Forest (Python 3.8)
-
-The Onnela Lab at the Harvard T.H. Chan School of Public Health has developed the Forest library to analyze smartphone-based high-throughput digital phenotyping data. The main intellectual challenge in smartphone-based digital phenotyping has moved from data collection to data analysis. Our research focuses on the development of mathematical and statistical methods for analyzing intensive high-dimensional data. We are actively developing the Forest library for analyzing smartphone-based high-throughput digital phenotyping data collected with the [Beiwe](https://github.com/onnela-lab/beiwe-backend) platform. Forest will implement our methods for analyzing Beiwe data as a Python 3.8 package and is released under the BSD-3 open-source license. The Forest library will continue to grow over the coming years as we develop new analytical methods.
+The Onnela Lab at the Harvard T.H. Chan School of Public Health has developed the Forest library to analyze smartphone-based high-throughput digital phenotyping data. The main intellectual challenge in smartphone-based digital phenotyping has moved from data collection to data analysis. Our research focuses on the development of mathematical and statistical methods for analyzing intensive high-dimensional data. We are actively developing the Forest library for analyzing smartphone-based high-throughput digital phenotyping data collected with the Beiwe platform. Forest will implement our methods for analyzing Beiwe data as a Python 3.8 package and is released under the BSD-3 open-source license. The Forest library will continue to grow over the coming years as we develop new analytical methods.
 
 Forest can be run locally but is also integrated into the Beiwe back-end on AWS, consistent with the preferred big-data computing paradigm of moving computation to the data. Integrated with Beiwe, Forest can be used to generate on-demand analytics, most importantly daily or hourly summary statistics of collected data, which are stored in a relational database on AWS. The system also implements an API for Tableau, which supports the creation of customizable workbooks and dashboards to view data summaries and troubleshoot any issues with data collection. Tableau is commercial software but is available under free viewer licenses and may be free to academic users for the first year (see Tableau for more information).
 
-For more detailed info on specific subpackages, see our [Wiki](https://github.com/onnela-lab/forest/wiki). Please note that Forest uses Python 3.8.
+For more detailed info on specific subpackages...
 
 # Description
 
-Description of how beiwe data looks (folder structure + on/off cycles)
+Description of how Beiwe data looks (folder structure + on/off cycles)
 
-Input: typically raw data from smartphones
-Output: typically summary files
+Input: typically raw data from smartphones Output: typically summary files
 
-- Creating synthetic data
-  - Want to try out our methods, but don't have smartphone data at hand? Use **bonsai**
-- Data preparation
-  - Identifying time zones and unit conversion: use **poplar**
-  - Collate Beiwe survey data into .csvs per participant or per study: use **sycamore**
-- Data imputation
-  - State-of-the-art GPS imputation: use **jasmine**
-- Data summarizing (see tables below for summary metrics)
-  - Mobility metrics from GPS data: use **jasmine**
-  - Daily summaries of call & text metadata: use **willow**
-  - Survey completion time from survey metadata: use **sycamore**
+* Creating synthetic data
+  * Want to try out our methods, but don't have smartphone data at hand? Use **bonsai**
+* Data preparation
+  * Identifying time zones and unit conversion: use **poplar**
+  * Collate Beiwe survey data into .csvs per participant or per study: use **sycamore**
+* Data imputation
+  * State-of-the-art GPS imputation: use **jasmine**
+* Data summarizing (see tables below for summary metrics)
+  * Mobility metrics from GPS data: use **jasmine**
+  * Daily summaries of call & text metadata: use **willow**
+  * Survey completion time from survey metadata: use **sycamore**
 
 # Usage
 
@@ -143,13 +138,7 @@ participant_ids = None
 log_stats_main(path_to_synthetic_log_data, path_to_log_summary, tz_str, option, time_start, time_end, participant_ids)
 ```
 
-## For contributors
+# More info
 
-## More info
-
-[Beiwe platform for smartphone data collection](https://www.beiwe.org/)
-[Onnela lab](https://www.hsph.harvard.edu/onnela-lab/)
-
-## Version
-
-Forest 1.0
+* [Beiwe platform for smartphone data collection](https://www.beiwe.org/)
+* [Onnela lab](https://www.hsph.harvard.edu/onnela-lab/)
