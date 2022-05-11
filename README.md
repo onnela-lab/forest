@@ -1,6 +1,6 @@
 [![build](https://github.com/onnela-lab/forest/actions/workflows/build.yml/badge.svg)](https://github.com/onnela-lab/forest/actions/workflows/build.yml)
 
-![Forest logo](docs/forest-logo-color.png)
+<img width="264" height="99" src="forest-logo-color.png" alt="Forest logo">
 
 # Forest (Python 3.8)
 
