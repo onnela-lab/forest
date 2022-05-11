@@ -21,7 +21,7 @@ copyright = '2022, The President and Fellows of Harvard College'
 author = 'Greyson Liu, Josh Barback, and Nellie Ponarul'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1.1'
+version = release = '0.1.1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -58,3 +58,5 @@ html_theme = 'sphinx_rtd_theme'
 
 # Note: To update scripts, run 'sphinx-build docs forest' in the root dir
 # Then, to compile the html file, run 'make html' in the docs dir
+
+myst_heading_anchors = 3
