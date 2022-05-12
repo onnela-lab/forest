@@ -4,6 +4,7 @@
 
 jasmine.md
 poplar.md
+poplar-example-code.md
 willow.md
 ```
 
@@ -36,7 +37,7 @@ Forest structure is based in subpackages, or *trees*, each of which addresses a 
   - Call log and text log summary statistics 
   - Input: call/text log ([from Android phones only](passive-data.md#phone-call-log-data-android-only))
   - Current maintainer: Patrick Emedom-Nnamdi
-- **Poplar**: [[documentation here |Poplar documentation]] and [[example code here |Poplar example code]]
+- **Poplar**: [documentation](poplar.md) and [example code](poplar-example-code.md)
   - Various common functions for data preparation, mainly used by other trees (e.g. time zone conversion, reading/writing)
 - **Sycamore**: [[documentation here | Sycamore documentation]]  
   - Survey data summary statistics and preprocessed data
