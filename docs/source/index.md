@@ -1,10 +1,16 @@
-Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data collected with the [Beiwe platform](https://www.beiwe.org/). Forest implements methods as a Python 3.8 package. Forest is integrated into the Beiwe back-end on AWS but can also be run locally. 
+Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data collected with the [Beiwe platform](https://www.beiwe.org/). Forest implements methods as a Python 3.8 package. Forest is integrated into the Beiwe back-end on AWS but can also be run locally.
+
+```{toctree}
+:caption: Trees
+:hidden:
+jasmine.md
+```
 
 # Forest trees
 
 Forest structure is based in subpackages, or *trees*, each of which addresses a specific area of analytics. 
 
-- **Jasmine**: [[documentation here | Jasmine documentation]]
+- [**Jasmine**](jasmine.md):
   - Location data imputation and mobility summary statistics
   - Input: GPS data
   - Current maintainer: Marta Karas
@@ -65,7 +71,7 @@ The summary statistics that are generated are listed below:
 * - dist_traveled
   - Float
   - Total distance travelled over the course of a day (in km)
-  - The sum of lengths of all flights. A flight is defined to be a longest straight-line trip of a particle from one location to another without a directional change or pause. Please find the technical details [here](https://github.com/onnela-lab/forest/wiki/Jasmine-documentation#other-technical-details).
+  - The sum of lengths of all flights. A flight is defined to be a longest straight-line trip of a particle from one location to another without a directional change or pause. Please find the technical details [here](jasmine.md#other-technical-details).
 * - radius
   - Float
   - Average radius that a person travels from their center over the course of a day (in km)
@@ -73,7 +79,7 @@ The summary statistics that are generated are listed below:
 * - diameter
   - Float
   - Largest distance between any two places that a person visited in a day (in km)
-  - Please find the technical details on how a place is defined [here](https://github.com/onnela-lab/forest/wiki/Jasmine-documentation#other-technical-details)
+  - Please find the technical details on how a place is defined [here](jasmine.md#other-technical-details)
 * - max_dist_home
   - Float
   - Largest distance between any places that a person visited in a day and their home (in km)
@@ -85,7 +91,7 @@ The summary statistics that are generated are listed below:
 * - av_flight_length
   - Float
   - Average of the length of all flights (straight line movement) that took place over the course of a day (in km)
-  - GPS is converted into a sequence of flights (straight line movement) and pauses (time spent stationary).  A flight is defined to be a longest straight-line trip of a particle from one location to another without a directional change or pause. Note that a long flight could be composed of several short flights with different directions, but when calculating the average, it is the mean of those short flights. Please find the technical details [here](https://github.com/onnela-lab/forest/wiki/Jasmine-documentation#other-technical-details).
+  - GPS is converted into a sequence of flights (straight line movement) and pauses (time spent stationary).  A flight is defined to be a longest straight-line trip of a particle from one location to another without a directional change or pause. Note that a long flight could be composed of several short flights with different directions, but when calculating the average, it is the mean of those short flights. Please find the technical details [here](jasmine.md#other-technical-details).
 * - sd_flight_length
   - Float
   - Standard deviation of the length of all flights (straight line movement) that took place over the course of a day (in km)
