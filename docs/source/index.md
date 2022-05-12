@@ -3,6 +3,7 @@
 :hidden:
 
 jasmine.md
+willow.md
 ```
 
 # Home
@@ -23,7 +24,7 @@ Forest structure is based in subpackages, or *trees*, each of which addresses a 
   - Location data imputation and mobility summary statistics
   - Input: GPS data
   - Current maintainer: Marta Karas
-- **Willow**: [[documentation here | Willow documentation]]
+- [**Willow**](willow.md):
   - Call log and text log summary statistics 
   - Input: call/text log ([[from Android phones only|https://github.com/onnela-lab/beiwe/wiki/Passive-Data#Phone_Call_Log_Data_Android_Only]])
   - Current maintainer: Patrick Emedom-Nnamdi
