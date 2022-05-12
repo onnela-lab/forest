@@ -1,15 +1,21 @@
-Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data collected with the [Beiwe platform](https://www.beiwe.org/). Forest implements methods as a Python 3.8 package. Forest is integrated into the Beiwe back-end on AWS but can also be run locally.
-
-```{contents}
-```
-
 ```{toctree}
 :caption: Trees
 :hidden:
+
 jasmine.md
 ```
 
-# Forest trees
+# Home
+
+Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data collected with the [Beiwe platform](https://www.beiwe.org/). Forest implements methods as a Python 3.8 package. Forest is integrated into the Beiwe back-end on AWS but can also be run locally.
+
+**Table of Contents**
+```{contents}
+:depth: 2
+:local:
+```
+
+## Forest trees
 
 Forest structure is based in subpackages, or *trees*, each of which addresses a specific area of analytics. 
 
@@ -28,7 +34,7 @@ Forest structure is based in subpackages, or *trees*, each of which addresses a 
   - input: survey_timings and survey_answers data
   - Current maintainer: Zachary Clement
 
-# Expected input data
+## Expected input data
 
 Input data should be included in one directory. Inside that directory, there should be a direct subdirectory corresponding to each participant ID. Inside each Beiwe ID subdirectory, there should be a direct subdirectory corresponding to each downloaded data stream.
 
@@ -36,9 +42,9 @@ Methods are designed to work on data collected using the Beiwe app, with the typ
 
 Did you know you can use Python to download Beiwe data even more conveniently than from the portal? Download mano and follow these instructions here: https://github.com/harvard-nrg/mano
 
-# Output & available summary statistics
+## Output & available summary statistics
 
-## GPS
+### GPS
 
 The outputs of the GPS module contains:  
 1. summary statistics for all specified participants (.csv);   
@@ -46,7 +52,7 @@ The outputs of the GPS module contains:
 3. all_BV_set (.pkl), which is a dictionary, with the key as the user ID and the value as a numpy array, where each column represents [start_timestamp, start_latitude, start_longitude, end_timestamp, end_latitude, end_longitude]. If it is your first time run the code, it is set to NULL by default. If you want to continue your analysis from here in the future, all_BV_set is expected to be an input in your new analysis and it will be updated in that run. The size of the file should be fixed overtime;   
 4. all_memory_dict (.pkl), which is also a dictionary, with the key as user ID and the value as a numpy array of other parameters for the user. If it is your first time run the code, it is set to NULL by default. If you want to continue your analysis from here in the future, all_memory_dict is expected to be an input in your new analysis and it will be updated in that run. The size of the file should be fixed overtime.   
 
-### List of summary statistics
+#### List of summary statistics
 
 The summary statistics that are generated are listed below:
 ```{list-table}
@@ -125,9 +131,9 @@ The summary statistics that are generated are listed below:
   - Calculated in the same way as Physical circadian rhythm, except the procedure is repeated separately for weekends and weekdays.
 ```
 
-## Call & text logs
+### Call & text logs
 
-### List of summary statistics
+#### List of summary statistics
 
 ```{list-table}
 :header-rows: 1
@@ -190,7 +196,7 @@ The summary statistics that are generated are listed below:
   - The total number of unique phone numbers that received messages from the subject but didn't reply.
 ```
 
-## Surveys
+### Surveys
 
 ```{note}
 For best performance with Sycamore, do not change survey questions and answer after the study period has started. 
@@ -363,9 +369,9 @@ The following variables are created in a csv file for each survey.
   - Responses to each question in the survey
 ```
 
-## Based on multiple data streams
+### Based on multiple data streams
 
-# Other resources
+## Other resources
 
 You may consider various other resources, for example if you:
 * Want to know more about the [Beiwe platform for smartphone data collection, see the Beiwe Wiki](https://github.com/onnela-lab/beiwe/wiki)
