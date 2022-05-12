@@ -3,6 +3,7 @@
 :hidden:
 
 jasmine.md
+poplar.md
 willow.md
 ```
 
