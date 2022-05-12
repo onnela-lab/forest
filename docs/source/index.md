@@ -6,6 +6,13 @@ jasmine.md
 willow.md
 ```
 
+```{toctree}
+:caption: Misc
+:hidden:
+
+passive-data.md
+```
+
 # Home
 
 Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data collected with the [Beiwe platform](https://www.beiwe.org/). Forest implements methods as a Python 3.8 package. Forest is integrated into the Beiwe back-end on AWS but can also be run locally.
@@ -26,7 +33,7 @@ Forest structure is based in subpackages, or *trees*, each of which addresses a 
   - Current maintainer: Marta Karas
 - [**Willow**](willow.md):
   - Call log and text log summary statistics 
-  - Input: call/text log ([[from Android phones only|https://github.com/onnela-lab/beiwe/wiki/Passive-Data#Phone_Call_Log_Data_Android_Only]])
+  - Input: call/text log ([from Android phones only](passive-data.md#phone-call-log-data-android-only))
   - Current maintainer: Patrick Emedom-Nnamdi
 - **Poplar**: [[documentation here |Poplar documentation]] and [[example code here |Poplar example code]]
   - Various common functions for data preparation, mainly used by other trees (e.g. time zone conversion, reading/writing)
