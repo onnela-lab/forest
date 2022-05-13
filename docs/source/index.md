@@ -5,6 +5,7 @@
 jasmine.md
 poplar.md
 poplar-example-code.md
+sycamore.md
 willow.md
 ```
 
@@ -39,7 +40,7 @@ Forest structure is based in subpackages, or *trees*, each of which addresses a 
   - Current maintainer: Patrick Emedom-Nnamdi
 - **Poplar**: [documentation](poplar.md) and [example code](poplar-example-code.md)
   - Various common functions for data preparation, mainly used by other trees (e.g. time zone conversion, reading/writing)
-- **Sycamore**: [[documentation here | Sycamore documentation]]  
+- [**Sycamore**](sycamore.md):  
   - Survey data summary statistics and preprocessed data
   - input: survey_timings and survey_answers data
   - Current maintainer: Zachary Clement
