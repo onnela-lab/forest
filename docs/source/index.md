@@ -10,6 +10,16 @@ willow.md
 ```
 
 ```{toctree}
+:caption: Development
+:hidden:
+
+development.md
+exceptions.md
+logging.md
+naming.md
+```
+
+```{toctree}
 :caption: Misc
 :hidden:
 
