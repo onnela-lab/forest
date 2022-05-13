@@ -13,6 +13,7 @@ willow.md
 :caption: Misc
 :hidden:
 
+aws.md
 passive-data.md
 ```
 
