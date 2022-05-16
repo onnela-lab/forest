@@ -4,6 +4,7 @@ import pytest
 from forest.oak.main import rle
 
 
+@pytest.fixture(scope="session")
 def signal_empty():
     return np.array([])
 
