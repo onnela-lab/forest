@@ -62,7 +62,8 @@ def get_windows(df, start, end, window_length_ms):
                        evenly divide the interval.')
     else:
         try:
-            windows = OrderedDict.fromkeys(np.arange(start, end, window_length_ms))
+            windows = OrderedDict.fromkeys(np.arange(start, end,
+                                                     window_length_ms))
             for i in range(len(df)):
                 key = df.timestamp[i] - (df.timestamp[i] % window_length_ms)
                 if windows[key] is None:
