@@ -10,9 +10,9 @@ User-facing functions can be imported directly from sycamore:
 
 `from forest.sycamore import compute_survey_stats`  
 `from forest.sycamore import aggregate_surveys_config` 
-`from forest.sycamore import survey_submits`
-`from forest.sycamore import survey_submits_no_config`
-`from forest.sycamore import agg_changed_answers_summary`
+`from forest.sycamore import survey_submits` 
+`from forest.sycamore import survey_submits_no_config` 
+`from forest.sycamore import agg_changed_answers_summary` 
 
 ## Usage:  
 Download raw data from your Beiwe server and use this package to process the data in the `survey_timings` data stream, using `survey_answers` as a backup for possible missing `survey_timings` files. Summary data provides metrics around survey submissions and survey question completion. Additional outputs are generated if a config file is provided.

@@ -46,7 +46,6 @@ Development workflow:
 * Keep branches short-lived to avoid potential merge conflicts
 
 ### Pull requests
-* 
 * PRs:
   * are not just peer review but a way to communicate and learn about the code base
   * help build and pass on institutional knowledge, and keep default branch commit history clean

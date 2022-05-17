@@ -4,7 +4,7 @@
 Jasmine provides a forest implementation of GPS trajectory imputation as well as hourly and daily summarization. 
 
 ## Installation Instruction
-For instructions on how to install forest, please visit [here](https://github.com/onnela-lab/forest).
+For instructions on how to install forest, please visit [here](https://github.com/onnela-lab/forest). 
 `from forest import jasmine`
 
 ## Data
