@@ -26,10 +26,12 @@ def gravity():
 @pytest.fixture(scope="session")
 def signal():
     data = pd.read_csv("test_data.csv")
-    timestamp, t, _, x, y, z = data.T.to_numpy()
-    x = x.astype(float)
-    y = y.astype(float)
-    z = z.astype(float)
+    timestamp = np.array(data["timestamp"], dtype="float64")
+    t = data["UTC time"].tolist()
+    x = np.array(data["x"], dtype="float64")  # x-axis acc.
+    y = np.array(data["y"], dtype="float64")  # y-axis acc.
+    z = np.array(data["z"], dtype="float64")  # z-axis acc.
+
     timestamp = timestamp/1000
     t = [t_ind.replace("T", " ") for t_ind in t]
     t = [datetime.strptime(t_ind, '%Y-%m-%d %H:%M:%S.%f')
@@ -49,10 +51,21 @@ def test_interpolate(timestamp, x, fs):
     f = interpolate.interp1d(timestamp, x)
     x_interp = f(t_interp)
     rms = np.sqrt(mean_squared_error(x, x_interp))
-    assert (len(x_interp) == 98 and
-            rms > 0 and rms < 0.05 and
+    assert (len(x_interp) == 98 and np.round(rms, 3) == 0.046 and
             np.round(np.mean(x_interp), 3) == -0.761 and
             np.round(np.std(x_interp), 3) == 0.156)
+
+
+def test_num_seconds(timestamp, x, fs):
+    t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
+    f = interpolate.interp1d(timestamp, x)
+    x_interp = f(t_interp)
+
+    x_interp_adjust = adjust_bout(x_interp, fs)
+
+    num_seconds = np.floor(len(x_interp)/fs)
+    num_seconds_adjust = np.floor(len(x_interp_adjust)/fs)
+    assert int(num_seconds) == 9 and int(num_seconds_adjust) == 10
 
 
 def test_vm_bout(timestamp, x, y, z, fs):
@@ -72,9 +85,9 @@ def test_vm_bout(timestamp, x, y, z, fs):
 
     num_seconds = np.floor(len(x_interp_adjust)/fs)
 
-    x_interp_adjust = x_interp_adjust[:int(num_seconds*fs)].astype(float)
-    y_interp_adjust = y_interp_adjust[:int(num_seconds*fs)].astype(float)
-    z_interp_adjust = z_interp_adjust[:int(num_seconds*fs)].astype(float)
+    x_interp_adjust = x_interp_adjust[:int(num_seconds*fs)]
+    y_interp_adjust = y_interp_adjust[:int(num_seconds*fs)]
+    z_interp_adjust = z_interp_adjust[:int(num_seconds*fs)]
 
     vm_interp = np.sqrt(x_interp_adjust**2 +
                         y_interp_adjust**2 +
@@ -85,13 +98,9 @@ def test_vm_bout(timestamp, x, y, z, fs):
             np.round(np.std(vm_interp), 3) == 0.229)
 
 
-def test_num_seconds(timestamp, x, fs):
-    t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
-    f = interpolate.interp1d(timestamp, x)
-    x_interp = f(t_interp)
-
-    x_interp_adjust = adjust_bout(x_interp, fs)
-
-    num_seconds = np.floor(len(x_interp)/fs)
-    num_seconds_adjust = np.floor(len(x_interp_adjust)/fs)
-    assert int(num_seconds) == 9 and int(num_seconds_adjust) == 10
+def test_preprocess_bout(timestamp, x, y, z):
+    x_bout, y_bout, z_bout, vm_bout = preprocess_bout(timestamp, x, y, z)
+    vm_test = np.sqrt(x_bout**2 + y_bout**2 + z_bout**2) - 1
+    assert (len(x_bout) == 100 and len(y_bout) == 100 and len(z_bout) == 100
+            and len(vm_bout) == 100 and
+            np.array_equal(vm_bout, vm_test))
