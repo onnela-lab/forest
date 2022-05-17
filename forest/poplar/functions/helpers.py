@@ -13,8 +13,10 @@ import pandas as pd
 logger = getLogger(__name__)
 
 
-def clean_dataframe(df: pd.Dataframe, drop_duplicates: bool=True,
-                    sort: bool=True, update_index: bool=True) -> pd.DataFrame:
+def clean_dataframe(
+        df: pd.Dataframe, drop_duplicates: bool = True, sort: bool = True,
+        update_index: bool = True
+) -> pd.DataFrame:
     """
     Clean up a pandas dataframe that contains Beiwe data.
 
@@ -71,9 +73,9 @@ def get_windows(df: pd.Dataframe, start: int, end: int, window_length_ms: int
                        "Returning empty OrderedDict")
     else:
         try:
-            windows: OrderedDict = OrderedDict.fromkeys(np.arange(start, end,
-                                                     window_length_ms),
-                                        list())
+            windows: OrderedDict = OrderedDict.fromkeys(
+                np.arange(start, end, window_length_ms), list()
+            )
             for i in range(len(df)):
                 key = df.timestamp[i] - (df.timestamp[i] % window_length_ms)
                 windows[key].append(i)
@@ -87,7 +89,7 @@ def get_windows(df: pd.Dataframe, start: int, end: int, window_length_ms: int
     return OrderedDict()
 
 
-def directory_size(dirpath: str, ndigits=1)-> tuple:
+def directory_size(dirpath: str, ndigits=1) -> tuple:
     """
     Get the total size in megabytes of all files in a directory (including
     subdirectories).
@@ -163,15 +165,15 @@ def sample_range(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
     return np.max(a) - np.min(a)
 
 
-def iqr(a: Union[pd.DataFrame, np.ndarray, pd.Series, list])-> float:
+def iqr(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
     return np.percentile(a, 75) - np.percentile(a, 25)
 
 
-def sample_std(a: Union[pd.DataFrame, np.ndarray, pd.Series, list])-> float:
+def sample_std(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
     return np.std(a, ddof=1)
 
 
-def sample_var(a: Union[pd.DataFrame, np.ndarray, pd.Series, list])-> float:
+def sample_var(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
     return np.var(a, ddof=1)
 
 
