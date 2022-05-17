@@ -29,6 +29,7 @@ from forest.jasmine.sogp_gps import BV_select
 from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
                                                stamp2datetime,
                                                write_all_summaries)
+from forest.poplar.functions.helpers import get_ids
 
 
 class Frequency(Enum):
@@ -969,7 +970,7 @@ def gps_stats_main(
 
     # participant_ids should be a list of str
     if participant_ids is None:
-        participant_ids = os.listdir(study_folder)
+        participant_ids = get_ids(study_folder)
     # create a record of processed user participant_id and starting/ending time
 
     if all_memory_dict is None:
