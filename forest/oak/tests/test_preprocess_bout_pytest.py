@@ -1,5 +1,4 @@
 import math
-from sklearn.metrics import mean_squared_error
 
 from datetime import datetime
 import numpy as np
@@ -25,7 +24,7 @@ def gravity():
 
 @pytest.fixture(scope="session")
 def signal():
-    data = pd.read_csv("test_data.csv")
+    data = pd.read_csv("test_data_bout.csv")
     timestamp = np.array(data["timestamp"], dtype="float64")
     t = data["UTC time"].tolist()
     x = np.array(data["x"], dtype="float64")  # x-axis acc.
@@ -50,8 +49,7 @@ def test_interpolate(timestamp, x, fs):
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     f = interpolate.interp1d(timestamp, x)
     x_interp = f(t_interp)
-    rms = np.sqrt(mean_squared_error(x, x_interp))
-    assert (len(x_interp) == 98 and np.round(rms, 3) == 0.046 and
+    assert (len(x_interp) == 98 and
             np.round(np.mean(x_interp), 3) == -0.761 and
             np.round(np.std(x_interp), 3) == 0.156)
 
