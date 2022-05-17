@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 from tempfile import TemporaryDirectory
 
+from forest.poplar.functions.helpers import get_ids
 from forest.poplar.legacy.common_funcs import (
     read_data, datetime2stamp, stamp2datetime, write_all_summaries,
     get_files_timestamps, filename2stamp
@@ -121,3 +122,7 @@ def test_get_files_timestamps():
     assert np.array_equal(timestamp_list, np.array(
         [1639530000, 1639688400, 1639699200]
     ))
+
+def test_get_ids():
+    users_list = get_ids(TEST_DATA_DIR)
+    assert set(users_list) == {"idr8gqdh"}
