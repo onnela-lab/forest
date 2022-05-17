@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 from tempfile import TemporaryDirectory
 
+
 from forest.poplar.functions.helpers import get_ids
 from forest.poplar.legacy.common_funcs import (
     read_data, datetime2stamp, stamp2datetime, write_all_summaries,
