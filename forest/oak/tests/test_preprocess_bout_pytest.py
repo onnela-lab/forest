@@ -38,8 +38,8 @@ def signal():
     return timestamp, t, x, y, z
 
 
-def test_np_arange(fs):
-    timestamp, _, _, _, _ = signal()
+def test_np_arange(signal, fs):
+    timestamp, _, _, _, _ = signal
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     # check if new sampling fs is within error
     close_to = [math.isclose(d, 1/fs, abs_tol=1e-5) for d in np.diff(t_interp)]
