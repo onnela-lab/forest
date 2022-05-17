@@ -169,7 +169,7 @@ def test_get_windows(gps_df):
 
 def test_directory_size():
     dir_size = directory_size(TEST_DATA_DIR)
-    assert dir_size == (0.0, 6)
+    assert dir_size == (0.0, 3)
 
 
 def test_sort_by():
