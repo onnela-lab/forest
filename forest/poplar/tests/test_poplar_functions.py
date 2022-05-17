@@ -124,6 +124,7 @@ def test_get_files_timestamps():
         [1639530000, 1639688400, 1639699200]
     ))
 
+
 def test_get_ids():
     users_list = get_ids(TEST_DATA_DIR)
     assert set(users_list) == {"idr8gqdh"}
