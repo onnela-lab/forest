@@ -24,7 +24,7 @@ def gravity():
 
 @pytest.fixture(scope="session")
 def signal():
-    data = pd.read_csv("tests/test_data_bout.csv")
+    data = pd.read_csv("test_data_bout.csv")
     timestamp = np.array(data["timestamp"], dtype="float64")
     t = data["UTC time"].tolist()
     x = np.array(data["x"], dtype="float64")  # x-axis acc.
