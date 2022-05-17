@@ -4,14 +4,17 @@
 import os
 from logging import getLogger
 from collections import OrderedDict
+from typing import (List, Union)
+
 import numpy as np
+import pandas as pd
 
 
 logger = getLogger(__name__)
 
 
-def clean_dataframe(df, drop_duplicates=True, sort=True,
-                    update_index=True):
+def clean_dataframe(df: pd.Dataframe, drop_duplicates: bool=True,
+                    sort: bool=True, update_index: bool=True) -> pd.DataFrame:
     """
     Clean up a pandas dataframe that contains Beiwe data.
 
@@ -41,7 +44,8 @@ def clean_dataframe(df, drop_duplicates=True, sort=True,
         df.set_index(np.arange(len(df)), inplace=True)
 
 
-def get_windows(df, start, end, window_length_ms):
+def get_windows(df: pd.Dataframe, start: int, end: int, window_length_ms: int
+                ) -> OrderedDict:
     """
     Generate evenly spaced windows over a time period.  For each window,
     figure out which rows of a data frame were observed during the window.
@@ -63,25 +67,27 @@ def get_windows(df, start, end, window_length_ms):
             that fall within the corresponding window.
     """
     if (end - start) % window_length_ms != 0:
-        logger.warning("The window length doesn't evenly divide the interval.")
+        logger.warning("The window length doesn't evenly divide the interval."
+                       "Returning empty OrderedDict")
     else:
         try:
-            windows = OrderedDict.fromkeys(np.arange(start, end,
-                                                     window_length_ms))
+            windows: OrderedDict = OrderedDict.fromkeys(np.arange(start, end,
+                                                     window_length_ms),
+                                        list())
             for i in range(len(df)):
                 key = df.timestamp[i] - (df.timestamp[i] % window_length_ms)
-                if windows[key] is None:
-                    windows[key] = [i]
-                else:
-                    windows[key].append(i)
+                windows[key].append(i)
             return windows
         except KeyError:
-            logger.warning("Unable to identify windows")
+            logger.warning("Unable to identify windows"
+                           "Returning empty OrderedDict")
         except ZeroDivisionError:
-            logger.exception("window_length_ms was set to 0")
+            logger.exception("window_length_ms was set to 0"
+                             "Returning empty OrderedDict")
+    return OrderedDict()
 
 
-def directory_size(dirpath, ndigits=1):
+def directory_size(dirpath: str, ndigits=1)-> tuple:
     """
     Get the total size in megabytes of all files in a directory (including
     subdirectories).
@@ -105,7 +111,7 @@ def directory_size(dirpath, ndigits=1):
     return size, file_count
 
 
-def sort_by(list_to_sort, list_to_sort_by):
+def sort_by(list_to_sort: list, list_to_sort_by: list) -> list:
     """
     Sort a list according to items in a second list.  For example, sort
     person identifiers according to study entry date.
@@ -123,7 +129,7 @@ def sort_by(list_to_sort, list_to_sort_by):
         [3, 1, 2, 4]
     """
     if len(list_to_sort) != len(list_to_sort_by):
-        logger.warning("Lists are not the same length.")
+        logger.warning("Lists are not the same length. List not sorted.")
     else:
         try:
             sorted_list = [i for _, i in
@@ -131,9 +137,10 @@ def sort_by(list_to_sort, list_to_sort_by):
             return sorted_list
         except TypeError:
             logger.exception("list_to_sort_by has multiple types")
+    return list_to_sort
 
 
-def join_lists(list_of_lists):
+def join_lists(list_of_lists: List[list]) -> List:
     """
     Join all lists in a list of lists.
 
@@ -144,17 +151,28 @@ def join_lists(list_of_lists):
         joined_list (list)
     """
     if not all([type(i) is list for i in list_of_lists]):
-        logger.warning("This is not a list of lists.")
+        logger.warning("This is not a list of lists. Returning Empty List")
     else:
         joined_list = [i for sublist in list_of_lists for i in sublist]
         return joined_list
+    return []
 
 
 # Dictionary of some summary statistics:
-def sample_range(a): return np.max(a) - np.min(a)
-def iqr(a): return np.percentile(a, 75) - np.percentile(a, 25)
-def sample_std(a): return np.std(a, ddof=1)
-def sample_var(a): return np.var(a, ddof=1)
+def sample_range(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
+    return np.max(a) - np.min(a)
+
+
+def iqr(a: Union[pd.DataFrame, np.ndarray, pd.Series, list])-> float:
+    return np.percentile(a, 75) - np.percentile(a, 25)
+
+
+def sample_std(a: Union[pd.DataFrame, np.ndarray, pd.Series, list])-> float:
+    return np.std(a, ddof=1)
+
+
+def sample_var(a: Union[pd.DataFrame, np.ndarray, pd.Series, list])-> float:
+    return np.var(a, ddof=1)
 
 
 STATS = {"mean":   np.mean,
@@ -171,7 +189,7 @@ def get_ids(study_folder: str) -> list:
 
     Args:
         study_folder(str): Filepath to the folder containing desired
-            subdirectories
+            subdirectories. Should be an absolute filepath
 
     Returns:
         List of subdirectories of the study_folder.
