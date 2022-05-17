@@ -14,7 +14,7 @@ logger = getLogger(__name__)
 
 
 def clean_dataframe(
-        df: pd.Dataframe, drop_duplicates: bool = True, sort: bool = True,
+        df: pd.DataFrame, drop_duplicates: bool = True, sort: bool = True,
         update_index: bool = True
 ) -> pd.DataFrame:
     """
@@ -46,7 +46,7 @@ def clean_dataframe(
         df.set_index(np.arange(len(df)), inplace=True)
 
 
-def get_windows(df: pd.Dataframe, start: int, end: int, window_length_ms: int
+def get_windows(df: pd.DataFrame, start: int, end: int, window_length_ms: int
                 ) -> OrderedDict:
     """
     Generate evenly spaced windows over a time period.  For each window,
