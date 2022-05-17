@@ -29,13 +29,13 @@ def clean_dataframe(df, drop_duplicates=True, sort=True,
         df.drop_duplicates(inplace=True)
     if sort:
         try:
-            df.sort_values(by=['timestamp'], inplace=True)
+            df.sort_values(by=["timestamp"], inplace=True)
         except KeyError:
-            logger.exception('Unable to sort by timestamp.'
-                             'No column named timestamp')
+            logger.exception("Unable to sort by timestamp."
+                             "No column named timestamp")
         except TypeError:
-            logger.exception('Unable to sort by timestamp.'
-                             'Multiple types in column')
+            logger.exception("Unable to sort by timestamp."
+                             "Multiple types in column")
 
     if update_index:
         df.set_index(np.arange(len(df)), inplace=True)
@@ -63,8 +63,7 @@ def get_windows(df, start, end, window_length_ms):
             that fall within the corresponding window.
     """
     if (end - start) % window_length_ms != 0:
-        logger.warning('The window length doesn\'t \
-                       evenly divide the interval.')
+        logger.warning("The window length doesn't evenly divide the interval.")
     else:
         try:
             windows = OrderedDict.fromkeys(np.arange(start, end,
@@ -120,11 +119,11 @@ def sort_by(list_to_sort, list_to_sort_by):
             to values in list_to_sort_by.
 
     Example:
-        >>> sort_by([1, 2, 3, 4], ['b', 'c', 'a', 'd'])
+        >>> sort_by([1, 2, 3, 4], ["b", "c", "a", "d"])
         [3, 1, 2, 4]
     """
     if len(list_to_sort) != len(list_to_sort_by):
-        logger.warning('Lists are not the same length.')
+        logger.warning("Lists are not the same length.")
     else:
         try:
             sorted_list = [i for _, i in
@@ -145,7 +144,7 @@ def join_lists(list_of_lists):
         joined_list (list)
     """
     if not all([type(i) is list for i in list_of_lists]):
-        logger.warning('This is not a list of lists.')
+        logger.warning("This is not a list of lists.")
     else:
         joined_list = [i for sublist in list_of_lists for i in sublist]
         return joined_list
@@ -158,12 +157,12 @@ def sample_std(a): return np.std(a, ddof=1)
 def sample_var(a): return np.var(a, ddof=1)
 
 
-STATS = {'mean':   np.mean,
-         'median': np.median,
-         'range':  sample_range,
-         'iqr':    iqr,
-         'std':    sample_std,
-         'var':    sample_var
+STATS = {"mean":   np.mean,
+         "median": np.median,
+         "range":  sample_range,
+         "iqr":    iqr,
+         "std":    sample_std,
+         "var":    sample_var
          }
 
 
