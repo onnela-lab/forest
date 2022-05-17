@@ -38,14 +38,16 @@ def signal():
     return timestamp, t, x, y, z
 
 
-def test_np_arange(timestamp, fs):
+def test_np_arange(fs):
+    timestamp, _, _, _, _ = signal()
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     # check if new sampling fs is within error
     close_to = [math.isclose(d, 1/fs, abs_tol=1e-5) for d in np.diff(t_interp)]
     assert len(t_interp) == 98 and all(close_to)
 
 
-def test_interpolate(timestamp, x, fs):
+def test_interpolate(fs):
+    timestamp, _, x, _, _ = signal()
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     f = interpolate.interp1d(timestamp, x)
     x_interp = f(t_interp)
@@ -54,7 +56,8 @@ def test_interpolate(timestamp, x, fs):
             np.round(np.std(x_interp), 3) == 0.156)
 
 
-def test_num_seconds(timestamp, x, fs):
+def test_num_seconds(fs):
+    timestamp, _, x, _, _ = signal()
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     f = interpolate.interp1d(timestamp, x)
     x_interp = f(t_interp)
@@ -66,7 +69,8 @@ def test_num_seconds(timestamp, x, fs):
     assert int(num_seconds) == 9 and int(num_seconds_adjust) == 10
 
 
-def test_vm_bout(timestamp, x, y, z, fs):
+def test_vm_bout(fs):
+    timestamp, _, x, y, z = signal()
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     f = interpolate.interp1d(timestamp, x)
     x_interp = f(t_interp)
@@ -96,7 +100,8 @@ def test_vm_bout(timestamp, x, y, z, fs):
             np.round(np.std(vm_interp), 3) == 0.229)
 
 
-def test_preprocess_bout(timestamp, x, y, z):
+def test_preprocess_bout():
+    timestamp, _, x, y, z = signal()
     x_bout, y_bout, z_bout, vm_bout = preprocess_bout(timestamp, x, y, z)
     vm_test = np.sqrt(x_bout**2 + y_bout**2 + z_bout**2) - 1
     assert (len(x_bout) == 100 and len(y_bout) == 100 and len(z_bout) == 100
