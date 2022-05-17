@@ -2,9 +2,9 @@ import logging
 import os
 from typing import Optional, List
 
+from forest.poplar.functions.helpers import get_ids
 from forest.sycamore.common import (aggregate_surveys_config,
                                     aggregate_surveys_no_config,
-                                    get_ids,
                                     get_month_from_today
                                     )
 from forest.sycamore.constants import EARLIEST_DATE
