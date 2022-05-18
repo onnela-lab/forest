@@ -10,6 +10,18 @@ Information for contributors
 * Run type hint checks: `mypy -p forest`
 * Run test suite: `pytest`
 
+### Documentation
+Install required dependencies:
+```shell
+pip install -r docs/requirements.txt
+```
+Build the docs:
+```shell
+cd docs
+make html
+```
+Open `docs/_build/html/index.html` in a web browser to check the results
+
 ## General information
 * [Forest Naming Conventions](naming.md)
 * [Exception handling](exceptions.md)
