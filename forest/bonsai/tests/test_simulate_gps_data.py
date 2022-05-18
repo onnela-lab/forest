@@ -684,7 +684,7 @@ def test_gen_basic_pause_location(random_path):
     """Test basic pause generation location"""
     traj = gen_basic_pause(random_path[0], 0, t_e_range=[10, 100],
                            t_diff_range=None)
-    assert list(np.round(traj[0, 1:], 4)) == list(np.round(random_path[0], 4))
+    assert list(np.round(traj[0, 1:], 3)) == list(np.round(random_path[0], 3))
 
 
 def test_gen_basic_pause_t_e_range(random_path):
