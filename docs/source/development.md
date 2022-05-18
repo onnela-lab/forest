@@ -50,7 +50,7 @@ Development workflow:
   * are not just peer review but a way to communicate and learn about the code base
   * help build and pass on institutional knowledge, and keep default branch commit history clean
 * Keep PRs small (ideally, under 100 lines of code) to help makes reviews easier and faster
-* Don't open a pull request for a pull request
+* If you need to update an existing PR simply add commits to the corresponding feature branch instead of creating a new separate PR
 
 How to create a PR:
 1. Create a feature branch off the default branch: `git switch -c new-feature develop`
