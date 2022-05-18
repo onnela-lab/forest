@@ -13,11 +13,11 @@ Information for contributors
 ### Documentation
 Install required dependencies:
 ```shell
-pip install docs/requirements.txt
+pip install -r docs/requirements.txt
 ```
 Build the docs:
 ```shell
-cd docs/source
+cd docs
 make html
 ```
 Open `docs/_build/html/index.html` in a web browser to check the results
