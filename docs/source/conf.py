@@ -14,18 +14,14 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
-import os
-import sys
-sys.path.insert(0, os.path.abspath('../forest'))
-
 # -- Project information -----------------------------------------------------
 
-project = 'forest'
-copyright = '2022, Greyson Liu, Josh Barback, and Nellie Ponarul'
+project = 'Forest'
+copyright = '2022, The President and Fellows of Harvard College'
 author = 'Greyson Liu, Josh Barback, and Nellie Ponarul'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0'
+version = release = '0.1.1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -35,7 +31,6 @@ release = '1.0'
 # ones.
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.napoleon',
-              'sphinx.ext.intersphinx',
               'myst_parser']
 
 napoleon_google_docstring = True
@@ -54,12 +49,18 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '*/test*']
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+# These paths are either relative to html_static_path
+# or fully qualified paths (eg. https://...)
+html_css_files = ['custom.css']
+
 # Note: To update scripts, run 'sphinx-build docs forest' in the root dir
 # Then, to compile the html file, run 'make html' in the docs dir
+
+myst_heading_anchors = 3
