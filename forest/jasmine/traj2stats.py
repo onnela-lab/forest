@@ -29,7 +29,7 @@ from forest.jasmine.sogp_gps import BV_select
 from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
                                                stamp2datetime,
                                                write_all_summaries)
-from forest.poplar.functions.helpers import get_ids
+from forest.utils import get_ids
 
 
 class Frequency(Enum):

@@ -5,9 +5,10 @@ import pandas as pd
 import pytest
 from tempfile import TemporaryDirectory
 
+from forest.utils import get_ids
 
 from forest.poplar.functions.helpers import (
-    clean_dataframe, get_windows, directory_size, get_ids, sort_by, join_lists,
+    clean_dataframe, get_windows, directory_size, sort_by, join_lists,
     sample_range, iqr, sample_std, sample_var
 )
 from forest.poplar.legacy.common_funcs import (

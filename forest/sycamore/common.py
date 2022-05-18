@@ -9,7 +9,7 @@ import glob
 import numpy as np
 import pandas as pd
 
-from forest.poplar.functions.helpers import get_ids
+from forest.utils import get_ids
 from forest.sycamore.constants import (EARLIEST_DATE, QUESTION_TYPES_LOOKUP,
                                        ANDROID_NULLABLE_ANSWER_CHANGE_DATE)
 
