@@ -1,6 +1,9 @@
 """Utility functions used by multiple trees
 """
 
+import os
+
+
 def get_ids(study_folder: str) -> list:
     """Get subfolders in directory, excluding registry and hidden folders
 
