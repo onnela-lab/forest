@@ -1,4 +1,5 @@
 import math
+import os
 
 from datetime import datetime
 import numpy as np
@@ -10,26 +11,27 @@ from forest.oak.main import preprocess_bout
 from forest.oak.main import adjust_bout
 
 
+TEST_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
 @pytest.fixture(scope="session")
 def fs():
-    fs = 10
-    return fs
+    return 10
 
 
 @pytest.fixture(scope="session")
 def gravity():
-    gravity = 9.80665
-    return gravity
+    return 9.80665
 
 
 @pytest.fixture(scope="session")
 def signal():
-    data = pd.read_csv("test_data_bout.csv")
+    data = pd.read_csv(os.path.join(TEST_DATA_DIR, "test_data_bout.csv"))
     timestamp = np.array(data["timestamp"], dtype="float64")
     t = data["UTC time"].tolist()
-    x = np.array(data["x"], dtype="float64")  # x-axis acc.
-    y = np.array(data["y"], dtype="float64")  # y-axis acc.
-    z = np.array(data["z"], dtype="float64")  # z-axis acc.
+    x = np.array(data["x"], dtype="float64")
+    y = np.array(data["y"], dtype="float64")
+    z = np.array(data["z"], dtype="float64")
 
     timestamp = timestamp/1000
     t = [t_ind.replace("T", " ") for t_ind in t]
@@ -39,11 +41,12 @@ def signal():
 
 
 def test_np_arange(signal, fs):
-    timestamp, _, _, _, _ = signal()
+    timestamp, _, _, _, _ = signal
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     # check if new sampling fs is within error
     close_to = [math.isclose(d, 1/fs, abs_tol=1e-5) for d in np.diff(t_interp)]
-    assert len(t_interp) == 98 and all(close_to)
+    assert len(t_interp) == 98
+    assert all(close_to)
 
 
 def test_interpolate(signal, fs):
@@ -51,9 +54,9 @@ def test_interpolate(signal, fs):
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     f = interpolate.interp1d(timestamp, x)
     x_interp = f(t_interp)
-    assert (len(x_interp) == 98 and
-            np.round(np.mean(x_interp), 3) == -0.761 and
-            np.round(np.std(x_interp), 3) == 0.156)
+    assert len(x_interp) == 98
+    assert np.round(np.mean(x_interp), 3) == -0.761
+    assert np.round(np.std(x_interp), 3) == 0.156
 
 
 def test_num_seconds(signal, fs):
@@ -66,7 +69,8 @@ def test_num_seconds(signal, fs):
 
     num_seconds = np.floor(len(x_interp)/fs)
     num_seconds_adjust = np.floor(len(x_interp_adjust)/fs)
-    assert int(num_seconds) == 9 and int(num_seconds_adjust) == 10
+    assert int(num_seconds) == 9
+    assert int(num_seconds_adjust) == 10
 
 
 def test_vm_bout(signal, fs):
@@ -95,15 +99,17 @@ def test_vm_bout(signal, fs):
                         y_interp_adjust**2 +
                         z_interp_adjust**2) - 1
 
-    assert (len(vm_interp) == 100 and
-            np.round(np.mean(vm_interp), 3) == 0.036 and
-            np.round(np.std(vm_interp), 3) == 0.229)
+    assert len(vm_interp) == 100
+    assert np.round(np.mean(vm_interp), 3) == 0.036
+    assert np.round(np.std(vm_interp), 3) == 0.229
 
 
 def test_preprocess_bout(signal):
     timestamp, _, x, y, z = signal()
     x_bout, y_bout, z_bout, vm_bout = preprocess_bout(timestamp, x, y, z)
     vm_test = np.sqrt(x_bout**2 + y_bout**2 + z_bout**2) - 1
-    assert (len(x_bout) == 100 and len(y_bout) == 100 and len(z_bout) == 100
-            and len(vm_bout) == 100 and
-            np.array_equal(vm_bout, vm_test))
+    assert len(x_bout) == 100
+    assert len(y_bout) == 100
+    assert len(z_bout) == 100
+    assert len(vm_bout) == 100
+    assert np.array_equal(vm_bout, vm_test)
