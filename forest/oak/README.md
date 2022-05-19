@@ -8,7 +8,7 @@ Use `oak` to calculate number of steps using Beiwe accelerometer data.
 
 #### Installation
 
-`from forest.oak import main_file.py`  
+`from forest.oak import main.py`  
 
 
 ## Usage:  
