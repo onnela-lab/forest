@@ -1,4 +1,5 @@
 [![build](https://github.com/onnela-lab/forest/actions/workflows/build.yml/badge.svg)](https://github.com/onnela-lab/forest/actions/workflows/build.yml)
+[![Documentation Status](https://readthedocs.org/projects/forest-docs/badge/)](https://forest.beiwe.org/en/latest/)
 
 <img width="264" height="99" src="forest-logo-color.png" alt="Forest logo">
 
