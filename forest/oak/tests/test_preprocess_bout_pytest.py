@@ -25,7 +25,7 @@ def gravity():
 
 
 @pytest.fixture(scope="session")
-def signal():
+def signal_bout():
     data = pd.read_csv(os.path.join(TEST_DATA_DIR, "test_data_bout.csv"))
     timestamp = np.array(data["timestamp"], dtype="float64")
     t = data["UTC time"].tolist()
@@ -40,8 +40,8 @@ def signal():
     return timestamp, t, x, y, z
 
 
-def test_np_arange(signal, fs):
-    timestamp, _, _, _, _ = signal
+def test_np_arange(signal_bout, fs):
+    timestamp, _, _, _, _ = signal_bout
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     # check if new sampling fs is within error
     close_to = [math.isclose(d, 1/fs, abs_tol=1e-5) for d in np.diff(t_interp)]
@@ -49,8 +49,8 @@ def test_np_arange(signal, fs):
     assert all(close_to)
 
 
-def test_interpolate(signal, fs):
-    timestamp, _, x, _, _ = signal
+def test_interpolate(signal_bout, fs):
+    timestamp, _, x, _, _ = signal_bout
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     f = interpolate.interp1d(timestamp, x)
     x_interp = f(t_interp)
@@ -59,22 +59,8 @@ def test_interpolate(signal, fs):
     assert np.round(np.std(x_interp), 3) == 0.156
 
 
-def test_num_seconds(signal, fs):
-    timestamp, _, x, _, _ = signal
-    t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
-    f = interpolate.interp1d(timestamp, x)
-    x_interp = f(t_interp)
-
-    x_interp_adjust = adjust_bout(x_interp, fs)
-
-    num_seconds = np.floor(len(x_interp)/fs)
-    num_seconds_adjust = np.floor(len(x_interp_adjust)/fs)
-    assert int(num_seconds) == 9
-    assert int(num_seconds_adjust) == 10
-
-
-def test_vm_bout(signal, fs):
-    timestamp, _, x, y, z = signal
+def test_vm_bout(signal_bout, fs):
+    timestamp, _, x, y, z = signal_bout
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     f = interpolate.interp1d(timestamp, x)
     x_interp = f(t_interp)
@@ -104,8 +90,8 @@ def test_vm_bout(signal, fs):
     assert np.round(np.std(vm_interp), 3) == 0.229
 
 
-def test_preprocess_bout(signal):
-    timestamp, _, x, y, z = signal
+def test_preprocess_bout(signal_bout):
+    timestamp, _, x, y, z = signal_bout
     x_bout, y_bout, z_bout, vm_bout = preprocess_bout(timestamp, x, y, z)
     vm_test = np.sqrt(x_bout**2 + y_bout**2 + z_bout**2) - 1
     assert len(x_bout) == 100
