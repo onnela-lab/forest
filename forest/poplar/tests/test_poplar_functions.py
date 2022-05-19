@@ -5,6 +5,12 @@ import pandas as pd
 import pytest
 from tempfile import TemporaryDirectory
 
+from forest.utils import get_ids
+
+from forest.poplar.functions.helpers import (
+    clean_dataframe, get_windows, directory_size, sort_by, join_lists,
+    sample_range, iqr, sample_std, sample_var
+)
 from forest.poplar.legacy.common_funcs import (
     read_data, datetime2stamp, stamp2datetime, write_all_summaries,
     get_files_timestamps, filename2stamp
@@ -121,3 +127,79 @@ def test_get_files_timestamps():
     assert np.array_equal(timestamp_list, np.array(
         [1639530000, 1639688400, 1639699200]
     ))
+
+# Testing functions in forest.poplar.functions.helpers
+
+
+@pytest.fixture
+def gps_df():
+    return read_data("idr8gqdh", TEST_DATA_DIR, "gps", "America/New_York",
+                     time_start=[2021, 12, 15, 20, 9, 50],
+                     time_end=[2022, 11, 1, 20, 9, 50])[0]
+
+
+def test_clean_dataframe(gps_df):
+    clean_dataframe(gps_df)
+    assert gps_df.shape == (14, 6)
+
+
+def test_clean_dataframe_sort(gps_df):
+    clean_dataframe(gps_df, sort=True)
+    assert gps_df.shape == (14, 6)
+
+
+def test_clean_dataframe_drop(gps_df):
+    double_df = pd.concat([gps_df, gps_df])
+    clean_dataframe(double_df, drop_duplicates=True)
+    assert double_df.shape == (14, 6)
+
+
+def test_clean_dataframe_update_index(gps_df):
+    altitude_index_df = gps_df.set_index("altitude")
+    clean_dataframe(altitude_index_df, update_index=True)
+    assert altitude_index_df.shape == (14, 5)
+    assert (altitude_index_df.index == pd.Index(np.arange(14))).all()
+
+
+def test_get_windows(gps_df):
+    windows = get_windows(gps_df, start=1639688600000, end=1639688800000,
+                          window_length_ms=50000)
+    assert set(windows.keys()) == {1639688600000, 1639688650000, 1639688700000,
+                                   1639688750000}
+
+
+def test_directory_size():
+    dir_size = directory_size(TEST_DATA_DIR)
+    assert dir_size == (0.0, 3)
+
+
+def test_sort_by():
+    assert sort_by([1, 2, 3, 4], ["b", "c", "a", "d"]) == [3, 1, 2, 4]
+
+
+def test_join_lists():
+    list_of_lists = [[5, 4, 6], [2, 5, 6], [3, 51, 8]]
+    full_list = join_lists(list_of_lists)
+    assert len(full_list) == 9
+    assert full_list == [5, 4, 6, 2, 5, 6, 3, 51, 8]
+
+
+def test_sample_range(gps_df):
+    assert np.abs(sample_range(gps_df.altitude) - 4.9622964) < 0.0001
+
+
+def test_iqr(gps_df):
+    assert np.abs(iqr(gps_df.altitude) - 0.1230552) < 0.0001
+
+
+def test_sample_std(gps_df):
+    assert np.abs(sample_std(gps_df.altitude) - 2.0817497821658235) < 0.0001
+
+
+def test_sample_var(gps_df):
+    assert np.abs(sample_var(gps_df.altitude) - 4.333682155547454) < 0.0001
+
+
+def test_get_ids():
+    users_list = get_ids(TEST_DATA_DIR)
+    assert set(users_list) == {"idr8gqdh"}
