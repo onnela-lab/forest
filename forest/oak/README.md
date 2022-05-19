@@ -1,8 +1,8 @@
-### Authors: Marcin Straczkiewicz, Jukka-Pekka Onnela  
+#### Authors: Marcin Straczkiewicz, Jukka-Pekka Onnela  
 
-### Last Update Date: May 5, 2022 
+#### Last Update Date: May 19, 2022 
 
-### Executive Summary: 
+#### Executive Summary: 
 Use `oak` to calculate number of steps using Beiwe accelerometer data.
 
 
@@ -11,7 +11,7 @@ Use `oak` to calculate number of steps using Beiwe accelerometer data.
 `from forest.oak import main.py`  
 
 
-## Usage:  
+#### Usage:  
 **Determine study folder and output_folder**
 study_folder = "C:/Users/User1/Documents/project/data"
 output_folder = "C:/Users/User1/Documents/project/results"
