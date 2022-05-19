@@ -50,7 +50,7 @@ def test_np_arange(signal, fs):
 
 
 def test_interpolate(signal, fs):
-    timestamp, _, x, _, _ = signal()
+    timestamp, _, x, _, _ = signal
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     f = interpolate.interp1d(timestamp, x)
     x_interp = f(t_interp)
@@ -60,7 +60,7 @@ def test_interpolate(signal, fs):
 
 
 def test_num_seconds(signal, fs):
-    timestamp, _, x, _, _ = signal()
+    timestamp, _, x, _, _ = signal
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     f = interpolate.interp1d(timestamp, x)
     x_interp = f(t_interp)
@@ -74,7 +74,7 @@ def test_num_seconds(signal, fs):
 
 
 def test_vm_bout(signal, fs):
-    timestamp, _, x, y, z = signal()
+    timestamp, _, x, y, z = signal
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     f = interpolate.interp1d(timestamp, x)
     x_interp = f(t_interp)
@@ -105,7 +105,7 @@ def test_vm_bout(signal, fs):
 
 
 def test_preprocess_bout(signal):
-    timestamp, _, x, y, z = signal()
+    timestamp, _, x, y, z = signal
     x_bout, y_bout, z_bout, vm_bout = preprocess_bout(timestamp, x, y, z)
     vm_test = np.sqrt(x_bout**2 + y_bout**2 + z_bout**2) - 1
     assert len(x_bout) == 100
