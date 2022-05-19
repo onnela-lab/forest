@@ -17,14 +17,10 @@ def fs():
 
 
 @pytest.fixture(scope="session")
-def gravity():
-    return 9.80665
-
-
-@pytest.fixture(scope="session")
 def signal_bout():
     data = pd.read_csv(os.path.join(TEST_DATA_DIR, "test_data_bout.csv"))
     timestamp = np.array(data["timestamp"], dtype="float64")
+    timestamp = timestamp/1000
     x = np.array(data["x"], dtype="float64")
     return timestamp, x
 
