@@ -888,8 +888,8 @@ def read_aggregate_answers_stream(
     # in aggregating survey_timings
     if config_path is None:
         return aggregated_data.loc[
-               aggregated_data["answer"] != "NOT_PRESENTED", :
-               ]
+            aggregated_data["answer"] != "NOT_PRESENTED", :
+        ]
 
     config_surveys = parse_surveys(config_path)
     # Merge data together and add configuration survey ID to all lines
