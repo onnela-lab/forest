@@ -886,6 +886,20 @@ def read_aggregate_answers_stream(
     aggregated_data["data_stream"] = "survey_answers"
     # Excluding rows without survey answers to be consistent with exclusions
     # in aggregating survey_timings
-    return aggregated_data.loc[
-        aggregated_data["answer"] != "NOT_PRESENTED", :
+    if config_path is None:
+        return aggregated_data.loc[
+               aggregated_data["answer"] != "NOT_PRESENTED", :
+               ]
+
+
+    config_surveys = parse_surveys(config_path)
+
+    # Merge data together and add configuration survey ID to all lines
+    df_merged = aggregated_data.merge(
+        config_surveys[["config_id", "question_id"]], how="left",
+        left_on="question id", right_on="question_id"
+    ).drop(["question_id"], axis=1)
+
+    return df_merged.loc[
+        df_merged["answer"] != "NOT_PRESENTED", :
     ]

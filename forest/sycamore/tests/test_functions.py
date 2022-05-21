@@ -173,7 +173,7 @@ def test_read_user_answers_stream():
 def test_read_aggregate_answers_stream():
     df = read_aggregate_answers_stream(SAMPLE_DIR)
     assert len(df["beiwe_id"].unique()) == 2
-    assert df.shape[1] == 11
+    assert df.shape[1] == 12
 
 
 def test_format_responses_by_submission_adnc(agg_data_no_config):
