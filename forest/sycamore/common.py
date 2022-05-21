@@ -891,9 +891,7 @@ def read_aggregate_answers_stream(
                aggregated_data["answer"] != "NOT_PRESENTED", :
                ]
 
-
     config_surveys = parse_surveys(config_path)
-
     # Merge data together and add configuration survey ID to all lines
     df_merged = aggregated_data.merge(
         config_surveys[["config_id", "question_id"]], how="left",
