@@ -697,6 +697,13 @@ def read_user_answers_stream(
                 filename = os.path.basename(file)
                 current_df["UTC time"] = filename_to_timestamp(filename, "UTC")
                 current_df["survey id"] = survey
+
+                # Add a submission line if they at least saw all of the
+                # questions
+                current_df['submit_line'] = 0
+                if not (current_df['answer'] == "NOT_PRESENTED").any():
+                    current_df.loc[current_df.shape[0] - 1, 'submit_line'] = 1
+
                 current_df["surv_inst_flg"] = i
                 survey_dfs.append(current_df)
             if len(survey_dfs) == 0:
