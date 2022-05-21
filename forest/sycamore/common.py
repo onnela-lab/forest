@@ -556,7 +556,8 @@ def append_from_answers(
                                              answers_data)
             missing_submission_data.append(missing_data)
 
-    return pd.concat([agg_data] + missing_submission_data)
+    return pd.concat([agg_data] + missing_submission_data
+                     ).sort_values("UTC time")
 
 
 def find_missing_data(user: str, survey_id: str, agg_data: pd.DataFrame,
