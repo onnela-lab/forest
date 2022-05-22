@@ -1,4 +1,5 @@
 from datetime import datetime
+import math
 import os
 
 import numpy as np
@@ -111,7 +112,7 @@ def test_ssq_cwt(signal_bout, fs, wavelet):
     freqs = out[2]
     expected_output_freqs = np.array([0.0503, 4.9749])
     assert tapered_bout.shape == (200,)
-    assert np.array_equal(np.round(np.max(coefs), 6), expected_output_amp)
+    assert math.isclose(np.max(coefs), expected_output_amp, abs_tol=1e-4)
     assert len(freqs) == 153
     assert np.array_equal(np.round(freqs[[0, -1]], 4),
                           expected_output_freqs)
