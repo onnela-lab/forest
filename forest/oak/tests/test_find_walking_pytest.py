@@ -106,7 +106,7 @@ def test_ssq_cwt(signal_bout, fs, wavelet):
                                    np.zeros(5*fs)))
     out = ssq_cwt(tapered_bout, wavelet, fs=10)
     coefs = out[0]
-    expected_output_coefs0_0 = (2.4577097e-05-7.229802e-05j)
+    expected_output_coefs0_0 = (2.4597457e-05-7.4282034e-05j)
     freqs = out[2]
     expected_output_freqs0__1 = np.array([0.0503, 4.9749])
     assert tapered_bout.shape == (200,)
@@ -130,7 +130,7 @@ def test_coefs_interp(signal_bout, fs, wavelet):
     ip = interpolate.interp2d(range(coefs.shape[1]), freqs, coefs)
     coefs_interp = ip(range(coefs.shape[1]), freqs_interp)
     coefs_interp = coefs_interp[:, 5*fs:-5*fs]
-    expected_output = 0.000262
+    expected_output = 0.000482
     assert coefs_interp.shape == (80, 100)
     assert np.array_equal(np.round(np.max(coefs_interp), 6), expected_output)
 
@@ -186,7 +186,7 @@ def test_dominant_peaks(signal_bout, fs, min_amp, step_freq, alpha, beta,
         dp[:, i] = peak_vec
 
     expected_output_val = np.ones(10)
-    expected_output_ind = np.array([22, 22, 22, 22, 21, 21, 26, 25, 24, 24])
+    expected_output_ind = np.array([23, 22, 21, 22, 21, 27, 26, 25, 25, 24])
     assert np.array_equal(np.argmax(dp, axis=0), expected_output_ind)
     assert np.array_equal(np.max(dp, axis=0), expected_output_val)
 
