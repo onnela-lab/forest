@@ -106,7 +106,7 @@ def test_ssq_cwt(signal_bout, fs, wavelet):
                                    np.zeros(5*fs)))
     out = ssq_cwt(tapered_bout, wavelet, fs=10)
     coefs = out[0]
-    expected_output_coefs0_0 = (-0.001709627281827834-0.0011739875861234005j)
+    expected_output_coefs0_0 = (2.4577097e-05-7.229802e-05j)
     freqs = out[2]
     expected_output_freqs0__1 = np.array([0.0503, 4.9749])
     assert tapered_bout.shape == (200,)
