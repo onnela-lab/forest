@@ -285,7 +285,8 @@ def survey_submits(
              agg["survey id"].shift(1, fill_value="fill"))),
             "Local time"
         ].unique()
-
+        if len(opening_times) == 0:
+            continue
         agg.loc[agg.beiwe_id == user, 'opened_line'] = agg.loc[
             agg.beiwe_id == user, 'Local time'
         ].apply(lambda x: 1 if x in opening_times else 0)
