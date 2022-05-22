@@ -105,28 +105,28 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
     return x_bout, y_bout, z_bout, vm_bout
 
 
-def adjust_bout(vm_bout: np.ndarray, fs: int) -> np.ndarray:
+def adjust_bout(inarray: np.ndarray, fs: int) -> np.ndarray:
     """Fills observations in incomplete bouts.
 
     For example, if the bout is 9.8s long, add values at its end to make it
     10s (results in N%fs=0).
 
     Args:
-        vm_bout : array of floats
-            vector magnitude with one bout of activity
+        inarray : array of floats
+            input with one bout of activity
         fs : integer
             sampling frequency
 
     Returns:
         Ndarray with length-adjusted vector magnitude
     """
-    if len(vm_bout) % fs >= 0.7*fs:
-        for i in range(fs-len(vm_bout) % fs):
-            vm_bout = np.append(vm_bout, vm_bout[-1])
-    elif len(vm_bout) % fs != 0:
-        vm_bout = vm_bout[np.arange(len(vm_bout)//fs*fs)]
+    if len(inarray) % fs >= 0.7*fs:
+        for i in range(fs-len(inarray) % fs):
+            inarray = np.append(inarray, inarray[-1])
+    elif len(inarray) % fs != 0:
+        inarray = inarray[np.arange(len(inarray)//fs*fs)]
 
-    return vm_bout
+    return inarray
 
 
 def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
@@ -227,10 +227,10 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
             peak_vec = np.zeros(coefs_interp.shape[0])
             if len(index_in_range) > 0:
                 if locs[0] > loc_max:
-                    if pks[0]/pks[index_in_range[0]] < alpha:
+                    if pks[0]/pks[index_in_range[0]] < beta:
                         peak_vec[locs[index_in_range[0]]] = 1
                 elif locs[0] < loc_min:
-                    if pks[0]/pks[index_in_range[0]] < beta:
+                    if pks[0]/pks[index_in_range[0]] < alpha:
                         peak_vec[locs[index_in_range[0]]] = 1
                 else:
                     peak_vec[locs[index_in_range[0]]] = 1
@@ -467,9 +467,9 @@ def main_function(study_folder: str, output_folder: str, tz_str: str = None,
                 try:
                     t = data["UTC time"].tolist()
                     timestamp = np.array(data["timestamp"])
-                    x = np.array(data["x"])  # x-axis acceleration
-                    y = np.array(data["y"])  # y-axis acceleration
-                    z = np.array(data["z"])  # z-axis acceleration
+                    x = np.array(data["x"], dtype="float64")  # x-axis acc.
+                    y = np.array(data["y"], dtype="float64")  # y-axis acc.
+                    z = np.array(data["z"], dtype="float64")  # z-axis acc.
 
                 except (IndexError, RuntimeError):
                     logger.error('Corrupted file')
