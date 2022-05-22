@@ -267,6 +267,29 @@ def survey_submits(
         return (pd.DataFrame(columns=[["survey id", "beiwe_id"]]),
                 pd.DataFrame(columns=[["survey id", "beiwe_id"]]))
 
+    # First, figure out if they opened the survey (if there are any lines
+    # related to the survey).
+    # They get an opened_line if their current surv_inst_flg doesn't match the
+    # previous or if the current survey id doesn't match the previous.
+
+    # In some surveys, there will be multiple config_ids for the same line
+    # because question IDs are duplicated across surveys. So, all of these
+    # config_ids get set with 1 because they all happened at the same time.
+
+    for user in users:
+        opening_times = agg.loc[
+            (agg.beiwe_id == user) &
+            ((agg.surv_inst_flg !=
+              agg["surv_inst_flg"].shift(1, fill_value=-1)) |
+             (agg["survey id"] !=
+             agg["survey id"].shift(1, fill_value="fill"))),
+            "Local time"
+        ].unique()
+
+        agg.loc[agg.beiwe_id == user, 'opened_line'] = agg.loc[
+            agg.beiwe_id == user, 'Local time'
+        ].apply(lambda x: 1 if x in opening_times else 0)
+
     # Merge survey submit lines onto the schedule data and identify submitted
     # lines
     submit_lines = pd.merge(
@@ -274,48 +297,67 @@ def survey_submits(
             ["delivery_time", "next_delivery_time", "id", "beiwe_id"]
         ].drop_duplicates(),
         agg[
-            ["Local time", "config_id", "survey id", "beiwe_id"]
-        ].loc[agg.submit_line == 1].drop_duplicates(),
+            ["Local time", "config_id", "survey id", "beiwe_id", "submit_line",
+             "opened_line"]
+        ].loc[(agg.submit_line == 1) |
+              (agg.opened_line == 1)].drop_duplicates(),
         how="left", left_on=["id", "beiwe_id"],
         right_on=["config_id", "beiwe_id"]
     )
 
+    # This creates a very long dataframe with all survey submissions/openings
+    # on lines with each delivery
+
     # Get the submitted survey line
     submit_lines["submit_flg"] = np.where(
         (submit_lines["Local time"] >= submit_lines["delivery_time"]) &
-        (submit_lines["Local time"] < submit_lines["next_delivery_time"]),
+        (submit_lines["Local time"] < submit_lines["next_delivery_time"]) &
+        (submit_lines["submit_line"] == 1),
         1, 0
     )
 
-    # Take the maximum survey submit line
+    # find out if they opened a survey within the interval
+    submit_lines["opened_flg"] = np.where(
+        ((submit_lines["Local time"] >= submit_lines["delivery_time"]) &
+         (submit_lines["Local time"] < submit_lines["next_delivery_time"]) &
+         (submit_lines["opened_line"] == 1)) |
+        # If they submitted the survey, it was open sometime in the interval.
+        (submit_lines["submit_flg"] == 1),
+
+        1, 0
+    )
+
+    # Find whether there were any submissions or openings in each time period
     submit_lines2 = submit_lines.groupby(
-        ["delivery_time", "next_delivery_time",
-         "survey id", "beiwe_id", "config_id"]
-    )["submit_flg"].max().reset_index()
+        ["delivery_time", "next_delivery_time", "survey id", "beiwe_id",
+         "config_id"]
+    )[["opened_flg", "submit_flg"]].max().reset_index()
 
     for col in ["delivery_time", "next_delivery_time"]:
         submit_lines2[col] = pd.to_datetime(submit_lines2[col])
 
     # Merge on the times of the survey submission
     merge_cols = ["delivery_time", "next_delivery_time", "survey id",
-                  "beiwe_id", "config_id", "submit_flg"]
+                  "beiwe_id", "config_id", "submit_flg", "opened_flg"]
     submit_lines3 = pd.merge(
         submit_lines2, submit_lines[merge_cols + ["Local time"]], how="left",
         left_on=merge_cols, right_on=merge_cols
     )
 
     submit_lines3["submit_time"] = np.where(
-        submit_lines3.submit_flg == 1, submit_lines3["Local time"],
+        submit_lines3.submit_flg == 1,
+        submit_lines3["Local time"],
         np.array(0, dtype="datetime64[ns]")
     )
 
     # Select appropriate columns
     submit_lines3 = submit_lines3[
-        ["survey id", "delivery_time", "beiwe_id", "submit_flg", "submit_time"]
+        ["survey id", "delivery_time", "beiwe_id", "submit_flg", "opened_flg",
+         "submit_time"]
     ]
 
-    submit_lines3["time_to_submit"] = submit_lines3["submit_time"] - \
-        submit_lines3["delivery_time"]
+    submit_lines3["time_to_submit"] = (submit_lines3["submit_time"] -
+                                       submit_lines3["delivery_time"])
     submit_lines3["time_to_submit"] = [
         t.seconds for t in submit_lines3["time_to_submit"]
     ]
