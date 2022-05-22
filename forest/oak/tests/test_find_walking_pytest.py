@@ -110,7 +110,7 @@ def test_ssq_cwt(signal_bout, fs, wavelet):
     coefs = np.abs(coefs**2)
     expected_output_amp = 0.000652
     freqs = out[2]
-    expected_output_freqs = np.array([0.0503, 4.9749])
+    expected_output_freqs = np.array([[5., 0.0391]])
     assert tapered_bout.shape == (200,)
     assert math.isclose(np.max(coefs), expected_output_amp, abs_tol=1e-4)
     assert len(freqs) == 211
