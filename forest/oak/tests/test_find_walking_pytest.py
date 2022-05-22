@@ -98,7 +98,7 @@ def test_tukey(signal_bout, fs):
     assert np.array_equal(np.round(win, 2), np.round(np.flipud(win), 2))
 
 
-def test_ssq_cwt(signal_bout, fs):
+def test_ssq_cwt(signal_bout, fs, wavelet):
     timestamp, _, x, y, z = signal_bout
     vm_bout = preprocess_bout(timestamp, x, y, z)[3]
     win = tukey(len(vm_bout), alpha=0.05, sym=True)
@@ -116,7 +116,7 @@ def test_ssq_cwt(signal_bout, fs):
                           expected_output_freqs0__1)
 
 
-def test_coefs_interp(signal_bout, fs):
+def test_coefs_interp(signal_bout, fs, wavelet):
     timestamp, _, x, y, z = signal_bout
     vm_bout = preprocess_bout(timestamp, x, y, z)[3]
     win = tukey(len(vm_bout), alpha=0.05, sym=True)
@@ -135,7 +135,8 @@ def test_coefs_interp(signal_bout, fs):
     assert np.array_equal(np.round(np.max(coefs_interp), 6), expected_output)
 
 
-def test_dominant_peaks(signal_bout, fs, min_amp, step_freq, alpha, beta):
+def test_dominant_peaks(signal_bout, fs, min_amp, step_freq, alpha, beta,
+                        wavelet):
     timestamp, _, x, y, z = signal_bout
     vm_bout = preprocess_bout(timestamp, x, y, z)[3]
     win = tukey(len(vm_bout), alpha=0.05, sym=True)
@@ -196,7 +197,7 @@ def test_fing_walking(signal_bout, fs, min_amp, step_freq, alpha, beta,
     vm_bout = preprocess_bout(timestamp, x, y, z)[3]
     cadence_bout = find_walking(vm_bout, fs, min_amp, step_freq, alpha, beta,
                                 epsilon, delta)
-    expected_output = np.array([1.65, 1.6, 1.6, 1.6, 1.55, 1.55, 1.8, 1.75,
-                                1.7, 1.7])
+    expected_output = np.array([1.65, 1.6, 1.55, 1.6, 1.55, 1.85, 1.8, 1.75,
+                                1.75, 1.7])
     assert len(cadence_bout) == 10
     assert np.array_equal(np.round(cadence_bout, 2), expected_output)
