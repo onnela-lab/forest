@@ -31,7 +31,7 @@ def min_amp():
 
 @pytest.fixture(scope="session")
 def step_freq():
-    return (1.2, 2.3)
+    return (1.4, 2.3)
 
 
 @pytest.fixture(scope="session")
@@ -104,7 +104,7 @@ def test_ssq_cwt(signal_bout, fs, wavelet):
     win = tukey(len(vm_bout), alpha=0.05, sym=True)
     tapered_bout = np.concatenate((np.zeros(5*fs), (vm_bout)*win,
                                    np.zeros(5*fs)))
-    out = ssq_cwt(tapered_bout[:-1], wavelet, fs=10)
+    out = ssq_cwt(tapered_bout, wavelet, fs=10)
     coefs = out[0]
     expected_output_coefs0_0 = (-0.001709627281827834-0.0011739875861234005j)
     freqs = out[2]
@@ -122,7 +122,7 @@ def test_coefs_interp(signal_bout, fs, wavelet):
     win = tukey(len(vm_bout), alpha=0.05, sym=True)
     tapered_bout = np.concatenate((np.zeros(5*fs), (vm_bout)*win,
                                    np.zeros(5*fs)))
-    out = ssq_cwt(tapered_bout[:-1], wavelet, fs=10)
+    out = ssq_cwt(tapered_bout, wavelet, fs=10)
     coefs = out[0]
     coefs = np.abs(coefs**2)
     freqs = out[2]
@@ -142,7 +142,7 @@ def test_dominant_peaks(signal_bout, fs, min_amp, step_freq, alpha, beta,
     win = tukey(len(vm_bout), alpha=0.05, sym=True)
     tapered_bout = np.concatenate((np.zeros(5*fs), (vm_bout)*win,
                                    np.zeros(5*fs)))
-    out = ssq_cwt(tapered_bout[:-1], wavelet, fs=10)
+    out = ssq_cwt(tapered_bout, wavelet, fs=10)
     coefs = out[0]
     coefs = np.abs(coefs**2)
     freqs = out[2]
