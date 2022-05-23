@@ -201,11 +201,11 @@ def gen_survey_schedule(
             tbl["next_delivery_time"] = tbl.delivery_time.shift(-1)
             # Remove the placeholder delivery times which were only necessary
             # for calculating the next_delivery_time column
-            tbl = tbl.loc[tbl['delivery_time'] != week_after_last, ]
+            tbl = tbl.loc[tbl["delivery_time"] != week_after_last, ]
             # remove any rows outside our time interval
             tbl = tbl.loc[(pd.to_datetime(time_start)
-                          < tbl['delivery_time'])
-                          & (tbl['delivery_time']
+                          < tbl["delivery_time"])
+                          & (tbl["delivery_time"]
                           < pd.to_datetime(time_end)), ]
             tbl["id"] = i
             tbl["beiwe_id"] = user
@@ -287,8 +287,8 @@ def survey_submits(
         ].unique()
         if len(opening_times) == 0:
             continue
-        agg.loc[agg.beiwe_id == user, 'opened_line'] = agg.loc[
-            agg.beiwe_id == user, 'Local time'
+        agg.loc[agg.beiwe_id == user, "opened_line"] = agg.loc[
+            agg.beiwe_id == user, "Local time"
         ].apply(lambda x: 1 if x in opening_times else 0)
 
     # Get starting times for each survey to allow joining with files in
