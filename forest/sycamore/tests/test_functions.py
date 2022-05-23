@@ -145,12 +145,11 @@ def test_agg_changed_answers_summary_no_config(agg_data_no_config):
 
 
 def test_survey_submits_with_no_submissions(agg_data_config):
-    ss_detail, ss_summary = survey_submits(
+    ss_detail = survey_submits(
         SURVEY_SETTINGS_PATH, "2021-12-01", "2021-12-30",
         ["idr8gqdh"], agg_data_config, INTERVENTIONS_PATH
     )
     assert ss_detail.shape[0] == 0
-    assert ss_summary.shape[0] == 0
 
 
 def test_survey_submits_no_config_adc(agg_data_config):
