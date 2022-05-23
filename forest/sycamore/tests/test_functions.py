@@ -54,12 +54,12 @@ def submits_data():
 
 
 def test_survey_submits(submits_data):
-    assert submits_data.shape[0] == 291
+    assert submits_data.shape[0] == 334
 
 
 def test_summarize_submits(submits_data):
     summary = summarize_submits(submits_data)
-    assert summary.shape[0] == 334
+    assert summary.shape[0] == 2
 
 
 def test_summarize_submits_hour(submits_data):
