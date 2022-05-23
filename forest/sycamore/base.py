@@ -21,10 +21,9 @@ def compute_survey_stats(
         study_folder: str, output_folder: str, tz_str: str = "UTC",
         users: Optional[List] = None,
         start_date: str = EARLIEST_DATE, end_date: Optional[str] = None,
-        config_path: Optional[str] = None,
-        interventions_filepath: str = None,
-        augment_with_answers: bool = True,
-        submits_timeframe: str = None
+        config_path: Optional[str] = None, interventions_filepath: str = None,
+        augment_with_answers: bool = True, submits_timeframe: str = None,
+        submits_by_survey_id: bool = True
 ) -> bool:
     """Compute statistics on surveys
 
@@ -50,7 +49,11 @@ def compute_survey_stats(
         from survey_timings
     submits_timeframe(str):
         The timeframe to summarize survey submissions over in
-        submits.summarize_submits. One of None, "Day", or "Hour"
+        submits_summary.csv. One of None, "Day", or "Hour"
+    submits_by_survey_id(bool):
+        Whether to summmarize survey submits with separate lines for different
+        surveys in submits_summary.csv. By default, this is True, so a
+        different line for each survey will be generated.
     """
     os.makedirs(output_folder, exist_ok=True)
     os.makedirs(os.path.join(output_folder, "summaries"), exist_ok=True)
@@ -95,7 +98,8 @@ def compute_survey_stats(
                 config_path, start_date, end_date,
                 users, agg_data, interventions_filepath
             )
-            ss_summary = summarize_submits(ss_detail, submits_timeframe)
+            ss_summary = summarize_submits(ss_detail, submits_timeframe,
+                                           submits_by_survey_id)
             if ss_summary.shape[0] > 0:
                 ss_detail.to_csv(os.path.join(output_folder, "summaries",
                                               "submits_and_deliveries.csv"),
