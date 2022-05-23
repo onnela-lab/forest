@@ -1,7 +1,7 @@
 import datetime
 import logging
 import math
-from typing import Optional, Tuple, Dict
+from typing import Optional, Dict
 
 import numpy as np
 import pandas as pd
