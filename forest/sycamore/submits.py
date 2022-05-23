@@ -394,54 +394,6 @@ def survey_submits(
         submit_lines3["survey_duration"]
     )
 
-    # Create a summary that has survey_id, beiwe_id, num_surveys, num
-    # submitted surveys, average time to submit
-    summary_cols = ["survey id", "beiwe_id"]
-    num_surveys = submit_lines3.groupby(
-        summary_cols
-    )["delivery_time"].nunique()
-    num_complete_surveys = submit_lines3.groupby(summary_cols
-                                                 )["submit_flg"].sum()
-    if np.sum(submit_lines3.submit_flg == 1) > 0:
-        # this will work (and only makes sense) if there is at least one row
-        # with a survey submit
-        avg_time_to_submit = submit_lines3.loc[
-            submit_lines3.submit_flg == 1
-        ].groupby(summary_cols)["time_to_submit"].apply(
-            lambda x: np.mean(x)
-        )
-        avg_time_to_open = submit_lines3.loc[
-            submit_lines3.opened_flg == 1
-        ].groupby(summary_cols)["time_to_open"].apply(
-            lambda x: np.mean(x)
-        )
-        avg_duration = submit_lines3.loc[
-            submit_lines3.opened_flg == 1
-        ].groupby(summary_cols)["survey_duration"].apply(
-            lambda x: np.mean(x)
-        )
-    else:
-        # do the groupby on all rows to avoid getting an error
-        avg_time_to_submit = submit_lines3.groupby(summary_cols)[
-            "time_to_submit"
-        ].apply(lambda x: pd.to_datetime("NaT"))
-        avg_time_to_open = submit_lines3.groupby(summary_cols)[
-            "time_to_open"
-        ].apply(lambda x: np.mean(x))
-        avg_duration = submit_lines3.groupby(summary_cols)[
-            "survey_duration"
-        ].apply(lambda x: pd.to_datetime("NaT"))
-
-    submit_lines_summary = pd.concat(
-        [num_surveys, num_complete_surveys, avg_time_to_submit,
-         avg_time_to_open, avg_duration],
-        axis=1
-    ).reset_index()
-    submit_lines_summary.columns = [
-        "survey id", "beiwe_id", "num_surveys", "num_complete_surveys",
-        "avg_time_to_submit", "avg_time_to_open", "avg_duration"
-    ]
-
     # make cols more interpretable as "no survey submitted"
     submit_lines3["submit_time"] = np.where(
         submit_lines3["submit_flg"] == 1,
@@ -465,6 +417,74 @@ def survey_submits(
     return submit_lines3.sort_values(
         ["survey id", "beiwe_id"]
     ).drop_duplicates(), submit_lines_summary
+
+def summarize_submits(submits_df: pd.DataFrame, timeunit:str = "none"):
+    """Summarise a surveys df
+
+    Args:
+        submits_df(DataFrame): output from survey_submits
+        timeunit(str): One of None, "Month", "Week", "Day", or "Hour". The unit
+            of time on which to summarize the submits. If this is "all",
+            submits are summarized over the Beiwe ID and survey ID only. If
+            this is "Month", "Week", "Day", or "Hour", submits are summarized
+            over either a month, week, day, or hour, as defined by
+            pd.Series.dt.round
+
+    Returns:
+        submits_summary(DataFrame): A DataFrame with a row for each beiwe_id
+
+    """
+    submits = submits_df.copy()
+    # Create a summary that has survey_id, beiwe_id, num_surveys, num
+    # submitted surveys, average time to submit
+    summary_cols = ["survey id", "beiwe_id"]
+    num_surveys = submits.groupby(
+        summary_cols
+    )["delivery_time"].nunique()
+    num_complete_surveys = submits.groupby(summary_cols
+                                                 )["submit_flg"].sum()
+    if np.sum(submits.submit_flg == 1) > 0:
+        # this will work (and only makes sense) if there is at least one row
+        # with a survey submit
+        avg_time_to_submit = submits.loc[
+            submits.submit_flg == 1
+            ].groupby(summary_cols)["time_to_submit"].apply(
+            lambda x: np.mean(x)
+        )
+        avg_time_to_open = submits.loc[
+            submits.opened_flg == 1
+            ].groupby(summary_cols)["time_to_open"].apply(
+            lambda x: np.mean(x)
+        )
+        avg_duration = submits.loc[
+            submits.opened_flg == 1
+            ].groupby(summary_cols)["survey_duration"].apply(
+            lambda x: np.mean(x)
+        )
+    else:
+        # do the groupby on all rows to avoid getting an error
+        avg_time_to_submit = submits.groupby(summary_cols)[
+            "time_to_submit"
+        ].apply(lambda x: pd.to_datetime("NaT"))
+        avg_time_to_open = submits.groupby(summary_cols)[
+            "time_to_open"
+        ].apply(lambda x: np.mean(x))
+        avg_duration = submits.groupby(summary_cols)[
+            "survey_duration"
+        ].apply(lambda x: pd.to_datetime("NaT"))
+
+    submit_lines_summary = pd.concat(
+        [num_surveys, num_complete_surveys, avg_time_to_submit,
+         avg_time_to_open, avg_duration],
+        axis=1
+    ).reset_index()
+    submit_lines_summary.columns = [
+        "survey id", "beiwe_id", "num_surveys", "num_complete_surveys",
+        "avg_time_to_submit", "avg_time_to_open", "avg_duration"
+    ]
+
+    return submit_lines_summary
+
 
 
 def survey_submits_no_config(input_agg: pd.DataFrame) -> pd.DataFrame:
