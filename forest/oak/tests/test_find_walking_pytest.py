@@ -77,6 +77,76 @@ def test_reshape(signal_bout, fs):
     vm_res_sec = vm_bout.reshape(fs, -1, order="F")
     expected_output = (10, 10)
     assert vm_res_sec.shape == expected_output
+    
+    pp = np.array([max(vm_res_sec[:, i])-min(vm_res_sec[:, i])
+                   for i in range(vm_res_sec.shape[1])])
+    expected_output = np.array([0.64, 0.71, 1.11, 0.79, 0.37, 0.70, 1.20, 0.61,
+                                0.66, 0.48])
+    assert np.array_equal(np.round(pp, 2), expected_output)
+    
+    win = tukey(len(vm_bout), alpha=0.05, sym=True)
+    expected_output = np.array([0, 0.35, 0.91])
+    assert np.array_equal(np.round(win[0:3], 2), expected_output)
+    assert np.array_equal(np.round(win, 2), np.round(np.flipud(win), 2))
+
+    tapered_bout = np.concatenate((np.zeros(5*fs), (vm_bout)*win,
+                                   np.zeros(5*fs)))
+    out = ssq_cwt(tapered_bout, wavelet, fs=10)
+    coefs = out[0]
+    coefs = np.abs(coefs**2)
+    expected_output_amp = 0.000652
+    freqs = out[2]
+    expected_output_freqs = np.array([5.00, 0.04])
+    assert math.isclose(np.max(coefs), expected_output_amp, abs_tol=1e-4)
+    assert len(freqs) == 211
+    assert np.array_equal(np.round(freqs[[0, -1]], 2),
+                          expected_output_freqs)
+
+    freqs_interp = np.arange(0.5, 4.5, 0.05)
+    ip = interpolate.interp2d(range(coefs.shape[1]), freqs, coefs)
+    coefs_interp = ip(range(coefs.shape[1]), freqs_interp)
+    coefs_interp = coefs_interp[:, 5*fs:-5*fs]
+    expected_output = 0.000482
+    assert coefs_interp.shape == (80, 100)
+    assert np.array_equal(np.round(np.max(coefs_interp), 6), expected_output)
+    
+    dp = np.zeros((coefs_interp.shape[0], int(coefs_interp.shape[1]/fs)))
+    loc_min = np.argmin(abs(freqs_interp-step_freq[0]))
+    loc_max = np.argmin(abs(freqs_interp-step_freq[1]))
+    for i in range(int(coefs_interp.shape[1]/fs)):
+        x_start = i*fs
+        x_end = (i + 1)*fs
+        window = np.sum(coefs_interp[:, np.arange(x_start, x_end)],
+                        axis=1)
+        locs, _ = find_peaks(window)
+        pks = window[locs]
+        ind = np.argsort(-pks)
+        locs = locs[ind]
+        pks = pks[ind]
+        index_in_range = []
+
+        for j in range(len(locs)):
+            if loc_min <= locs[j] <= loc_max:
+                index_in_range.append(j)
+            if len(index_in_range) >= 1:
+                break
+        peak_vec = np.zeros(coefs_interp.shape[0])
+        if len(index_in_range) > 0:
+            if locs[0] > loc_max:
+                if pks[0]/pks[index_in_range[0]] < beta:
+                    peak_vec[locs[index_in_range[0]]] = 1
+            elif locs[0] < loc_min:
+                if pks[0]/pks[index_in_range[0]] < alpha:
+                    peak_vec[locs[index_in_range[0]]] = 1
+            else:
+                peak_vec[locs[index_in_range[0]]] = 1
+        dp[:, i] = peak_vec
+
+    expected_output_val = np.ones(10)
+    expected_output_ind = np.array([23, 22, 21, 22, 21, 27, 26, 25, 25, 24])
+    assert np.array_equal(np.argmax(dp, axis=0), expected_output_ind)
+    assert np.array_equal(np.max(dp, axis=0), expected_output_val)
+    
 
 
 def test_pp(signal_bout, fs):
