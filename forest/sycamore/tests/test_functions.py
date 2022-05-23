@@ -4,7 +4,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from forest.sycamore.submits import (get_all_interventions_dict,
+from forest.sycamore.submits import (gen_survey_schedule,
+                                     get_all_interventions_dict,
+                                     survey_submits, summarize_submits,
                                      survey_submits_no_config)
 from forest.sycamore.common import (aggregate_surveys,
                                     aggregate_surveys_no_config,
@@ -12,7 +14,6 @@ from forest.sycamore.common import (aggregate_surveys,
                                     filename_to_timestamp,
                                     read_user_answers_stream,
                                     read_aggregate_answers_stream)
-from forest.sycamore.submits import gen_survey_schedule, survey_submits
 from forest.sycamore.responses import (agg_changed_answers_summary,
                                        format_responses_by_submission)
 
@@ -27,6 +28,9 @@ SAMPLE_DIR = os.path.join(TEST_DATA_DIR, "sample_dir")
 SURVEY_SETTINGS_PATH = os.path.join(TEST_DATA_DIR,
                                     "sample_study_surveys_and_settings.json")
 
+SURVEY_SETTINGS_PATH_FOR_SUBMITS = os.path.join(TEST_DATA_DIR,
+                                                "config_file_for_submits.json")
+
 
 @pytest.fixture
 def agg_data_config():
@@ -37,6 +41,35 @@ def agg_data_config():
 @pytest.fixture
 def agg_data_no_config():
     return aggregate_surveys_no_config(SAMPLE_DIR, study_tz="UTC")
+
+
+@pytest.fixture
+def submits_data():
+    agg_data = aggregate_surveys_config(
+        SAMPLE_DIR, SURVEY_SETTINGS_PATH_FOR_SUBMITS, study_tz="UTC"
+    )
+    return survey_submits(SURVEY_SETTINGS_PATH_FOR_SUBMITS,
+                          "2021-12-01", "2022-04-30", ["idr8gqdh", "16au2moz"],
+                          agg_data, INTERVENTIONS_PATH)
+
+
+def test_survey_submits(submits_data):
+    assert submits_data.shape[0] == 291
+
+
+def test_summarize_submits(submits_data):
+    summary = summarize_submits(submits_data)
+    assert summary.shape[0] == 2
+
+
+def test_summarize_submits_hour(submits_data):
+    summary = summarize_submits(submits_data, "Hour")
+    assert summary.shape[0] == 290
+
+
+def test_summarize_submits_day(submits_data):
+    summary = summarize_submits(submits_data, timeunit="Day")
+    assert summary.shape[0] == 290
 
 
 def test_get_empty_intervention():
