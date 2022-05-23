@@ -373,6 +373,15 @@ def survey_submits(
     submit_lines3["time_to_open"] = (
             submit_lines3["start_time"] - submit_lines3["delivery_time"]
     ).dt.seconds
+    submit_lines3["survey_duration"] = (
+            submit_lines3["submit_time"] - submit_lines3["start_time"]
+    ).dt.seconds
+    # If only a survey_answers file was found, there will be no useful survey
+    # duration information because we only have the start time
+    submit_lines3["survey_duration"] = np.where(
+        submit_lines3["survey_duration"] == 0, np.nan,
+        submit_lines3["survey_duration"]
+    )
 
     # Create a summary that has survey_id, beiwe_id, num_surveys, num
     # submitted surveys, average time to submit
@@ -395,6 +404,11 @@ def survey_submits(
         ].groupby(summary_cols)["time_to_open"].apply(
             lambda x: np.mean(x)
         )
+        avg_duration = submit_lines3.loc[
+            submit_lines3.opened_flg == 1
+        ].groupby(summary_cols)["survey_duration"].apply(
+            lambda x: np.mean(x)
+        )
     else:
         # do the groupby on all rows to avoid getting an error
         avg_time_to_submit = submit_lines3.groupby(summary_cols)[
@@ -402,18 +416,19 @@ def survey_submits(
         ].apply(lambda x: pd.to_datetime("NaT"))
         avg_time_to_open = submit_lines3.groupby(summary_cols)[
             "time_to_open"
-        ].apply(
-            lambda x: np.mean(x)
-        )
+        ].apply(lambda x: np.mean(x))
+        avg_duration = submit_lines3.groupby(summary_cols)[
+            "survey_duration"
+        ].apply(lambda x: pd.to_datetime("NaT"))
 
     submit_lines_summary = pd.concat(
         [num_surveys, num_complete_surveys, avg_time_to_submit,
-         avg_time_to_open],
+         avg_time_to_open, avg_duration],
         axis=1
     ).reset_index()
     submit_lines_summary.columns = [
         "survey id", "beiwe_id", "num_surveys", "num_complete_surveys",
-        "avg_time_to_submit", "avg_time_to_open"
+        "avg_time_to_submit", "avg_time_to_open", "avg_duration"
     ]
 
     # make cols more interpretable as "no survey submitted"
