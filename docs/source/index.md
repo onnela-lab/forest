@@ -240,7 +240,10 @@ The following variables are created in the "submits_summary.csv" file. This file
   - Number of completed surveys scheduled for delivery to the individual during the period
 * - avg_time_to_submit
   - str
-  - Average time between survey delivery and survey submission, in seconds, in survey responses where a survey_timings file was available
+  - Average time between survey delivery and survey submission, in seconds, for complete surveys
+* - avg_time_to_open
+  - str
+  - Average time between survey delivery and survey opening, in seconds, for survey responses where a survey_timings file was available
 ```
 
 The following variables are created in the "submits_and_deliveries.csv" file. This file will only be generated if the config file and intervention timings file are provided.
@@ -262,8 +265,11 @@ The following variables are created in the "submits_and_deliveries.csv" file. Th
   - str
   - Either the time when the user hit submit or the time when the individual stopped interacting with the survey for that session
 * - time_to_submit
-  - str
-  - Time between survey delivery and survey submission, in seconds (for responses where a survey_timings file was available)
+  - float
+  - Time between survey delivery and survey submission, in seconds. If a survey was incomplete, this will be blank. 
+* - time_to_open
+  - float
+  - Time between survey delivery time and the first recorded survey answer, in seconds (for responses where a survey_timings file was available; if only a survey_answers file was available, this will be 0)
 ```
 
 The following variables are created in the "answers_data.csv" file. This file will be generated if a survey config file is available.
