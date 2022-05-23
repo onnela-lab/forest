@@ -59,17 +59,17 @@ def test_survey_submits(submits_data):
 
 def test_summarize_submits(submits_data):
     summary = summarize_submits(submits_data)
-    assert summary.shape[0] == 2
+    assert summary.shape[0] == 334
 
 
 def test_summarize_submits_hour(submits_data):
     summary = summarize_submits(submits_data, "Hour")
-    assert summary.shape[0] == 290
+    assert summary.shape[0] == 292
 
 
 def test_summarize_submits_day(submits_data):
     summary = summarize_submits(submits_data, timeunit="Day")
-    assert summary.shape[0] == 290
+    assert summary.shape[0] == 208
 
 
 def test_get_empty_intervention():
