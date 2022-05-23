@@ -262,10 +262,9 @@ def survey_submits(
     sched = gen_survey_schedule(config_path, time_start, time_end, users,
                                 all_interventions_dict)
 
-    if sched.shape[0] == 0:  # return empty dataframes
+    if sched.shape[0] == 0:  # return empty dataframe
         logger.error("Error: No survey schedules found")
-        return (pd.DataFrame(columns=[["survey id", "beiwe_id"]]),
-                pd.DataFrame(columns=[["survey id", "beiwe_id"]]))
+        return (pd.DataFrame(columns=[["survey id", "beiwe_id"]]))
 
     # First, figure out if they opened the survey (if there are any lines
     # related to the survey).
