@@ -243,7 +243,10 @@ The following variables are created in the "submits_summary.csv" file. This file
   - Average time between survey delivery and survey submission, in seconds, for complete surveys
 * - avg_time_to_open
   - str
-  - Average time between survey delivery and survey opening, in seconds, for survey responses where a survey_timings file was available
+  - Average time between survey delivery and survey opening, in seconds. This is averaged over survey responses where a survey_timings file was available because we do not have information about survey opening in responses where a survey_timings file is missing.
+* - avg_duration
+  - str
+  - Average time between survey opening and survey submission, in seconds.This is averaged over survey responses where a survey_timings file was available because we do not have information about survey opening in responses where a survey_timings file is missing.
 ```
 
 The following variables are created in the "submits_and_deliveries.csv" file. This file will only be generated if the config file and intervention timings file are provided.
