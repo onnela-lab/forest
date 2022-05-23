@@ -418,31 +418,57 @@ def survey_submits(
         ["survey id", "beiwe_id"]
     ).drop_duplicates(), submit_lines_summary
 
-def summarize_submits(submits_df: pd.DataFrame, timeunit:str = "none"):
-    """Summarise a surveys df
+def summarize_submits(submits_df: pd.DataFrame, timeunit:str = None):
+    """Summarize a survey submits df
+
+    This generates the number of surveys opened and submitted, as well as the
+    average time to open and complete a survey over a period of time
 
     Args:
         submits_df(DataFrame): output from survey_submits
-        timeunit(str): One of None, "Month", "Week", "Day", or "Hour". The unit
-            of time on which to summarize the submits. If this is "all",
+        timeunit(str): One of None, "Day", or "Hour". The unit
+            of time on which to summarize the submits. If this is None,
             submits are summarized over the Beiwe ID and survey ID only. If
-            this is "Month", "Week", "Day", or "Hour", submits are summarized
-            over either a month, week, day, or hour, as defined by
-            pd.Series.dt.round
+            this is "Day" or "Hour", submits are summarized over either the
+            day or hour in which they were delivered.
 
     Returns:
-        submits_summary(DataFrame): A DataFrame with a row for each beiwe_id
-
+        submits_summary(DataFrame): A DataFrame with a row for each beiwe_id,
+        survey ID, and time unit found in submits_df. Has columns:
+        num_complete_surveys: Number of surveys completed during the time unit
+        num_opened_surveys: Number of surveys opened during the time unit
+        avg_time_to_submit: Average time between delivery and submission
+        avg_time_to_open: Average time between delivery and opening
+        avg_duration: Average time between opening and submission
     """
     submits = submits_df.copy()
     # Create a summary that has survey_id, beiwe_id, num_surveys, num
     # submitted surveys, average time to submit
     summary_cols = ["survey id", "beiwe_id"]
+
+    submits["delivery_time"] = pd.to_datetime(submits["delivery_time"])
+
+
+    if timeunit in ["Day", "Hour"]:
+        ## round to the nearest desired unit
+        submits["delivery_time_floor"] = submits[
+            "delivery_time"
+        ].dt.floor(timeunit[0])
+        submits["year"] = submits["delivery_time_floor"].dt.year
+        submits["month"] = submits["delivery_time_floor"].dt.month
+        submits["day"] = submits["delivery_time_floor"].dt.day
+        summary_cols = summary_cols + ["year", "month", "day"]
+    elif timeunit is not None:
+        logger.exception("timeunit must be one of None, 'Day', or 'Hour'")
+
+    if timeunit == "Hour":
+        summary_cols = summary_cols + ["hour"]
+        submits["hour"] = submits["delivery_time_floor"].dt.hour
+
     num_surveys = submits.groupby(
         summary_cols
     )["delivery_time"].nunique()
-    num_complete_surveys = submits.groupby(summary_cols
-                                                 )["submit_flg"].sum()
+    num_complete_surveys = submits.groupby(summary_cols)["submit_flg"].sum()
     if np.sum(submits.submit_flg == 1) > 0:
         # this will work (and only makes sense) if there is at least one row
         # with a survey submit
@@ -478,8 +504,8 @@ def summarize_submits(submits_df: pd.DataFrame, timeunit:str = "none"):
          avg_time_to_open, avg_duration],
         axis=1
     ).reset_index()
-    submit_lines_summary.columns = [
-        "survey id", "beiwe_id", "num_surveys", "num_complete_surveys",
+    submit_lines_summary.columns = summary_cols + [
+        "num_surveys", "num_complete_surveys",
         "avg_time_to_submit", "avg_time_to_open", "avg_duration"
     ]
 
