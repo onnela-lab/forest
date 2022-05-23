@@ -11,7 +11,8 @@ from forest.sycamore.constants import EARLIEST_DATE
 from forest.sycamore.responses import (agg_changed_answers_summary,
                                        format_responses_by_submission)
 from forest.sycamore.submits import (survey_submits,
-                                     survey_submits_no_config)
+                                     survey_submits_no_config,
+                                     summarize_submits)
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,8 @@ def compute_survey_stats(
         start_date: str = EARLIEST_DATE, end_date: Optional[str] = None,
         config_path: Optional[str] = None,
         interventions_filepath: str = None,
-        augment_with_answers: bool = True
+        augment_with_answers: bool = True,
+        submits_timeframe: str = None
 ) -> bool:
     """Compute statistics on surveys
 
@@ -46,7 +48,9 @@ def compute_survey_stats(
     augment_with_answers(bool):
         Whether to use the survey_answers stream to fill in missing surveys
         from survey_timings
-
+    submits_timeframe(str):
+        The timeframe to summarize survey submissions over in
+        submits.summarize_submits. One of None, "Day", or "Hour"
     """
     os.makedirs(output_folder, exist_ok=True)
     os.makedirs(os.path.join(output_folder, "summaries"), exist_ok=True)
@@ -87,10 +91,11 @@ def compute_survey_stats(
         )
         if start_date is not None and end_date is not None:
             # Create survey submits detail and summary
-            ss_detail, ss_summary = survey_submits(
+            ss_detail = survey_submits(
                 config_path, start_date, end_date,
                 users, agg_data, interventions_filepath
             )
+            ss_summary = summarize_submits(ss_detail, submits_timeframe)
             if ss_summary.shape[0] > 0:
                 ss_detail.to_csv(os.path.join(output_folder, "summaries",
                                               "submits_and_deliveries.csv"),
