@@ -414,9 +414,8 @@ def survey_submits(
         np.NaN
     )
 
-    return submit_lines3.sort_values(
-        ["survey id", "beiwe_id"]
-    ).drop_duplicates(), submit_lines_summary
+    return submit_lines3.sort_values(["survey id", "beiwe_id"]
+                                     ).drop_duplicates()
 
 def summarize_submits(submits_df: pd.DataFrame, timeunit:str = None):
     """Summarize a survey submits df
