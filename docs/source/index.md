@@ -233,11 +233,14 @@ The following variables are created in the "submits_summary.csv" file. This file
   - str
   - ID of the survey
 * - num_surveys
-  - str
+  - int
   - Number of surveys scheduled for delivery to the individual during the period
-* - num_complete_surveys
-  - str
-  - Number of completed surveys scheduled for delivery to the individual during the period
+* - num_submitted_surveys
+  - int
+  - Number of surveys submitted during the period (i.e. the user hit submit on all surveys)
+* - num_opened_surveys
+  - int
+  - Number of surveys opened by the individual during the time period (i.e. the user answered at least one question)
 * - avg_time_to_submit
   - str
   - Average time between survey delivery and survey submission, in seconds, for complete surveys

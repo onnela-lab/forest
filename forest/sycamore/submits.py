@@ -469,6 +469,7 @@ def summarize_submits(submits_df: pd.DataFrame, timeunit:str = None):
         summary_cols
     )["delivery_time"].nunique()
     num_complete_surveys = submits.groupby(summary_cols)["submit_flg"].sum()
+    num_opened_surveys = submits.groupby(summary_cols)["opened_flg"].sum()
     if np.sum(submits.submit_flg == 1) > 0:
         # this will work (and only makes sense) if there is at least one row
         # with a survey submit
@@ -500,12 +501,12 @@ def summarize_submits(submits_df: pd.DataFrame, timeunit:str = None):
         ].apply(lambda x: pd.to_datetime("NaT"))
 
     submit_lines_summary = pd.concat(
-        [num_surveys, num_complete_surveys, avg_time_to_submit,
-         avg_time_to_open, avg_duration],
+        [num_surveys, num_complete_surveys, num_opened_surveys,
+         avg_time_to_submit, avg_time_to_open, avg_duration],
         axis=1
     ).reset_index()
     submit_lines_summary.columns = summary_cols + [
-        "num_surveys", "num_complete_surveys",
+        "num_surveys", "num_complete_surveys", "num_opened_surveys",
         "avg_time_to_submit", "avg_time_to_open", "avg_duration"
     ]
 
