@@ -417,7 +417,8 @@ def survey_submits(
     return submit_lines3.sort_values(["survey id", "beiwe_id"]
                                      ).drop_duplicates()
 
-def summarize_submits(submits_df: pd.DataFrame, timeunit:str = None,
+
+def summarize_submits(submits_df: pd.DataFrame, timeunit: str = None,
                       summarize_over_survey: bool = True) -> pd.DataFrame:
     """Summarize a survey submits df
 
@@ -446,7 +447,7 @@ def summarize_submits(submits_df: pd.DataFrame, timeunit:str = None,
         avg_time_to_open: Average time between delivery and opening
         avg_duration: Average time between opening and submission
     """
-    #copy dataframe because we will be adding cols to it to process it
+    # copy dataframe because we will be adding cols to it to process it
     submits = submits_df.copy()
     summary_cols = ["beiwe_id"]
     if summarize_over_survey:
@@ -455,7 +456,7 @@ def summarize_submits(submits_df: pd.DataFrame, timeunit:str = None,
     submits["delivery_time"] = pd.to_datetime(submits["delivery_time"])
 
     if timeunit in ["Day", "Hour"]:
-        ## round to the nearest desired unit
+        # round to the nearest desired unit
         submits["delivery_time_floor"] = submits[
             "delivery_time"
         ].dt.floor(timeunit[0])
@@ -516,7 +517,6 @@ def summarize_submits(submits_df: pd.DataFrame, timeunit:str = None,
     ]
 
     return submit_lines_summary
-
 
 
 def survey_submits_no_config(input_agg: pd.DataFrame) -> pd.DataFrame:
