@@ -337,10 +337,15 @@ def survey_submits(
         1, 0
     )
 
+    submit_lines["start_time"] = np.where(
+        (submit_lines["opened_flg"] == 0) & (submit_lines["submit_flg"] == 0),
+        np.datetime64("NaT"), submit_lines["start_time"]
+    )
+
     # Find whether there were any submissions or openings in each time period
     submit_lines2 = submit_lines.groupby(
         ["delivery_time", "next_delivery_time", "survey id", "beiwe_id",
-         "config_id", "start_time"]
+         "config_id"]
     )[["opened_flg", "submit_flg"]].max().reset_index()
 
     for col in ["delivery_time", "next_delivery_time"]:
@@ -348,11 +353,10 @@ def survey_submits(
 
     # Merge on the times of the survey submission
     merge_cols = ["delivery_time", "next_delivery_time", "survey id",
-                  "beiwe_id", "config_id", "submit_flg", "opened_flg",
-                  "start_time"]
+                  "beiwe_id", "config_id", "submit_flg", "opened_flg"]
     submit_lines3 = pd.merge(
-        submit_lines2, submit_lines[merge_cols + ["Local time"]], how="left",
-        left_on=merge_cols, right_on=merge_cols
+        submit_lines2, submit_lines[merge_cols + ["Local time", "start_time"]],
+        how="left", left_on=merge_cols, right_on=merge_cols
     )
 
     submit_lines3["submit_time"] = np.where(
@@ -380,6 +384,13 @@ def survey_submits(
     # duration information because we only have the start time
     submit_lines3["survey_duration"] = np.where(
         submit_lines3["survey_duration"] == 0, np.nan,
+        submit_lines3["survey_duration"]
+    )
+
+    # If the individual didn't submit the survey, survey duration doesn't make
+    # sense (We are only going to define this for complete surveys)
+    submit_lines3["survey_duration"] = np.where(
+        submit_lines3["submit_flg"] == 0, np.nan,
         submit_lines3["survey_duration"]
     )
 
