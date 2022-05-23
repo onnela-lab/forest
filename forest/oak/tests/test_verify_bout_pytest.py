@@ -65,15 +65,11 @@ def test_(signal_bout, fs):
         t_sec_bins[bout_start[0]],
         t_sec_bins[bout_start[0] +
                    bout_duration[0]],
-        freq='S').tolist()
-    bout_time = bout_time[:-1]
-    bout_time = [t_i.to_pydatetime()
-                 for t_i in bout_time]
-
+        freq='S').to_pydatetime()
     acc_ind = np.isin(t_shifted, bout_time)
 
     expected_output = pd.date_range(datetime(2020, 2, 25, 18, 18, 32),
                                     datetime(2020, 2, 25, 18, 18, 41),
                                     freq='S').to_pydatetime()
-    assert np.array_equal(bout_time, expected_output)
+    assert np.array_equal(np.array(bout_time), expected_output)
     assert len(np.where(acc_ind)[0]) == 90
