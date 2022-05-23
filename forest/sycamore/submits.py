@@ -175,14 +175,15 @@ def gen_survey_schedule(
                 )
             if s["relative_timings"]:
                 # We can only get relative timings if we have an index time
-                if all_interventions_dict[user]:
+                if user in all_interventions_dict.keys():
                     s_times = s_times + generate_survey_times(
                         time_start, time_end, timings=s["relative_timings"],
                         survey_type="relative",
                         intervention_dict=all_interventions_dict[user]
                     )
                 else:
-                    logger.warning("error: no index time found for %s", user)
+                    logger.warning("error: no intervention time found for %s",
+                                   user)
             tbl = pd.DataFrame({"delivery_time": s_times})
             # May not be necessary, but I"m leaving this in case timestamps are
             # in different formats
