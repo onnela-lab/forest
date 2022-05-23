@@ -296,9 +296,9 @@ def survey_submits(
 
     agg["Local time"] = pd.to_datetime(agg["Local time"])
 
-    agg["start_time"] = agg.groupby(["beiwe_id", "survey id","surv_inst_flg"])[
-        "Local time"
-    ].transform("first")
+    agg["start_time"] = agg.groupby(
+        ["beiwe_id", "survey id", "surv_inst_flg"]
+    )["Local time"].transform("first")
 
     # Merge survey submit lines onto the schedule data and identify submitted
     # lines
