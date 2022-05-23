@@ -71,7 +71,7 @@ def signal_bout():
     return timestamp, t, x, y, z
 
 
-def test_reshape(signal_bout, fs, wavelet):
+def test_reshape(signal_bout, fs, min_amp, step_freq, alpha, beta, wavelet):
     timestamp, _, x, y, z = signal_bout
     vm_bout = preprocess_bout(timestamp, x, y, z)[3]
     vm_res_sec = vm_bout.reshape(fs, -1, order="F")
