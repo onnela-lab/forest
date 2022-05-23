@@ -77,13 +77,13 @@ def test_reshape(signal_bout, fs):
     vm_res_sec = vm_bout.reshape(fs, -1, order="F")
     expected_output = (10, 10)
     assert vm_res_sec.shape == expected_output
-    
+
     pp = np.array([max(vm_res_sec[:, i])-min(vm_res_sec[:, i])
                    for i in range(vm_res_sec.shape[1])])
     expected_output = np.array([0.64, 0.71, 1.11, 0.79, 0.37, 0.70, 1.20, 0.61,
                                 0.66, 0.48])
     assert np.array_equal(np.round(pp, 2), expected_output)
-    
+
     win = tukey(len(vm_bout), alpha=0.05, sym=True)
     expected_output = np.array([0, 0.35, 0.91])
     assert np.array_equal(np.round(win[0:3], 2), expected_output)
@@ -109,7 +109,7 @@ def test_reshape(signal_bout, fs):
     expected_output = 0.000482
     assert coefs_interp.shape == (80, 100)
     assert np.array_equal(np.round(np.max(coefs_interp), 6), expected_output)
-    
+
     dp = np.zeros((coefs_interp.shape[0], int(coefs_interp.shape[1]/fs)))
     loc_min = np.argmin(abs(freqs_interp-step_freq[0]))
     loc_max = np.argmin(abs(freqs_interp-step_freq[1]))
@@ -146,7 +146,6 @@ def test_reshape(signal_bout, fs):
     expected_output_ind = np.array([23, 22, 21, 22, 21, 27, 26, 25, 25, 24])
     assert np.array_equal(np.argmax(dp, axis=0), expected_output_ind)
     assert np.array_equal(np.max(dp, axis=0), expected_output_val)
-    
 
 
 def test_pp(signal_bout, fs):
