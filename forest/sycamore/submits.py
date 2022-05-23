@@ -533,13 +533,13 @@ def survey_submits_no_config(input_agg: pd.DataFrame) -> pd.DataFrame:
     """
     agg = input_agg.copy()
 
-    def summarize_submits(df):
+    def summarize_submission(df):
         temp_dict = {"min_time": df.min(), "max_time": df.max()}
         return pd.Series(temp_dict, index=pd.Index(["min_time", "max_time"]))
 
     agg = agg.groupby(["survey id", "beiwe_id", "surv_inst_flg"])[
         "Local time"
-    ].apply(summarize_submits).reset_index()
+    ].apply(summarize_submission).reset_index()
     agg = agg.pivot(index=["survey id", "beiwe_id", "surv_inst_flg"],
                     columns="level_3",
                     values="Local time").reset_index()
