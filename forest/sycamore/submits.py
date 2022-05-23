@@ -228,7 +228,7 @@ def gen_survey_schedule(
 def survey_submits(
         config_path: str, time_start: str, time_end: str, users: list,
         aggregated_data: pd.DataFrame, interventions_filepath: str = None
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+) -> pd.DataFrame:
     """Get survey submits for users
 
     Args:
