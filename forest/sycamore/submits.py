@@ -417,7 +417,8 @@ def survey_submits(
     return submit_lines3.sort_values(["survey id", "beiwe_id"]
                                      ).drop_duplicates()
 
-def summarize_submits(submits_df: pd.DataFrame, timeunit:str = None):
+def summarize_submits(submits_df: pd.DataFrame, timeunit:str = None,
+                      summarize_over_survey: bool = True) -> pd.DataFrame:
     """Summarize a survey submits df
 
     This generates the number of surveys opened and submitted, as well as the
@@ -430,6 +431,11 @@ def summarize_submits(submits_df: pd.DataFrame, timeunit:str = None):
             submits are summarized over the Beiwe ID and survey ID only. If
             this is "Day" or "Hour", submits are summarized over either the
             day or hour in which they were delivered.
+        summarize_over_survey(bool): Whether to summarize over survey. If this
+            is True, the output will include a separate row for each survey ID
+            within each time interval. If this is False, the output will take
+            sums and means over all surveys (i.e. num_surveys_submitted will
+            include submissions from more than one survey)
 
     Returns:
         submits_summary(DataFrame): A DataFrame with a row for each beiwe_id,
@@ -440,13 +446,13 @@ def summarize_submits(submits_df: pd.DataFrame, timeunit:str = None):
         avg_time_to_open: Average time between delivery and opening
         avg_duration: Average time between opening and submission
     """
+    #copy dataframe because we will be adding cols to it to process it
     submits = submits_df.copy()
-    # Create a summary that has survey_id, beiwe_id, num_surveys, num
-    # submitted surveys, average time to submit
-    summary_cols = ["survey id", "beiwe_id"]
+    summary_cols = ["beiwe_id"]
+    if summarize_over_survey:
+        summary_cols = summary_cols + ["survey id"]
 
     submits["delivery_time"] = pd.to_datetime(submits["delivery_time"])
-
 
     if timeunit in ["Day", "Hour"]:
         ## round to the nearest desired unit
