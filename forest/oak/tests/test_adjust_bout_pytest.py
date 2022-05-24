@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from scipy import interpolate
 
-from forest.oak.main import adjust_bout
+from forest.oak.base import adjust_bout
 
 
 TEST_DATA_DIR = os.path.dirname(os.path.abspath(__file__))

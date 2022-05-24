@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from forest.oak.main import rle
+from forest.oak.base import rle
 
 
 TEST_DATA_DIR = os.path.dirname(os.path.abspath(__file__))

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from forest.oak.main import find_continuous_dominant_peaks
+from forest.oak.base import find_continuous_dominant_peaks
 
 
 @pytest.fixture(scope="session")

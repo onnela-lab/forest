@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from forest.oak.main import rle
+from forest.oak.base import rle
 
 
 @pytest.fixture(scope="session")

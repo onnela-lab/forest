@@ -9,7 +9,7 @@ from scipy import interpolate
 from scipy.signal import find_peaks, tukey
 from ssqueezepy import ssq_cwt
 
-from forest.oak.main import (preprocess_bout, find_walking)
+from forest.oak.base import (preprocess_bout, find_walking)
 
 
 TEST_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
