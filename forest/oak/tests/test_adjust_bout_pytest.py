@@ -11,6 +11,7 @@ from forest.oak.base import adjust_bout
 TEST_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
+@pytest.fixture(scope="session")
 def fs():
     return 10
 
@@ -24,7 +25,7 @@ def signal_bout():
     return timestamp, x
 
 
-def test_adjust_bout(signal_bout):
+def test_adjust_bout(signal_bout, fs):
     timestamp, x = signal_bout
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     f = interpolate.interp1d(timestamp, x)
