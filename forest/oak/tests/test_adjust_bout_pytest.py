@@ -24,7 +24,7 @@ def signal_bout():
     return timestamp, x
 
 
-def test_adjust_bout(signal_bout, fs):
+def test_adjust_bout(signal_bout):
     timestamp, x = signal_bout
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     f = interpolate.interp1d(timestamp, x)
