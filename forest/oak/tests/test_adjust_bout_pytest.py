@@ -11,7 +11,6 @@ from forest.oak.base import adjust_bout
 TEST_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-@pytest.fixture(scope="session")
 def fs():
     return 10
 
