@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from forest.constants import Frequency
 from forest.sycamore.submits import (gen_survey_schedule,
                                      get_all_interventions_dict,
                                      survey_submits, summarize_submits,
@@ -63,12 +64,12 @@ def test_summarize_submits(submits_data):
 
 
 def test_summarize_submits_hour(submits_data):
-    summary = summarize_submits(submits_data, "Hour")
+    summary = summarize_submits(submits_data, Frequency.HOURLY)
     assert summary.shape[0] == 292
 
 
 def test_summarize_submits_day(submits_data):
-    summary = summarize_submits(submits_data, timeunit="Day")
+    summary = summarize_submits(submits_data, timeunit=Frequency.DAILY)
     assert summary.shape[0] == 208
 
 
