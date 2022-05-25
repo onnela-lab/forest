@@ -420,7 +420,7 @@ def survey_submits(
 
 
 def summarize_submits(submits_df: pd.DataFrame,
-                      timeunit: Frequency = Frequency.DAILY,
+                      timeunit: Frequency = None,
                       summarize_over_survey: bool = True) -> pd.DataFrame:
     """Summarize a survey submits df
 
