@@ -373,13 +373,13 @@ def survey_submits(
 
     submit_lines3["time_to_submit"] = (
             submit_lines3["submit_time"] - submit_lines3["delivery_time"]
-    ).dt.seconds
+    ).dt.total_seconds()
     submit_lines3["time_to_open"] = (
             submit_lines3["start_time"] - submit_lines3["delivery_time"]
-    ).dt.seconds
+    ).dt.total_seconds()
     submit_lines3["survey_duration"] = (
             submit_lines3["submit_time"] - submit_lines3["start_time"]
-    ).dt.seconds
+    ).dt.total_seconds()
     # If only a survey_answers file was found, there will be no useful survey
     # duration information because we only have the start time
     submit_lines3["survey_duration"] = np.where(
