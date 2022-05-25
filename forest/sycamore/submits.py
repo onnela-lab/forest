@@ -249,10 +249,8 @@ def survey_submits(
             Dataframe of aggregated data. Output from aggregate_surveys_config
 
     Returns:
-        A DataFrame with all surveys deployed in the given timeframe on the
-        study to the users with completion times
-
-        A DataFrame with all users, total surveys received, and responses.
+        A DataFrame with deployment time and information about each user's
+        response to a survey for all surveys deployed in the given timeframe.
     """
     agg = aggregated_data.copy()
     if interventions_filepath is None:
