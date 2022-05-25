@@ -426,7 +426,7 @@ def summarize_submits(submits_df: pd.DataFrame, timeunit: str = None,
     average time to open and complete a survey over a period of time
 
     Args:
-        submits_df(DataFrame): output from survey_submits
+        submits_df: output from survey_submits
         timeunit(str): One of None, "Day", or "Hour". The unit
             of time on which to summarize the submits. If this is None,
             submits are summarized over the Beiwe ID and survey ID only. If
@@ -439,7 +439,7 @@ def summarize_submits(submits_df: pd.DataFrame, timeunit: str = None,
             include submissions from more than one survey)
 
     Returns:
-        submits_summary(DataFrame): A DataFrame with a row for each beiwe_id,
+        A DataFrame with a row for each beiwe_id,
         survey ID, and time unit found in submits_df. Has columns:
         num_complete_surveys: Number of surveys completed during the time unit
         num_opened_surveys: Number of surveys opened during the time unit
