@@ -3,7 +3,6 @@ modules and calculate summary statistics of imputed trajectories.
 """
 
 from dataclasses import dataclass
-from enum import Enum
 import json
 import os
 import pickle
@@ -19,7 +18,7 @@ from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
-from forest.constants import OSM_OVERPASS_URL
+from forest.constants import OSM_OVERPASS_URL, Frequency
 from forest.jasmine.data2mobmat import (GPS2MobMat, InferMobMat,
                                         great_circle_dist,
                                         pairwise_great_circle_dist)
@@ -30,14 +29,6 @@ from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
                                                stamp2datetime,
                                                write_all_summaries)
 from forest.utils import get_ids
-
-
-class Frequency(Enum):
-    """This class enumerates possible frequencies for summary data."""
-    HOURLY = "hourly"
-    DAILY = "daily"
-    BOTH = "both"
-
 
 @dataclass
 class Hyperparameters:
