@@ -6,6 +6,7 @@ from typing import Optional, Dict
 import numpy as np
 import pandas as pd
 
+from forest.constants import Frequency
 from forest.sycamore.common import read_json
 
 logger = logging.getLogger(__name__)
@@ -418,7 +419,8 @@ def survey_submits(
                                      ).drop_duplicates()
 
 
-def summarize_submits(submits_df: pd.DataFrame, timeunit: str = None,
+def summarize_submits(submits_df: pd.DataFrame,
+                      timeunit: Frequency = Frequency.DAILY,
                       summarize_over_survey: bool = True) -> pd.DataFrame:
     """Summarize a survey submits df
 
@@ -427,10 +429,10 @@ def summarize_submits(submits_df: pd.DataFrame, timeunit: str = None,
 
     Args:
         submits_df: output from survey_submits
-        timeunit(str): One of None, "Day", or "Hour". The unit
-            of time on which to summarize the submits. If this is None,
-            submits are summarized over the Beiwe ID and survey ID only. If
-            this is "Day" or "Hour", submits are summarized over either the
+        timeunit(Frequency): One of None, Frequency.HOURLY or Frequency.DAILY.
+            The unit of time on which to summarize the submits. If this is
+            None, submits are summarized over the Beiwe ID and survey ID only.
+            If this is "Day" or "Hour", submits are summarized over either the
             day or hour in which they were delivered.
         summarize_over_survey(bool): Whether to summarize over survey. If this
             is True, the output will include a separate row for each survey ID
@@ -455,19 +457,25 @@ def summarize_submits(submits_df: pd.DataFrame, timeunit: str = None,
 
     submits["delivery_time"] = pd.to_datetime(submits["delivery_time"])
 
-    if timeunit in ["Day", "Hour"]:
+    if timeunit == Frequency.BOTH:
+        logger.waring("Error: summarize_submits cannot calculate both daily"
+                      " and hourly summaries at one time. Running daily "
+                      "summaries")
+        timeunit = Frequency.DAILY
+
+    if timeunit == Frequecy.DAILY:
+        submits["delivery_time_floor"] = submits["delivery_time"].dt.floor("D")
+    elif timeunit == Frequecy.HOURLY:
+        submits["delivery_time_floor"] = submits["delivery_time"].dt.floor("H")
+
+    if timeunit is not None:
         # round to the nearest desired unit
-        submits["delivery_time_floor"] = submits[
-            "delivery_time"
-        ].dt.floor(timeunit[0])
         submits["year"] = submits["delivery_time_floor"].dt.year
         submits["month"] = submits["delivery_time_floor"].dt.month
         submits["day"] = submits["delivery_time_floor"].dt.day
         summary_cols = summary_cols + ["year", "month", "day"]
-    elif timeunit is not None:
-        logger.exception("timeunit must be one of None, 'Day', or 'Hour'")
 
-    if timeunit == "Hour":
+    if timeunit == Frequecy.HOURLY:
         summary_cols = summary_cols + ["hour"]
         submits["hour"] = submits["delivery_time_floor"].dt.hour
 

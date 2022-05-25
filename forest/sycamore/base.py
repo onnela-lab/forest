@@ -7,7 +7,7 @@ from forest.sycamore.common import (aggregate_surveys_config,
                                     aggregate_surveys_no_config,
                                     get_month_from_today
                                     )
-from forest.sycamore.constants import EARLIEST_DATE
+from forest.sycamore.constants import EARLIEST_DATE, Frequency
 from forest.sycamore.responses import (agg_changed_answers_summary,
                                        format_responses_by_submission)
 from forest.sycamore.submits import (survey_submits,
@@ -48,8 +48,11 @@ def compute_survey_stats(
         Whether to use the survey_answers stream to fill in missing surveys
         from survey_timings
     submits_timeframe(str):
-        The timeframe to summarize survey submissions over in
-        submits_summary.csv. One of None, "Day", or "Hour"
+        The timeframe to summarize survey submissions over. One of
+        "both", "daily", or "hourly". An overall summary for each user is
+        always generated ("submits_summary_overall.csv"), and submissionns can
+        also be generated across days ("submits_summary_daily.csv"), hours
+        ("submits_summary_hourly.csv") or both.
     submits_by_survey_id(bool):
         Whether to summmarize survey submits with separate lines for different
         surveys in submits_summary.csv. By default, this is True, so a
@@ -98,7 +101,19 @@ def compute_survey_stats(
                 config_path, start_date, end_date,
                 users, agg_data, interventions_filepath
             )
-            ss_summary = summarize_submits(ss_detail, submits_timeframe,
+
+            if Frequency(submits_timeframe) == Frequency.BOTH:
+                ss_summary_h = summarize_submits(ss_detail, Frequency.HOURLY,
+                                                 submits_by_survey_id)
+                ss_summary_d = summarize_submits(ss_detail, Frequency.DAILY,
+                                                 submits_by_survey_id)
+            elif Frequency(submits_timeframe) == Frequency.HOURLY:
+                ss_summary_h = summarize_submits(ss_detail, Frequency.HOURLY,
+                                                 submits_by_survey_id)
+            elif Frequency(submits_timeframe) == Frequency.DAILY:
+                ss_summary_d = summarize_submits(ss_detail, Frequency.DAILY,
+                                                 submits_by_survey_id)
+            ss_summary = summarize_submits(ss_detail, None,
                                            submits_by_survey_id)
             if ss_summary.shape[0] > 0:
                 ss_detail.to_csv(os.path.join(output_folder, "summaries",
@@ -108,6 +123,18 @@ def compute_survey_stats(
                     os.path.join(output_folder, "summaries",
                                  "submits_summary.csv"), index=False
                 )
+                if Frequency(submits_timeframe) in [Frequency.BOTH,
+                                                    Frequency.HOURLY]:
+                    ss_summary_h.to_csv(
+                        os.path.join(output_folder, "summaries",
+                                     "submits_summary_hourly.csv"), index=False
+                    )
+                if Frequency(submits_timeframe) in [Frequency.BOTH,
+                                                    Frequency.DAILY]:
+                    ss_summary_d.to_csv(
+                        os.path.join(output_folder, "summaries",
+                                     "submits_summary_daily.csv"), index=False
+                    )
             else:
                 logger.error("An Error occurred when "
                              "getting survey submit summaries")
