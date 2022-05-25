@@ -263,7 +263,6 @@ def survey_submits(
 
     sched = gen_survey_schedule(config_path, time_start, time_end, users,
                                 all_interventions_dict)
-
     if sched.shape[0] == 0:  # return empty dataframe
         logger.error("Error: No survey schedules found")
         return pd.DataFrame(columns=[["survey id", "beiwe_id"]])
@@ -276,7 +275,6 @@ def survey_submits(
     # In some surveys, there will be multiple config_ids for the same line
     # because question IDs are duplicated across surveys. So, all of these
     # config_ids get set with 1 because they all happened at the same time.
-
     for user in users:
         opening_times = agg.loc[
             (agg.beiwe_id == user) &
@@ -291,18 +289,16 @@ def survey_submits(
         agg.loc[agg.beiwe_id == user, "opened_line"] = agg.loc[
             agg.beiwe_id == user, "Local time"
         ].apply(lambda x: 1 if x in opening_times else 0)
-
     # Get starting times for each survey to allow joining with files in
     # the by_surveys folder.
-
     agg["Local time"] = pd.to_datetime(agg["Local time"])
-
     agg["start_time"] = agg.groupby(
         ["beiwe_id", "survey id", "surv_inst_flg"]
     )["Local time"].transform("first")
-
     # Merge survey submit lines onto the schedule data and identify submitted
     # lines
+    # This creates a very long dataframe with all survey submissions/openings
+    # on lines with each delivery
     submit_lines = pd.merge(
         sched[
             ["delivery_time", "next_delivery_time", "id", "beiwe_id"]
@@ -315,10 +311,6 @@ def survey_submits(
         how="left", left_on=["id", "beiwe_id"],
         right_on=["config_id", "beiwe_id"]
     )
-
-    # This creates a very long dataframe with all survey submissions/openings
-    # on lines with each delivery
-
     # Get the submitted survey line
     submit_lines["submit_flg"] = np.where(
         (submit_lines["Local time"] >= submit_lines["delivery_time"]) &
@@ -326,7 +318,6 @@ def survey_submits(
         (submit_lines["submit_line"] == 1),
         1, 0
     )
-
     # find out if they opened a survey within the interval
     submit_lines["opened_flg"] = np.where(
         ((submit_lines["Local time"] >= submit_lines["delivery_time"]) &
@@ -334,24 +325,19 @@ def survey_submits(
          (submit_lines["opened_line"] == 1)) |
         # If they submitted the survey, it was open sometime in the interval.
         (submit_lines["submit_flg"] == 1),
-
         1, 0
     )
-
     submit_lines["start_time"] = np.where(
         (submit_lines["opened_flg"] == 0) & (submit_lines["submit_flg"] == 0),
         np.datetime64("NaT"), submit_lines["start_time"]
     )
-
     # Find whether there were any submissions or openings in each time period
     submit_lines2 = submit_lines.groupby(
         ["delivery_time", "next_delivery_time", "survey id", "beiwe_id",
          "config_id"]
     )[["opened_flg", "submit_flg"]].max().reset_index()
-
     for col in ["delivery_time", "next_delivery_time"]:
         submit_lines2[col] = pd.to_datetime(submit_lines2[col])
-
     # Merge on the times of the survey submission
     merge_cols = ["delivery_time", "next_delivery_time", "survey id",
                   "beiwe_id", "config_id", "submit_flg", "opened_flg"]
@@ -359,19 +345,16 @@ def survey_submits(
         submit_lines2, submit_lines[merge_cols + ["Local time", "start_time"]],
         how="left", left_on=merge_cols, right_on=merge_cols
     )
-
     submit_lines3["submit_time"] = np.where(
         submit_lines3.submit_flg == 1,
         submit_lines3["Local time"],
         np.array(0, dtype="datetime64[ns]")
     )
-
     # Select appropriate columns
     submit_lines3 = submit_lines3[
         ["survey id", "delivery_time", "beiwe_id", "submit_flg", "opened_flg",
          "submit_time", "start_time"]
     ]
-
     submit_lines3["time_to_submit"] = (
             submit_lines3["submit_time"] - submit_lines3["delivery_time"]
     ).dt.total_seconds()
@@ -387,34 +370,29 @@ def survey_submits(
         submit_lines3["survey_duration"] == 0, np.nan,
         submit_lines3["survey_duration"]
     )
-
     # If the individual didn't submit the survey, survey duration doesn't make
     # sense (We are only going to define this for complete surveys)
     submit_lines3["survey_duration"] = np.where(
         submit_lines3["submit_flg"] == 0, np.nan,
         submit_lines3["survey_duration"]
     )
-
     # make cols more interpretable as "no survey submitted"
     submit_lines3["submit_time"] = np.where(
         submit_lines3["submit_flg"] == 1,
         submit_lines3["submit_time"],
         np.array("NaT", dtype="datetime64[ns]")
     )
-
     # mark as NA if no submit happened
     submit_lines3["time_to_submit"] = np.where(
         submit_lines3["submit_flg"] == 1,
         submit_lines3["time_to_submit"],
         np.NaN
     )
-
     submit_lines3["time_to_open"] = np.where(
         submit_lines3["opened_flg"] == 1,
         submit_lines3["time_to_open"],
         np.NaN
     )
-
     return submit_lines3.sort_values(["survey id", "beiwe_id"]
                                      ).drop_duplicates()
 
@@ -454,31 +432,25 @@ def summarize_submits(submits_df: pd.DataFrame,
     summary_cols = ["beiwe_id"]
     if summarize_over_survey:
         summary_cols = summary_cols + ["survey id"]
-
     submits["delivery_time"] = pd.to_datetime(submits["delivery_time"])
-
     if timeunit == Frequency.BOTH:
         logger.waring("Error: summarize_submits cannot calculate both daily"
                       " and hourly summaries at one time. Running daily "
                       "summaries")
         timeunit = Frequency.DAILY
-
     if timeunit == Frequency.DAILY:
         submits["delivery_time_floor"] = submits["delivery_time"].dt.floor("D")
     elif timeunit == Frequency.HOURLY:
         submits["delivery_time_floor"] = submits["delivery_time"].dt.floor("H")
-
     if timeunit is not None:
         # round to the nearest desired unit
         submits["year"] = submits["delivery_time_floor"].dt.year
         submits["month"] = submits["delivery_time_floor"].dt.month
         submits["day"] = submits["delivery_time_floor"].dt.day
         summary_cols = summary_cols + ["year", "month", "day"]
-
     if timeunit == Frequency.HOURLY:
         summary_cols = summary_cols + ["hour"]
         submits["hour"] = submits["delivery_time_floor"].dt.hour
-
     num_surveys = submits.groupby(
         summary_cols
     )["delivery_time"].nunique()
@@ -523,7 +495,6 @@ def summarize_submits(submits_df: pd.DataFrame,
         "num_surveys", "num_complete_surveys", "num_opened_surveys",
         "avg_time_to_submit", "avg_time_to_open", "avg_duration"
     ]
-
     return submit_lines_summary
 
 
