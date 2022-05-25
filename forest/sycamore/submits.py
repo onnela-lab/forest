@@ -463,9 +463,9 @@ def summarize_submits(submits_df: pd.DataFrame,
                       "summaries")
         timeunit = Frequency.DAILY
 
-    if timeunit == Frequecy.DAILY:
+    if timeunit == Frequency.DAILY:
         submits["delivery_time_floor"] = submits["delivery_time"].dt.floor("D")
-    elif timeunit == Frequecy.HOURLY:
+    elif timeunit == Frequency.HOURLY:
         submits["delivery_time_floor"] = submits["delivery_time"].dt.floor("H")
 
     if timeunit is not None:
@@ -475,7 +475,7 @@ def summarize_submits(submits_df: pd.DataFrame,
         submits["day"] = submits["delivery_time_floor"].dt.day
         summary_cols = summary_cols + ["year", "month", "day"]
 
-    if timeunit == Frequecy.HOURLY:
+    if timeunit == Frequency.HOURLY:
         summary_cols = summary_cols + ["hour"]
         submits["hour"] = submits["delivery_time_floor"].dt.hour
 
