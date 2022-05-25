@@ -432,9 +432,9 @@ def summarize_submits(submits_df: pd.DataFrame,
         summary_cols = summary_cols + ["survey id"]
     submits["delivery_time"] = pd.to_datetime(submits["delivery_time"])
     if timeunit == Frequency.BOTH:
-        logger.waring("Error: summarize_submits cannot calculate both daily"
-                      " and hourly summaries at one time. Running daily "
-                      "summaries")
+        logger.warning("Error: summarize_submits cannot calculate both daily"
+                       " and hourly summaries at one time. Running daily "
+                       "summaries")
         timeunit = Frequency.DAILY
     if timeunit == Frequency.DAILY:
         submits["delivery_time_floor"] = submits["delivery_time"].dt.floor("D")
