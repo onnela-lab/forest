@@ -7,7 +7,8 @@ from forest.sycamore.common import (aggregate_surveys_config,
                                     aggregate_surveys_no_config,
                                     get_month_from_today
                                     )
-from forest.sycamore.constants import EARLIEST_DATE, Frequency
+from forest.sycamore.constants import EARLIEST_DATE
+from forest.constants import Frequency
 from forest.sycamore.responses import (agg_changed_answers_summary,
                                        format_responses_by_submission)
 from forest.sycamore.submits import (survey_submits,
