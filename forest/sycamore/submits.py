@@ -265,7 +265,7 @@ def survey_submits(
 
     if sched.shape[0] == 0:  # return empty dataframe
         logger.error("Error: No survey schedules found")
-        return (pd.DataFrame(columns=[["survey id", "beiwe_id"]]))
+        return pd.DataFrame(columns=[["survey id", "beiwe_id"]])
 
     # First, figure out if they opened the survey (if there are any lines
     # related to the survey).
