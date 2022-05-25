@@ -242,13 +242,13 @@ The following variables are created in the "submits_summary.csv" file. This file
   - int
   - Number of surveys opened by the individual during the time period (i.e. the user answered at least one question)
 * - avg_time_to_submit
-  - str
+  - float
   - Average time between survey delivery and survey submission, in seconds, for complete surveys
 * - avg_time_to_open
-  - str
+  - float
   - Average time between survey delivery and survey opening, in seconds. This is averaged over survey responses where a survey_timings file was available because we do not have information about survey opening in responses where a survey_timings file is missing.
 * - avg_duration
-  - str
+  - float
   - Average time between survey opening and survey submission, in seconds.This is averaged over survey responses where a survey_timings file was available because we do not have information about survey opening in responses where a survey_timings file is missing.
 ```
 
@@ -276,6 +276,9 @@ The following variables are created in the "submits_and_deliveries.csv" file. Th
 * - time_to_open
   - float
   - Time between survey delivery time and the first recorded survey answer, in seconds (for responses where a survey_timings file was available; if only a survey_answers file was available, this will be 0)
+* - survey_duration
+  - float
+  - Time between the first recorded survey answer and the survey submission, in seconds (for responses where a survey_timings file was available; if only a survey_answers file was available, this will be NA)
 ```
 
 The following variables are created in the "answers_data.csv" file. This file will be generated if a survey config file is available.
@@ -379,7 +382,7 @@ The following variables are created in the "submits_only.csv" file. This file wi
   - str
   - The earliest time the individual was interacting with the survey that session
 * - time_to_complete
-  - str
+  - float
   - Time between min_time and max_time, in seconds (for responses where a survey_timings file was available)
 ```
             
@@ -396,7 +399,7 @@ The following variables are created in a csv file for each survey.
   - str
   - Time this survey submission was ended
 * - survey_duration
-  - str
+  - float
   - Difference between start and end time, in seconds (for surveys where a survey_timings file was available)
 * - question_1, question_2, ...
   - str
