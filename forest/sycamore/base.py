@@ -29,32 +29,32 @@ def compute_survey_stats(
     """Compute statistics on surveys
 
     Args:
-    output_folder(str):
+    output_folder:
         File path to output summaries and details
-    study_folder(str):
+    study_folder:
         File path to study data
-    config_path(str):
+    config_path:
         File path to study configuration file
-    start_date(str):
+    start_date:
         The earliest date of survey data to read in, in YYYY-MM-DD format
-    end_date(str):
+    end_date:
         The latest survey data to read in, in YYYY-MM-DD format
-    users(list):
+    users:
         List of users in study for which we are generating a survey schedule
-    tz_str(str):
+    tz_str:
         Timezone of study. This defaults to "UTC"
-    interventions_filepath(str):
+    interventions_filepath:
         filepath where interventions json file is.
-    augment_with_answers(bool):
+    augment_with_answers:
         Whether to use the survey_answers stream to fill in missing surveys
         from survey_timings
-    submits_timeframe(str):
+    submits_timeframe:
         The timeframe to summarize survey submissions over. One of
         "both", "daily", or "hourly". An overall summary for each user is
         always generated ("submits_summary_overall.csv"), and submissionns can
         also be generated across days ("submits_summary_daily.csv"), hours
         ("submits_summary_hourly.csv") or both.
-    submits_by_survey_id(bool):
+    submits_by_survey_id:
         Whether to summmarize survey submits with separate lines for different
         surveys in submits_summary.csv. By default, this is True, so a
         different line for each survey will be generated.

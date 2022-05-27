@@ -405,12 +405,12 @@ def summarize_submits(submits_df: pd.DataFrame,
 
     Args:
         submits_df: output from survey_submits
-        timeunit(Frequency): One of None, Frequency.HOURLY or Frequency.DAILY.
+        timeunit: One of None, Frequency.HOURLY or Frequency.DAILY.
             The unit of time on which to summarize the submits. If this is
             None, submits are summarized over the Beiwe ID and survey ID only.
             If this is "Day" or "Hour", submits are summarized over either the
             day or hour in which they were delivered.
-        summarize_over_survey(bool): Whether to summarize over survey. If this
+        summarize_over_survey: Whether to summarize over survey. If this
             is True, the output will include a separate row for each survey ID
             within each time interval. If this is False, the output will take
             sums and means over all surveys (i.e. num_surveys_submitted will
