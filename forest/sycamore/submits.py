@@ -449,9 +449,7 @@ def summarize_submits(submits_df: pd.DataFrame,
     if timeunit == Frequency.HOURLY:
         summary_cols = summary_cols + ["hour"]
         submits["hour"] = submits["delivery_time_floor"].dt.hour
-    num_surveys = submits.groupby(
-        summary_cols
-    )["delivery_time"].nunique()
+    num_surveys = submits.groupby(summary_cols)["delivery_time"].nunique()
     num_complete_surveys = submits.groupby(summary_cols)["submit_flg"].sum()
     num_opened_surveys = submits.groupby(summary_cols)["opened_flg"].sum()
     if np.sum(submits.submit_flg == 1) > 0:
