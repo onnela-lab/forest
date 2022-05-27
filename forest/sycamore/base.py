@@ -102,18 +102,6 @@ def compute_survey_stats(
                 config_path, start_date, end_date,
                 users, agg_data, interventions_filepath
             )
-
-            if Frequency(submits_timeframe) == Frequency.BOTH:
-                ss_summary_h = summarize_submits(ss_detail, Frequency.HOURLY,
-                                                 submits_by_survey_id)
-                ss_summary_d = summarize_submits(ss_detail, Frequency.DAILY,
-                                                 submits_by_survey_id)
-            elif Frequency(submits_timeframe) == Frequency.HOURLY:
-                ss_summary_h = summarize_submits(ss_detail, Frequency.HOURLY,
-                                                 submits_by_survey_id)
-            elif Frequency(submits_timeframe) == Frequency.DAILY:
-                ss_summary_d = summarize_submits(ss_detail, Frequency.DAILY,
-                                                 submits_by_survey_id)
             ss_summary = summarize_submits(ss_detail, None,
                                            submits_by_survey_id)
             if ss_summary.shape[0] > 0:
@@ -124,14 +112,33 @@ def compute_survey_stats(
                     os.path.join(output_folder, "summaries",
                                  "submits_summary.csv"), index=False
                 )
-                if Frequency(submits_timeframe) in [Frequency.BOTH,
-                                                    Frequency.HOURLY]:
+                if Frequency(submits_timeframe) == Frequency.BOTH:
+                    ss_summary_h = summarize_submits(
+                        ss_detail, Frequency.HOURLY, submits_by_survey_id
+                    )
+                    ss_summary_d = summarize_submits(
+                        ss_detail, Frequency.DAILY, submits_by_survey_id
+                    )
+                    ss_summary_d.to_csv(
+                        os.path.join(output_folder, "summaries",
+                                     "submits_summary_daily.csv"), index=False
+                    )
                     ss_summary_h.to_csv(
                         os.path.join(output_folder, "summaries",
                                      "submits_summary_hourly.csv"), index=False
                     )
-                if Frequency(submits_timeframe) in [Frequency.BOTH,
-                                                    Frequency.DAILY]:
+                elif Frequency(submits_timeframe) == Frequency.HOURLY:
+                    ss_summary_h = summarize_submits(
+                        ss_detail, Frequency.HOURLY, submits_by_survey_id
+                    )
+                    ss_summary_h.to_csv(
+                        os.path.join(output_folder, "summaries",
+                                     "submits_summary_hourly.csv"), index=False
+                    )
+                elif Frequency(submits_timeframe) == Frequency.DAILY:
+                    ss_summary_d = summarize_submits(
+                        ss_detail, Frequency.DAILY, submits_by_survey_id
+                    )
                     ss_summary_d.to_csv(
                         os.path.join(output_folder, "summaries",
                                      "submits_summary_daily.csv"), index=False
@@ -139,7 +146,6 @@ def compute_survey_stats(
             else:
                 logger.error("An Error occurred when "
                              "getting survey submit summaries")
-
     surveys_dict = format_responses_by_submission(agg_data)
     for survey_id in surveys_dict.keys():
         surveys_dict[survey_id].to_csv(
