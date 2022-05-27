@@ -1,7 +1,7 @@
 """Contains parameters used for API calls in Forest."""
 
-import os
 from enum import Enum
+import os
 
 # Openrouteservice API is limited to 40 requests per minute for free accounts
 # https://openrouteservice.org/plans/
