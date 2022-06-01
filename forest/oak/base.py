@@ -132,9 +132,9 @@ def adjust_bout(inarray: np.ndarray, fs: int) -> npt.NDArray[np.float64]:
     10s (results in N%fs=0).
 
     Args:
-        inarray : array of floats
+        inarray: array of floats
             input with one bout of activity
-        fs : integer
+        fs: integer
             sampling frequency
 
     Returns:
