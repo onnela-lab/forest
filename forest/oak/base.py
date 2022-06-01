@@ -15,13 +15,32 @@ import os
 
 from dateutil import tz
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from scipy import interpolate
 from scipy.signal import find_peaks, tukey
 from ssqueezepy import ssq_cwt
 
+from forest.utils import get_ids
 
 logger = logging.getLogger(__name__)
+
+
+# constants
+fs = 10  # desired sampling rate (frequency) (in Hertz (Hz))
+gravity = 9.80665
+
+# tuning parameters for walking recognition
+min_amp = 0.3  # minimum peak-to-peak amplitude (in gravitational units (g))
+step_freq = (1.4, 2.3)  # step frequency (in Hz) - sfr
+alpha = 0.6  # maximum ratio between dominant peak below and within sfr
+beta = 2.5  # maximum ratio between dominant peak above and within sfr
+delta = 20  # maximum change of step frequency between two one-second
+# nonoverlapping segments (multiplication of 0.05Hz, e.g., delta=2 -> 0.1Hz)
+epsilon = 3  # minimum walking time (in seconds (s))
+
+# other thresholds
+minimum_activity_thr = 0.1  # threshold to qualify act. bout for computation
 
 
 def rle(inarray: np.ndarray) -> tuple:
@@ -56,13 +75,13 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
     vector magnitude.
 
     Args:
-        t_bout : array of floats
+        t_bout: array of floats
             Unix timestamp
-        x_bout : array of floats
+        x_bout: array of floats
             X-axis acceleration
-        y_bout : array of floats
+        y_bout: array of floats
             Y-axis acceleration
-        z_bout : array of floats
+        z_bout: array of floats
             Z-axis acceleration
 
     Returns:
@@ -106,7 +125,7 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
     return x_bout, y_bout, z_bout, vm_bout
 
 
-def adjust_bout(inarray: np.ndarray, fs: int) -> np.ndarray:
+def adjust_bout(inarray: np.ndarray, fs: int) -> npt.Ndarray[np.float64]:
     """Fills observations in incomplete bouts.
 
     For example, if the bout is 9.8s long, add values at its end to make it
@@ -132,7 +151,7 @@ def adjust_bout(inarray: np.ndarray, fs: int) -> np.ndarray:
 
 def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
                  step_freq: tuple, alpha: float, beta: float, epsilon: int,
-                 delta: int) -> np.ndarray:
+                 delta: int) -> npt.Ndarray[np.float64]:
     """Finds walking and calculate steps from raw acceleration data.
 
     Method finds periods of repetetive and continuous oscillations with
@@ -140,23 +159,23 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
     Frequency components are extracted with Continuous Wavelet Transform.
 
     Args:
-        vm_bout : array of floats
+        vm_bout: array of floats
             vector magnAtude with one bout of activity (in g)
-        fs : integer
+        fs: integer
             sampling frequency (in Hz)
-        A : float
+        A: float
             minimum amplitude (in g)
-        step_freq : tuple
+        step_freq: tuple
             step frequency range
-        alpha : float
+        alpha: float
             maximum ratio between dominant peak below and within
             step frequency range
-        beta : float
+        beta: float
             maximum ratio between dominant peak above and within
             step frequency range
-        epsilon : integer
+        epsilon: integer
             minimum duration of peaks (in seconds)
-        delta : integer
+        delta: integer
             maximum difference between consecutive peaks (in multiplication of
                                                           0.05Hz)
 
@@ -178,10 +197,10 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
         # trim bout to valid periods only
         tapered_bout = vm_bout[np.repeat(valid, fs)]
 
-        # add some noise in the edges to minimize impact of coin of influence
-        win = tukey(len(tapered_bout), alpha=0.02, sym=True)
+        # smooth signal on the edges to minimize impact of coin of influence
+        window = tukey(len(tapered_bout), alpha=0.02, sym=True)
         tapered_bout = np.concatenate((np.zeros(5*fs),
-                                       (tapered_bout)*win,
+                                       (tapered_bout)*window,
                                        np.zeros(5*fs)))
 
         # compute cwt over bout
@@ -210,8 +229,7 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
             x_start = i*fs
             x_end = (i + 1)*fs
             # identify peaks and their location in each window
-            window = np.sum(coefs_interp[:, np.arange(x_start, x_end)],
-                            axis=1)
+            window = np.sum(coefs_interp[:, np.arange(x_start, x_end)], axis=1)
             locs, _ = find_peaks(window)
             pks = window[locs]
             ind = np.argsort(-pks)
@@ -260,15 +278,15 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
 
 
 def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
-                                   delta: int) -> np.ndarray:
+                                   delta: int) -> npt.Ndarray[np.int_]:
     """Identifies continuous and sustained peaks within matrix.
 
     Args:
-        val_peaks : nparray
+        val_peaks: nparray
             binary matrix (1=peak,0=no peak) of valid peaks
-        epsilon : integer
+        epsilon: integer
             minimum duration of peaks (in seconds)
-        delta : integer
+        delta: integer
             maximum difference between consecutive peaks (in multiplication of
                                                           0.05Hz)
 
@@ -280,11 +298,10 @@ def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
     cp = np.zeros((val_peaks.shape[0], val_peaks.shape[1]))
     for slice_ind in range(val_peaks.shape[1] - epsilon):
         slice_mat = val_peaks[:, np.arange(slice_ind, slice_ind + epsilon)]
-        win = [i for i in np.arange(epsilon)] + [i for i in
-                                                 np.arange(epsilon-2, -1, -1)]
-
-        for ind in range(len(win)):
-            win_ind = win[ind]
+        windows = [i for i in
+                   np.arange(epsilon)] + [i for i in
+                                          np.arange(epsilon-2, -1, -1)]
+        for win_ind in windows:
             pr = np.where(slice_mat[:, win_ind] != 0)[0]
             count = 0
             if len(pr) > 0:
@@ -342,33 +359,31 @@ def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
         cp[:, np.arange(
             slice_ind, slice_ind + epsilon)] = np.maximum(
                 cp[:, np.arange(slice_ind, slice_ind + epsilon)], slice_mat)
-
-    cp = cp[:, :-1]
-    return cp
+    return cp[:, :-1]
 
 
 def main_function(study_folder: str, output_folder: str, tz_str: str = None,
                   option: str = None, time_start: str = None,
-                  time_end: str = None, beiwe_id: list = None) -> None:
+                  time_end: str = None, users: list = None) -> None:
     """Runs walking recognition and step counting algorithm over dataset.
 
     Determine paths to input and output folders, set analysis time frames,
     subjects' local timezone, and time resolution of computed results.
 
     Args:
-        study folder : string
+        study folder: string
             local repository with beiwe folders (IDs) for a given study
-        output folder : string
+        output folder: string
             local repository to store results
-        tz_str : string
+        tz_str: string
             local time zone, e.g., "America/New_York"
-        option : string
+        option: string
             summary statistics format (accepts 'both', 'hourly', 'daily')
-        time_start : string
+        time_start: string
             initial date of study in format: 'YYYY-mm-dd HH_MM_SS'
-        time_end : string
+        time_end: string
             final date of study in format: 'YYYY-mm-dd HH_MM_SS'
-        beiwe_id : list of strings
+        users: list of strings
             beiwe ID selected for computation
     """
     fmt = '%Y-%m-%d %H_%M_%S'
@@ -383,13 +398,13 @@ def main_function(study_folder: str, output_folder: str, tz_str: str = None,
     if option is None or option == 'both' or option == 'hourly':
         os.makedirs(os.path.join(output_folder, "hourly"), exist_ok=True)
 
-    if beiwe_id is None:
-        beiwe_id = os.listdir(study_folder)
+    if users is None:
+        users = get_ids(study_folder)
 
-    for ID in beiwe_id:
-        logger.info("Beiwe ID: %s", ID)
+    for user in users:
+        logger.info("Beiwe ID: %s", user)
 
-        source_folder = os.path.join(study_folder, ID, "accelerometer")
+        source_folder = os.path.join(study_folder, user, "accelerometer")
         file_list = os.listdir(source_folder)
 
         # transform all files in folder to datelike format
@@ -566,7 +581,7 @@ def main_function(study_folder: str, output_folder: str, tz_str: str = None,
                                           'steps': steps_daily[:, -1],
                                           'cadence': cadence_daily[:, -1]})
 
-            output_file = ID + "_gait_daily.csv"
+            output_file = user + "_gait_daily.csv"
             dest_path = os.path.join(output_folder, "daily", output_file)
             summary_stats.to_csv(dest_path, index=False)
 
@@ -578,23 +593,6 @@ def main_function(study_folder: str, output_folder: str, tz_str: str = None,
                                           'steps': steps_hourly.flatten(),
                                           'cadence': cadence_hourly.flatten()})
 
-            output_file = ID + "_gait_hourly.csv"
+            output_file = user + "_gait_hourly.csv"
             dest_path = os.path.join(output_folder, "hourly", output_file)
             summary_stats.to_csv(dest_path, index=False)
-
-
-# global variables:
-fs = 10  # desired sampling rate (frequency) (in Hertz (Hz))
-gravity = 9.80665
-
-# tuning parameters for walking recognition:
-min_amp = 0.3  # minimum peak-to-peak amplitude (in gravitational units (g))
-step_freq = (1.4, 2.3)  # step frequency (in Hz) - sfr
-alpha = 0.6  # maximum ratio between dominant peak below and within sfr
-beta = 2.5  # maximum ratio between dominant peak above and within sfr
-delta = 20  # maximum change of step frequency between two one-second
-# nonoverlapping segments (multiplication of 0.05Hz, e.g., delta=2 -> 0.1Hz)
-epsilon = 3  # minimum walking time (in seconds (s))
-
-# other thresholds:
-minimum_activity_thr = 0.1  # threshold to qualify act. bout for computation
