@@ -125,7 +125,7 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
     return x_bout, y_bout, z_bout, vm_bout
 
 
-def adjust_bout(inarray: np.ndarray, fs: int) -> npt.Ndarray[np.float64]:
+def adjust_bout(inarray: np.ndarray, fs: int) -> npt.NDArray[np.float64]:
     """Fills observations in incomplete bouts.
 
     For example, if the bout is 9.8s long, add values at its end to make it
@@ -151,7 +151,7 @@ def adjust_bout(inarray: np.ndarray, fs: int) -> npt.Ndarray[np.float64]:
 
 def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
                  step_freq: tuple, alpha: float, beta: float, epsilon: int,
-                 delta: int) -> npt.Ndarray[np.float64]:
+                 delta: int) -> npt.NDArray[np.float64]:
     """Finds walking and calculate steps from raw acceleration data.
 
     Method finds periods of repetetive and continuous oscillations with
@@ -278,7 +278,7 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
 
 
 def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
-                                   delta: int) -> npt.Ndarray[np.int_]:
+                                   delta: int) -> npt.NDArray[np.int_]:
     """Identifies continuous and sustained peaks within matrix.
 
     Args:
