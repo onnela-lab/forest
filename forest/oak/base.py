@@ -278,7 +278,7 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
 
 
 def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
-                                   delta: int) -> npt.NDArray[np.int_]:
+                                   delta: int) -> npt.NDArray[np.float64]:
     """Identifies continuous and sustained peaks within matrix.
 
     Args:
