@@ -55,7 +55,7 @@ def compute_survey_stats(
         also be generated across days ("submits_summary_daily.csv"), hours
         ("submits_summary_hourly.csv") or both.
     submits_by_survey_id:
-        Whether to summmarize survey submits with separate lines for different
+        Summmarize survey submits with separate lines for different
         surveys in submits_summary.csv. By default, this is True, so a
         different line for each survey will be generated.
     """
