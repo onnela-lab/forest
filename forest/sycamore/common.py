@@ -701,9 +701,9 @@ def read_user_answers_stream(
 
                 # Add a submission line if they at least saw all of the
                 # questions
-                current_df['submit_line'] = 0
-                if not (current_df['answer'] == "NOT_PRESENTED").any():
-                    current_df.loc[current_df.shape[0] - 1, 'submit_line'] = 1
+                current_df["submit_line"] = 0
+                if not (current_df["answer"] == "NOT_PRESENTED").any():
+                    current_df.loc[current_df.shape[0] - 1, "submit_line"] = 1
 
                 current_df["surv_inst_flg"] = i
                 survey_dfs.append(current_df)
@@ -901,3 +901,64 @@ def read_aggregate_answers_stream(
     return df_merged.loc[
         df_merged["answer"] != "NOT_PRESENTED", :
     ]
+
+def update_qs_with_seps(qs_with_seps: dict, survey_content: dict) -> dict:
+    """
+    Iterates through answers in question_dict and adds any choices with , or ;
+        to the correct entry in the sep_choices dict.
+
+    Args:
+        qs_with_seps: Dictionary with a key for each question ID. For each
+            question ID, there is a set of all response choices with a , or ;
+        survey_content: Dictionary with survey content information, from either
+            the study config file or survey history file
+    """
+    for question in range(len(survey_content)):
+        if "question_type" not in survey_content[question].keys():
+            continue
+        if survey_content[question]["question_type"] == "radio_button":
+            question_dict = survey_content[question]
+            answer_choices = question_dict["answers"]
+            q_sep_choices = set()
+            for choice in range(len(answer_choices)):
+                answer_text = answer_choices[choice]["text"]
+                if len(re.findall(",|;", answer_text)) != 0:
+                    # At least one separation value occurs in the
+                    # response
+                    q_sep_choices.add(answer_text)
+            if len(q_sep_choices) != 0:
+                question_id = survey_content[question]["question_id"]
+                if question_id in qs_with_seps.keys():
+                    qs_with_seps[question_id] = qs_with_seps[
+                        question_id
+                    ].union(q_sep_choices)
+                else:
+                    qs_with_seps[question_id] = q_sep_choices
+    return qs_with_seps
+
+
+def get_choices_with_sep_values(config_path: str = None,
+                        survey_history_path: str = None) -> dict:
+    """
+    Create a dict with a key for every question ID and a set of any responses
+    for that ID that had a comma in them.
+
+    Question IDs are included in the dict if they satisfiy two conditions:
+    1. They are radio button questions
+    2. at least one of the response choices contains a semicolon or a comma
+
+
+    """
+    qs_with_seps = {}
+    if config_path is not None:
+        surveys_list = read_json(config_path)["surveys"]
+        for survey_num in range(len(surveys_list)):
+            survey = surveys_list[survey_num]["content"]
+            qs_with_seps = update_qs_with_seps(qs_with_seps, survey)
+    if survey_history_path is not None:
+        survey_history_dict = read_json(survey_history_path)
+        for survey_id in survey_history_dict.keys():
+            for version in range(len(survey_history_dict[survey_id])):
+                survey = survey_history_dict[survey_id][version]["survey_json"]
+                qs_with_seps = update_qs_with_seps(qs_with_seps, survey)
+    return qs_with_seps
