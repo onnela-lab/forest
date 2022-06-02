@@ -51,11 +51,11 @@ def compute_survey_stats(
     submits_timeframe:
         The timeframe to summarize survey submissions over. One of
         "both", "daily", or "hourly". An overall summary for each user is
-        always generated ("submits_summary_overall.csv"), and submissionns can
+        always generated ("submits_summary_overall.csv"), and submissions can
         also be generated across days ("submits_summary_daily.csv"), hours
         ("submits_summary_hourly.csv") or both.
     submits_by_survey_id:
-        Summmarize survey submits with separate lines for different
+        Whether to summarize survey submits with separate lines for different
         surveys in submits_summary.csv. By default, this is True, so a
         different line for each survey will be generated.
     """
