@@ -31,6 +31,7 @@ version = release = '0.1.1'
 # ones.
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.napoleon',
+              'sphinx_copybutton',
               'myst_parser']
 
 napoleon_google_docstring = True
