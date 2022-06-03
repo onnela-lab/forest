@@ -931,7 +931,9 @@ def update_qs_with_seps(qs_with_seps: dict, survey_content: dict) -> dict:
                 if len(re.findall(",|;", answer_text)) != 0:
                     # At least one separation value occurs in the
                     # response
-                    q_sep_choices.add(answer_text)
+                    q_sep_choices.add(
+                        answer_text.replace(",", ";").replace("; ", ";")
+                    )
             if len(q_sep_choices) != 0:
                 question_id = survey_content[question]["question_id"]
                 if question_id in qs_with_seps.keys():
