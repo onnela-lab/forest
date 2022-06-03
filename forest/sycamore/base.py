@@ -24,7 +24,7 @@ def compute_survey_stats(
         start_date: str = EARLIEST_DATE, end_date: Optional[str] = None,
         config_path: Optional[str] = None, interventions_filepath: str = None,
         augment_with_answers: bool = True, submits_timeframe: str = None,
-        submits_by_survey_id: bool = True
+        submits_by_survey_id: bool = True, history_path: str = None
 ) -> bool:
     """Compute statistics on surveys
 
@@ -58,6 +58,10 @@ def compute_survey_stats(
         Whether to summarize survey submits with separate lines for different
         surveys in submits_summary.csv. By default, this is True, so a
         different line for each survey will be generated.
+    history_path: Path to survey history file. If this is included, the survey
+            history file is used to find instances of commas or semicolons in
+            answer choices to determine the correct choice for Android radio
+            questions
     """
     os.makedirs(output_folder, exist_ok=True)
     os.makedirs(os.path.join(output_folder, "summaries"), exist_ok=True)
@@ -80,7 +84,7 @@ def compute_survey_stats(
     else:
         agg_data = aggregate_surveys_config(
             study_folder, config_path, tz_str, users, start_date,
-            end_date,  augment_with_answers
+            end_date,  augment_with_answers, history_path
         )
         if agg_data.shape[0] == 0:
             logger.error("Error: No survey data found in %s", study_folder)

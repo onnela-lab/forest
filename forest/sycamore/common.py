@@ -373,7 +373,8 @@ def convert_timezone_df(df_merged: pd.DataFrame, tz_str: str = "UTC",
 def aggregate_surveys_config(
         study_dir: str, config_path: str, study_tz: str = "UTC",
         users: list = None, time_start: str = EARLIEST_DATE,
-        time_end: str = None, augment_with_answers: bool = True
+        time_end: str = None, augment_with_answers: bool = True,
+        history_path: str = None,
 ) -> pd.DataFrame:
     """Aggregate surveys when config is available
 
@@ -398,6 +399,10 @@ def aggregate_surveys_config(
             The first date of the survey data, in YYYY-MM-DD format
         time_end(str):
             The last date of the survey data, in YYYY-MM-DD format
+        history_path: Path to survey history file. If this is included, the survey
+            history file is used to find instances of commas or semicolons in
+            answer choices to determine the correct choice for Android radio
+            questions
 
     Returns:
         DataFrame of questions and submission lines.
@@ -446,7 +451,7 @@ def aggregate_surveys_config(
         df_merged["data_stream"] = "survey_timings"
         df_merged = append_from_answers(df_merged, study_dir, users,
                                         study_tz, time_start, time_end,
-                                        config_path)
+                                        config_path, history_path)
 
     return df_merged.reset_index(drop=True)
 
@@ -507,7 +512,7 @@ def append_from_answers(
         agg_data: pd.DataFrame, download_folder: str,
         users: list = None, tz_str: str = "UTC",
         time_start: str = EARLIEST_DATE, time_end: str = None,
-        config_path: str = None
+        config_path: str = None, history_path: str = None
 ) -> pd.DataFrame:
     """Append surveys included in survey_answers to data from survey_timings.
 
@@ -532,6 +537,10 @@ def append_from_answers(
             The last date of the survey data, in YYYY-MM-DD format
         config_path(str):
             Filepath to survey config file (downloaded from Beiwe website)
+        history_path: Path to survey history file. If this is included, the survey
+            history file is used to find instances of commas or semicolons in
+            answer choices to determine the correct choice for Android radio
+            questions
 
     Returns:
         Data frame with all survey_timings data, including data from
@@ -541,7 +550,7 @@ def append_from_answers(
         time_end = get_month_from_today()
     answers_data = read_aggregate_answers_stream(
         download_folder, users, tz_str, config_path, time_start,
-        time_end
+        time_end, history_path
     )
     if answers_data.shape[0] == 0:
         return agg_data
@@ -730,6 +739,7 @@ def read_aggregate_answers_stream(
         download_folder: str, users: list = None,
         tz_str: str = "UTC", config_path: str = None,
         time_start: str = EARLIEST_DATE, time_end: str = None,
+        history_path: str = None
 ) -> pd.DataFrame:
     """Reads in all answers data for many users and fixes Android users to have
     an answer instead of an integer
@@ -752,6 +762,9 @@ def read_aggregate_answers_stream(
             The first date of the survey data, in YYYY-MM-DD format
         time_end(str):
             The last date of the survey data, in YYYY-MM-DD format
+        history_path: Path to survey history file. If this is included, the
+            function uses the survey history file to find instances of commas
+            or semicolons in answer choices
     Returns:
         DataFrame with stacked data, a field for the beiwe ID, a field for the
         day of week.
@@ -812,14 +825,8 @@ def read_aggregate_answers_stream(
     for answer_choices in radio_answer_choices_list:
         fixed_answer_choices = answer_choices
         if config_included:
-            question_id = aggregated_data.loc[
-                aggregated_data["question answer options"] == answer_choices,
-                "question id"
-                ].unique()[0]
-            answer_list = config_surveys.loc[
-                config_surveys["question_id"] == question_id,
-                config_surveys.columns[range(5, len(config_surveys.columns))]
-            ].stack().unique()
+            answer_list = get_choices_with_sep_values(config_path,
+                                                      history_path)
         else:
             answer_list = aggregated_data.loc[
                 aggregated_data[
