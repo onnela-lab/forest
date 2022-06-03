@@ -556,7 +556,8 @@ def append_from_answers(
                                              answers_data)
             missing_submission_data.append(missing_data)
 
-    return pd.concat([agg_data] + missing_submission_data)
+    return pd.concat([agg_data] + missing_submission_data
+                     ).sort_values("UTC time")
 
 
 def find_missing_data(user: str, survey_id: str, agg_data: pd.DataFrame,
@@ -697,6 +698,13 @@ def read_user_answers_stream(
                 filename = os.path.basename(file)
                 current_df["UTC time"] = filename_to_timestamp(filename, "UTC")
                 current_df["survey id"] = survey
+
+                # Add a submission line if they at least saw all of the
+                # questions
+                current_df['submit_line'] = 0
+                if not (current_df['answer'] == "NOT_PRESENTED").any():
+                    current_df.loc[current_df.shape[0] - 1, 'submit_line'] = 1
+
                 current_df["surv_inst_flg"] = i
                 survey_dfs.append(current_df)
             if len(survey_dfs) == 0:
@@ -878,6 +886,18 @@ def read_aggregate_answers_stream(
     aggregated_data["data_stream"] = "survey_answers"
     # Excluding rows without survey answers to be consistent with exclusions
     # in aggregating survey_timings
-    return aggregated_data.loc[
-        aggregated_data["answer"] != "NOT_PRESENTED", :
+    if config_path is None:
+        return aggregated_data.loc[
+            aggregated_data["answer"] != "NOT_PRESENTED", :
+        ]
+
+    config_surveys = parse_surveys(config_path)
+    # Merge data together and add configuration survey ID to all lines
+    df_merged = aggregated_data.merge(
+        config_surveys[["config_id", "question_id"]], how="left",
+        left_on="question id", right_on="question_id"
+    ).drop(["question_id"], axis=1)
+
+    return df_merged.loc[
+        df_merged["answer"] != "NOT_PRESENTED", :
     ]
