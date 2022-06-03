@@ -190,7 +190,7 @@ def find_walking(vm_bout: np.ndarray, FS: int = 10, MIN_AMP: float = 0.3,
                                        np.zeros(5*FS)))
 
         # compute cwt over bout
-        out = ssq_cwt(tapered_bout[:-1], wavelet, FS=10)
+        out = ssq_cwt(tapered_bout[:-1], wavelet, fs=10)
         coefs = out[0]
         coefs = np.append(coefs, coefs[:, -1:], 1)
 
