@@ -5,18 +5,13 @@ from forest.oak.base import rle
 
 
 @pytest.fixture(scope="session")
-def signal_empty():
-    return np.array([])
-
-
-@pytest.fixture(scope="session")
 def signal():
     return np.array(
         [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0])
 
 
-def test_empty(signal_empty):
-    run_length, start_ind, val = rle(signal_empty)
+def test_empty():
+    run_length, start_ind, val = rle(np.array([]))
     assert run_length is None and start_ind is None and val is None
 
 
