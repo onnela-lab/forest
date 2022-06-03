@@ -399,10 +399,10 @@ def aggregate_surveys_config(
             The first date of the survey data, in YYYY-MM-DD format
         time_end(str):
             The last date of the survey data, in YYYY-MM-DD format
-        history_path: Path to survey history file. If this is included, the survey
-            history file is used to find instances of commas or semicolons in
-            answer choices to determine the correct choice for Android radio
-            questions
+        history_path: Path to survey history file. If this is included, the
+            survey history file is used to find instances of commas or
+            semicolons in answer choices to determine the correct choice for
+            Android radio questions
 
     Returns:
         DataFrame of questions and submission lines.
@@ -537,10 +537,10 @@ def append_from_answers(
             The last date of the survey data, in YYYY-MM-DD format
         config_path(str):
             Filepath to survey config file (downloaded from Beiwe website)
-        history_path: Path to survey history file. If this is included, the survey
-            history file is used to find instances of commas or semicolons in
-            answer choices to determine the correct choice for Android radio
-            questions
+        history_path: Path to survey history file. If this is included, the
+            survey history file is used to find instances of commas or
+            semicolons in answer choices to determine the correct choice for
+            Android radio questions
 
     Returns:
         Data frame with all survey_timings data, including data from
@@ -907,6 +907,7 @@ def read_aggregate_answers_stream(
         df_merged["answer"] != "NOT_PRESENTED", :
     ]
 
+
 def update_qs_with_seps(qs_with_seps: dict, survey_content: dict) -> dict:
     """
     Iterates through answers in question_dict and adds any choices with , or ;
@@ -943,7 +944,7 @@ def update_qs_with_seps(qs_with_seps: dict, survey_content: dict) -> dict:
 
 
 def get_choices_with_sep_values(config_path: str = None,
-                        survey_history_path: str = None) -> dict:
+                                survey_history_path: str = None) -> dict:
     """
     Create a dict with a key for every question ID and a set of any responses
     for that ID that had a comma in them.

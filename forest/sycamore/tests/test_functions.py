@@ -311,14 +311,17 @@ def test_get_choices_with_sep_values_config():
     assert len(qs_with_seps.keys()) == 1
     assert len(qs_with_seps['07369e05-b2f7-465a-e66e-8e473fcd3c2f']) == 5
 
+
 def test_get_choices_with_sep_values_history():
     qs_with_seps = get_choices_with_sep_values(None, HISTORY_WITH_SEPS)
     assert len(qs_with_seps.keys()) == 2
     assert len(qs_with_seps['07369e05-b2f7-465a-e66e-8e473fcd3c2f']) == 5
     assert len(qs_with_seps['90268105-b59e-4e17-d231-613e8523e310']) == 2
 
+
 def test_get_choices_with_sep_values_both():
-    qs_with_seps = get_choices_with_sep_values(CONFIG_WITH_SEPS, HISTORY_WITH_SEPS)
+    qs_with_seps = get_choices_with_sep_values(CONFIG_WITH_SEPS,
+                                               HISTORY_WITH_SEPS)
     assert len(qs_with_seps.keys()) == 2
     assert len(qs_with_seps['07369e05-b2f7-465a-e66e-8e473fcd3c2f']) == 5
     assert len(qs_with_seps['90268105-b59e-4e17-d231-613e8523e310']) == 2
