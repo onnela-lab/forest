@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import re
-from typing import Optional
+from typing import Optional, Dict
 
 import glob
 import numpy as np
@@ -954,7 +954,7 @@ def get_choices_with_sep_values(config_path: str = None,
 
 
     """
-    qs_with_seps = {}
+    qs_with_seps: Dict[str, set] = {}
     if config_path is not None:
         surveys_list = read_json(config_path)["surveys"]
         for survey_num in range(len(surveys_list)):
