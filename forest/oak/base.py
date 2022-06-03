@@ -26,23 +26,6 @@ from forest.utils import get_ids
 logger = logging.getLogger(__name__)
 
 
-# constants
-fs = 10  # desired sampling rate (frequency) (in Hertz (Hz))
-gravity = 9.80665
-
-# tuning parameters for walking recognition
-min_amp = 0.3  # minimum peak-to-peak amplitude (in gravitational units (g))
-step_freq = (1.4, 2.3)  # step frequency (in Hz) - sfr
-alpha = 0.6  # maximum ratio between dominant peak below and within sfr
-beta = 2.5  # maximum ratio between dominant peak above and within sfr
-delta = 20  # maximum change of step frequency between two one-second
-# nonoverlapping segments (multiplication of 0.05Hz, e.g., delta=2 -> 0.1Hz)
-epsilon = 3  # minimum walking time (in seconds (s))
-
-# other thresholds
-minimum_activity_thr = 0.1  # threshold to qualify act. bout for computation
-
-
 def rle(inarray: np.ndarray) -> tuple:
     """Runs length encoding.
 
@@ -56,7 +39,7 @@ def rle(inarray: np.ndarray) -> tuple:
     """
     array_length = len(inarray)
     if array_length == 0:
-        return (None, None, None)
+        return None, None, None
     else:
         pairwise_unequal = inarray[1:] != inarray[:-1]  # pairwise unequal
         ind = np.append(np.where(pairwise_unequal),
@@ -68,7 +51,7 @@ def rle(inarray: np.ndarray) -> tuple:
 
 
 def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
-                    z_bout: np.ndarray) -> tuple:
+                    z_bout: np.ndarray, FS: int = 10) -> tuple:
     """Preprocesses accelerometer bout to a common format.
 
     Resample 3-axial input signal to a predefined sampling rate and compute
@@ -83,12 +66,14 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
             Y-axis acceleration
         z_bout: array of floats
             Z-axis acceleration
+        FS: integer
+            sampling frequency
 
     Returns:
         Tuple of ndarrays with interpolated acceleration in x, y, and z axes,
         as well as their vector magnitude
     """
-    t_bout_interp = np.arange(t_bout[0], t_bout[-1], (1/fs))
+    t_bout_interp = np.arange(t_bout[0], t_bout[-1], (1/FS))
 
     f = interpolate.interp1d(t_bout, x_bout)
     x_bout_interp = f(t_bout_interp)
@@ -100,82 +85,83 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
     z_bout_interp = f(t_bout_interp)
 
     # adjust bouts using designated function
-    x_bout_interp = adjust_bout(x_bout_interp, fs)
-    y_bout_interp = adjust_bout(y_bout_interp, fs)
-    z_bout_interp = adjust_bout(z_bout_interp, fs)
+    x_bout_interp = adjust_bout(x_bout_interp)
+    y_bout_interp = adjust_bout(y_bout_interp)
+    z_bout_interp = adjust_bout(z_bout_interp)
 
     # number of full seconds of measurements
-    num_seconds = np.floor(len(x_bout_interp)/fs)
+    num_seconds = np.floor(len(x_bout_interp)/FS)
 
     # trim measurement to full seconds
-    x_bout = x_bout_interp[:int(num_seconds*fs)]
-    y_bout = y_bout_interp[:int(num_seconds*fs)]
-    z_bout = z_bout_interp[:int(num_seconds*fs)]
+    x_bout = x_bout_interp[:int(num_seconds*FS)]
+    y_bout = y_bout_interp[:int(num_seconds*FS)]
+    z_bout = z_bout_interp[:int(num_seconds*FS)]
 
     vm_bout = np.sqrt(x_bout**2 + y_bout**2 + z_bout**2)
 
     # standardize measurement to gravity units (g) if its recorded in m/s**2
     if np.mean(vm_bout) > 5:
-        x_bout = x_bout/gravity
-        y_bout = y_bout/gravity
-        z_bout = z_bout/gravity
+        x_bout = x_bout/9.80665
+        y_bout = y_bout/9.80665
+        z_bout = z_bout/9.80665
 
     vm_bout = np.sqrt(x_bout**2 + y_bout**2 + z_bout**2) - 1
 
     return x_bout, y_bout, z_bout, vm_bout
 
 
-def adjust_bout(inarray: np.ndarray, fs: int) -> npt.NDArray[np.float64]:
+def adjust_bout(inarray: np.ndarray, FS: int = 10) -> npt.NDArray[np.float64]:
     """Fills observations in incomplete bouts.
 
     For example, if the bout is 9.8s long, add values at its end to make it
-    10s (results in N%fs=0).
+    10s (results in N%FS=0).
 
     Args:
         inarray: array of floats
             input with one bout of activity
-        fs: integer
+        FS: integer
             sampling frequency
 
     Returns:
         Ndarray with length-adjusted vector magnitude
     """
-    if len(inarray) % fs >= 0.7*fs:
-        for i in range(fs-len(inarray) % fs):
+    if len(inarray) % FS >= 0.7*FS:
+        for i in range(FS-len(inarray) % FS):
             inarray = np.append(inarray, inarray[-1])
-    elif len(inarray) % fs != 0:
-        inarray = inarray[np.arange(len(inarray)//fs*fs)]
+    elif len(inarray) % FS != 0:
+        inarray = inarray[np.arange(len(inarray)//FS*FS)]
 
     return inarray
 
 
-def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
-                 step_freq: tuple, alpha: float, beta: float, epsilon: int,
-                 delta: int) -> npt.NDArray[np.float64]:
+def find_walking(vm_bout: np.ndarray, FS: int = 10, MIN_AMP: float = 0.3,
+                 STEP_FREQ: tuple = (1.4, 2.3), ALPHA: float = 0.6, 
+                 BETA: float = 2.5, T: int = 3, 
+                 DELTA: int = 20) -> npt.NDArray[np.float64]:
     """Finds walking and calculate steps from raw acceleration data.
 
-    Method finds periods of repetetive and continuous oscillations with
-    predominant frequency occuring within know step frequency range.
+    Method finds periods of repetitive and continuous oscillations with
+    predominant frequency occurring within know step frequency range.
     Frequency components are extracted with Continuous Wavelet Transform.
 
     Args:
         vm_bout: array of floats
-            vector magnAtude with one bout of activity (in g)
-        fs: integer
+            vector magnitude with one bout of activity (in g)
+        FS: integer
             sampling frequency (in Hz)
-        A: float
+        MIN_AMP: float
             minimum amplitude (in g)
-        step_freq: tuple
+        STEP_FREQ: tuple
             step frequency range
-        alpha: float
+        ALPHA: float
             maximum ratio between dominant peak below and within
             step frequency range
-        beta: float
+        BETA: float
             maximum ratio between dominant peak above and within
             step frequency range
-        epsilon: integer
+        T: integer
             minimum duration of peaks (in seconds)
-        delta: integer
+        DELTA: integer
             maximum difference between consecutive peaks (in multiplication of
                                                           0.05Hz)
 
@@ -186,25 +172,25 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
     wavelet = ('gmw', {'beta': 90, 'gamma': 3})
 
     # calculate peak-to-peak to exclude low-intensity periods
-    vm_res_sec = vm_bout.reshape(fs, -1, order="F")
+    vm_res_sec = vm_bout.reshape((FS, -1), order="F")
     pp = np.array([max(vm_res_sec[:, i])-min(vm_res_sec[:, i])
                    for i in range(vm_res_sec.shape[1])])
     valid = np.ones(len(pp), dtype=bool)
-    valid[pp < min_amp] = False
+    valid[pp < MIN_AMP] = False
 
-    # compute cwt only if valid fragment is suffiently long
-    if sum(valid) >= epsilon:
+    # compute cwt only if valid fragment is sufficiently long
+    if sum(valid) >= T:
         # trim bout to valid periods only
-        tapered_bout = vm_bout[np.repeat(valid, fs)]
+        tapered_bout = vm_bout[np.repeat(valid, FS)]
 
         # smooth signal on the edges to minimize impact of coin of influence
         window = tukey(len(tapered_bout), alpha=0.02, sym=True)
-        tapered_bout = np.concatenate((np.zeros(5*fs),
-                                       (tapered_bout)*window,
-                                       np.zeros(5*fs)))
+        tapered_bout = np.concatenate((np.zeros(5*FS),
+                                       tapered_bout*window,
+                                       np.zeros(5*FS)))
 
         # compute cwt over bout
-        out = ssq_cwt(tapered_bout[:-1], wavelet, fs=10)
+        out = ssq_cwt(tapered_bout[:-1], wavelet, FS=10)
         coefs = out[0]
         coefs = np.append(coefs, coefs[:, -1:], 1)
 
@@ -218,16 +204,16 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
         coefs_interp = ip(range(coefs.shape[1]), freqs_interp)
 
         # trim spectrogram from the coi
-        coefs_interp = coefs_interp[:, 5*fs:-5*fs]
+        coefs_interp = coefs_interp[:, 5*FS:-5*FS]
 
         # identify dominant peaks with the spectrum
-        dp = np.zeros((coefs_interp.shape[0], int(coefs_interp.shape[1]/fs)))
-        loc_min = np.argmin(abs(freqs_interp-step_freq[0]))
-        loc_max = np.argmin(abs(freqs_interp-step_freq[1]))
-        for i in range(int(coefs_interp.shape[1]/fs)):
+        dp = np.zeros((coefs_interp.shape[0], int(coefs_interp.shape[1]/FS)))
+        loc_min = np.argmin(abs(freqs_interp-STEP_FREQ[0]))
+        loc_max = np.argmin(abs(freqs_interp-STEP_FREQ[1]))
+        for i in range(int(coefs_interp.shape[1]/FS)):
             # segment measurement into one-second non-overlapping windows
-            x_start = i*fs
-            x_end = (i + 1)*fs
+            x_start = i*FS
+            x_end = (i + 1)*FS
             # identify peaks and their location in each window
             window = np.sum(coefs_interp[:, np.arange(x_start, x_end)], axis=1)
             locs, _ = find_peaks(window)
@@ -246,10 +232,10 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
             peak_vec = np.zeros(coefs_interp.shape[0])
             if len(index_in_range) > 0:
                 if locs[0] > loc_max:
-                    if pks[0]/pks[index_in_range[0]] < beta:
+                    if pks[0]/pks[index_in_range[0]] < BETA:
                         peak_vec[locs[index_in_range[0]]] = 1
                 elif locs[0] < loc_min:
-                    if pks[0]/pks[index_in_range[0]] < alpha:
+                    if pks[0]/pks[index_in_range[0]] < ALPHA:
                         peak_vec[locs[index_in_range[0]]] = 1
                 else:
                     peak_vec[locs[index_in_range[0]]] = 1
@@ -260,7 +246,7 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
         val_peaks[:, valid] = dp
 
         # find when peaks are continuous in time and frequency
-        cp = find_continuous_dominant_peaks(val_peaks, epsilon, delta)
+        cp = find_continuous_dominant_peaks(val_peaks, T, DELTA)
 
         # summarize the results
         cad = np.zeros(val_peaks.shape[1])
@@ -269,24 +255,22 @@ def find_walking(vm_bout: np.ndarray, fs: int, min_amp: float,
             if len(ind_freqs) > 0:
                 cad[i] = freqs_interp[ind_freqs[0]]
 
-        # num_steps = int(round(sum(cad),0))
     else:
-        # num_steps = 0
-        cad = np.zeros(int(vm_bout.shape[0]/fs))
+        cad = np.zeros(int(vm_bout.shape[0]/FS))
 
     return cad
 
 
-def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
-                                   delta: int) -> npt.NDArray[np.float64]:
+def find_continuous_dominant_peaks(val_peaks: np.ndarray, T: int,
+                                   DELTA: int) -> npt.NDArray[np.float64]:
     """Identifies continuous and sustained peaks within matrix.
 
     Args:
         val_peaks: nparray
             binary matrix (1=peak,0=no peak) of valid peaks
-        epsilon: integer
+        T: integer
             minimum duration of peaks (in seconds)
-        delta: integer
+        DELTA: integer
             maximum difference between consecutive peaks (in multiplication of
                                                           0.05Hz)
 
@@ -296,26 +280,28 @@ def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
     val_peaks = np.concatenate((val_peaks, np.zeros((val_peaks.shape[0], 1))),
                                axis=1)
     cp = np.zeros((val_peaks.shape[0], val_peaks.shape[1]))
-    for slice_ind in range(val_peaks.shape[1] - epsilon):
-        slice_mat = val_peaks[:, np.arange(slice_ind, slice_ind + epsilon)]
-        windows = [i for i in
-                   np.arange(epsilon)] + [i for i in
-                                          np.arange(epsilon-2, -1, -1)]
+    for slice_ind in range(val_peaks.shape[1] - T):
+        slice_mat = val_peaks[:, np.arange(slice_ind, slice_ind + T)]
+        windows = ([i for i in np.arange(T)] +
+                   [i for i in np.arange(T-2, -1, -1)])
         for win_ind in windows:
             pr = np.where(slice_mat[:, win_ind] != 0)[0]
             count = 0
             if len(pr) > 0:
                 for i in range(len(pr)):
-                    index = np.arange(max(0, pr[i] - delta),
-                                      min(pr[i] + delta + 1,
-                                          slice_mat.shape[0]))
-                    if win_ind == 0 or win_ind == epsilon - 1:
+                    index = np.arange(max(0, pr[i] - DELTA),
+                                      min(pr[i] + DELTA + 1,
+                                          slice_mat.shape[0]
+                                      ))
+                    if win_ind == 0 or win_ind == T - 1:
                         cur_peak_loc = np.transpose(np.array(
-                            [np.ones(len(index))*pr[i], index], dtype=int))
+                            [np.ones(len(index))*pr[i], index], dtype=int
+                            ))
                     else:
                         cur_peak_loc = np.transpose(np.array(
                             [index, np.ones(len(index))*pr[i], index],
-                            dtype=int))
+                            dtype=int
+                            ))
 
                     peaks = np.zeros((cur_peak_loc.shape[0],
                                       cur_peak_loc.shape[1]), dtype=int)
@@ -324,7 +310,7 @@ def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
                                                 win_ind]
                         peaks[:, 1] = slice_mat[cur_peak_loc[:, 1],
                                                 win_ind + 1]
-                    elif win_ind == epsilon - 1:
+                    elif win_ind == T - 1:
                         peaks[:, 0] = slice_mat[cur_peak_loc[:, 0],
                                                 win_ind]
                         peaks[:, 1] = slice_mat[cur_peak_loc[:, 1],
@@ -340,7 +326,7 @@ def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
                     cont_peaks_edge = cur_peak_loc[np.sum(
                         peaks[:, np.arange(2)], axis=1) > 1, :]
                     cpe0 = cont_peaks_edge.shape[0]
-                    if win_ind == 0 or win_ind == epsilon - 1:  # first or last
+                    if win_ind == 0 or win_ind == T - 1:  # first or last
                         if cpe0 == 0:
                             slice_mat[cur_peak_loc[:, 0], win_ind] = 0
                         else:
@@ -357,14 +343,15 @@ def find_continuous_dominant_peaks(val_peaks: np.ndarray, epsilon: int,
                 slice_mat = np.zeros((slice_mat.shape[0], slice_mat.shape[1]))
                 break
         cp[:, np.arange(
-            slice_ind, slice_ind + epsilon)] = np.maximum(
-                cp[:, np.arange(slice_ind, slice_ind + epsilon)], slice_mat)
+            slice_ind, slice_ind + T)] = np.maximum(
+                cp[:, np.arange(slice_ind, slice_ind + T)], slice_mat)
     return cp[:, :-1]
 
 
 def main_function(study_folder: str, output_folder: str, tz_str: str = None,
                   option: str = None, time_start: str = None,
-                  time_end: str = None, users: list = None) -> None:
+                  time_end: str = None, users: list = None, 
+                  FS: int = 10) -> None:
     """Runs walking recognition and step counting algorithm over dataset.
 
     Determine paths to input and output folders, set analysis time frames,
@@ -385,6 +372,8 @@ def main_function(study_folder: str, output_folder: str, tz_str: str = None,
             final date of study in format: 'YYYY-mm-dd HH_MM_SS'
         users: list of strings
             beiwe ID selected for computation
+        FS: integer
+            sampling frequency
     """
     fmt = '%Y-%m-%d %H_%M_%S'
     from_zone = tz.gettz('UTC')
@@ -507,8 +496,8 @@ def main_function(study_folder: str, output_folder: str, tz_str: str = None,
                                            hour_end, freq='S').tolist()
                 samples_per_sec, t_sec_bins = np.histogram(t_shifted,
                                                            t_sec_bins)
-                # seconds with enough samples / 9 should be in fact fs
-                samples_enough = samples_per_sec >= (fs - 1)
+                # seconds with enough samples / 9 should be in fact FS
+                samples_enough = samples_per_sec >= (FS - 1)
 
                 # find bouts with sufficient duration (here, minimum 5s)
                 run_length, start_ind, val = rle(samples_enough)
@@ -532,16 +521,15 @@ def main_function(study_folder: str, output_folder: str, tz_str: str = None,
                     x_bout = x[acc_ind]
                     y_bout = y[acc_ind]
                     z_bout = z[acc_ind]
-
+                    
+                    # compute only if phone is on the body
                     if np.sum([np.std(x_bout), np.std(y_bout),
-                               np.std(z_bout)]) > minimum_activity_thr:
+                               np.std(z_bout)]) > 0.1:
                         # interpolate bout to 10Hz and calculate vm
                         vm_bout = preprocess_bout(t_bout, x_bout, y_bout,
                                                   z_bout)[3]
                         # find walking and estimate steps
-                        cadence_bout = find_walking(vm_bout, fs, min_amp,
-                                                    step_freq, alpha, beta,
-                                                    epsilon, delta)
+                        cadence_bout = find_walking(vm_bout)
                         cadence_bout = cadence_bout[np.where(cadence_bout
                                                              > 0)]
                         if (option is None or option == 'both' or
