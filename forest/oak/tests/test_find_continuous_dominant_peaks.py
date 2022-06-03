@@ -6,17 +6,17 @@ from forest.oak.base import find_continuous_dominant_peaks
 
 @pytest.fixture(scope="session")
 def test_params1():
-    return (5, 0)
+    return 5, 0
 
 
 @pytest.fixture(scope="session")
 def test_params2():
-    return (10, 1)
+    return 10, 1
 
 
 @pytest.fixture(scope="session")
 def test_params3():
-    return (3, 20)
+    return 3, 20
 
 
 @pytest.fixture(scope="session")

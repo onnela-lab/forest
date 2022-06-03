@@ -22,7 +22,7 @@ def fs():
 
 @pytest.fixture(scope="session")
 def wavelet():
-    return ('gmw', {'beta': 90, 'gamma': 3})
+    return 'gmw', {'beta': 90, 'gamma': 3}
 
 
 @pytest.fixture(scope="session")
@@ -32,7 +32,7 @@ def min_amp():
 
 @pytest.fixture(scope="session")
 def step_freq():
-    return (1.4, 2.3)
+    return 1.4, 2.3
 
 
 @pytest.fixture(scope="session")
