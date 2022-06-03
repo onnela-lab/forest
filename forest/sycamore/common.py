@@ -948,7 +948,7 @@ def get_choices_with_sep_values(config_path: str = None,
     Create a dict with a key for every question ID and a set of any responses
     for that ID that had a comma in them.
 
-    Question IDs are included in the dict if they satisfiy two conditions:
+    Question IDs are included in the dict if they satisfy two conditions:
     1. They are radio button questions
     2. at least one of the response choices contains a semicolon or a comma
 
