@@ -772,10 +772,8 @@ def read_aggregate_answers_stream(
     if time_end is None:
         time_end = get_month_from_today()
     if config_path is not None:
-        config_surveys = parse_surveys(config_path, answers_l=True)
         config_included = True
     else:
-        config_surveys = pd.DataFrame(None)
         config_included = False
     if users is None:
         users = get_ids(download_folder)
