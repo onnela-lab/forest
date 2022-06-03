@@ -966,4 +966,11 @@ def get_choices_with_sep_values(config_path: str = None,
             for version in range(len(survey_history_dict[survey_id])):
                 survey = survey_history_dict[survey_id][version]["survey_json"]
                 qs_with_seps = update_qs_with_seps(qs_with_seps, survey)
+    else:
+        logger.warning(
+            "No survey history path included. If you have changed radio survey"
+            " answer choices since starting your study, and if you used "
+            "semicolons or commas in those answer choices, incorrect survey "
+            "responses may be output for android devices"
+        )
     return qs_with_seps
