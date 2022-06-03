@@ -135,8 +135,8 @@ def adjust_bout(inarray: np.ndarray, FS: int = 10) -> npt.NDArray[np.float64]:
 
 
 def find_walking(vm_bout: np.ndarray, FS: int = 10, MIN_AMP: float = 0.3,
-                 STEP_FREQ: tuple = (1.4, 2.3), ALPHA: float = 0.6, 
-                 BETA: float = 2.5, T: int = 3, 
+                 STEP_FREQ: tuple = (1.4, 2.3), ALPHA: float = 0.6,
+                 BETA: float = 2.5, T: int = 3,
                  DELTA: int = 20) -> npt.NDArray[np.float64]:
     """Finds walking and calculate steps from raw acceleration data.
 
@@ -292,7 +292,7 @@ def find_continuous_dominant_peaks(val_peaks: np.ndarray, T: int,
                     index = np.arange(max(0, pr[i] - DELTA),
                                       min(pr[i] + DELTA + 1,
                                           slice_mat.shape[0]
-                                      ))
+                                          ))
                     if win_ind == 0 or win_ind == T - 1:
                         cur_peak_loc = np.transpose(np.array(
                             [np.ones(len(index))*pr[i], index], dtype=int
@@ -350,7 +350,7 @@ def find_continuous_dominant_peaks(val_peaks: np.ndarray, T: int,
 
 def main_function(study_folder: str, output_folder: str, tz_str: str = None,
                   option: str = None, time_start: str = None,
-                  time_end: str = None, users: list = None, 
+                  time_end: str = None, users: list = None,
                   FS: int = 10) -> None:
     """Runs walking recognition and step counting algorithm over dataset.
 
@@ -521,7 +521,7 @@ def main_function(study_folder: str, output_folder: str, tz_str: str = None,
                     x_bout = x[acc_ind]
                     y_bout = y[acc_ind]
                     z_bout = z[acc_ind]
-                    
+
                     # compute only if phone is on the body
                     if np.sum([np.std(x_bout), np.std(y_bout),
                                np.std(z_bout)]) > 0.1:
