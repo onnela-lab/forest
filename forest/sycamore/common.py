@@ -816,15 +816,26 @@ def read_aggregate_answers_stream(
     # get all answer choices text options now that Android and iPhone have the
     # same ones.
     radio_answer_choices_list = aggregated_data.loc[
-        aggregated_data[
-            "question type"] == "radio_button", "question answer options"
+        aggregated_data["question type"].apply(
+            lambda x: x in ["radio_button", "Radio Button Question"]
+        ), "question answer options"
     ].unique()
+    print(radio_answer_choices_list)
+    if config_included:
+        sep_dict = get_choices_with_sep_values(config_path, history_path)
+        print("got the sep dict")
 
     for answer_choices in radio_answer_choices_list:
         fixed_answer_choices = answer_choices
         if config_included:
-            answer_list = get_choices_with_sep_values(config_path,
-                                                      history_path)
+            question_id = aggregated_data.loc[
+                aggregated_data["question answer options"] == answer_choices,
+                "question id"
+            ].unique()[0]
+            if question_id not in sep_dict.keys():
+                continue
+            answer_list = sep_dict[question_id]
+            print(answer_list)
         else:
             answer_list = aggregated_data.loc[
                 aggregated_data[
