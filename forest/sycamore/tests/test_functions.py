@@ -40,6 +40,8 @@ HISTORY_WITH_SEPS = os.path.join(
     TEST_DATA_DIR, "history_file_with_commas_and_semicolons.json"
 )
 
+SEP_QS_DIR = os.path.join(TEST_DATA_DIR, "dir_with_seps_in_qs")
+
 
 @pytest.fixture
 def agg_data_config():
@@ -325,3 +327,12 @@ def test_get_choices_with_sep_values_both():
     assert len(qs_with_seps.keys()) == 2
     assert len(qs_with_seps['07369e05-b2f7-465a-e66e-8e473fcd3c2f']) == 5
     assert len(qs_with_seps['90268105-b59e-4e17-d231-613e8523e310']) == 2
+
+
+def test_aggregate_surveys_config_using_sep_data():
+    agg_data = aggregate_surveys_config(SEP_QS_DIR, CONFIG_WITH_SEPS,
+                                        "UTC", history_path=HISTORY_WITH_SEPS)
+    assert agg_data.loc[2, "answer"] == "here (, ) is a comma"
+    assert agg_data.loc[5, "answer"] == ", comma at begin"
+    assert agg_data.loc[8, "answer"] == "comma at end , "
+    assert agg_data.loc[11, "answer"] == "no problems here"
