@@ -830,6 +830,9 @@ def read_aggregate_answers_stream(
                 aggregated_data["question answer options"] == answer_choices,
                 "question id"
             ].unique()[0]
+            # sep_dict wil only include keys for question IDs with
+            # semicolons/commas inside the answer choice, so we can skip that
+            # question if it's not a key of sep_dict
             if question_id not in sep_dict.keys():
                 continue
             answer_list = sep_dict[question_id]
