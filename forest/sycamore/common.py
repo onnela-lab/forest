@@ -820,10 +820,8 @@ def read_aggregate_answers_stream(
             lambda x: x in ["radio_button", "Radio Button Question"]
         ), "question answer options"
     ].unique()
-    print(radio_answer_choices_list)
     if config_included:
         sep_dict = get_choices_with_sep_values(config_path, history_path)
-        print("got the sep dict")
 
     for answer_choices in radio_answer_choices_list:
         fixed_answer_choices = answer_choices
@@ -835,7 +833,6 @@ def read_aggregate_answers_stream(
             if question_id not in sep_dict.keys():
                 continue
             answer_list = sep_dict[question_id]
-            print(answer_list)
         else:
             answer_list = aggregated_data.loc[
                 aggregated_data[
