@@ -789,8 +789,8 @@ def read_aggregate_answers_stream(
         logger.warning("No survey_answers data found")
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
 
-    aggregated_data = fix_radio_answer_choices(aggregated_data, history_path,
-                                               config_path)
+    aggregated_data = fix_radio_answer_choices(aggregated_data, config_path,
+                                               history_path)
 
     android_radio_questions = aggregated_data.loc[
         # find radio button questions. These are the ones that show up weird
