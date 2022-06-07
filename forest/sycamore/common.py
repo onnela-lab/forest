@@ -944,6 +944,7 @@ def fix_radio_answer_choices(
 
     return aggregated_data
 
+
 def update_qs_with_seps(qs_with_seps: dict, survey_content: dict) -> dict:
     """
     Iterates through answers in question_dict and adds any choices with , or ;
