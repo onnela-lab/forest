@@ -1001,7 +1001,12 @@ def get_choices_with_sep_values(config_path: str = None,
     """
     qs_with_seps: Dict[str, set] = {}
     if config_path is not None:
-        surveys_list = read_json(config_path)["surveys"]
+        study_config = read_json(config_path)
+        if "surveys" in study_config.keys():
+            surveys_list = study_config["surveys"]
+        else:
+            logger.warning("No study information found in config file")
+            return qs_with_seps
         for survey_num in range(len(surveys_list)):
             survey = surveys_list[survey_num]["content"]
             qs_with_seps = update_qs_with_seps(qs_with_seps, survey)
