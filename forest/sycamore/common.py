@@ -846,7 +846,8 @@ def read_aggregate_answers_stream(
 
 
 def fix_radio_answer_choices(
-        aggregated_data: pd.DataFrame, config_path: str, history_path: str
+        aggregated_data: pd.DataFrame, config_path: str = None, 
+        history_path: str = None
 ) -> pd.DataFrame:
     """
     Change the "question answer options" column into a list of question answer
