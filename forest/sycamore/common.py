@@ -447,6 +447,7 @@ def aggregate_surveys_config(
 
     # Convert to the study's timezone
     df_merged = convert_timezone_df(df_merged, study_tz)
+    df_merged = fix_radio_answer_choices(df_merged, config_path, history_path)
     if augment_with_answers:
         df_merged["data_stream"] = "survey_timings"
         df_merged = append_from_answers(df_merged, study_dir, users,
@@ -500,6 +501,7 @@ def aggregate_surveys_no_config(
 
     # Convert to the study's timezone
     agg_data = convert_timezone_df(agg_data, tz_str=study_tz)
+    agg_data = fix_radio_answer_choices(agg_data)
     if augment_with_answers:
         agg_data["data_stream"] = "survey_timings"
         agg_data = append_from_answers(agg_data, study_dir, users,
@@ -846,7 +848,7 @@ def read_aggregate_answers_stream(
 
 
 def fix_radio_answer_choices(
-        aggregated_data: pd.DataFrame, config_path: str = None, 
+        aggregated_data: pd.DataFrame, config_path: str = None,
         history_path: str = None
 ) -> pd.DataFrame:
     """
