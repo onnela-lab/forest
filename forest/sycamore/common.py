@@ -898,7 +898,7 @@ def fix_radio_answer_choices(
 
     for answer_choices in radio_answer_choices_list:
         fixed_answer_choices = answer_choices
-        if config_included:
+        if config_path is not None:
             question_id = aggregated_data.loc[
                 aggregated_data["question answer options"] == answer_choices,
                 "question id"
@@ -1005,7 +1005,7 @@ def get_choices_with_sep_values(config_path: str = None,
         if "surveys" in study_config.keys():
             surveys_list = study_config["surveys"]
         else:
-            logger.warning("No study information found in config file")
+            logger.warning("No survey information found in config file")
             return qs_with_seps
         for survey_num in range(len(surveys_list)):
             survey = surveys_list[survey_num]["content"]
