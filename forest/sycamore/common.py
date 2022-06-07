@@ -771,10 +771,6 @@ def read_aggregate_answers_stream(
     """
     if time_end is None:
         time_end = get_month_from_today()
-    if config_path is not None:
-        config_included = True
-    else:
-        config_included = False
     if users is None:
         users = get_ids(download_folder)
     if len(users) == 0:
@@ -793,78 +789,8 @@ def read_aggregate_answers_stream(
         logger.warning("No survey_answers data found")
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
 
-    # if a semicolon appears in an answer choice option,
-    # our regexp sub/split operation would think there are
-    # way more answers than there really are.
-    # We will pull from the responses from iPhone users and switch semicolons
-    # within an answer to commas.
-    # Android users have "; " separating answer choices. iPhone users have
-    # ";" separating choices.
-    # This will make them the same.
-    aggregated_data["question answer options"] = aggregated_data[
-        "question answer options"].apply(
-        lambda x: x.replace("; ", ";") if isinstance(x, str) else x
-    )
-
-    # We also need to change the answers to match the above pattern if we want
-    # to find answers inside of answer choice strings.
-    # We will change this back later.
-    aggregated_data["answer"] = aggregated_data["answer"].apply(
-        lambda x: x.replace("; ", ";") if isinstance(x, str) else x
-    )
-
-    # get all answer choices text options now that Android and iPhone have the
-    # same ones.
-    radio_answer_choices_list = aggregated_data.loc[
-        aggregated_data["question type"].apply(
-            lambda x: x in ["radio_button", "Radio Button Question"]
-        ), "question answer options"
-    ].unique()
-    if config_included:
-        sep_dict = get_choices_with_sep_values(config_path, history_path)
-
-    for answer_choices in radio_answer_choices_list:
-        fixed_answer_choices = answer_choices
-        if config_included:
-            question_id = aggregated_data.loc[
-                aggregated_data["question answer options"] == answer_choices,
-                "question id"
-            ].unique()[0]
-            # sep_dict wil only include keys for question IDs with
-            # semicolons/commas inside the answer choice, so we can skip that
-            # question if it's not a key of sep_dict
-            if question_id not in sep_dict.keys():
-                continue
-            answer_list = sep_dict[question_id]
-        else:
-            answer_list = aggregated_data.loc[
-                aggregated_data[
-                    "question answer options"] == answer_choices, "answer"
-            ].unique()  # all answers users have put for this choice
-        for answer in answer_list:
-            if isinstance(answer, str) and answer.find(";") != -1:
-                fixed_answer = answer.replace(";", ", ")
-                # replace semicolons with commas within the answer. We include
-                # a space after becaus we removed spaces after semicolons
-                # earlier.
-                fixed_answer_choices = fixed_answer_choices.replace(
-                    answer, fixed_answer
-                )  # the answer within the answer choice string no
-                # longer has a semicolon.
-
-        aggregated_data.loc[
-            aggregated_data["question answer options"] == answer_choices,
-            "question answer options"
-        ] = fixed_answer_choices
-
-    aggregated_data["answer"] = aggregated_data["answer"].apply(
-        lambda x: x.replace(";", ", ") if isinstance(x, str) else x
-    )
-
-    # remove first and last bracket as well as any nan, then split it by ;
-    aggregated_data["question answer options"] = aggregated_data[
-        "question answer options"
-    ].astype("str").apply(lambda x: re.sub(r"^\[|\]$|^nan$", "", x).split(";"))
+    aggregated_data = fix_radio_answer_choices(aggregated_data, history_path,
+                                               config_path)
 
     android_radio_questions = aggregated_data.loc[
         # find radio button questions. These are the ones that show up weird
@@ -919,6 +845,102 @@ def read_aggregate_answers_stream(
     ]
 
 
+def fix_radio_answer_choices(
+        aggregated_data: pd.DataFrame, config_path: str, history_path: str
+) -> pd.DataFrame:
+    """
+    Change the "question answer options" column into a list of question answer
+        options. Also, correct for the fact that a semicolon may be a delimiter
+        between choices, an actual semicolon in a question, or a sanatized ","
+
+    Args:
+        aggregated_data: Output from read_user_answers_stream or
+            aggregate_surveys
+        config_path: Path to config file. If this is included, the function
+            uses the config file to resolve semicolons that appear in survey
+            answers lists. If this is not included, the function attempt to use
+            iPhone responses to resolve semicolons.
+        history_path: Path to survey history file. If this is included, the
+            function uses the survey history file to find instances of commas
+            or semicolons in answer choices
+    """
+    # if a semicolon appears in an answer choice option,
+    # our regexp sub/split operation would think there are
+    # way more answers than there really are.
+    # We will pull from the responses from iPhone users and switch semicolons
+    # within an answer to commas.
+    # Android users have "; " separating answer choices. iPhone users have
+    # ";" separating choices.
+    # This will make them the same.
+    aggregated_data["question answer options"] = aggregated_data[
+        "question answer options"].apply(
+        lambda x: x.replace("; ", ";") if isinstance(x, str) else x
+    )
+
+    # We also need to change the answers to match the above pattern if we want
+    # to find answers inside of answer choice strings.
+    # We will change this back later.
+    aggregated_data["answer"] = aggregated_data["answer"].apply(
+        lambda x: x.replace("; ", ";") if isinstance(x, str) else x
+    )
+
+    # get all answer choices text options now that Android and iPhone have the
+    # same ones.
+    radio_answer_choices_list = aggregated_data.loc[
+        aggregated_data["question type"].apply(
+            lambda x: x in ["radio_button", "Radio Button Question"]
+        ), "question answer options"
+    ].unique()
+    if config_path is not None:
+        sep_dict = get_choices_with_sep_values(config_path, history_path)
+    else:
+        sep_dict = dict()
+
+    for answer_choices in radio_answer_choices_list:
+        fixed_answer_choices = answer_choices
+        if config_included:
+            question_id = aggregated_data.loc[
+                aggregated_data["question answer options"] == answer_choices,
+                "question id"
+            ].unique()[0]
+            # sep_dict wil only include keys for question IDs with
+            # semicolons/commas inside the answer choice, so we can skip that
+            # question if it's not a key of sep_dict
+            if question_id not in sep_dict.keys():
+                continue
+            answer_list = sep_dict[question_id]
+        else:
+            answer_list = aggregated_data.loc[
+                aggregated_data[
+                    "question answer options"] == answer_choices, "answer"
+            ].unique()  # all answers users have put for this choice
+        for answer in answer_list:
+            if isinstance(answer, str) and answer.find(";") != -1:
+                fixed_answer = answer.replace(";", ", ")
+                # replace semicolons with commas within the answer. We include
+                # a space after becaus we removed spaces after semicolons
+                # earlier.
+                fixed_answer_choices = fixed_answer_choices.replace(
+                    answer, fixed_answer
+                )  # the answer within the answer choice string no
+                # longer has a semicolon.
+
+        aggregated_data.loc[
+            aggregated_data["question answer options"] == answer_choices,
+            "question answer options"
+        ] = fixed_answer_choices
+
+    aggregated_data["answer"] = aggregated_data["answer"].apply(
+        lambda x: x.replace(";", ", ") if isinstance(x, str) else x
+    )
+
+    # remove first and last bracket as well as any nan, then split it by ;
+    aggregated_data["question answer options"] = aggregated_data[
+        "question answer options"
+    ].astype("str").apply(lambda x: re.sub(r"^\[|\]$|^nan$", "", x).split(";"))
+
+    return aggregated_data
+
 def update_qs_with_seps(qs_with_seps: dict, survey_content: dict) -> dict:
     """
     Iterates through answers in question_dict and adds any choices with , or ;
@@ -965,6 +987,15 @@ def get_choices_with_sep_values(config_path: str = None,
     Question IDs are included in the dict if they satisfy two conditions:
     1. They are radio button questions
     2. at least one of the response choices contains a semicolon or a comma
+
+    Args:
+        config_path: Path to config file. If this is included, the function
+            uses the config file to resolve semicolons that appear in survey
+            answers lists. If this is not included, the function attempt to use
+            iPhone responses to resolve semicolons.
+        survey_history_path: Path to survey history file. If this is included,
+            the function uses the survey history file to find instances of
+            commas or semicolons in answer choices
 
 
     """
