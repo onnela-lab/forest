@@ -383,23 +383,24 @@ def aggregate_surveys_config(
     survey_answers to fill in missing survey_timings data when needed.
 
     Args:
-        study_dir (str):
+        study_dir:
             path to downloaded data. This is a folder that includes the user
             data in a subfolder with the beiwe_id as the subfolder name
-        config_path(str):
+        config_path:
             path to the study configuration file
-        study_tz(str):
+        study_tz:
             Timezone of study. This defaults to "UTC"
-        users(tuple):
+        users:
             List of beiwe IDs of users to aggregate
-        augment_with_answers(bool):
+        augment_with_answers:
             Whether to use the survey_answers stream to fill in missing surveys
             from survey_timings
-        time_start(str):
+        time_start:
             The first date of the survey data, in YYYY-MM-DD format
-        time_end(str):
+        time_end:
             The last date of the survey data, in YYYY-MM-DD format
-        history_path: Path to survey history file. If this is included, the
+        history_path:
+            Path to survey history file. If this is included, the
             survey history file is used to find instances of commas or
             semicolons in answer choices to determine the correct choice for
             Android radio questions
@@ -523,23 +524,24 @@ def append_from_answers(
     the less complete information from survey_answers to fill in the gaps.
 
     Args:
-        agg_data(DataFrame): Dataframe with aggregated data (output from
+        agg_data: Dataframe with aggregated data (output from
             aggregate_surveys_config)
-        download_folder (str):
+        download_folder:
             path to downloaded data. This is a folder that includes the user
             data in a subfolder with the beiwe_id as the subfolder name
-        tz_str(str):
+        tz_str:
             Timezone to use for "Local time" column values. This defaults to
             "UTC"
-        users(list):
+        users:
             List of Beiwe IDs used to augment with data
-        time_start(str):
+        time_start:
             The first date of the survey data, in YYYY-MM-DD format
-        time_end(str):
+        time_end:
             The last date of the survey data, in YYYY-MM-DD format
-        config_path(str):
+        config_path:
             Filepath to survey config file (downloaded from Beiwe website)
-        history_path: Path to survey history file. If this is included, the
+        history_path:
+            Path to survey history file. If this is included, the
             survey history file is used to find instances of commas or
             semicolons in answer choices to determine the correct choice for
             Android radio questions
@@ -747,24 +749,26 @@ def read_aggregate_answers_stream(
     an answer instead of an integer
 
     Args:
-        download_folder (str):
+        download_folder:
             path to downloaded data. This folder should have Beiwe IDs as
             subdirectories.
-        users (str):
+        users:
             List of IDs of users to aggregate data on
-        tz_str (str):
+        tz_str:
             Time Zone to include in Local time column of output. See
             https://en.wikipedia.org/wiki/List_of_tz_database_time_zones for
             options
-        config_path: Path to config file. If this is included, the function
+        config_path:
+            Path to config file. If this is included, the function
             uses the config file to resolve semicolons that appear in survey
             answers lists. If this is not included, the function attempt to use
             iPhone responses to resolve semicolons.
-        time_start(str):
+        time_start:
             The first date of the survey data, in YYYY-MM-DD format
-        time_end(str):
+        time_end:
             The last date of the survey data, in YYYY-MM-DD format
-        history_path: Path to survey history file. If this is included, the
+        history_path:
+            Path to survey history file. If this is included, the
             function uses the survey history file to find instances of commas
             or semicolons in answer choices
     Returns:
@@ -857,13 +861,16 @@ def fix_radio_answer_choices(
         between choices, an actual semicolon in a question, or a sanatized ","
 
     Args:
-        aggregated_data: Output from read_user_answers_stream or
+        aggregated_data:
+            Output from read_user_answers_stream or
             aggregate_surveys
-        config_path: Path to config file. If this is included, the function
+        config_path:
+            Path to config file. If this is included, the function
             uses the config file to resolve semicolons that appear in survey
             answers lists. If this is not included, the function attempt to use
             iPhone responses to resolve semicolons.
-        history_path: Path to survey history file. If this is included, the
+        history_path:
+            Path to survey history file. If this is included, the
             function uses the survey history file to find instances of commas
             or semicolons in answer choices
     """
@@ -993,11 +1000,13 @@ def get_choices_with_sep_values(config_path: str = None,
     2. at least one of the response choices contains a semicolon or a comma
 
     Args:
-        config_path: Path to config file. If this is included, the function
+        config_path:
+            Path to config file. If this is included, the function
             uses the config file to resolve semicolons that appear in survey
             answers lists. If this is not included, the function attempt to use
             iPhone responses to resolve semicolons.
-        survey_history_path: Path to survey history file. If this is included,
+        survey_history_path:
+            Path to survey history file. If this is included,
             the function uses the survey history file to find instances of
             commas or semicolons in answer choices
 
