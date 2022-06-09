@@ -84,7 +84,7 @@ def compute_survey_stats(
     else:
         agg_data = aggregate_surveys_config(
             study_folder, config_path, tz_str, users, start_date,
-            end_date,  augment_with_answers, history_path
+            end_date, augment_with_answers, history_path
         )
         if agg_data.shape[0] == 0:
             logger.error("Error: No survey data found in %s", study_folder)
