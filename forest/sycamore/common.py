@@ -798,22 +798,27 @@ def read_aggregate_answers_stream(
     aggregated_data = fix_radio_answer_choices(aggregated_data, config_path,
                                                history_path)
 
+    # Now, we will locate the indices of Android radio button questions that
+    # have integers instead of strings.
+
+    # First, android questions will have the android name for question type.
+    android_radio_rows = (aggregated_data["question type"] ==
+                           "Radio Button Question")
+    # Next, any rows before this date will be strings, and any after will be
+    # integers. So, we will only use rows that were created after the app
+    # change happened.
+    rows_after_nullable_change = (aggregated_data["UTC time"] >
+                                  ANDROID_NULLABLE_ANSWER_CHANGE_DATE)
+    # Finally, we will look at rows that include digits. Some people may have
+    # downloaded the app before the nullable date and continued to have string
+    # answers after the date because they didn't update the app, so we will
+    # filter out any answers that had strings.
+    rows_with_integer_answers = (aggregated_data["answer"].apply(
+            lambda x: str(x).isdigit()))
+
     android_radio_questions = aggregated_data.loc[
-        # find radio button questions. These are the ones that show up weird
-        # on Android.
-        (aggregated_data["question type"] == "Radio Button Question")
-        # only include answers after they started listing radio button answers
-        # as ints in the Android app
-        & (aggregated_data["UTC time"] > ANDROID_NULLABLE_ANSWER_CHANGE_DATE)
-        # they will have ints in their answer field.
-        & (aggregated_data["answer"].apply(
-            lambda x: x.isdigit() if isinstance(x, str)
-            else True if isinstance(x, int)
-            else False)),
-        "answer"
-        # if their question type looks like this, it was made on an Android
-        # device. Radio button questions are the only ones with the integer
-        # instead of text (Also, avoiding any possible text outputs)
+        android_radio_rows & rows_after_nullable_change &
+        rows_with_integer_answers,:
     ].index
 
     for i in android_radio_questions:
