@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import re
-from typing import Optional
+from typing import Optional, Dict
 
 import glob
 import numpy as np
@@ -373,7 +373,8 @@ def convert_timezone_df(df_merged: pd.DataFrame, tz_str: str = "UTC",
 def aggregate_surveys_config(
         study_dir: str, config_path: str, study_tz: str = "UTC",
         users: list = None, time_start: str = EARLIEST_DATE,
-        time_end: str = None, augment_with_answers: bool = True
+        time_end: str = None, augment_with_answers: bool = True,
+        history_path: str = None,
 ) -> pd.DataFrame:
     """Aggregate surveys when config is available
 
@@ -382,22 +383,27 @@ def aggregate_surveys_config(
     survey_answers to fill in missing survey_timings data when needed.
 
     Args:
-        study_dir (str):
+        study_dir:
             path to downloaded data. This is a folder that includes the user
             data in a subfolder with the beiwe_id as the subfolder name
-        config_path(str):
+        config_path:
             path to the study configuration file
-        study_tz(str):
+        study_tz:
             Timezone of study. This defaults to "UTC"
-        users(tuple):
+        users:
             List of beiwe IDs of users to aggregate
-        augment_with_answers(bool):
+        augment_with_answers:
             Whether to use the survey_answers stream to fill in missing surveys
             from survey_timings
-        time_start(str):
+        time_start:
             The first date of the survey data, in YYYY-MM-DD format
-        time_end(str):
+        time_end:
             The last date of the survey data, in YYYY-MM-DD format
+        history_path:
+            Path to survey history file. If this is included, the
+            survey history file is used to find instances of commas or
+            semicolons in answer choices to determine the correct choice for
+            Android radio questions
 
     Returns:
         DataFrame of questions and submission lines.
@@ -442,11 +448,12 @@ def aggregate_surveys_config(
 
     # Convert to the study's timezone
     df_merged = convert_timezone_df(df_merged, study_tz)
+    df_merged = fix_radio_answer_choices(df_merged, config_path, history_path)
     if augment_with_answers:
         df_merged["data_stream"] = "survey_timings"
         df_merged = append_from_answers(df_merged, study_dir, users,
                                         study_tz, time_start, time_end,
-                                        config_path)
+                                        config_path, history_path)
 
     return df_merged.reset_index(drop=True)
 
@@ -495,6 +502,7 @@ def aggregate_surveys_no_config(
 
     # Convert to the study's timezone
     agg_data = convert_timezone_df(agg_data, tz_str=study_tz)
+    agg_data = fix_radio_answer_choices(agg_data)
     if augment_with_answers:
         agg_data["data_stream"] = "survey_timings"
         agg_data = append_from_answers(agg_data, study_dir, users,
@@ -507,7 +515,7 @@ def append_from_answers(
         agg_data: pd.DataFrame, download_folder: str,
         users: list = None, tz_str: str = "UTC",
         time_start: str = EARLIEST_DATE, time_end: str = None,
-        config_path: str = None
+        config_path: str = None, history_path: str = None
 ) -> pd.DataFrame:
     """Append surveys included in survey_answers to data from survey_timings.
 
@@ -516,22 +524,27 @@ def append_from_answers(
     the less complete information from survey_answers to fill in the gaps.
 
     Args:
-        agg_data(DataFrame): Dataframe with aggregated data (output from
+        agg_data: Dataframe with aggregated data (output from
             aggregate_surveys_config)
-        download_folder (str):
+        download_folder:
             path to downloaded data. This is a folder that includes the user
             data in a subfolder with the beiwe_id as the subfolder name
-        tz_str(str):
+        tz_str:
             Timezone to use for "Local time" column values. This defaults to
             "UTC"
-        users(list):
+        users:
             List of Beiwe IDs used to augment with data
-        time_start(str):
+        time_start:
             The first date of the survey data, in YYYY-MM-DD format
-        time_end(str):
+        time_end:
             The last date of the survey data, in YYYY-MM-DD format
-        config_path(str):
+        config_path:
             Filepath to survey config file (downloaded from Beiwe website)
+        history_path:
+            Path to survey history file. If this is included, the
+            survey history file is used to find instances of commas or
+            semicolons in answer choices to determine the correct choice for
+            Android radio questions
 
     Returns:
         Data frame with all survey_timings data, including data from
@@ -541,7 +554,7 @@ def append_from_answers(
         time_end = get_month_from_today()
     answers_data = read_aggregate_answers_stream(
         download_folder, users, tz_str, config_path, time_start,
-        time_end
+        time_end, history_path
     )
     if answers_data.shape[0] == 0:
         return agg_data
@@ -701,9 +714,9 @@ def read_user_answers_stream(
 
                 # Add a submission line if they at least saw all of the
                 # questions
-                current_df['submit_line'] = 0
-                if not (current_df['answer'] == "NOT_PRESENTED").any():
-                    current_df.loc[current_df.shape[0] - 1, 'submit_line'] = 1
+                current_df["submit_line"] = 0
+                if not (current_df["answer"] == "NOT_PRESENTED").any():
+                    current_df.loc[current_df.shape[0] - 1, "submit_line"] = 1
 
                 current_df["surv_inst_flg"] = i
                 survey_dfs.append(current_df)
@@ -730,40 +743,40 @@ def read_aggregate_answers_stream(
         download_folder: str, users: list = None,
         tz_str: str = "UTC", config_path: str = None,
         time_start: str = EARLIEST_DATE, time_end: str = None,
+        history_path: str = None
 ) -> pd.DataFrame:
     """Reads in all answers data for many users and fixes Android users to have
     an answer instead of an integer
 
     Args:
-        download_folder (str):
+        download_folder:
             path to downloaded data. This folder should have Beiwe IDs as
             subdirectories.
-        users (str):
+        users:
             List of IDs of users to aggregate data on
-        tz_str (str):
+        tz_str:
             Time Zone to include in Local time column of output. See
             https://en.wikipedia.org/wiki/List_of_tz_database_time_zones for
             options
-        config_path: Path to config file. If this is included, the function
+        config_path:
+            Path to config file. If this is included, the function
             uses the config file to resolve semicolons that appear in survey
             answers lists. If this is not included, the function attempt to use
             iPhone responses to resolve semicolons.
-        time_start(str):
+        time_start:
             The first date of the survey data, in YYYY-MM-DD format
-        time_end(str):
+        time_end:
             The last date of the survey data, in YYYY-MM-DD format
+        history_path:
+            Path to survey history file. If this is included, the
+            function uses the survey history file to find instances of commas
+            or semicolons in answer choices
     Returns:
         DataFrame with stacked data, a field for the beiwe ID, a field for the
         day of week.
     """
     if time_end is None:
         time_end = get_month_from_today()
-    if config_path is not None:
-        config_surveys = parse_surveys(config_path, answers_l=True)
-        config_included = True
-    else:
-        config_surveys = pd.DataFrame(None)
-        config_included = False
     if users is None:
         users = get_ids(download_folder)
     if len(users) == 0:
@@ -782,90 +795,30 @@ def read_aggregate_answers_stream(
         logger.warning("No survey_answers data found")
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
 
-    # if a semicolon appears in an answer choice option,
-    # our regexp sub/split operation would think there are
-    # way more answers than there really are.
-    # We will pull from the responses from iPhone users and switch semicolons
-    # within an answer to commas.
-    # Android users have "; " separating answer choices. iPhone users have
-    # ";" separating choices.
-    # This will make them the same.
-    aggregated_data["question answer options"] = aggregated_data[
-        "question answer options"].apply(
-        lambda x: x.replace("; ", ";") if isinstance(x, str) else x
-    )
+    aggregated_data = fix_radio_answer_choices(aggregated_data, config_path,
+                                               history_path)
 
-    # We also need to change the answers to match the above pattern if we want
-    # to find answers inside of answer choice strings.
-    # We will change this back later.
-    aggregated_data["answer"] = aggregated_data["answer"].apply(
-        lambda x: x.replace("; ", ";") if isinstance(x, str) else x
-    )
+    # Now, we will locate the indices of Android radio button questions that
+    # have integers instead of strings.
 
-    # get all answer choices text options now that Android and iPhone have the
-    # same ones.
-    radio_answer_choices_list = aggregated_data.loc[
-        aggregated_data[
-            "question type"] == "radio_button", "question answer options"
-    ].unique()
-
-    for answer_choices in radio_answer_choices_list:
-        fixed_answer_choices = answer_choices
-        if config_included:
-            question_id = aggregated_data.loc[
-                aggregated_data["question answer options"] == answer_choices,
-                "question id"
-                ].unique()[0]
-            answer_list = config_surveys.loc[
-                config_surveys["question_id"] == question_id,
-                config_surveys.columns[range(5, len(config_surveys.columns))]
-            ].stack().unique()
-        else:
-            answer_list = aggregated_data.loc[
-                aggregated_data[
-                    "question answer options"] == answer_choices, "answer"
-            ].unique()  # all answers users have put for this choice
-        for answer in answer_list:
-            if isinstance(answer, str) and answer.find(";") != -1:
-                fixed_answer = answer.replace(";", ", ")
-                # replace semicolons with commas within the answer. We include
-                # a space after becaus we removed spaces after semicolons
-                # earlier.
-                fixed_answer_choices = fixed_answer_choices.replace(
-                    answer, fixed_answer
-                )  # the answer within the answer choice string no
-                # longer has a semicolon.
-
-        aggregated_data.loc[
-            aggregated_data["question answer options"] == answer_choices,
-            "question answer options"
-        ] = fixed_answer_choices
-
-    aggregated_data["answer"] = aggregated_data["answer"].apply(
-        lambda x: x.replace(";", ", ") if isinstance(x, str) else x
-    )
-
-    # remove first and last bracket as well as any nan, then split it by ;
-    aggregated_data["question answer options"] = aggregated_data[
-        "question answer options"
-    ].astype("str").apply(lambda x: re.sub(r"^\[|\]$|^nan$", "", x).split(";"))
+    # First, android questions will have the android name for question type.
+    android_radio_rows = (aggregated_data["question type"] ==
+                          "Radio Button Question")
+    # Next, any rows before this date will be strings, and any after will be
+    # integers. So, we will only use rows that were created after the app
+    # change happened.
+    rows_after_nullable_change = (aggregated_data["UTC time"] >
+                                  ANDROID_NULLABLE_ANSWER_CHANGE_DATE)
+    # Finally, we will look at rows that include digits. Some people may have
+    # downloaded the app before the nullable date and continued to have string
+    # answers after the date because they didn't update the app, so we will
+    # filter out any answers that had strings.
+    rows_with_integer_answers = (aggregated_data["answer"].apply(
+            lambda x: str(x).isdigit()))
 
     android_radio_questions = aggregated_data.loc[
-        # find radio button questions. These are the ones that show up weird
-        # on Android.
-        (aggregated_data["question type"] == "Radio Button Question")
-        # only include answers after they started listing radio button answers
-        # as ints in the Android app
-        & (aggregated_data["UTC time"] > ANDROID_NULLABLE_ANSWER_CHANGE_DATE)
-        # they will have ints in their answer field.
-        & (aggregated_data["answer"].apply(
-            lambda x: x.isdigit() if isinstance(x, str)
-            else True if isinstance(x, int)
-            else False)),
-        "answer"
-        # if their question type looks like this, it was made on an Android
-        # device. Radio button questions are the only ones with the integer
-        # instead of text (Also, avoiding any possible text outputs)
+        android_radio_rows & rows_after_nullable_change &
+        rows_with_integer_answers, :
     ].index
 
     for i in android_radio_questions:
@@ -901,3 +854,191 @@ def read_aggregate_answers_stream(
     return df_merged.loc[
         df_merged["answer"] != "NOT_PRESENTED", :
     ]
+
+
+def fix_radio_answer_choices(
+        aggregated_data: pd.DataFrame, config_path: str = None,
+        history_path: str = None
+) -> pd.DataFrame:
+    """
+    Change the "question answer options" column into a list of question answer
+        options. Also, correct for the fact that a semicolon may be a delimiter
+        between choices, an actual semicolon in a question, or a sanatized ","
+
+    Args:
+        aggregated_data:
+            Output from read_user_answers_stream or
+            aggregate_surveys
+        config_path:
+            Path to config file. If this is included, the function
+            uses the config file to resolve semicolons that appear in survey
+            answers lists. If this is not included, the function attempt to use
+            iPhone responses to resolve semicolons.
+        history_path:
+            Path to survey history file. If this is included, the
+            function uses the survey history file to find instances of commas
+            or semicolons in answer choices
+    """
+    # if a semicolon appears in an answer choice option,
+    # our regexp sub/split operation would think there are
+    # way more answers than there really are.
+    # We will pull from the responses from iPhone users and switch semicolons
+    # within an answer to commas.
+    # Android users have "; " separating answer choices. iPhone users have
+    # ";" separating choices.
+    # This will make them the same.
+    aggregated_data["question answer options"] = aggregated_data[
+        "question answer options"].apply(
+        lambda x: x.replace("; ", ";") if isinstance(x, str) else x
+    )
+
+    # We also need to change the answers to match the above pattern if we want
+    # to find answers inside of answer choice strings.
+    # We will change this back later.
+    aggregated_data["answer"] = aggregated_data["answer"].apply(
+        lambda x: x.replace("; ", ";") if isinstance(x, str) else x
+    )
+
+    # get all answer choices text options now that Android and iPhone have the
+    # same ones.
+    radio_answer_choices_list = aggregated_data.loc[
+        aggregated_data["question type"].apply(
+            lambda x: x in ["radio_button", "Radio Button Question"]
+        ), "question answer options"
+    ].unique()
+    if config_path is not None:
+        sep_dict = get_choices_with_sep_values(config_path, history_path)
+    else:
+        sep_dict = dict()
+
+    for answer_choices in radio_answer_choices_list:
+        fixed_answer_choices = answer_choices
+        if config_path is not None:
+            question_id = aggregated_data.loc[
+                aggregated_data["question answer options"] == answer_choices,
+                "question id"
+            ].unique()[0]
+            # sep_dict wil only include keys for question IDs with
+            # semicolons/commas inside the answer choice, so we can skip that
+            # question if it's not a key of sep_dict
+            if question_id not in sep_dict.keys():
+                continue
+            answer_list = sep_dict[question_id]
+        else:
+            answer_list = aggregated_data.loc[
+                aggregated_data[
+                    "question answer options"] == answer_choices, "answer"
+            ].unique()  # all answers users have put for this choice
+        for answer in answer_list:
+            if isinstance(answer, str) and answer.find(";") != -1:
+                fixed_answer = answer.replace(";", ", ")
+                # replace semicolons with commas within the answer. We include
+                # a space after becaus we removed spaces after semicolons
+                # earlier.
+                fixed_answer_choices = fixed_answer_choices.replace(
+                    answer, fixed_answer
+                )  # the answer within the answer choice string no
+                # longer has a semicolon.
+
+        aggregated_data.loc[
+            aggregated_data["question answer options"] == answer_choices,
+            "question answer options"
+        ] = fixed_answer_choices
+
+    aggregated_data["answer"] = aggregated_data["answer"].apply(
+        lambda x: x.replace(";", ", ") if isinstance(x, str) else x
+    )
+
+    # remove first and last bracket as well as any nan, then split it by ;
+    aggregated_data["question answer options"] = aggregated_data[
+        "question answer options"
+    ].astype("str").apply(lambda x: re.sub(r"^\[|\]$|^nan$", "", x).split(";"))
+
+    return aggregated_data
+
+
+def update_qs_with_seps(qs_with_seps: dict, survey_content: dict) -> dict:
+    """
+    Iterates through answers in question_dict and adds any choices with , or ;
+        to the correct entry in the sep_choices dict.
+
+    Args:
+        qs_with_seps: Dictionary with a key for each question ID. For each
+            question ID, there is a set of all response choices with a , or ;
+        survey_content: Dictionary with survey content information, from either
+            the study config file or survey history file
+    """
+    for question in range(len(survey_content)):
+        if "question_type" not in survey_content[question].keys():
+            continue
+        if survey_content[question]["question_type"] == "radio_button":
+            question_dict = survey_content[question]
+            answer_choices = question_dict["answers"]
+            q_sep_choices = set()
+            for choice in range(len(answer_choices)):
+                answer_text = answer_choices[choice]["text"]
+                if len(re.findall(",|;", answer_text)) != 0:
+                    # At least one separation value occurs in the
+                    # response
+                    q_sep_choices.add(
+                        answer_text.replace(",", ";").replace("; ", ";")
+                    )
+            if len(q_sep_choices) != 0:
+                question_id = survey_content[question]["question_id"]
+                if question_id in qs_with_seps.keys():
+                    qs_with_seps[question_id] = qs_with_seps[
+                        question_id
+                    ].union(q_sep_choices)
+                else:
+                    qs_with_seps[question_id] = q_sep_choices
+    return qs_with_seps
+
+
+def get_choices_with_sep_values(config_path: str = None,
+                                survey_history_path: str = None) -> dict:
+    """
+    Create a dict with a key for every question ID and a set of any responses
+    for that ID that had a comma in them.
+
+    Question IDs are included in the dict if they satisfy two conditions:
+    1. They are radio button questions
+    2. at least one of the response choices contains a semicolon or a comma
+
+    Args:
+        config_path:
+            Path to config file. If this is included, the function
+            uses the config file to resolve semicolons that appear in survey
+            answers lists. If this is not included, the function attempt to use
+            iPhone responses to resolve semicolons.
+        survey_history_path:
+            Path to survey history file. If this is included,
+            the function uses the survey history file to find instances of
+            commas or semicolons in answer choices
+
+
+    """
+    qs_with_seps: Dict[str, set] = {}
+    if config_path is not None:
+        study_config = read_json(config_path)
+        if "surveys" in study_config.keys():
+            surveys_list = study_config["surveys"]
+        else:
+            logger.warning("No survey information found in config file")
+            return qs_with_seps
+        for survey_num in range(len(surveys_list)):
+            survey = surveys_list[survey_num]["content"]
+            qs_with_seps = update_qs_with_seps(qs_with_seps, survey)
+    if survey_history_path is not None:
+        survey_history_dict = read_json(survey_history_path)
+        for survey_id in survey_history_dict.keys():
+            for version in range(len(survey_history_dict[survey_id])):
+                survey = survey_history_dict[survey_id][version]["survey_json"]
+                qs_with_seps = update_qs_with_seps(qs_with_seps, survey)
+    else:
+        logger.warning(
+            "No survey history path included. If you have changed radio survey"
+            " answer choices since starting your study, and if you used "
+            "semicolons or commas in those answer choices, incorrect survey "
+            "responses may be output for android devices"
+        )
+    return qs_with_seps
