@@ -803,7 +803,7 @@ def read_aggregate_answers_stream(
 
     # First, android questions will have the android name for question type.
     android_radio_rows = (aggregated_data["question type"] ==
-                           "Radio Button Question")
+                          "Radio Button Question")
     # Next, any rows before this date will be strings, and any after will be
     # integers. So, we will only use rows that were created after the app
     # change happened.
@@ -818,7 +818,7 @@ def read_aggregate_answers_stream(
 
     android_radio_questions = aggregated_data.loc[
         android_radio_rows & rows_after_nullable_change &
-        rows_with_integer_answers,:
+        rows_with_integer_answers, :
     ].index
 
     for i in android_radio_questions:
