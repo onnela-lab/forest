@@ -5,7 +5,7 @@ from forest.oak.base import adjust_bout
 
 
 def test_adjust_bout(signal_bout, fs):
-    timestamp, x = signal_bout
+    timestamp, _, x = signal_bout
     t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
     f = interpolate.interp1d(timestamp, x)
     x_interp = f(t_interp)
