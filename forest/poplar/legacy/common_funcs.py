@@ -173,10 +173,10 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
         all_timestamps: list = []
 
         for i in directories:
-            d_filenames, d_filestamps = get_files_timestamps(
+            directory_filenames, directory_filestamps = get_files_timestamps(
                 os.path.join(study_folder, beiwe_id, i)
             )
-            all_timestamps = all_timestamps + d_filestamps.tolist()
+            all_timestamps = all_timestamps + directory_filestamps.tolist()
         ordered_timestamps = sorted(all_timestamps)
         stamp_end1 = ordered_timestamps[-1]
         if time_end is None:
