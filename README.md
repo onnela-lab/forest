@@ -9,7 +9,7 @@ The Onnela Lab at the Harvard T.H. Chan School of Public Health has developed th
 
 Forest can be run locally but is also integrated into the Beiwe back-end on AWS, consistent with the preferred big-data computing paradigm of moving computation to the data. Integrated with Beiwe, Forest can be used to generate on-demand analytics, most importantly daily or hourly summary statistics of collected data, which are stored in a relational database on AWS. The system also implements an API for Tableau, which supports the creation of customizable workbooks and dashboards to view data summaries and troubleshoot any issues with data collection. Tableau is commercial software but is available under free viewer licenses and may be free to academic users for the first year (see Tableau for more information).
 
-For more detailed info on specific subpackages, see our [Documentation](https://forest.beiwe.org/en/latest/). Please note that Forest uses Python 3.8.
+For more detailed info on specific subpackages, see our [Documentation](https://forest.beiwe.org). Please note that Forest uses Python 3.8.
 
 # Description
 
