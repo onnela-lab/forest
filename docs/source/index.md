@@ -3,11 +3,11 @@
 :hidden:
 
 jasmine.md
+oak.md
 poplar.md
 poplar-example-code.md
 sycamore.md
 willow.md
-oak.md
 ```
 
 ```{toctree}
