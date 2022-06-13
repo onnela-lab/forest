@@ -116,7 +116,9 @@ def compute_survey_stats(
                     os.path.join(output_folder, "summaries",
                                  "submits_summary.csv"), index=False
                 )
-                if Frequency(submits_timeframe) == Frequency.BOTH:
+                if submits_timeframe is None:
+                    pass
+                elif Frequency(submits_timeframe) == Frequency.BOTH:
                     ss_summary_h = summarize_submits(
                         ss_detail, Frequency.HOURLY, submits_by_survey_id
                     )
