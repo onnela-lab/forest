@@ -110,7 +110,7 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
     return x_bout, y_bout, z_bout, vm_bout
 
 
-def adjust_bout(inarray: np.ndarray, fs: int = 10) -> npt.NDArray[np.float64]:
+def adjust_bout(inarray: np.ndarray, fs: int = 10) -> np.ndarray:
     """Fills observations in incomplete bouts.
 
     For example, if the bout is 9.8s long, add values at its end to make it

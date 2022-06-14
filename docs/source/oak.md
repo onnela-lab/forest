@@ -9,7 +9,7 @@ For instructions on how to install forest, please visit [here](https://github.co
 
 ## Usage:
 ```
-from forest.oak import base.py
+from forest.oak.base import run
 
 
 # Determine study folder and output_folder
