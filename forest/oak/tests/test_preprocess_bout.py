@@ -1,5 +1,3 @@
-import math
-
 import numpy as np
 import pytest
 from scipy import interpolate
@@ -10,25 +8,6 @@ from forest.oak.base import preprocess_bout, adjust_bout
 @pytest.fixture(scope="session")
 def gravity():
     return 9.80665
-
-
-def test_np_arange(signal_bout, fs):
-    timestamp, _, _, _, _ = signal_bout
-    t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
-    # check if new sampling fs is within error
-    close_to = [math.isclose(d, 1/fs, abs_tol=1e-5) for d in np.diff(t_interp)]
-    assert len(t_interp) == 98
-    assert all(close_to)
-
-
-def test_interpolate(signal_bout, fs):
-    timestamp, _, x, _, _ = signal_bout
-    t_interp = np.arange(timestamp[0], timestamp[-1], (1/fs))
-    f = interpolate.interp1d(timestamp, x)
-    x_interp = f(t_interp)
-    assert len(x_interp) == 98
-    assert np.round(np.mean(x_interp), 3) == -0.761
-    assert np.round(np.std(x_interp), 3) == 0.156
 
 
 def test_vm_bout(signal_bout, fs):
