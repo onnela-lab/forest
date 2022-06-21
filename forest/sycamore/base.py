@@ -23,7 +23,7 @@ def compute_survey_stats(
         users: Optional[List] = None,
         start_date: str = EARLIEST_DATE, end_date: Optional[str] = None,
         config_path: Optional[str] = None, interventions_filepath: str = None,
-        augment_with_answers: bool = True, submits_timeframe: str = None,
+        augment_with_answers: bool = True, submits_timeframe: str = "both",
         submits_by_survey_id: bool = True, history_path: str = None
 ) -> bool:
     """Compute statistics on surveys
