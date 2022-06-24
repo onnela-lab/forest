@@ -1058,14 +1058,14 @@ def write_data_by_user(df_to_write: pd.DataFrame, output_folder: str,
         users: list of users to split dataframe by
 
     """
-    os.makedirs(output_folder, exist_ok = True)
+    os.makedirs(output_folder, exist_ok=True)
 
     if users is None:
         users = df_to_write.beiwe_id.unique().tolist()
     for user in users:
-        current_df = df_to_write.loc[df_to_write.beiwe_id == user,:].copy()
+        current_df = df_to_write.loc[df_to_write.beiwe_id == user, :].copy()
         if current_df.shape[0] == 0:
             continue
-        current_df.drop("beiwe_id", axis = 1, inplace=True)
+        current_df.drop("beiwe_id", axis=1, inplace=True)
         path_to_write = os.path.join(output_folder, user + ".csv")
-        current_df.to_csv(path_to_write, index = False)
+        current_df.to_csv(path_to_write, index=False)

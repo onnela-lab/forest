@@ -219,7 +219,7 @@ def get_submits_for_tableau(
     else:
         agg_data = aggregate_surveys_config(
             study_folder, config_path, tz_str, users, start_date,
-            end_date, augment_with_answers = True
+            end_date, augment_with_answers=True
         )
         if agg_data.shape[0] == 0:
             logger.error("Error: No survey data found in %s", study_folder)
