@@ -730,6 +730,15 @@ def read_user_answers_stream(
                 "UTC time"
             ].dt.tz_localize("UTC").dt.tz_convert(tz_str).dt.tz_localize(None)
 
+            # Add question index column to make things look like the survey
+            # timings stream. We do not need to worry about verifying that the
+            # question IDs on the new lines are different as we did for survey
+            # timings because these are all final submissions.
+            survey_data["question index"] = 1
+            survey_data["question index"] = survey_data.groupby(
+                ["survey id", "beiwe_id"]
+            )["question index"].cumsum()
+
             all_surveys.append(survey_data)
         if len(all_surveys) == 0:
             return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
