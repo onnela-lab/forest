@@ -170,7 +170,7 @@ def test_agg_changed_answers_summary(agg_data_config):
     ca_detail, ca_summary = agg_changed_answers_summary(
         SURVEY_SETTINGS_PATH, agg_data_config
     )
-    assert ca_detail.shape[0] == 11
+    assert ca_detail.shape[0] == 12
     assert ca_detail.shape[1] == 14
     assert ca_summary.shape[0] == 7
     assert ca_summary.shape[1] == 9
@@ -182,7 +182,7 @@ def test_agg_changed_answers_summary_no_config(agg_data_no_config):
     ca_detail, ca_summary = agg_changed_answers_summary(
         SURVEY_SETTINGS_PATH, agg_data_no_config
     )
-    assert ca_detail.shape[0] == 11
+    assert ca_detail.shape[0] == 12
     assert ca_detail.shape[1] == 14
     assert ca_summary.shape[0] == 7
     assert ca_summary.shape[1] == 9
