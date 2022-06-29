@@ -567,8 +567,11 @@ def append_from_answers(
         for survey_id in agg_data["survey id"].unique():
             missing_data = find_missing_data(user, survey_id, agg_data,
                                              answers_data)
+            if missing_data.shape[0] == 0:
+                continue
+            missing_data["question index"] += \
+                np.max(agg_data["question index"]) + 1
             missing_submission_data.append(missing_data)
-
     return pd.concat([agg_data] + missing_submission_data
                      ).sort_values("UTC time")
 
@@ -730,6 +733,15 @@ def read_user_answers_stream(
                 "UTC time"
             ].dt.tz_localize("UTC").dt.tz_convert(tz_str).dt.tz_localize(None)
 
+            # Add question index column to make things look like the survey
+            # timings stream. We do not need to worry about verifying that the
+            # question IDs on the new lines are different as we did for survey
+            # timings because these are all final submissions.
+            survey_data["question index"] = 1
+            survey_data["question index"] = survey_data.groupby(
+                ["survey id", "beiwe_id"]
+            )["question index"].cumsum()
+
             all_surveys.append(survey_data)
         if len(all_surveys) == 0:
             return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
@@ -863,7 +875,7 @@ def fix_radio_answer_choices(
     """
     Change the "question answer options" column into a list of question answer
         options. Also, correct for the fact that a semicolon may be a delimiter
-        between choices, an actual semicolon in a question, or a sanatized ","
+        between choices, an actual semicolon in a question, or a sanitized ","
 
     Args:
         aggregated_data:
@@ -933,7 +945,7 @@ def fix_radio_answer_choices(
             if isinstance(answer, str) and answer.find(";") != -1:
                 fixed_answer = answer.replace(";", ", ")
                 # replace semicolons with commas within the answer. We include
-                # a space after becaus we removed spaces after semicolons
+                # a space after because we removed spaces after semicolons
                 # earlier.
                 fixed_answer_choices = fixed_answer_choices.replace(
                     answer, fixed_answer
