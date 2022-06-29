@@ -567,6 +567,9 @@ def append_from_answers(
         for survey_id in agg_data["survey id"].unique():
             missing_data = find_missing_data(user, survey_id, agg_data,
                                              answers_data)
+            missing_data["survey id"] = missing_data["survey id"] + np.max(
+                agg_data["survey id"]
+            ) + 1
             missing_submission_data.append(missing_data)
 
     return pd.concat([agg_data] + missing_submission_data
