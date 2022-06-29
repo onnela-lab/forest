@@ -567,11 +567,12 @@ def append_from_answers(
         for survey_id in agg_data["survey id"].unique():
             missing_data = find_missing_data(user, survey_id, agg_data,
                                              answers_data)
-            missing_data["survey id"] = missing_data["survey id"] + np.max(
-                agg_data["survey id"]
-            ) + 1
+            if missing_data.shape[0] == 0:
+                continue
+            missing_data["question index"] = missing_data[
+                                                 "question index"
+            ] + np.max(agg_data["question index"]) + 1
             missing_submission_data.append(missing_data)
-
     return pd.concat([agg_data] + missing_submission_data
                      ).sort_values("UTC time")
 
@@ -875,7 +876,7 @@ def fix_radio_answer_choices(
     """
     Change the "question answer options" column into a list of question answer
         options. Also, correct for the fact that a semicolon may be a delimiter
-        between choices, an actual semicolon in a question, or a sanatized ","
+        between choices, an actual semicolon in a question, or a sanitized ","
 
     Args:
         aggregated_data:
@@ -945,7 +946,7 @@ def fix_radio_answer_choices(
             if isinstance(answer, str) and answer.find(";") != -1:
                 fixed_answer = answer.replace(";", ", ")
                 # replace semicolons with commas within the answer. We include
-                # a space after becaus we removed spaces after semicolons
+                # a space after because we removed spaces after semicolons
                 # earlier.
                 fixed_answer_choices = fixed_answer_choices.replace(
                     answer, fixed_answer
