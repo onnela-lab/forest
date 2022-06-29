@@ -569,8 +569,8 @@ def append_from_answers(
                                              answers_data)
             if missing_data.shape[0] == 0:
                 continue
-            missing_data["question index"] += np.max(
-                agg_data["question index"]) + 1
+            missing_data["question index"] += \
+                np.max(agg_data["question index"]) + 1
             missing_submission_data.append(missing_data)
     return pd.concat([agg_data] + missing_submission_data
                      ).sort_values("UTC time")
