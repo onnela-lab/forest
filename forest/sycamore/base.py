@@ -176,7 +176,7 @@ def get_submits_for_tableau(
         study_folder: str, output_folder: str, tz_str: str = "UTC",
         users: Optional[List] = None,
         start_date: str = EARLIEST_DATE, end_date: Optional[str] = None,
-        config_path: Optional[str] = None, interventions_filepath: str = None,
+        config_path: str, interventions_filepath: str = None,
         submits_timeframe: Frequency = Frequency.DAILY
 ):
     """Get survey submissions per day for integration into Tableau WDC
@@ -213,9 +213,6 @@ def get_submits_for_tableau(
     if end_date is None:
         end_date = get_month_from_today()
     # Read, aggregate and clean data
-    if config_path is None:
-        logger.error("Error: you cannot generate submission and delivery"
-                     " summaries without a config path")
     else:
         agg_data = aggregate_surveys_config(
             study_folder, config_path, tz_str, users, start_date,
@@ -223,7 +220,7 @@ def get_submits_for_tableau(
         )
         if agg_data.shape[0] == 0:
             logger.error("Error: No survey data found in %s", study_folder)
-            return True
+            return
         # Create survey submits detail and summary
         ss_detail = survey_submits(
             config_path, start_date, end_date,
@@ -231,6 +228,7 @@ def get_submits_for_tableau(
         )
         if ss_detail.shape[0] == 0:
             logger.error("Error: no submission data found")
+            return
         if Frequency(submits_timeframe) == Frequency.BOTH:
             ss_summary_h = summarize_submits(
                 ss_detail, Frequency.HOURLY, False
