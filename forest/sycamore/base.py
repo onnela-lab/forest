@@ -173,36 +173,34 @@ def compute_survey_stats(
 
 
 def get_submits_for_tableau(
-        study_folder: str, output_folder: str, tz_str: str = "UTC",
-        users: Optional[List] = None,
-        start_date: str = EARLIEST_DATE, end_date: Optional[str] = None,
-        config_path: str, interventions_filepath: str = None,
+        study_folder: str, output_folder: str, config_path: str,
+        tz_str: str = "UTC", start_date: str = EARLIEST_DATE,
+        end_date: Optional[str] = None, users: Optional[List] = None,
+        interventions_filepath: str = None,
         submits_timeframe: Frequency = Frequency.DAILY
 ):
     """Get survey submissions per day for integration into Tableau WDC
     Args:
-    output_folder:
-        File path to output submission summaries
     study_folder:
         File path to study data
+    output_folder:
+        File path to output submission summaries
     config_path:
         File path to study configuration file
+    tz_str:
+        Timezone of study. This defaults to "UTC"
     start_date:
         The earliest date of survey data to read in, in YYYY-MM-DD format
     end_date:
         The latest survey data to read in, in YYYY-MM-DD format
     users:
         List of users in study for which we are generating a survey schedule
-    tz_str:
-        Timezone of study. This defaults to "UTC"
     interventions_filepath:
         filepath where interventions json file is.
     submits_timeframe:
-        The timeframe to summarize survey submissions over. One of
-        "both", "daily", or "hourly". An overall summary for each user is
-        always generated ("submits_summary_overall.csv"), and submissions can
-        also be generated across days ("submits_summary_daily.csv"), hours
-        ("submits_summary_hourly.csv") or both.
+        The timeframe to summarize survey submissions over, of class
+        forest.constants.Frequency. One of Frequency.DAILY, Frequency.HOURLY,
+        or Frequency.BOTH.
 
     Returns:
     Writes a csv file for each user in the output folder with survey summary
