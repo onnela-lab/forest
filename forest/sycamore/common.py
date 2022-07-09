@@ -719,10 +719,10 @@ def read_user_answers_stream(
                 # questions
                 current_df["submit_line"] = 0
                 if not (current_df["answer"] == "NOT_PRESENTED").any():
-                    current_df = pd.concat(
-                        [current_df, pd.DataFrame({"submit_line": [1],
-                                                   "answer": ""})]
-                    ).reset_index()
+                    current_df = pd.concat([
+                        current_df,
+                        pd.DataFrame({"submit_line": [1], "answer": ""})
+                    ]).reset_index()
 
                 current_df["surv_inst_flg"] = i
                 survey_dfs.append(current_df)
