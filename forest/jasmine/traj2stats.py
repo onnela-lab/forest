@@ -240,6 +240,7 @@ def gps_summaries(
     tags: Dict[int, Dict[str, str]] = {}
     if places_of_interest is not None or save_log:
         ids, locations, tags = get_nearby_locations(traj)
+        ids_keys_list = list(ids.keys())
 
     obs_traj = traj[traj[:, 7] == 1, :]
     home_lat, home_lon = locate_home(obs_traj, tz_str)
@@ -477,6 +478,9 @@ def gps_summaries(
                         saved_polygons[pause_str] = pause_circle
                     add_to_other = True
                     for j, place in enumerate(places_of_interest):
+                        # if place of interest not in nearby locations of the current pause, skip
+                        if place not in list(ids.keys()):
+                            continue
                         for element_id in ids[place]:
                             if len(locations[element_id]) == 1:
                                 loc_lat = locations[element_id][0][0]
