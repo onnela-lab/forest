@@ -478,8 +478,9 @@ def gps_summaries(
                         saved_polygons[pause_str] = pause_circle
                     add_to_other = True
                     for j, place in enumerate(places_of_interest):
-                        # if place of interest not in nearby locations of the current pause, skip
-                        if place not in list(ids.keys()):
+                        # if place of interest not in nearby locations of
+                        # the current pause, skip
+                        if place not in ids_keys_list:
                             continue
                         for element_id in ids[place]:
                             if len(locations[element_id]) == 1:
