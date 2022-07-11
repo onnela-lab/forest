@@ -210,13 +210,13 @@ def test_survey_submits_no_config_adnc(agg_data_no_config):
 
 def test_read_user_answers_stream():
     df = read_user_answers_stream(SAMPLE_DIR, "idr8gqdh", "UTC")
-    assert len(df["Local time"].unique()) == 2
+    assert len(df["Local time"].unique()) == 3
 
 
 def test_read_aggregate_answers_stream():
     df = read_aggregate_answers_stream(SAMPLE_DIR)
     assert len(df["beiwe_id"].unique()) == 2
-    assert df.shape[1] == 13
+    assert df.shape[1] == 14
 
 
 def test_format_responses_by_submission_adnc(agg_data_no_config):
