@@ -1301,6 +1301,7 @@ def sim_gps_data(
     Raises:
         ValueError: if attributes.json is not in the correct format
         ValueError: if location is not in the correct format
+        ValueError: if coordinates fail to retrieve timezone
         RuntimeError: if too many Overpass queries are made
         ValueError: if Overpass query fails
     """
@@ -1335,6 +1336,9 @@ def sim_gps_data(
 
     obj = TimezoneFinder()
     tz_str = obj.timezone_at(lng=location_coords[1], lat=location_coords[0])
+    if tz_str is None:
+        sys.stderr.write("Could not find timezone of city.")
+        raise ValueError
 
     no_of_days = (end_date - start_date).days
 
@@ -1404,12 +1408,17 @@ def gps_to_csv(data: pd.DataFrame, path: str, start_date: datetime.date,
         path: (str) path to save csv files
         start_date: (datetime.date) start date of trajectories
         end_date: (datetime.date) end date of trajectories,
+    Raises:
+        ValueError: if coordinates fail to retrieve timezone
     """
 
     location_coords = (float(data['latitude'][0]), float(data['longitude'][0]))
 
     obj = TimezoneFinder()
     tz_str = obj.timezone_at(lng=location_coords[1], lat=location_coords[0])
+    if tz_str is None:
+        sys.stderr.write("Could not find timezone of city.")
+        raise ValueError
 
     s = datetime2stamp(
         [start_date.year, start_date.month, start_date.day, 0, 0, 0],
