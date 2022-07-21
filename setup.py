@@ -12,6 +12,7 @@ requires = [
     'requests',  # bonsai
     'scipy',
     'shapely',  # jasmine
+    'ssqueezepy',  # oak
     'timezonefinder',  # poplar, bonsai
     'wheel'  # for ratelimit
 ]
