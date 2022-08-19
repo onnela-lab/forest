@@ -422,7 +422,7 @@ def aggregate_surveys_config(
     # So, we will convert everything to string.
     # But, if we just do raw conversion to string, we run into problems where
     # it tries to merge on 'nan'. So, we will convert all of the 'nan' to None
-    # before merging. 
+    # before merging.
     agg_data["question id"] = np.where(
         agg_data["question id"].astype(str) == "nan", None,
         agg_data["question id"].astype(str))
