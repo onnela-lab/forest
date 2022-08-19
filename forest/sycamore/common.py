@@ -418,6 +418,17 @@ def aggregate_surveys_config(
         return agg_data
 
     # Merge data together and add configuration survey ID to all lines
+    # Pandas gives an error if question IDs are different data types.
+    # So, we will convert everything to string.
+    # But, if we just do raw conversion to string, we run into problems where
+    # it tries to merge on 'nan'. So, we will convert all of the 'nan' to None
+    # before merging. 
+    agg_data["question id"] = np.where(
+        agg_data["question id"].astype(str) == "nan", None,
+        agg_data["question id"].astype(str))
+    config_surveys["question_id"] = np.where(
+        config_surveys["question_id"].astype(str) == "nan", None,
+        config_surveys["question_id"].astype(str))
     df_merged = agg_data.merge(
         config_surveys[["config_id", "question_id"]], how="left",
         left_on="question id", right_on="question_id"
