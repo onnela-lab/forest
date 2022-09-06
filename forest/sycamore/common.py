@@ -424,11 +424,14 @@ def aggregate_surveys_config(
     # it tries to merge on 'nan'. So, we will convert all of the 'nan' to None
     # before merging.
     agg_data["question id"] = np.where(
-        agg_data["question id"].astype(str) == "nan", None,
-        agg_data["question id"].astype(str))
+        (agg_data["question id"].astype(str) == "nan").to_numpy(),
+        np.full(agg_data.shape[0], None), agg_data["question id"].astype(str)
+    )
     config_surveys["question_id"] = np.where(
-        config_surveys["question_id"].astype(str) == "nan", None,
-        config_surveys["question_id"].astype(str))
+        (config_surveys["question_id"].astype(str) == "nan").to_numpy(),
+        np.full(config_surveys.shape[0], None),
+        config_surveys["question_id"].astype(str)
+    )
     df_merged = agg_data.merge(
         config_surveys[["config_id", "question_id"]], how="left",
         left_on="question id", right_on="question_id"
