@@ -1,7 +1,6 @@
 from setuptools import setup, find_packages
 
 requires = [
-    'dataclasses',
     'holidays',  # poplar
     'numpy',
     'openrouteservice',
@@ -12,6 +11,7 @@ requires = [
     'requests',  # bonsai
     'scipy',
     'shapely',  # jasmine
+    'ssqueezepy',  # oak
     'timezonefinder',  # poplar, bonsai
     'wheel'  # for ratelimit
 ]

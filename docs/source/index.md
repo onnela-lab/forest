@@ -3,6 +3,7 @@
 :hidden:
 
 jasmine.md
+oak.md
 poplar.md
 poplar-example-code.md
 sycamore.md
@@ -55,6 +56,11 @@ Forest structure is based in subpackages, or *trees*, each of which addresses a 
   - Survey data summary statistics and preprocessed data
   - input: survey_timings and survey_answers data
   - Current maintainer: Zachary Clement
+- [**Oak**](oak.md):  
+  - Gait time, cadence, and step count statistics
+  - Input: accelerometer data
+  - Current maintainer: Marcin Straczkiewicz
+
 
 ## Expected input data
 
@@ -404,6 +410,30 @@ The following variables are created in a csv file for each survey.
 * - question_1, question_2, ...
   - str
   - Responses to each question in the survey
+```
+
+### Accelerometer
+
+The outputs of the accelerometer module contains gait summary statistics for each specified participant in daily (_gait_daily.csv) or hourly windows (_gait_hourly.csv).
+
+The following variables are created in a csv file for each survey.
+```{list-table}
+:header-rows: 1
+* - Variable
+  - Type
+  - Description
+* - date
+  - str
+  - Time of observation (_gait_daily.csv format: yyyy-mm-dd; _gait_hourly.csv format: yyyy-mm-dd HH:MM:SS')
+* - walking_time
+  - int
+  - Total walking time (in seconds)
+* - steps
+  - int
+  - Total steps taken
+* - cadence
+  - float
+  - Average cadence in time window (daily or hourly)
 ```
 
 ### Based on multiple data streams

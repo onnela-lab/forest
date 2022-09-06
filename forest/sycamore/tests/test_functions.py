@@ -170,7 +170,7 @@ def test_agg_changed_answers_summary(agg_data_config):
     ca_detail, ca_summary = agg_changed_answers_summary(
         SURVEY_SETTINGS_PATH, agg_data_config
     )
-    assert ca_detail.shape[0] == 8
+    assert ca_detail.shape[0] == 12
     assert ca_detail.shape[1] == 14
     assert ca_summary.shape[0] == 7
     assert ca_summary.shape[1] == 9
@@ -182,7 +182,7 @@ def test_agg_changed_answers_summary_no_config(agg_data_no_config):
     ca_detail, ca_summary = agg_changed_answers_summary(
         SURVEY_SETTINGS_PATH, agg_data_no_config
     )
-    assert ca_detail.shape[0] == 8
+    assert ca_detail.shape[0] == 12
     assert ca_detail.shape[1] == 14
     assert ca_summary.shape[0] == 7
     assert ca_summary.shape[1] == 9
@@ -210,13 +210,13 @@ def test_survey_submits_no_config_adnc(agg_data_no_config):
 
 def test_read_user_answers_stream():
     df = read_user_answers_stream(SAMPLE_DIR, "idr8gqdh", "UTC")
-    assert len(df["Local time"].unique()) == 2
+    assert len(df["Local time"].unique()) == 3
 
 
 def test_read_aggregate_answers_stream():
     df = read_aggregate_answers_stream(SAMPLE_DIR)
     assert len(df["beiwe_id"].unique()) == 2
-    assert df.shape[1] == 12
+    assert df.shape[1] == 14
 
 
 def test_format_responses_by_submission_adnc(agg_data_no_config):
