@@ -293,6 +293,31 @@ def survey_submits(
     agg["start_time"] = agg.groupby(
         ["beiwe_id", "survey id", "surv_inst_flg"]
     )["Local time"].transform("first")
+    # get rid of answers that were blank responses
+    only_real_answers = agg.loc[
+        ~agg.answer.isin(["", np.nan, None, [], "[]", "NO_ANSWER_SELECTED"]),
+        ["beiwe_id", "survey id", "surv_inst_flg", "question id"]]
+    # Look for the number of unique questions where the answer was a real thing
+    only_real_answers["num_questions_answered"] = only_real_answers.groupby(
+        ["beiwe_id", "survey id", "surv_inst_flg"]
+    )["question id"].transform(lambda x: x.nunique())
+    # When we do the join, we don't want to create any additional rows in the
+    # agg dataframe by having duplicate rows. We also don't want to have the
+    # duplicate column.
+    only_real_answers = only_real_answers[
+        ["beiwe_id", "survey id", "surv_inst_flg", "num_questions_answered"]
+    ].drop_duplicates()
+    # Append the num_questions_answered column to agg dataframe
+    agg = pd.merge(
+        agg, only_real_answers,
+        # We have to drop 'question id' so that rows with no answer will still
+        # get a num_questions_answered
+        on=["beiwe_id", "survey id", "surv_inst_flg"],
+        how="left"
+    )
+    # any rows that didn't get joined will be 0 for now
+    agg["num_questions_answered"] = agg["num_questions_answered"].fillna(0)
+
     # Merge survey submit lines onto the schedule data and identify submitted
     # lines
     # This creates a very long dataframe with all survey submissions/openings
@@ -303,7 +328,7 @@ def survey_submits(
         ].drop_duplicates(),
         agg[
             ["Local time", "config_id", "survey id", "beiwe_id", "submit_line",
-             "opened_line", "start_time"]
+             "opened_line", "start_time", "num_questions_answered"]
         ].loc[(agg.submit_line == 1) |
               (agg.opened_line == 1)].drop_duplicates(),
         how="left", left_on=["id", "beiwe_id"],
@@ -325,9 +350,15 @@ def survey_submits(
         (submit_lines["submit_flg"] == 1),
         1, 0
     )
+    # If they didn't open, they couldn't have started the survey
     submit_lines["start_time"] = np.where(
         (submit_lines["opened_flg"] == 0) & (submit_lines["submit_flg"] == 0),
         np.datetime64("NaT"), submit_lines["start_time"]
+    )
+    # If they didn't open, it doesn't make sense to have questions answered
+    submit_lines["num_questions_answered"] = np.where(
+        (submit_lines["opened_flg"] == 0) & (submit_lines["submit_flg"] == 0),
+        np.nan, submit_lines["num_questions_answered"]
     )
     # Find whether there were any submissions or openings in each time period
     submit_lines2 = submit_lines.groupby(
@@ -340,7 +371,9 @@ def survey_submits(
     merge_cols = ["delivery_time", "next_delivery_time", "survey id",
                   "beiwe_id", "config_id", "submit_flg", "opened_flg"]
     submit_lines3 = pd.merge(
-        submit_lines2, submit_lines[merge_cols + ["Local time", "start_time"]],
+        submit_lines2, submit_lines[
+            merge_cols + ["Local time", "start_time", "num_questions_answered"]
+        ],
         how="left", left_on=merge_cols, right_on=merge_cols
     )
     submit_lines3["submit_time"] = np.where(
@@ -351,7 +384,7 @@ def survey_submits(
     # Select appropriate columns
     submit_lines3 = submit_lines3[
         ["survey id", "delivery_time", "beiwe_id", "submit_flg", "opened_flg",
-         "submit_time", "start_time"]
+         "submit_time", "start_time", "num_questions_answered"]
     ]
     submit_lines3["time_to_submit"] = (
             submit_lines3["submit_time"] - submit_lines3["delivery_time"]
