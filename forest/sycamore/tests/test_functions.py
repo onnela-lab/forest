@@ -8,10 +8,10 @@ from forest.constants import Frequency
 from forest.sycamore.common import (aggregate_surveys,
                                     aggregate_surveys_no_config,
                                     aggregate_surveys_config,
-                                    filename_to_timestamp,
                                     read_user_answers_stream,
                                     read_aggregate_answers_stream,
                                     get_choices_with_sep_values)
+from forest.sycamore.utils import filename_to_timestamp
 from forest.sycamore.submits import (gen_survey_schedule,
                                      get_all_interventions_dict,
                                      survey_submits, summarize_submits,
@@ -58,18 +58,20 @@ SEP_QS_DIR = os.path.join(TEST_DATA_DIR, "dir_with_seps_in_qs")
 @pytest.fixture
 def agg_data_config():
     return aggregate_surveys_config(SAMPLE_DIR, SURVEY_SETTINGS_PATH,
-                                    "UTC")
+                                    "UTC", users=["16au2moz", "idr8gqdh"])
 
 
 @pytest.fixture
 def agg_data_no_config():
-    return aggregate_surveys_no_config(SAMPLE_DIR, study_tz="UTC")
+    return aggregate_surveys_no_config(SAMPLE_DIR, study_tz="UTC",
+                                       users = ["16au2moz", "idr8gqdh"])
 
 
 @pytest.fixture
 def submits_data():
     agg_data = aggregate_surveys_config(
-        SAMPLE_DIR, SURVEY_SETTINGS_PATH_FOR_SUBMITS, study_tz="UTC"
+        SAMPLE_DIR, SURVEY_SETTINGS_PATH_FOR_SUBMITS, study_tz="UTC",
+        users=["16au2moz", "idr8gqdh"]
     )
     return survey_submits(SURVEY_SETTINGS_PATH_FOR_SUBMITS,
                           "2021-12-01", "2022-04-30", ["idr8gqdh", "16au2moz"],
@@ -166,14 +168,15 @@ def test_gen_survey_schedule_cutoff_relative():
 
 
 def test_aggregate_surveys_no_config():
-    agg_data = aggregate_surveys_no_config(SAMPLE_DIR, study_tz="UTC")
+    agg_data = aggregate_surveys_no_config(SAMPLE_DIR, study_tz="UTC",
+                                           users=["16au2moz", "idr8gqdh"])
     assert agg_data.shape[0] == 50
     assert len(agg_data.DOW.unique()) == 4
 
 
 def test_aggregate_surveys_config():
     agg_data = aggregate_surveys_config(SAMPLE_DIR, SURVEY_SETTINGS_PATH,
-                                        "UTC")
+                                        "UTC", users = ["16au2moz", "idr8gqdh"])
     assert agg_data.shape[0] == 50
     assert len(agg_data.DOW.unique()) == 4
 
@@ -245,27 +248,31 @@ def test_format_responses_by_submission_adc(agg_data_config):
 
 def test_aggregate_surveys_config_empty_dir():
     empty_dir = os.path.join(TEST_DATA_DIR, "empty_dir")
-    agg_data = aggregate_surveys_config(empty_dir, SURVEY_SETTINGS_PATH, "UTC")
+    agg_data = aggregate_surveys_config(empty_dir, SURVEY_SETTINGS_PATH, "UTC",
+                                        users=["16au2moz", "idr8gqdh"])
     assert agg_data.shape[0] == 0
 
 
 def test_aggregate_surveys_no_config_empty_dir():
     empty_dir = os.path.join(TEST_DATA_DIR, "empty_dir")
-    agg_data_no_config = aggregate_surveys_no_config(empty_dir, "UTC")
+    agg_data_no_config = aggregate_surveys_no_config(
+        empty_dir, "UTC", users=["16au2moz", "idr8gqdh"]
+    )
     assert agg_data_no_config.shape[0] == 0
 
 
 def test_aggregate_surveys_config_time_no_files():
     agg_data = aggregate_surveys_config(
         SAMPLE_DIR, SURVEY_SETTINGS_PATH, "UTC", time_start="2008-01-01",
-        time_end="2008-05-01"
+        time_end="2008-05-01", users=["16au2moz", "idr8gqdh"]
     )
     assert agg_data.shape[0] == 0
 
 
 def test_aggregate_surveys_no_config_time_no_files():
     agg_data_no_config = aggregate_surveys_no_config(
-        SAMPLE_DIR, "UTC", time_start="2008-01-01", time_end="2008-05-01"
+        SAMPLE_DIR, "UTC", time_start="2008-01-01", time_end="2008-05-01",
+        users=["16au2moz", "idr8gqdh"]
     )
     assert agg_data_no_config.shape[0] == 0
 
@@ -273,7 +280,7 @@ def test_aggregate_surveys_no_config_time_no_files():
 def test_aggregate_surveys_config_restriction_start():
     agg_data = aggregate_surveys_config(
         SAMPLE_DIR, SURVEY_SETTINGS_PATH, "UTC", time_start="2022-03-12",
-        time_end="2022-04-01"
+        time_end="2022-04-01", users=["16au2moz", "idr8gqdh"]
     )
     assert agg_data.shape[0] == 12
     assert np.mean(agg_data["Local time"] > pd.to_datetime("2022-03-12")) == 1
@@ -281,7 +288,8 @@ def test_aggregate_surveys_config_restriction_start():
 
 def test_aggregate_surveys_no_config_restriction_start():
     agg_data_no_config = aggregate_surveys_no_config(
-        SAMPLE_DIR, "UTC", time_start="2022-03-12", time_end="2022-04-01"
+        SAMPLE_DIR, "UTC", time_start="2022-03-12", time_end="2022-04-01",
+        users=["16au2moz", "idr8gqdh"]
     )
     assert agg_data_no_config.shape[0] == 12
     assert np.mean(
@@ -292,7 +300,7 @@ def test_aggregate_surveys_no_config_restriction_start():
 def test_aggregate_surveys_config_restriction_end():
     agg_data = aggregate_surveys_config(
         SAMPLE_DIR, SURVEY_SETTINGS_PATH, "UTC", time_start="2001-01-01",
-        time_end="2022-03-12"
+        time_end="2022-03-12", users=["16au2moz", "idr8gqdh"]
     )
     assert agg_data.shape[0] == 38
     assert np.mean(agg_data["Local time"] < pd.to_datetime("2022-03-12")) == 1
@@ -300,7 +308,8 @@ def test_aggregate_surveys_config_restriction_end():
 
 def test_aggregate_surveys_no_config_restriction_end():
     agg_data_no_config = aggregate_surveys_no_config(
-        SAMPLE_DIR, "UTC", time_start="2001-01-01", time_end="2022-03-12"
+        SAMPLE_DIR, "UTC", time_start="2001-01-01", time_end="2022-03-12",
+        users=["16au2moz", "idr8gqdh"]
     )
     assert agg_data_no_config.shape[0] == 38
     assert np.mean(
@@ -342,8 +351,8 @@ def test_get_choices_with_sep_values_both():
 
 
 def test_aggregate_surveys_config_using_sep_data():
-    agg_data = aggregate_surveys_config(SEP_QS_DIR, CONFIG_WITH_SEPS,
-                                        "UTC", history_path=HISTORY_WITH_SEPS)
+    agg_data = aggregate_surveys_config(
+        SEP_QS_DIR, CONFIG_WITH_SEPS,"UTC", history_path=HISTORY_WITH_SEPS)
     assert agg_data.shape[0] == 19  # 4 lines (3 answers and a submit line) for
     # each survey in survey_answers, plus 3 from the survey_timings file after
     # the delivery line is removed
@@ -394,6 +403,7 @@ def test_read_aggregate_audio_recordings_stream():
     assert df["survey id"].nunique() == 2
     assert df["question text"].nunique() == 2
     assert df["beiwe_id"].nunique() == 2
+
 
 def test_read_aggregate_audio_recordings_stream_no_history():
     df = read_aggregate_audio_recordings_stream(SAMPLE_DIR)

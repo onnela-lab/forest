@@ -8,8 +8,8 @@ import numpy as np
 
 from forest.utils import get_ids
 from forest.sycamore.constants import EARLIEST_DATE
-from forest.sycamore.common import (read_json, get_month_from_today,
-                                    filename_to_timestamp)
+from forest.sycamore.utils import (read_json, get_month_from_today,
+                                   filename_to_timestamp)
 
 
 logger = logging.getLogger(__name__)
