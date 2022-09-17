@@ -8,8 +8,10 @@ import pandas as pd
 
 from forest.constants import Frequency
 from forest.sycamore.common import read_json
+from forest.sycamore.read_audio import get_audio_survey_id_dict
 
 logger = logging.getLogger(__name__)
+
 
 
 def convert_time_to_date(submit_time: datetime.datetime,
@@ -127,10 +129,36 @@ def generate_survey_times(
                 surveys.append(current_time)
     return surveys
 
+def get_question_ids(survey_dict: dict, audio_survey_id_dict: dict) -> list:
+    """Get question IDs from a survey's dict object.
+
+    Args:
+        survey_dict: A dict with information from a specific survey. For
+            example, this would come from read_json(config_path)["surveys"][0]
+        audio_survey_id_dict: Output from get_audio_survey_id_dict. Dict with
+            survey prompts as keys and survey IDs as values
+    Returns:
+        List of all question IDs for an individual. For audio surveys, it will
+        create a "question ID" that is identical to the survey ID
+
+    """
+    question_ids = []
+    for q in survey_dict["content"]:
+        if "question_id" in q.keys():
+            question_ids.append(q["question_id"])
+        elif "prompt" in q.keys():
+            audio_prompt = q["prompt"]
+            if audio_prompt not in survey_id_dict.keys():
+                logger.warning("Unable to find survey ID for audio prompt " +
+                               audio_prompt)
+                continue
+            question_ids.append(audio_survey_id_dict[audio_prompt])
+    return question_ids
+
 
 def gen_survey_schedule(
         config_path: str, time_start: str, time_end: str, users: list,
-        all_interventions_dict: dict
+        all_interventions_dict: dict, history_file: str
 ) -> pd.DataFrame:
     """Get survey schedule for a number of users
 
@@ -152,11 +180,13 @@ def gen_survey_schedule(
             Dictionary containing a key for every beiwe id.
             Each value in the dict is a dict, with a key for each intervention
             and a timestamp for each intervention time
+        history_file: Filepath to the survey history file
 
     Returns:
         DataFrame with a line for every survey deployed to every user in
         the study for the given time range
     """
+    audio_survey_id_dict = get_audio_survey_id_dict(history_file)
     # List of surveys
     surveys = read_json(config_path)["surveys"]
     # For each survey create a list of survey times
@@ -212,8 +242,7 @@ def gen_survey_schedule(
             tbl["id"] = i
             tbl["beiwe_id"] = user
             # Get all question IDs for the survey
-            qs = [q["question_id"]
-                  for q in s["content"] if "question_id" in q.keys()]
+            qs = get_question_ids(s, audio_survey_id_dict)
             if len(qs) > 0:
                 q_ids = pd.DataFrame({"question_id": qs})
                 tbl = pd.merge(tbl, q_ids, how="cross")
