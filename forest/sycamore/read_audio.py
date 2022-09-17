@@ -148,7 +148,6 @@ def read_user_audio_recordings_stream(
                     "question type": ["audio recording", ""],
                     "question text": [survey_prompt] * 2,
                     "question answer options": ["audio recording", ""],
-                    "answer": ["audio recording", ""],
                     "submit_line": [0, 1],  # one of the lines will be a submit
                     # line
                     "surv_inst_flg": [i] * 2
@@ -218,7 +217,6 @@ def read_aggregate_audio_recordings_stream(
         DataFrame with stacked data, a field for the beiwe ID, a field for the
         day of week.
     """
-    audio_survey_id_dict = get_audio_survey_id_dict(history_path)
     audio_config_id_dict = get_config_id_dict(config_path)
 
     if time_end is None:
