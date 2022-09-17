@@ -2,6 +2,7 @@
 
 import logging
 import os
+from typing import Dict
 
 import pandas as pd
 import numpy as np
@@ -22,7 +23,7 @@ def get_audio_survey_id_dict(history_file: str = None) -> dict:
         history_file:
     Returns:
         dictionary with keys for each prompt, and values with survey IDs"""
-    output_dict = dict()
+    output_dict: Dict[str, str] = dict()
     if history_file is None:
         return output_dict
     history_dict = read_json(history_file)
@@ -49,7 +50,7 @@ def get_config_id_dict(config_path: str = None) -> dict:
         dict with a key for each question prompt, and the config ID (the order
         of the question in the config file) as values
     """
-    output_dict = dict()
+    output_dict: Dict[str, int] = dict()
     if config_path is None:
         return output_dict
     surveys = read_json(config_path)["surveys"]
