@@ -12,16 +12,13 @@ import pandas as pd
 from forest.utils import get_ids
 from forest.sycamore.constants import (EARLIEST_DATE, QUESTION_TYPES_LOOKUP,
                                        ANDROID_NULLABLE_ANSWER_CHANGE_DATE)
+from forest.sycamore.read_audio import read_aggregate_audio_recordings_stream
+from forest.sycamore.utils import read_json
+from forest.sycamore.utils import (read_json, get_month_from_today,
+                                   filename_to_timestamp)
 
 
 logger = logging.getLogger(__name__)
-
-
-def get_month_from_today():
-    """Get the date 31 days from today, in YYYY-MM-DD format"""
-    return (datetime.datetime.today() +
-            datetime.timedelta(31)).strftime("%Y-%m-%d")
-
 
 def safe_read_csv(filepath: str) -> pd.DataFrame:
     """Read a csv file, returning an empty dataframe if the file is corrupted
@@ -45,18 +42,6 @@ def safe_read_csv(filepath: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def read_json(study_dir: str) -> dict:
-    """Read a json file into a dictionary
-
-    Args:
-        study_dir (str):  filepath to json file.
-    Returns:
-        A dict representation of the json file
-    """
-    with open(study_dir, "r") as f:
-        dictionary = json.load(f)
-    return dictionary
-
 
 def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
     """Standardizes question types using a lookup function
@@ -78,27 +63,6 @@ def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
         return lkp["Android"][q]
     else:
         return q
-
-
-def filename_to_timestamp(filename: str, tz_str: str = "UTC"
-                          ) -> pd.Timestamp:
-    """Extract a datetime from a filepath.
-
-    Args:
-        filename(str):
-            a string, with a csv file at the end formatted like
-            "YYYY-MM-DD HH_MM_SS+00_00"
-        tz_str(str):
-            Output Timezone
-
-    Returns:
-        The Timestamp corresponding to the date in the csv filename, in the
-        time zone corresponding to tz_str
-    """
-    str_to_convert = re.sub("_", ":", filename)[0:25]
-    time_written = pd.to_datetime(str_to_convert
-                                  ).tz_convert(tz_str).tz_localize(None)
-    return time_written
 
 
 def read_and_aggregate(
@@ -374,7 +338,7 @@ def aggregate_surveys_config(
         study_dir: str, config_path: str, study_tz: str = "UTC",
         users: list = None, time_start: str = EARLIEST_DATE,
         time_end: str = None, augment_with_answers: bool = True,
-        history_path: str = None,
+        history_path: str = None, include_audio_surveys: bool = True
 ) -> pd.DataFrame:
     """Aggregate surveys when config is available
 
@@ -404,6 +368,9 @@ def aggregate_surveys_config(
             survey history file is used to find instances of commas or
             semicolons in answer choices to determine the correct choice for
             Android radio questions
+        include_audio_surveys:
+            Whether to include submissions of audio surveys in addition to text
+            surveys
 
     Returns:
         DataFrame of questions and submission lines.
@@ -468,15 +435,22 @@ def aggregate_surveys_config(
         df_merged = append_from_answers(df_merged, study_dir, users,
                                         study_tz, time_start, time_end,
                                         config_path, history_path)
+    if include_audio_surveys:
+        audio_surveys = read_aggregate_audio_recordings_stream(
+            study_dir, users, study_tz, config_path, time_start, time_end,
+            history_path
+        )
+        df_merged = pd.concat(
+            [df_merged, audio_surveys], axis=0, ignore_index=False
+        )
 
     return df_merged.reset_index(drop=True)
 
 
 def aggregate_surveys_no_config(
         study_dir: str, study_tz: str = "UTC", users: list = None,
-        time_start: str = EARLIEST_DATE,
-        time_end: str = None,
-        augment_with_answers: bool = True
+        time_start: str = EARLIEST_DATE, time_end: str = None,
+        augment_with_answers: bool = True, include_audio_surveys: bool = True
 ) -> pd.DataFrame:
     """Clean aggregated data
 
@@ -495,6 +469,9 @@ def aggregate_surveys_no_config(
         augment_with_answers(bool):
             Whether to use the survey_answers stream to fill in missing surveys
             from survey_timings
+        include_audio_surveys:
+            Whether to include submissions of audio surveys in addition to text
+            surveys. Default is True
 
     Returns:
         DataFrame of questions and submission lines
@@ -521,6 +498,14 @@ def aggregate_surveys_no_config(
         agg_data["data_stream"] = "survey_timings"
         agg_data = append_from_answers(agg_data, study_dir, users,
                                        study_tz, time_start, time_end)
+    if include_audio_surveys:
+        audio_surveys = read_aggregate_audio_recordings_stream(
+            study_dir, users, study_tz, None, time_start, time_end,
+            None
+        )
+        agg_data = pd.concat(
+            [agg_data, audio_surveys], axis=0, ignore_index=False
+        )
 
     return agg_data.reset_index(drop=True)
 
