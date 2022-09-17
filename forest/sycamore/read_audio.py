@@ -4,9 +4,12 @@ import logging
 import os
 
 import pandas as pd
+import numpy as np
 
 from forest.utils import get_ids
-from forest.sycamore.constants import (EARLIEST_DATE)
+from forest.sycamore.constants import EARLIEST_DATE
+from forest.sycamore.common import (read_json, get_month_from_today,
+                                    filename_to_timestamp)
 
 
 logger = logging.getLogger(__name__)
@@ -36,8 +39,18 @@ def get_audio_survey_id_dict(history_file: str) -> dict:
 
     return output_dict
 
-def get_config_id_dict(config_path):
-    """Get a dict with question prompts as keys and the config IDs as values"""
+
+def get_config_id_dict(config_path: str) -> dict:
+    """Get a dict with question prompts as keys and the config IDs as values
+    Args:
+        config_path: Path to survey config JSON file
+    Returns:
+        dict with a key for each question prompt, and the config ID (the order
+        of the question in the config file) as values
+    """
+    output_dict = dict()
+    if config_path is None:
+        return output_dict
     surveys = read_json(config_path)["surveys"]
     for i, s in enumerate(surveys):
         if "content" not in s.keys():
@@ -56,7 +69,7 @@ def get_config_id_dict(config_path):
 def read_user_audio_recordings_stream(
         download_folder: str, user: str, tz_str: str = "UTC",
         time_start: str = EARLIEST_DATE, time_end: str = None,
-        survey_history_file: str = None
+        history_path: str = None
 ) -> pd.DataFrame:
     """Reads in all audio_recordings data for a user
 
@@ -64,28 +77,31 @@ def read_user_audio_recordings_stream(
     ID, as well as a column for the date from the filename.
 
     Args:
-        download_folder (str):
+        download_folder:
             path to downloaded data. A folder wiith the user ID should be a
             subdirectory of this path.
-        user (str):
+        user:
             ID of user to aggregate data
-        tz_str (str):
+        tz_str:
             Time Zone to include in Local time column of output. See
             https://en.wikipedia.org/wiki/List_of_tz_database_time_zones for
             options
-        time_start(str):
+        time_start:
             The first date of the survey data, in YYYY-MM-DD format
-        time_end(str):
+        time_end:
             The last date of the survey data, in YYYY-MM-DD format
+        history_path: Filepath to the survey history file. If this is not
+            included, audio survey prompts will not be included.
 
     Returns:
         DataFrame with stacked data, a field for the beiwe ID, a field for the
         survey, and a filed with the time in the filename.
     """
+    audio_survey_id_dict = get_audio_survey_id_dict(history_path)
     if time_end is None:
         time_end = get_month_from_today()
     audio_dir = os.path.join(download_folder, user, "audio_recordings")
-    if os.path.isdir(audio_recordings):
+    if os.path.isdir(audio_dir):
         # get all survey IDs included for this user (data will have one folder
         # per survey)
         survey_ids = get_ids(audio_dir)
@@ -201,7 +217,7 @@ def read_aggregate_audio_recordings_stream(
         DataFrame with stacked data, a field for the beiwe ID, a field for the
         day of week.
     """
-    audio_survey_id_dict = get_survey_id_dict(history_path)
+    audio_survey_id_dict = get_audio_survey_id_dict(history_path)
     audio_config_id_dict = get_config_id_dict(config_path)
 
     if time_end is None:
@@ -214,8 +230,7 @@ def read_aggregate_audio_recordings_stream(
 
     all_users_list = [
         read_user_audio_recordings_stream(
-            download_folder, user, tz_str, time_start, time_end,
-            audio_survey_id_dict
+            download_folder, user, tz_str, time_start, time_end, history_path
         )
         for user in users
     ]
@@ -230,6 +245,9 @@ def read_aggregate_audio_recordings_stream(
 
     aggregated_data["config_id"] = aggregated_data[
         "question text"
-    ].apply(lambda x: audio_config_id_dict[x])
+    ].apply(
+        lambda x: audio_config_id_dict[x] if x in audio_config_id_dict.keys()
+        else np.nan
+    )
 
     return aggregated_data
