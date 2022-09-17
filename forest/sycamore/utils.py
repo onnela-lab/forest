@@ -10,6 +10,7 @@ import re
 
 import pandas as pd
 
+
 def read_json(study_dir: str) -> dict:
     """Read a json file into a dictionary
 
@@ -22,10 +23,12 @@ def read_json(study_dir: str) -> dict:
         dictionary = json.load(f)
     return dictionary
 
+
 def get_month_from_today():
     """Get the date 31 days from today, in YYYY-MM-DD format"""
     return (datetime.datetime.today() +
             datetime.timedelta(31)).strftime("%Y-%m-%d")
+
 
 def filename_to_timestamp(filename: str, tz_str: str = "UTC"
                           ) -> pd.Timestamp:

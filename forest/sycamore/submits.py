@@ -13,7 +13,6 @@ from forest.sycamore.read_audio import get_audio_survey_id_dict
 logger = logging.getLogger(__name__)
 
 
-
 def convert_time_to_date(submit_time: datetime.datetime,
                          day: int,
                          time: list) -> list:
@@ -128,6 +127,7 @@ def generate_survey_times(
                 )  # seconds after time
                 surveys.append(current_time)
     return surveys
+
 
 def get_question_ids(survey_dict: dict, audio_survey_id_dict: dict) -> list:
     """Get question IDs from a survey's dict object.

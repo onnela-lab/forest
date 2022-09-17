@@ -1,5 +1,4 @@
 import datetime
-import json
 import logging
 import os
 import re
@@ -13,12 +12,12 @@ from forest.utils import get_ids
 from forest.sycamore.constants import (EARLIEST_DATE, QUESTION_TYPES_LOOKUP,
                                        ANDROID_NULLABLE_ANSWER_CHANGE_DATE)
 from forest.sycamore.read_audio import read_aggregate_audio_recordings_stream
-from forest.sycamore.utils import read_json
 from forest.sycamore.utils import (read_json, get_month_from_today,
                                    filename_to_timestamp)
 
 
 logger = logging.getLogger(__name__)
+
 
 def safe_read_csv(filepath: str) -> pd.DataFrame:
     """Read a csv file, returning an empty dataframe if the file is corrupted
@@ -40,7 +39,6 @@ def safe_read_csv(filepath: str) -> pd.DataFrame:
         # another way the file can be corrupted
         logger.error("Parser Error When Reading %s", filepath)
         return pd.DataFrame()
-
 
 
 def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
@@ -301,7 +299,6 @@ def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
                     if "answers" in q.keys():
                         for j, a in enumerate(q["answers"]):
                             surv["answer_" + str(j)] = a["text"]
-
                 output.append(pd.DataFrame([surv]))
     if len(output) == 0:
         logger.warning("No Data Found")

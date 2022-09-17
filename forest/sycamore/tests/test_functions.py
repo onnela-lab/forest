@@ -64,7 +64,7 @@ def agg_data_config():
 @pytest.fixture
 def agg_data_no_config():
     return aggregate_surveys_no_config(SAMPLE_DIR, study_tz="UTC",
-                                       users = ["16au2moz", "idr8gqdh"])
+                                       users=["16au2moz", "idr8gqdh"])
 
 
 @pytest.fixture
@@ -176,7 +176,7 @@ def test_aggregate_surveys_no_config():
 
 def test_aggregate_surveys_config():
     agg_data = aggregate_surveys_config(SAMPLE_DIR, SURVEY_SETTINGS_PATH,
-                                        "UTC", users = ["16au2moz", "idr8gqdh"])
+                                        "UTC", users=["16au2moz", "idr8gqdh"])
     assert agg_data.shape[0] == 50
     assert len(agg_data.DOW.unique()) == 4
 
@@ -352,7 +352,7 @@ def test_get_choices_with_sep_values_both():
 
 def test_aggregate_surveys_config_using_sep_data():
     agg_data = aggregate_surveys_config(
-        SEP_QS_DIR, CONFIG_WITH_SEPS,"UTC", history_path=HISTORY_WITH_SEPS)
+        SEP_QS_DIR, CONFIG_WITH_SEPS, "UTC", history_path=HISTORY_WITH_SEPS)
     assert agg_data.shape[0] == 19  # 4 lines (3 answers and a submit line) for
     # each survey in survey_answers, plus 3 from the survey_timings file after
     # the delivery line is removed
@@ -361,12 +361,15 @@ def test_aggregate_surveys_config_using_sep_data():
     assert agg_data.loc[9, "answer"] == "comma at end , "
     assert agg_data.loc[14, "answer"] == "no problems here"
 
+
 def test_get_audio_survey_id_dict():
     audio_survey_id_dict = get_audio_survey_id_dict(AUDIO_SURVEY_HISTORY)
-    assert set(audio_survey_id_dict.keys()) == {'prompt1', 'prompt2', 'prompt3'}
+    assert set(audio_survey_id_dict.keys()) == {'prompt1', 'prompt2',
+                                                'prompt3'}
     assert audio_survey_id_dict['prompt1'] == "tO1GFjGJjMnaDRThUQK6l4dv"
     assert audio_survey_id_dict['prompt2'] == "6iWVNrsd1RE2zAeIPegZDrCc"
-    assert audio_survey_id_dict['prompt3'] =="oB7h0i0GwCK2sviY1DRXzHIe"
+    assert audio_survey_id_dict['prompt3'] == "oB7h0i0GwCK2sviY1DRXzHIe"
+
 
 def test_get_config_id_dict():
     config_id_dict = get_config_id_dict(AUDIO_SURVEY_CONFIG)
@@ -375,14 +378,16 @@ def test_get_config_id_dict():
     assert config_id_dict['prompt2'] == 3
     assert config_id_dict['prompt3'] == 6
 
+
 def test_read_user_audio_recordings_stream():
     df = read_user_audio_recordings_stream(
-        SAMPLE_DIR, "audioqdz", history_path = AUDIO_SURVEY_HISTORY
+        SAMPLE_DIR, "audioqdz", history_path=AUDIO_SURVEY_HISTORY
     )
     assert df.shape[0] == 16
     assert df["UTC time"].nunique() == 8
     assert df["survey id"].nunique() == 2
     assert df["question text"].nunique() == 2
+
 
 def test_read_user_audio_recordings_stream_no_history():
     df = read_user_audio_recordings_stream(
@@ -410,6 +415,6 @@ def test_read_aggregate_audio_recordings_stream_no_history():
     assert df.shape[0] == 26
     assert df["UTC time"].nunique() == 8
     assert df["survey id"].nunique() == 2
-    assert df["question text"].nunique() == 1 #should only have "UNKNOWN"
+    assert df["question text"].nunique() == 1  # should only have "UNKNOWN"
     assert df["question text"].unique().tolist() == ["UNKNOWN"]
     assert df["beiwe_id"].nunique() == 2
