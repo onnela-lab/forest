@@ -148,7 +148,7 @@ def get_question_ids(survey_dict: dict, audio_survey_id_dict: dict) -> list:
             question_ids.append(q["question_id"])
         elif "prompt" in q.keys():
             audio_prompt = q["prompt"]
-            if audio_prompt not in survey_id_dict.keys():
+            if audio_prompt not in audio_survey_id_dict.keys():
                 logger.warning("Unable to find survey ID for audio prompt " +
                                audio_prompt)
                 continue
@@ -158,7 +158,7 @@ def get_question_ids(survey_dict: dict, audio_survey_id_dict: dict) -> list:
 
 def gen_survey_schedule(
         config_path: str, time_start: str, time_end: str, users: list,
-        all_interventions_dict: dict, history_file: str
+        all_interventions_dict: dict, history_file: str = None
 ) -> pd.DataFrame:
     """Get survey schedule for a number of users
 

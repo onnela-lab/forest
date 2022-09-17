@@ -1,5 +1,15 @@
 """Functions associated with reading audio surveys"""
 
+import logging
+import os
+
+import pandas as pd
+
+from forest.utils import get_ids
+from forest.sycamore.constants import (EARLIEST_DATE)
+
+
+logger = logging.getLogger(__name__)
 
 def get_audio_survey_id_dict(history_file: str) -> dict:
     """A dict that goes from the most recent prompt to the survey ID for audio
@@ -108,6 +118,7 @@ def read_user_audio_recordings_stream(
             survey_prompt = "UNKNOWN"
             for prompt in audio_survey_id_dict.keys():
                 if audio_survey_id_dict[prompt] == survey:
+                    survey_prompt = prompt
 
             # We need to enumerate to tell different survey occasions apart
             for i, file in enumerate(all_files):
