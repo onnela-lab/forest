@@ -210,7 +210,7 @@ def test_survey_submits_no_config_adnc(agg_data_no_config):
 
 def test_read_user_answers_stream():
     df = read_user_answers_stream(SAMPLE_DIR, "idr8gqdh", "UTC")
-    assert len(df["Local time"].unique()) == 3
+    assert len(df["Local time"].unique()) == 2
 
 
 def test_read_aggregate_answers_stream():
@@ -332,7 +332,11 @@ def test_get_choices_with_sep_values_both():
 def test_aggregate_surveys_config_using_sep_data():
     agg_data = aggregate_surveys_config(SEP_QS_DIR, CONFIG_WITH_SEPS,
                                         "UTC", history_path=HISTORY_WITH_SEPS)
-    assert agg_data.loc[2, "answer"] == "here (, ) is a comma"
-    assert agg_data.loc[5, "answer"] == ", comma at begin"
-    assert agg_data.loc[8, "answer"] == "comma at end , "
-    assert agg_data.loc[11, "answer"] == "no problems here"
+    assert agg_data.shape[0] == 19  # 4 lines (3 answers and a submit line) for
+    # each survey in survey_answers, plus 3 from the survey_timings file after
+    # the delivery line is removed
+    assert agg_data.loc[3, "answer"] == "here (, ) is a comma"
+    assert agg_data.loc[6, "answer"] == ", comma at begin"
+    assert agg_data.loc[9, "answer"] == "comma at end , "
+    assert agg_data.loc[14, "answer"] == "no problems here"
+    

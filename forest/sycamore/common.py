@@ -725,10 +725,6 @@ def read_user_answers_stream(
                 current_df = safe_read_csv(os.path.join(ans_dir, survey, file))
                 if current_df.shape[0] == 0:
                     continue
-                filename = os.path.basename(file)
-                current_df["UTC time"] = filename_to_timestamp(filename, "UTC")
-                current_df["survey id"] = survey
-
                 # Add a submission line if they at least saw all of the
                 # questions
                 current_df["submit_line"] = 0
@@ -737,8 +733,12 @@ def read_user_answers_stream(
                         current_df,
                         pd.DataFrame({"submit_line": [1], "answer": ""})
                     ]).reset_index()
-
+                # Now, add column values that should apply to all rows
+                current_df["survey id"] = survey
+                filename = os.path.basename(file)
+                current_df["UTC time"] = filename_to_timestamp(filename, "UTC")
                 current_df["surv_inst_flg"] = i
+
                 survey_dfs.append(current_df)
             if len(survey_dfs) == 0:
                 logger.warning("No survey_answers for user %s.", user)
