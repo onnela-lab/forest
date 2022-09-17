@@ -362,7 +362,6 @@ def test_aggregate_surveys_config_using_sep_data():
     assert (agg_data["answer"] == "No commas here!").any()
 
 
-
 def test_get_audio_survey_id_dict():
     audio_survey_id_dict = get_audio_survey_id_dict(AUDIO_SURVEY_HISTORY)
     assert set(audio_survey_id_dict.keys()) == {'prompt1', 'prompt2',
