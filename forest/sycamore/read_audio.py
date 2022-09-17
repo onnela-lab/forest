@@ -15,7 +15,7 @@ from forest.sycamore.utils import (read_json, get_month_from_today,
 logger = logging.getLogger(__name__)
 
 
-def get_audio_survey_id_dict(history_file: str) -> dict:
+def get_audio_survey_id_dict(history_file: str = None) -> dict:
     """A dict that goes from the most recent prompt to the survey ID for audio
         surveys
     Args:
@@ -41,7 +41,7 @@ def get_audio_survey_id_dict(history_file: str) -> dict:
     return output_dict
 
 
-def get_config_id_dict(config_path: str) -> dict:
+def get_config_id_dict(config_path: str = None) -> dict:
     """Get a dict with question prompts as keys and the config IDs as values
     Args:
         config_path: Path to survey config JSON file
