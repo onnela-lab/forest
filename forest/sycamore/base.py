@@ -25,7 +25,8 @@ def compute_survey_stats(
         start_date: str = EARLIEST_DATE, end_date: Optional[str] = None,
         config_path: Optional[str] = None, interventions_filepath: str = None,
         augment_with_answers: bool = True, submits_timeframe: str = "both",
-        submits_by_survey_id: bool = True, history_path: str = None
+        submits_by_survey_id: bool = True, history_path: str = None,
+        include_audio_surveys: bool = True
 ) -> bool:
     """Compute statistics on surveys
 
@@ -64,6 +65,9 @@ def compute_survey_stats(
             answer choices to determine the correct choice for Android radio
             questions. In addition, this is used to generate timings for audio
             surveys.
+    include_audio_surveys:
+            Whether to include submissions of audio surveys in addition to text
+            surveys
     """
     os.makedirs(output_folder, exist_ok=True)
     os.makedirs(os.path.join(output_folder, "summaries"), exist_ok=True)
@@ -78,7 +82,7 @@ def compute_survey_stats(
                        "Skipping some summary outputs.")
         agg_data = aggregate_surveys_no_config(
             study_folder, tz_str, users, start_date, end_date,
-            augment_with_answers
+            augment_with_answers, include_audio_surveys
         )
         if agg_data.shape[0] == 0:
             logger.error("Error: No survey data found in %s", study_folder)
@@ -86,7 +90,7 @@ def compute_survey_stats(
     else:
         agg_data = aggregate_surveys_config(
             study_folder, config_path, tz_str, users, start_date,
-            end_date, augment_with_answers, history_path
+            end_date, augment_with_answers, history_path, include_audio_surveys
         )
         if agg_data.shape[0] == 0:
             logger.error("Error: No survey data found in %s", study_folder)
@@ -218,7 +222,7 @@ def get_submits_for_tableau(
     else:
         agg_data = aggregate_surveys_config(
             study_folder, config_path, tz_str, users, start_date,
-            end_date, augment_with_answers=True
+            end_date, augment_with_answers=True, include_audio_surveys=True
         )
         if agg_data.shape[0] == 0:
             logger.error("Error: No survey data found in %s", study_folder)
