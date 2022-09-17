@@ -158,7 +158,7 @@ def get_question_ids(survey_dict: dict, audio_survey_id_dict: dict) -> list:
 
 def gen_survey_schedule(
         config_path: str, time_start: str, time_end: str, users: list,
-        all_interventions_dict: dict, history_file: str = None
+        all_interventions_dict: dict, history_path: str = None
 ) -> pd.DataFrame:
     """Get survey schedule for a number of users
 
@@ -180,13 +180,14 @@ def gen_survey_schedule(
             Dictionary containing a key for every beiwe id.
             Each value in the dict is a dict, with a key for each intervention
             and a timestamp for each intervention time
-        history_file: Filepath to the survey history file
+        history_path: Filepath to the survey history file. If this is not
+            included, audio survey timings cannot be estimated.
 
     Returns:
         DataFrame with a line for every survey deployed to every user in
         the study for the given time range
     """
-    audio_survey_id_dict = get_audio_survey_id_dict(history_file)
+    audio_survey_id_dict = get_audio_survey_id_dict(history_path)
     # List of surveys
     surveys = read_json(config_path)["surveys"]
     # For each survey create a list of survey times
@@ -258,7 +259,8 @@ def gen_survey_schedule(
 
 def survey_submits(
         config_path: str, time_start: str, time_end: str, users: list,
-        aggregated_data: pd.DataFrame, interventions_filepath: str = None
+        aggregated_data: pd.DataFrame, interventions_filepath: str = None,
+        history_path: str = None
 ) -> pd.DataFrame:
     """Get survey submits for users
 
@@ -276,6 +278,8 @@ def survey_submits(
             filepath where interventions json file is.
         aggregated_data(DataFrame):
             Dataframe of aggregated data. Output from aggregate_surveys_config
+        history_path: Filepath to the survey history file. If this is not
+            included, audio survey timings cannot be estimated.
 
     Returns:
         A DataFrame with deployment time and information about each user's
@@ -289,7 +293,7 @@ def survey_submits(
             interventions_filepath)
 
     sched = gen_survey_schedule(config_path, time_start, time_end, users,
-                                all_interventions_dict)
+                                all_interventions_dict, history_path)
     if sched.shape[0] == 0:  # return empty dataframe
         logger.error("Error: No survey schedules found")
         return pd.DataFrame(columns=[["survey id", "beiwe_id"]])

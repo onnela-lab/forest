@@ -62,7 +62,8 @@ def compute_survey_stats(
     history_path: Path to survey history file. If this is included, the survey
             history file is used to find instances of commas or semicolons in
             answer choices to determine the correct choice for Android radio
-            questions
+            questions. In addition, this is used to generate timings for audio
+            surveys.
     """
     os.makedirs(output_folder, exist_ok=True)
     os.makedirs(os.path.join(output_folder, "summaries"), exist_ok=True)
@@ -105,7 +106,7 @@ def compute_survey_stats(
             # Create survey submits detail and summary
             ss_detail = survey_submits(
                 config_path, start_date, end_date,
-                users, agg_data, interventions_filepath
+                users, agg_data, interventions_filepath, history_path
             )
             ss_summary = summarize_submits(ss_detail, None,
                                            submits_by_survey_id)
@@ -177,7 +178,8 @@ def get_submits_for_tableau(
         tz_str: str = "UTC", start_date: str = EARLIEST_DATE,
         end_date: Optional[str] = None, users: Optional[List] = None,
         interventions_filepath: str = None,
-        submits_timeframe: Frequency = Frequency.DAILY
+        submits_timeframe: Frequency = Frequency.DAILY,
+        history_path: str = None
 ):
     """Get survey submissions per day for integration into Tableau WDC
     Args:
@@ -201,6 +203,8 @@ def get_submits_for_tableau(
         The timeframe to summarize survey submissions over, of class
         forest.constants.Frequency. One of Frequency.DAILY, Frequency.HOURLY,
         or Frequency.BOTH.
+    history_path: Filepath to the survey history file. If this is not
+            included, audio survey timings cannot be estimated.
 
     Returns:
     Writes a csv file for each user in the output folder with survey summary
@@ -222,7 +226,7 @@ def get_submits_for_tableau(
         # Create survey submits detail and summary
         ss_detail = survey_submits(
             config_path, start_date, end_date,
-            users, agg_data, interventions_filepath
+            users, agg_data, interventions_filepath, history_path
         )
         if ss_detail.shape[0] == 0:
             logger.error("Error: no submission data found")
