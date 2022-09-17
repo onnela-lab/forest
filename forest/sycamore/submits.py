@@ -92,7 +92,7 @@ def generate_survey_times(
 
         weeks = pd.Timedelta(t_end - t_start).days
         # Get ceiling number of weeks
-        weeks = math.floor(weeks / 7.0)
+        weeks = math.ceil(weeks / 7.0)
 
         # Roll dates
         t_lag = list(np.roll(np.array(timings, dtype="object"), -1))

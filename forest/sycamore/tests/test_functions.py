@@ -79,7 +79,7 @@ def submits_data():
 
 
 def test_survey_submits(submits_data):
-    assert submits_data.shape[0] == 334
+    assert submits_data.shape[0] == 346
 
 
 def test_summarize_submits(submits_data):
@@ -89,12 +89,12 @@ def test_summarize_submits(submits_data):
 
 def test_summarize_submits_hour(submits_data):
     summary = summarize_submits(submits_data, Frequency.HOURLY)
-    assert summary.shape[0] == 292
+    assert summary.shape[0] == 302
 
 
 def test_summarize_submits_day(submits_data):
     summary = summarize_submits(submits_data, timeunit=Frequency.DAILY)
-    assert summary.shape[0] == 208
+    assert summary.shape[0] == 216
 
 
 def test_get_empty_intervention():
@@ -491,7 +491,7 @@ def test_gen_survey_schedule_with_audio():
     assert sample_schedule.shape[0] == 687
     assert 'tO1GFjGJjMnaDRThUQK6l4dv' in sample_schedule["question_id"].tolist()
     assert np.sum(sample_schedule["question_id"] == "6iWVNrsd1RE2zAeIPegZDrCc"
-                  ) == 26
+                  ) == 29
     assert np.mean(
         sample_schedule.columns ==
         pd.Index(["delivery_time", "next_delivery_time", "id", "beiwe_id",
