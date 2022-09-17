@@ -11,8 +11,8 @@ from forest.sycamore.common import (aggregate_surveys,
                                     read_user_answers_stream,
                                     read_aggregate_answers_stream,
                                     get_choices_with_sep_values)
-from forest.sycamore.utils import filename_to_timestamp
-from forest.sycamore.submits import (gen_survey_schedule,
+from forest.sycamore.utils import filename_to_timestamp, read_json
+from forest.sycamore.submits import (gen_survey_schedule, get_question_ids,
                                      get_all_interventions_dict,
                                      survey_submits, summarize_submits,
                                      survey_submits_no_config)
@@ -418,3 +418,82 @@ def test_read_aggregate_audio_recordings_stream_no_history():
     assert df["question text"].nunique() == 1  # should only have "UNKNOWN"
     assert df["question text"].unique().tolist() == ["UNKNOWN"]
     assert df["beiwe_id"].nunique() == 2
+
+
+def test_aggregate_surveys_no_config_with_audio():
+    agg_data = aggregate_surveys_no_config(SAMPLE_DIR, study_tz="UTC",)
+    assert agg_data.shape[0] == 76
+    assert len(agg_data.DOW.unique()) == 4
+
+
+def test_aggregate_surveys_config_with_audio():
+    agg_data = aggregate_surveys_config(SAMPLE_DIR, SURVEY_SETTINGS_PATH, "UTC")
+    assert agg_data.shape[0] == 76
+    assert len(agg_data.DOW.unique()) == 4
+
+
+def test_aggregate_surveys_config_exclude_audio():
+    agg_data = aggregate_surveys_config(SAMPLE_DIR, SURVEY_SETTINGS_PATH, "UTC",
+                                        include_audio_surveys=False)
+    assert agg_data.shape[0] == 50
+    assert len(agg_data.DOW.unique()) == 4
+
+
+def test_get_question_ids():
+    surveys = read_json(AUDIO_SURVEY_CONFIG)["surveys"]
+    audio_survey_id_dict = get_audio_survey_id_dict(AUDIO_SURVEY_HISTORY)
+    q_ids = get_question_ids(surveys[0], audio_survey_id_dict)
+    assert len(q_ids) == 4
+    q_ids = get_question_ids(surveys[1], audio_survey_id_dict)
+    assert q_ids == ['tO1GFjGJjMnaDRThUQK6l4dv']
+    q_ids = get_question_ids(surveys[2], audio_survey_id_dict)
+    assert len(q_ids) == 4
+    q_ids = get_question_ids(surveys[3], audio_survey_id_dict)
+    assert q_ids == ['6iWVNrsd1RE2zAeIPegZDrCc']
+    q_ids = get_question_ids(surveys[4], audio_survey_id_dict)
+    assert q_ids == []
+    q_ids = get_question_ids(surveys[5], audio_survey_id_dict)
+    assert q_ids == []
+    q_ids = get_question_ids(surveys[6], audio_survey_id_dict)
+    assert q_ids == ['oB7h0i0GwCK2sviY1DRXzHIe']
+
+
+def test_get_question_ids_no_history():
+    surveys = read_json(AUDIO_SURVEY_CONFIG)["surveys"]
+    audio_survey_id_dict = dict()
+    # Audio surveys shouldn't get any question IDs
+    q_ids = get_question_ids(surveys[0], audio_survey_id_dict)
+    assert len(q_ids) == 4
+    q_ids = get_question_ids(surveys[1], audio_survey_id_dict)
+    assert q_ids == []
+    q_ids = get_question_ids(surveys[2], audio_survey_id_dict)
+    assert len(q_ids) == 4
+    q_ids = get_question_ids(surveys[3], audio_survey_id_dict)
+    assert q_ids == []
+    q_ids = get_question_ids(surveys[4], audio_survey_id_dict)
+    assert q_ids == []
+    q_ids = get_question_ids(surveys[5], audio_survey_id_dict)
+    assert q_ids == []
+    q_ids = get_question_ids(surveys[6], audio_survey_id_dict)
+    assert q_ids == []
+
+
+def test_gen_survey_schedule_with_audio():
+    interventions_dict = get_all_interventions_dict(INTERVENTIONS_PATH)
+    sample_schedule = gen_survey_schedule(
+        AUDIO_SURVEY_CONFIG,
+        time_start=pd.to_datetime("2021-12-01"),
+        time_end=pd.to_datetime("2021-12-30"),
+        users=["idr8gqdh"],
+        all_interventions_dict=interventions_dict,
+        history_path=AUDIO_SURVEY_HISTORY
+        )
+    assert sample_schedule.shape[0] == 687
+    assert 'tO1GFjGJjMnaDRThUQK6l4dv' in sample_schedule["question_id"].tolist()
+    assert np.sum(sample_schedule["question_id"] == "6iWVNrsd1RE2zAeIPegZDrCc"
+                  ) == 26
+    assert np.mean(
+        sample_schedule.columns ==
+        pd.Index(["delivery_time", "next_delivery_time", "id", "beiwe_id",
+                  "question_id"])
+    ) == 1.0
