@@ -426,15 +426,9 @@ def test_aggregate_surveys_no_config_with_audio():
     assert len(agg_data.DOW.unique()) == 4
 
 
-def test_aggregate_surveys_config_with_audio():
-    agg_data = aggregate_surveys_config(SAMPLE_DIR, SURVEY_SETTINGS_PATH, "UTC")
-    assert agg_data.shape[0] == 76
-    assert len(agg_data.DOW.unique()) == 4
-
-
 def test_aggregate_surveys_config_exclude_audio():
-    agg_data = aggregate_surveys_config(SAMPLE_DIR, SURVEY_SETTINGS_PATH, "UTC",
-                                        include_audio_surveys=False)
+    agg_data = aggregate_surveys_config(SAMPLE_DIR, SURVEY_SETTINGS_PATH,
+                                        "UTC", include_audio_surveys=False)
     assert agg_data.shape[0] == 50
     assert len(agg_data.DOW.unique()) == 4
 
@@ -489,7 +483,9 @@ def test_gen_survey_schedule_with_audio():
         history_path=AUDIO_SURVEY_HISTORY
         )
     assert sample_schedule.shape[0] == 687
-    assert 'tO1GFjGJjMnaDRThUQK6l4dv' in sample_schedule["question_id"].tolist()
+    assert sample_schedule["question_id"].str.contains(
+        'tO1GFjGJjMnaDRThUQK6l4dv'
+    ).any()
     assert np.sum(sample_schedule["question_id"] == "6iWVNrsd1RE2zAeIPegZDrCc"
                   ) == 29
     assert np.mean(
