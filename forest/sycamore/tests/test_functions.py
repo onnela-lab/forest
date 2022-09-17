@@ -356,10 +356,11 @@ def test_aggregate_surveys_config_using_sep_data():
     assert agg_data.shape[0] == 19  # 4 lines (3 answers and a submit line) for
     # each survey in survey_answers, plus 3 from the survey_timings file after
     # the delivery line is removed
-    assert agg_data.loc[3, "answer"] == "here (, ) is a comma"
-    assert agg_data.loc[6, "answer"] == ", comma at begin"
-    assert agg_data.loc[9, "answer"] == "comma at end , "
-    assert agg_data.loc[14, "answer"] == "no problems here"
+    assert (agg_data["answer"] == "here (, ) is a comma").any()
+    assert (agg_data["answer"] == ", comma at begin").any()
+    assert (agg_data["answer"] == "comma at end , ").any()
+    assert (agg_data["answer"] == "No commas here!").any()
+
 
 
 def test_get_audio_survey_id_dict():
