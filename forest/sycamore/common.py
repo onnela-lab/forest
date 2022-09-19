@@ -418,6 +418,20 @@ def aggregate_surveys_config(
         return agg_data
 
     # Merge data together and add configuration survey ID to all lines
+    # Pandas gives an error if question IDs are different data types.
+    # So, we will convert everything to string.
+    # But, if we just do raw conversion to string, we run into problems where
+    # it tries to merge on 'nan'. So, we will convert all of the 'nan' to None
+    # before merging.
+    agg_data["question id"] = np.where(
+        (agg_data["question id"].astype(str) == "nan").to_numpy(),
+        np.full(agg_data.shape[0], None), agg_data["question id"].astype(str)
+    )
+    config_surveys["question_id"] = np.where(
+        (config_surveys["question_id"].astype(str) == "nan").to_numpy(),
+        np.full(config_surveys.shape[0], None),
+        config_surveys["question_id"].astype(str)
+    )
     df_merged = agg_data.merge(
         config_surveys[["config_id", "question_id"]], how="left",
         left_on="question id", right_on="question_id"
@@ -1057,3 +1071,30 @@ def get_choices_with_sep_values(config_path: str = None,
             "responses may be output for android devices"
         )
     return qs_with_seps
+
+
+def write_data_by_user(df_to_write: pd.DataFrame, output_folder: str,
+                       users: list = None):
+    """
+    Write a dataframe to csv files, with a csv file corresponding to each user.
+
+    This function is used to mimic how files are written by
+        forest.jasmine.gps_stats_main and forest.willow.log_stats_main
+
+    Args:
+        output_folder: path to folder to write csv files in
+        df_to_write: dataframe to be written
+        users: list of users to split dataframe by
+
+    """
+    os.makedirs(output_folder, exist_ok=True)
+
+    if users is None:
+        users = df_to_write.beiwe_id.unique().tolist()
+    for user in users:
+        current_df = df_to_write.loc[df_to_write.beiwe_id == user, :].copy()
+        if current_df.shape[0] == 0:
+            continue
+        current_df.drop("beiwe_id", axis=1, inplace=True)
+        path_to_write = os.path.join(output_folder, user + ".csv")
+        current_df.to_csv(path_to_write, index=False)
