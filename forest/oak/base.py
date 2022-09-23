@@ -12,7 +12,6 @@ Results may be outputted in hourly and daily intervals.
 from datetime import datetime, timedelta
 import logging
 import os
-import warnings
 
 from dateutil import tz
 import numpy as np
@@ -463,9 +462,6 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
             sampling frequency
     """
 
-    # suppress warnings about mean of empty slices
-    warnings.simplefilter("ignore", category=RuntimeWarning)
-
     # determine timezone shift
     fmt = '%Y-%m-%d %H_%M_%S'
     from_zone = tz.gettz('UTC')
@@ -639,8 +635,11 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
                         cadence_temp_hourly)
                     steps_hourly[d_ind, h_ind] = int(np.sum(
                         cadence_temp_hourly))
-                    cadence_hourly[d_ind, h_ind] = np.mean(
-                        cadence_temp_hourly)
+                    if len(cadence_temp_hourly) > 0:
+                        cadence_hourly[d_ind, h_ind] = np.mean(
+                            cadence_temp_hourly)
+                    else:
+                        cadence_hourly[d_ind, h_ind] = np.nan
 
             if option is None or option == 'both' or option == 'daily':
                 cadence_temp_daily = [item for sublist in
@@ -649,7 +648,10 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
 
                 walkingtime_daily[d_ind] = len(cadence_temp_daily)
                 steps_daily[d_ind] = int(np.sum(cadence_temp_daily))
-                cadence_daily[d_ind] = np.mean(cadence_temp_daily)
+                if len(cadence_temp_daily) > 0:
+                    cadence_daily[d_ind] = np.mean(cadence_temp_daily)
+                else:
+                    cadence_daily[d_ind] = np.nan
 
         # save results
         if option is None or option == 'both' or option == 'daily':
