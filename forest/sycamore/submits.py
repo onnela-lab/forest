@@ -143,11 +143,11 @@ def get_question_ids(survey_dict: dict, audio_survey_id_dict: dict) -> list:
 
     """
     question_ids = []
-    for q in survey_dict["content"]:
-        if "question_id" in q.keys():
-            question_ids.append(q["question_id"])
-        elif "prompt" in q.keys():
-            audio_prompt = q["prompt"]
+    for question in survey_dict["content"]:
+        if "question_id" in question.keys():
+            question_ids.append(question["question_id"])
+        elif "prompt" in question.keys():
+            audio_prompt = question["prompt"]
             if audio_prompt not in audio_survey_id_dict.keys():
                 logger.warning("Unable to find survey ID for audio prompt " +
                                audio_prompt)

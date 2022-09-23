@@ -16,17 +16,19 @@ from forest.utils import get_ids
 logger = logging.getLogger(__name__)
 
 
-def get_audio_survey_id_dict(history_file: str = None) -> dict:
-    """A dict that goes from the most recent prompt to the survey ID for audio
-        surveys
+def get_audio_survey_id_dict(history_path: str = None) -> Dict[str, str]:
+    """Create a dict that has most recent prompt corresponding to an audio
+    survey as keys and the survey ID as the corresponding value.
     Args:
-        history_file:
+        history_path: Path to survey history file, downloaded from the Beiwe
+            website.
     Returns:
-        dictionary with keys for each prompt, and values with survey IDs"""
+        dictionary with keys for each prompt (for example a prompt could be
+            "Describe your day today", and values with survey IDs"""
     output_dict: Dict[str, str] = dict()
-    if history_file is None:
+    if history_path is None:
         return output_dict
-    history_dict = read_json(history_file)
+    history_dict = read_json(history_path)
     for key in history_dict.keys():
         most_recent_update = history_dict[key][-1]['survey_json']
         if most_recent_update is None:
@@ -54,17 +56,17 @@ def get_config_id_dict(config_path: str = None) -> dict:
     if config_path is None:
         return output_dict
     surveys = read_json(config_path)["surveys"]
-    for i, s in enumerate(surveys):
-        if "content" not in s.keys():
+    for index, survey in enumerate(surveys):
+        if "content" not in survey.keys():
             continue
-        if type(s["content"]) is not list:
+        if type(survey["content"]) is not list:
             continue
-        if len(s["content"]) < 1:
+        if len(survey["content"]) < 1:
             continue
-        if "prompt" not in s["content"][0]:
+        if "prompt" not in survey["content"][0]:
             continue
 
-        output_dict[s["content"][0]["prompt"]] = i
+        output_dict[survey["content"][0]["prompt"]] = index
     return output_dict
 
 
@@ -103,83 +105,83 @@ def read_user_audio_recordings_stream(
     if time_end is None:
         time_end = get_month_from_today()
     audio_dir = os.path.join(download_folder, user, "audio_recordings")
-    if os.path.isdir(audio_dir):
-        # get all survey IDs included for this user (data will have one folder
-        # per survey)
-        survey_ids = get_ids(audio_dir)
-        all_surveys = []
-        timestamp_start = pd.to_datetime(time_start)
-        timestamp_end = pd.to_datetime(time_end)
-        for survey in survey_ids:
-            # get all audio files in the survey subdirectory
-            all_files = []
-            for filepath in os.listdir(os.path.join(audio_dir, survey)):
-                filename = os.path.basename(filepath)
-                valid_file = (filepath.endswith(".wav")
-                              or filepath.endswith(".mp4")
-                              and (timestamp_start
-                                   < filename_to_timestamp(filename, tz_str)
-                                   < timestamp_end))
-                if valid_file:
-                    all_files.append(filepath)
-
-            if len(all_files) == 0:
-                logger.warning("No audio_recordings for user %s in given time "
-                               "frames.", user)
-                return pd.DataFrame(columns=["Local time"],
-                                    dtype="datetime64[ns]")
-
-            survey_dfs = []
-            # We want to be able to process the surveys even if they didn't
-            # include the survey history file, but if they did include the
-            # survey history file, we want to have the prompt for readability
-            survey_prompt = "UNKNOWN"
-            for prompt in audio_survey_id_dict.keys():
-                if audio_survey_id_dict[prompt] == survey:
-                    survey_prompt = prompt
-
-            # We need to enumerate to tell different survey occasions apart
-            for i, file in enumerate(all_files):
-                filename = os.path.basename(file)
-                current_df = pd.DataFrame({
-                    "UTC time": [filename_to_timestamp(filename, "UTC")] * 2,
-                    "survey id": [survey] * 2,
-                    "question_id": [survey] * 2,
-                    "answer": ["audio recording", ""],
-                    "question type": ["audio recording", ""],
-                    "question text": [survey_prompt] * 2,
-                    "question answer options": ["audio recording", ""],
-                    "submit_line": [0, 1],  # one of the lines will be a submit
-                    # line
-                    "surv_inst_flg": [i] * 2
-                })
-                survey_dfs.append(current_df)
-            if len(survey_dfs) == 0:
-                logger.warning("No survey_answers for user %s.", user)
-                return pd.DataFrame(columns=["Local time"],
-                                    dtype="datetime64[ns]")
-            survey_data = pd.concat(survey_dfs, axis=0, ignore_index=True)
-            survey_data["beiwe_id"] = user
-            survey_data["Local time"] = survey_data[
-                "UTC time"
-            ].dt.tz_localize("UTC").dt.tz_convert(tz_str).dt.tz_localize(None)
-
-            # Add question index column to make things look like the survey
-            # timings stream. We do not need to worry about verifying that the
-            # question IDs on the new lines are different as we did for survey
-            # timings because these are all final submissions.
-            survey_data["question index"] = 1
-            survey_data["question index"] = survey_data.groupby(
-                ["survey id", "beiwe_id"]
-            )["question index"].cumsum()
-
-            all_surveys.append(survey_data)
-        if len(all_surveys) == 0:
-            return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
-        return pd.concat(all_surveys, axis=0, ignore_index=True)
-    else:
+    if not os.path.isdir(audio_dir):
         logger.warning("No survey_answers for user %s.", user)
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
+
+    # get all survey IDs included for this user (data will have one folder
+    # per survey)
+    survey_ids = get_ids(audio_dir)
+    all_surveys = []
+    timestamp_start = pd.to_datetime(time_start)
+    timestamp_end = pd.to_datetime(time_end)
+    for survey in survey_ids:
+        # get all audio files in the survey subdirectory
+        all_files = []
+        for filepath in os.listdir(os.path.join(audio_dir, survey)):
+            filename = os.path.basename(filepath)
+            valid_file = (filepath.endswith(".wav")
+                          or filepath.endswith(".mp4")
+                          and (timestamp_start
+                               < filename_to_timestamp(filename, tz_str)
+                               < timestamp_end))
+            if valid_file:
+                all_files.append(filepath)
+
+        if len(all_files) == 0:
+            logger.warning("No audio_recordings for user %s in given time "
+                           "frames.", user)
+            return pd.DataFrame(columns=["Local time"],
+                                dtype="datetime64[ns]")
+
+        survey_dfs = []
+        # We want to be able to process the surveys even if they didn't
+        # include the survey history file, but if they did include the
+        # survey history file, we want to have the prompt for readability
+        survey_prompt = "UNKNOWN"
+        for prompt in audio_survey_id_dict.keys():
+            if audio_survey_id_dict[prompt] == survey:
+                survey_prompt = prompt
+
+        # We need to enumerate to tell different survey occasions apart
+        for i, file in enumerate(all_files):
+            filename = os.path.basename(file)
+            current_df = pd.DataFrame({
+                "UTC time": [filename_to_timestamp(filename, "UTC")] * 2,
+                "survey id": [survey] * 2,
+                "question_id": [survey] * 2,
+                "answer": ["audio recording", ""],
+                "question type": ["audio recording", ""],
+                "question text": [survey_prompt] * 2,
+                "question answer options": ["audio recording", ""],
+                "submit_line": [0, 1],  # one of the lines will be a submit
+                # line
+                "surv_inst_flg": [i] * 2
+            })
+            survey_dfs.append(current_df)
+        if len(survey_dfs) == 0:
+            logger.warning("No survey_answers for user %s.", user)
+            return pd.DataFrame(columns=["Local time"],
+                                dtype="datetime64[ns]")
+        survey_data = pd.concat(survey_dfs, axis=0, ignore_index=True)
+        survey_data["beiwe_id"] = user
+        survey_data["Local time"] = survey_data[
+            "UTC time"
+        ].dt.tz_localize("UTC").dt.tz_convert(tz_str).dt.tz_localize(None)
+
+        # Add question index column to make things look like the survey
+        # timings stream. We do not need to worry about verifying that the
+        # question IDs on the new lines are different as we did for survey
+        # timings because these are all final submissions.
+        survey_data["question index"] = 1
+        survey_data["question index"] = survey_data.groupby(
+            ["survey id", "beiwe_id"]
+        )["question index"].cumsum()
+
+        all_surveys.append(survey_data)
+    if len(all_surveys) == 0:
+        return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
+    return pd.concat(all_surveys, axis=0, ignore_index=True)
 
 
 def read_aggregate_audio_recordings_stream(

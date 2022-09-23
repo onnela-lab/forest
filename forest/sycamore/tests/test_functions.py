@@ -24,7 +24,6 @@ from forest.sycamore.submits import (gen_survey_schedule, get_question_ids,
 from forest.sycamore.utils import filename_to_timestamp, read_json
 
 
-
 TEST_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
 INTERVENTIONS_PATH = os.path.join(TEST_DATA_DIR,

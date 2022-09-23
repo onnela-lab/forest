@@ -11,17 +11,16 @@ import re
 import pandas as pd
 
 
-def read_json(study_dir: str) -> dict:
+def read_json(json_filepath: str) -> dict:
     """Read a json file into a dictionary
 
     Args:
-        study_dir (str):  filepath to json file.
+        json_filepath (str):  filepath to json file.
     Returns:
         A dict representation of the json file
     """
-    with open(study_dir, "r") as f:
-        dictionary = json.load(f)
-    return dictionary
+    f = open(json_filepath, "r")
+    return json.load(f)
 
 
 def get_month_from_today():
