@@ -19,8 +19,8 @@ def read_json(json_filepath: str) -> dict:
     Returns:
         A dict representation of the json file
     """
-    f = open(json_filepath, "r")
-    return json.load(f)
+    with open(json_filepath, "r") as f:
+        return json.load(f)
 
 
 def get_month_from_today():
