@@ -461,6 +461,7 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
         fs: integer
             sampling frequency
     """
+
     # determine timezone shift
     fmt = '%Y-%m-%d %H_%M_%S'
     from_zone = tz.gettz('UTC')
@@ -496,6 +497,16 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
         dates = [datetime.strptime(file, fmt) for file in file_dates]
         dates = [date.replace(tzinfo=from_zone).astimezone(to_zone)
                  for date in dates]
+
+        # trim dataset according to time_start and time_end
+        if time_start is not None and time_end is not None:
+            time_min = datetime.strptime(time_start, fmt)
+            time_min = time_min.replace(tzinfo=from_zone).astimezone(to_zone)
+            time_max = datetime.strptime(time_end, fmt)
+            time_max = time_max.replace(tzinfo=from_zone).astimezone(to_zone)
+            dates = [date for date in dates if
+                     date >= time_min and date <= time_max]
+
         dates_shifted = [date-timedelta(hours=date.hour) for date in dates]
 
         # create time vector with days for analysis
@@ -504,25 +515,27 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
             date_start = date_start - timedelta(hours=date_start.hour)
         else:
             date_start = datetime.strptime(time_start, fmt)
+            date_start = date_start - timedelta(hours=date_start.hour)
 
         if time_end is None:
             date_end = dates_shifted[-1]
             date_end = date_end - timedelta(hours=date_end.hour)
         else:
             date_end = datetime.strptime(time_end, fmt)
+            date_end = date_end - timedelta(hours=date_end.hour)
 
         days = pd.date_range(date_start, date_end, freq='D')
         days_hourly = pd.date_range(date_start, date_end+timedelta(days=1),
-                                    freq='H')
+                                    freq='H')[:-1]
 
         # allocate memory
         steps_daily = np.full((len(days), 1), np.nan)
         cadence_daily = np.full((len(days), 1), np.nan)
         walkingtime_daily = np.full((len(days), 1), np.nan)
 
-        steps_hourly = np.full((len(days), 1), np.nan)
-        cadence_hourly = np.full((len(days), 1), np.nan)
-        walkingtime_hourly = np.full((len(days), 1), np.nan)
+        steps_hourly = np.full((len(days), 24), np.nan)
+        cadence_hourly = np.full((len(days), 24), np.nan)
+        walkingtime_hourly = np.full((len(days), 24), np.nan)
 
         for d_ind, d_datetime in enumerate(days):
             logger.info("Day: %d", d_ind)
@@ -622,8 +635,11 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
                         cadence_temp_hourly)
                     steps_hourly[d_ind, h_ind] = int(np.sum(
                         cadence_temp_hourly))
-                    cadence_hourly[d_ind, h_ind] = np.mean(
-                        cadence_temp_hourly)
+                    if len(cadence_temp_hourly) > 0:
+                        cadence_hourly[d_ind, h_ind] = np.mean(
+                            cadence_temp_hourly)
+                    else:
+                        cadence_hourly[d_ind, h_ind] = np.nan
 
             if option is None or option == 'both' or option == 'daily':
                 cadence_temp_daily = [item for sublist in
@@ -632,7 +648,10 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
 
                 walkingtime_daily[d_ind] = len(cadence_temp_daily)
                 steps_daily[d_ind] = int(np.sum(cadence_temp_daily))
-                cadence_daily[d_ind] = np.mean(cadence_temp_daily)
+                if len(cadence_temp_daily) > 0:
+                    cadence_daily[d_ind] = np.mean(cadence_temp_daily)
+                else:
+                    cadence_daily[d_ind] = np.nan
 
         # save results
         if option is None or option == 'both' or option == 'daily':
@@ -647,7 +666,7 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
             summary_stats.to_csv(dest_path, index=False)
 
         if option is None or option == 'both' or option == 'hourly':
-            summary_stats = pd.DataFrame({'date': days_hourly[:-1].
+            summary_stats = pd.DataFrame({'date': days_hourly.
                                           strftime('%Y-%m-%d %H:%M:%S'),
                                           'walking_time': walkingtime_hourly.
                                           flatten(),
