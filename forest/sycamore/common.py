@@ -200,8 +200,17 @@ def aggregate_surveys(
         ] else row["event"],
         axis=1
     )
+    # Replace the question ID in these rows with a valid question ID for the
+    # survey so that survey scheduling metrics can incorporate surveys that
+    # were opened.
+    # If the only other rows in all_data were rows describing that the survey
+    # was first rendered, put "" for the question ID.
     all_data["question id"] = all_data.apply(
-        lambda row: np.nan if row["question id"] == row["event"]
+        lambda row:
+        (all_data.loc[(all_data["survey id"] == row["survey id"]) &
+                      (all_data["question id"] != all_data["event"]),
+                      "question id"].tolist() + [""])[0]
+        if row["question id"] == row["event"]
         else row["question id"],
         axis=1
     )
@@ -485,7 +494,10 @@ def aggregate_surveys_no_config(
         axis=1
     )
 
-    # Remove notification and expiration lines
+    # Remove lines where the event is 'notified' or 'expired'. These lines
+    # will show up on file collected from iOS devices, and they happen when a
+    # user gets notified of a survey and the survey expires because another
+    # survey gets sent.
     agg_data = agg_data.loc[(~agg_data["question id"].isnull())]
 
     # Convert to the study's timezone
