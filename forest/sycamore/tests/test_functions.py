@@ -356,7 +356,7 @@ def test_aggregate_surveys_config_using_sep_data():
     assert agg_data.shape[0] == 20  # 4 lines (3 answers and a submit line) for
     # each survey in survey_answers, plus 3 from the survey_timings file after
     # the delivery line is removed. Plus, one line saying that the survey was
-    # opened and rendered for the user. 
+    # opened and rendered for the user.
     assert (agg_data["answer"] == "here (, ) is a comma").any()
     assert (agg_data["answer"] == ", comma at begin").any()
     assert (agg_data["answer"] == "comma at end , ").any()

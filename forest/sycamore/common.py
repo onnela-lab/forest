@@ -208,8 +208,8 @@ def aggregate_surveys(
     all_data["question id"] = all_data.apply(
         lambda row:
         (all_data.loc[(all_data["survey id"] == row["survey id"]) &
-                       (all_data["question id"] != all_data["event"]),
-                       "question id"].tolist() + [""])[0]
+                      (all_data["question id"] != all_data["event"]),
+                      "question id"].tolist() + [""])[0]
         if row["question id"] == row["event"]
         else row["question id"],
         axis=1
