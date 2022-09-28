@@ -353,9 +353,10 @@ def test_get_choices_with_sep_values_both():
 def test_aggregate_surveys_config_using_sep_data():
     agg_data = aggregate_surveys_config(
         SEP_QS_DIR, CONFIG_WITH_SEPS, "UTC", history_path=HISTORY_WITH_SEPS)
-    assert agg_data.shape[0] == 19  # 4 lines (3 answers and a submit line) for
+    assert agg_data.shape[0] == 20  # 4 lines (3 answers and a submit line) for
     # each survey in survey_answers, plus 3 from the survey_timings file after
-    # the delivery line is removed
+    # the delivery line is removed. Plus, one line saying that the survey was
+    # opened and rendered for the user.
     assert (agg_data["answer"] == "here (, ) is a comma").any()
     assert (agg_data["answer"] == ", comma at begin").any()
     assert (agg_data["answer"] == "comma at end , ").any()
