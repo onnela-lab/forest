@@ -449,6 +449,12 @@ def aggregate_surveys_config(
         df_merged = pd.concat(
             [df_merged, audio_surveys], axis=0, ignore_index=False
         )
+    # mark NO_ANSWER_SELECTED as na because researchers will treat these the
+    # same, and researchers get confused if they see this as a possible answer
+    # that is distinct from na
+    df_merged.loc[
+        df_merged["answer"] == "NO_ANSWER_SELECTED", "answer"
+    ] = np.nan
 
     return df_merged.reset_index(drop=True)
 
