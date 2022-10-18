@@ -6,7 +6,6 @@ from typing import Dict
 
 import numpy as np
 import pandas as pd
-import librosa
 
 from forest.sycamore.constants import EARLIEST_DATE
 from forest.sycamore.utils import (read_json, get_month_from_today,
