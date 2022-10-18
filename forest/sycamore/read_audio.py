@@ -120,16 +120,17 @@ def read_user_audio_recordings_stream(
         # get all audio files in the survey subdirectory
         all_files = []
         all_durations = []
-        for filepath in os.listdir(os.path.join(audio_dir, survey)):
-            filename = os.path.basename(filepath)
-            valid_file = (filepath.endswith(".wav")
-                          or filepath.endswith(".mp4")
+        for filename in os.listdir(os.path.join(audio_dir, survey)):
+            valid_file = (filename.endswith(".wav")
+                          or filename.endswith(".mp4")
                           and (timestamp_start
                                < filename_to_timestamp(filename, tz_str)
                                < timestamp_end))
             if valid_file:
-                all_files.append(filepath)
-                all_durations.append(librosa.get_duration(filename = filepath))
+                all_files.append(filename)
+                all_durations.append(librosa.get_duration(
+                    filename=os.path.join(audio_dir, survey, filename)
+                ))
 
         if len(all_files) == 0:
             logger.warning("No audio_recordings for user %s in given time "
@@ -153,7 +154,7 @@ def read_user_audio_recordings_stream(
             start_time = submit_time - pd.Timedelta(all_durations[i], unit="s")
 
             current_df = pd.DataFrame({
-                "UTC time": [start_time, submit_time],
+                "UTC time": [start_time, submit_time, submit_time],
                 "survey id": [survey] * 3,
                 "question_id": [survey] * 3,
                 "answer": ["audio recording"]*2 + [""], #later on we delete all lines with blank answers
@@ -162,7 +163,7 @@ def read_user_audio_recordings_stream(
                 "question answer options": ["audio recording"]*2 +[""],
                 "submit_line": [0, 0, 1],  # one of the lines will be a submit
                 # line
-                "surv_inst_flg": [i] * 2
+                "surv_inst_flg": [i] * 3
             })
             survey_dfs.append(current_df)
         if len(survey_dfs) == 0:
