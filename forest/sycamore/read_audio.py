@@ -6,6 +6,7 @@ from typing import Dict
 
 import numpy as np
 import pandas as pd
+import librosa
 
 from forest.sycamore.constants import EARLIEST_DATE
 from forest.sycamore.utils import (read_json, get_month_from_today,
@@ -118,6 +119,7 @@ def read_user_audio_recordings_stream(
     for survey in survey_ids:
         # get all audio files in the survey subdirectory
         all_files = []
+        all_durations = []
         for filepath in os.listdir(os.path.join(audio_dir, survey)):
             filename = os.path.basename(filepath)
             valid_file = (filepath.endswith(".wav")
@@ -127,6 +129,7 @@ def read_user_audio_recordings_stream(
                                < timestamp_end))
             if valid_file:
                 all_files.append(filepath)
+                all_durations.append(librosa.get_duration(filename = filepath))
 
         if len(all_files) == 0:
             logger.warning("No audio_recordings for user %s in given time "
@@ -146,15 +149,18 @@ def read_user_audio_recordings_stream(
         # We need to enumerate to tell different survey occasions apart
         for i, file in enumerate(all_files):
             filename = os.path.basename(file)
+            submit_time = filename_to_timestamp(filename, "UTC")
+            start_time = submit_time - pd.Timedelta(all_durations[i], unit="s")
+
             current_df = pd.DataFrame({
-                "UTC time": [filename_to_timestamp(filename, "UTC")] * 2,
-                "survey id": [survey] * 2,
-                "question_id": [survey] * 2,
-                "answer": ["audio recording", ""],
-                "question type": ["audio recording", ""],
-                "question text": [survey_prompt] * 2,
-                "question answer options": ["audio recording", ""],
-                "submit_line": [0, 1],  # one of the lines will be a submit
+                "UTC time": [start_time, submit_time],
+                "survey id": [survey] * 3,
+                "question_id": [survey] * 3,
+                "answer": ["audio recording"]*2 + [""], #later on we delete all lines with blank answers
+                "question type": ["audio recording"]*2 + [""],
+                "question text": [survey_prompt] * 3,
+                "question answer options": ["audio recording"]*2 +[""],
+                "submit_line": [0, 0, 1],  # one of the lines will be a submit
                 # line
                 "surv_inst_flg": [i] * 2
             })
