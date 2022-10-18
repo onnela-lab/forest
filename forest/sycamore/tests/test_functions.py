@@ -395,7 +395,7 @@ def test_read_user_audio_recordings_stream_no_history():
         SAMPLE_DIR, "audioqdz"
     )
     assert df.shape[0] == 24  # 8 surveys, 3 lines per survey
-    assert df["UTC time"].nunique() == 16 # 8 surveys, 2 times per survey
+    assert df["UTC time"].nunique() == 16   # 8 surveys, 2 times per survey
     assert df["question text"].nunique() == 1
     assert df["survey id"].nunique() == 2
 
@@ -405,7 +405,7 @@ def test_read_aggregate_audio_recordings_stream():
         SAMPLE_DIR, history_path=AUDIO_SURVEY_HISTORY
     )
     assert df.shape[0] == 39  # 13 surveys, with 3 lines each
-    assert df["UTC time"].nunique() == 16 #8 times, 2 times per survey
+    assert df["UTC time"].nunique() == 16  # 8 times, 2 times per survey
     assert df["survey id"].nunique() == 2
     assert df["question text"].nunique() == 2
     assert df["beiwe_id"].nunique() == 2
