@@ -4,6 +4,7 @@ import logging
 import os
 from typing import Dict
 
+import librosa
 import numpy as np
 import pandas as pd
 
@@ -13,27 +14,6 @@ from forest.sycamore.utils import (read_json, get_month_from_today,
 from forest.utils import get_ids
 
 logger = logging.getLogger(__name__)
-
-try:
-    import librosa
-except ImportError:
-    logging.warning("Unable to import librosa. Any audio recordings will be"
-                    " assumed to have a duration of 0 seconds")
-    librosa = None
-
-
-def get_duration(filepath: str) -> float:
-    """Get duration of an audio file. If the librosa import above worked,
-    we will use librosa to get the duration. If not, it will just return 0
-    Args:
-        filepath: Absolute path to the file
-    Returns:
-        The duration of the file, in seconds.
-    """
-    if librosa is not None:
-        return librosa.get_duration(filepath = filepath)
-    else:
-        return 0.0
 
 
 def get_audio_survey_id_dict(history_path: str = None) -> Dict[str, str]:
@@ -147,8 +127,8 @@ def read_user_audio_recordings_stream(
                                < timestamp_end))
             if valid_file:
                 all_files.append(filename)
-                all_durations.append(get_duration(
-                    os.path.join(audio_dir, survey, filename)
+                all_durations.append(librosa.get_duration(
+                    filepath=os.path.join(audio_dir, survey, filename)
                 ))
 
         if len(all_files) == 0:
@@ -171,15 +151,18 @@ def read_user_audio_recordings_stream(
             filename = os.path.basename(file)
             submit_time = filename_to_timestamp(filename, "UTC")
             start_time = submit_time - pd.Timedelta(all_durations[i], unit="s")
+            # Later on, we will delete all rows with blank responses. So, we
+            # want two rows with the timings and an additional row to be
+            # deleted later.
 
             current_df = pd.DataFrame({
                 "UTC time": [start_time, submit_time, submit_time],
                 "survey id": [survey] * 3,
                 "question id": [survey] * 3,
-                "answer": ["audio recording"]*2 + [""], #later on we delete all lines with blank answers
+                "answer": ["audio recording"]*2 + [""],
                 "question type": ["audio recording"]*2 + [""],
                 "question text": [survey_prompt] * 3,
-                "question answer options": ["audio recording"]*2 +[""],
+                "question answer options": ["audio recording"]*2 + [""],
                 "submit_line": [0, 0, 1],  # one of the lines will be a submit
                 # line
                 "surv_inst_flg": [i] * 3

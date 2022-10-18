@@ -13,7 +13,8 @@ requires = [
     'shapely',  # jasmine
     'ssqueezepy',  # oak
     'timezonefinder',  # poplar, bonsai
-    'wheel'  # for ratelimit
+    'wheel',  # for ratelimit
+    'librosa'  # for audio file durations in sycamore
 ]
 
 package_data = {'': ['*.csv', '*.json']}
