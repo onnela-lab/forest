@@ -13,8 +13,28 @@ from forest.sycamore.utils import (read_json, get_month_from_today,
                                    filename_to_timestamp)
 from forest.utils import get_ids
 
-
 logger = logging.getLogger(__name__)
+
+try:
+    import librosa
+except ImportError:
+    logging.warning("Unable to import librosa. Any audio recordings will be"
+                    " assumed to have a duration of 0 seconds")
+    librosa = None
+
+
+def get_duration(filepath: str) -> float:
+    """Get duration of an audio file. If the librosa import above worked,
+    we will use librosa to get the duration. If not, it will just return 0
+    Args:
+        filepath: Absolute path to the file
+    Returns:
+        The duration of the file, in seconds.
+    """
+    if librosa is not None:
+        return librosa.get_duration(filepath = filepath)
+    else:
+        return 0.0
 
 
 def get_audio_survey_id_dict(history_path: str = None) -> Dict[str, str]:
@@ -128,8 +148,8 @@ def read_user_audio_recordings_stream(
                                < timestamp_end))
             if valid_file:
                 all_files.append(filename)
-                all_durations.append(librosa.get_duration(
-                    filename=os.path.join(audio_dir, survey, filename)
+                all_durations.append(get_duration(
+                    os.path.join(audio_dir, survey, filename)
                 ))
 
         if len(all_files) == 0:
@@ -156,7 +176,7 @@ def read_user_audio_recordings_stream(
             current_df = pd.DataFrame({
                 "UTC time": [start_time, submit_time, submit_time],
                 "survey id": [survey] * 3,
-                "question_id": [survey] * 3,
+                "question id": [survey] * 3,
                 "answer": ["audio recording"]*2 + [""], #later on we delete all lines with blank answers
                 "question type": ["audio recording"]*2 + [""],
                 "question text": [survey_prompt] * 3,
