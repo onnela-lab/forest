@@ -26,7 +26,9 @@ Open `docs/_build/html/index.html` in a web browser to check the results
 * [Forest Naming Conventions](naming.md)
 * [Exception handling](exceptions.md)
 * [Logging](logging.md)
+* Ask questions about software design before writing the code
 * Delete unnecessary code (don't just comment it out)
+* Rewrite code if necessary
 * [Write short functions that do one thing only](https://github.com/amontalenti/elements-of-python-style#if-the-implementation-is-hard-to-explain-its-a-bad-idea)
 * Specify exact version numbers for dependencies (pin your requirements)
 * Refactor the code and avoid copy-paste programming ([Don't Repeat Yourself](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself))
@@ -61,8 +63,9 @@ Development workflow:
 * PRs:
   * are not just peer review but a way to communicate and learn about the code base
   * help build and pass on institutional knowledge, and keep default branch commit history clean
-* Keep PRs small (ideally, under 100 lines of code) to help makes reviews easier and faster
+* Keep PRs small (ideally, under 100 lines of code) and self-contained (code + tests + docs) to make reviews easier and faster
 * If you need to update an existing PR simply add commits to the corresponding feature branch instead of creating a new separate PR
+* Make sure your PR has the latest changes from the develop branch and that it passes the [build process](https://github.com/onnela-lab/forest/actions/workflows/build.yml)
 
 How to create a PR:
 1. Create a feature branch off the default branch: `git switch -c new-feature develop`
@@ -91,11 +94,11 @@ How to review PR:
 
 ## Trees
 
-For maximum happiness of the end users, we would like to point you to [[forest naming conventions | Forest Naming Conventions]]. When analyzing digital phenotyping data, we recommend you to use the [[the logging module|Logging Guidelines]] to record what happens (...and what fails...) during analyses. No worries, we have prepared some code snippets for you to use.
+For maximum happiness of the end users, we would like to point you to [Forest naming conventions](naming.md)]. When analyzing digital phenotyping data, we recommend you to use the [logging guidelines](logging.md) to record what happens (...and what fails...) during analyses. No worries, we have prepared some code snippets for you to use.
 
 ### Tree naming
 
-When you've finalized your contribution (hereafter 'tree'), you can decide on a name for your tree. Please keep our [[tree naming conventions and reserved trees|Tree Naming conventions]] in mind.
+When you've finalized your contribution (hereafter 'tree'), you can decide on a name for your tree. Please keep our tree naming conventions and reserved trees in mind.
 
 ## External resources
 
