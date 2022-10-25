@@ -2,6 +2,7 @@ from setuptools import setup, find_packages
 
 requires = [
     'holidays',  # poplar
+    'librosa',  # for audio file durations in sycamore
     'numpy',
     'openrouteservice',
     'pandas',
@@ -13,8 +14,7 @@ requires = [
     'shapely',  # jasmine
     'ssqueezepy',  # oak
     'timezonefinder',  # poplar, bonsai
-    'wheel',  # for ratelimit
-    'librosa'  # for audio file durations in sycamore
+    'wheel'  # for ratelimit
 ]
 
 package_data = {'': ['*.csv', '*.json']}
