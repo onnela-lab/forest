@@ -4,7 +4,7 @@ import logging
 import os
 from typing import Dict
 
-import librosa
+import librosa # type: ignore
 import numpy as np
 import pandas as pd
 
