@@ -344,3 +344,43 @@ except Exception as er:
   print(er)
 # (...)
 ```
+
+## Granting access to Amazon S3 bucket (advanced)
+
+This section contains notes about granting an access to Amazon S3 bucket. This is a system administration content, not needed for a typical target audience of the workflow presented above.  
+
+AWS Identity and Access Management ([IAM](https://aws.amazon.com/iam/)) allows to specify who or what can access services and resources in AWS. 
+
+To grant an AWS user access to the Amazon S3 bucket and objects, in the AWS Online Console go to the IAM service and create a new policy. The example below contains both participant-specific and study-specific example lines (clean up and delete trailing commas as appropriate). Note that AWS has a 6,144 character limit on policy JSON length; if you are doing a Beiwe participant-based restriction you may need to split this up across several policies.
+
+```sh
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": "s3:GetObject",
+            "Resource": [
+                "arn:aws:s3:::NAME_OF_YOUR_BEIWE_S3_BUCKET",
+                "arn:aws:s3:::NAME_OF_YOUR_BEIWE_S3_BUCKET/STUDY_ID*",
+                "arn:aws:s3:::NAME_OF_YOUR_BEIWE_S3_BUCKET/CHUNKED_DATA/STUDY_ID*"
+            ]
+        },
+        {
+            "Sid": "VisualEditor1",
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::NAME_OF_YOUR_BEIWE_S3_BUCKET",
+            "Condition": {
+                "StringLike": {
+                    "s3:prefix": [
+                        "STUDY_ID*",
+                        "CHUNKED_DATA/STUDY_ID*"
+                    ]
+                }
+            }
+        }
+    ]
+}
+```
