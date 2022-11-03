@@ -25,6 +25,7 @@ naming.md
 :hidden:
 
 aws.md
+aws_s3.md
 passive-data.md
 ```
 
