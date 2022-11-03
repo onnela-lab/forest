@@ -17,6 +17,11 @@ Amazon S3 is a service to store and protect data for variety of use cases, such 
 
 Beiwe data is stored on Amazon S3 (decrypted at all times).  
 
+## Boto3 
+
+[Boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html) is a Python software development kit (SDK) for AWS. It allows to access, create, update and delete AWS resources, including Amazon S3, from one's Python script. The workflow showed below makes use of Boto3's functions [GetObject](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html#S3.Client.get_object) and [ListObjectsV2](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html#S3.Client.list_objects_v2).
+
+
 ## Credentials needed 
 
 Two sets of credentials are needed to follow the presented workflow to read in and decrypt Beiwe data  stored on Amazon S3: 
@@ -25,6 +30,8 @@ Two sets of credentials are needed to follow the presented workflow to read in a
 2. Beiwe data decryption credentials: decryption key. 
 
 At the time of writing, these credentials are administered by Eli Jones ([biblicabeebli](https://github.com/biblicabeebli)). 
+
+In addition, we also need to know Amazon S3 region name and Amazon S3 bucket name for the Beiwe data we want to access (both typically to be provided by the administrator), and the study folder name -- equivalent to the Beiwe study ID.
 
 ## Workflow setup  
 
@@ -171,7 +178,7 @@ Read the credentials file and the util functions file:
 # add path to the directory where the following files are stored: 
 # - aws_read_and_decrypt_creds.py
 # - aws_read_and_decrypt_utils.py
-sys.path.insert(0, "/Users/martakaras/Documents/s3_test")
+sys.path.insert(0, "~/Documents/s3_test")
 
 # read credentials variables from credentials file
 import aws_read_and_decrypt_creds 
