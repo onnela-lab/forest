@@ -997,6 +997,9 @@ def gps_stats_main(
                 participant_id, study_folder, "gps",
                 tz_str, time_start, time_end,
             )
+            if data.shape == (0, 0):
+                sys.stdout.write("No data available.\n")
+                continue
             if orig_r is None:
                 parameters.r = parameters.itrvl
             if orig_h is None:
