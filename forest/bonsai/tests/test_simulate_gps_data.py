@@ -272,9 +272,8 @@ def test_get_path_ending_longitude(coords1, coords2, directions1, mocker):
 def test_get_path_distance(coords1, coords2, directions1, mocker):
     mocker.patch("openrouteservice.Client.directions",
                  return_value=directions1)
-    assert (round(get_path(coords1, coords2, Vehicle.CAR, "mock_api_key")[1],
-                  2)
-            == 843.05)
+    assert (get_path(coords1, coords2, Vehicle.CAR, "mock_api_key")[1]
+            == 1687.9)
 
 
 def test_get_path_close_locations(coords1, coords3):
