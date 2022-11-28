@@ -143,7 +143,19 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
 
     response = requests.post(OSM_OVERPASS_URL,
                              data={"data": query}, timeout=60)
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except (requests.exceptions.HTTPError
+            or requests.exceptions.ReadTimeout) as err:
+        sys.stdout.write(f"Timeout error: {err}\n")
+        sys.stdout.write(
+            "OpenStreetMap query is too large. "
+            "Do not use save_osm_log or places_of_interest "
+            "unless you need them.\n"
+        )
+        raise RuntimeError(
+            "Query to Overpass API failed to return data in alloted time"
+        )
 
     res = response.json()
     ids: Dict[str, List[int]] = {}
@@ -182,7 +194,7 @@ def gps_summaries(
     tz_str: str,
     frequency: Frequency,
     places_of_interest: Union[List[str], None] = None,
-    save_log: bool = False,
+    save_osm_log: bool = False,
     threshold: Union[int, None] = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
@@ -208,11 +220,11 @@ def gps_summaries(
         frequency: Frequency, the time windows of the summary statistics
         places_of_interest: list of amenities or leisure places to watch,
             keywords as used in openstreetmaps
-        save_log: bool, True if you want to output a log of locations
+        save_osm_log: bool, True if you want to output a log of locations
             visited and their tags
         threshold: int, time spent in a pause needs to exceed the threshold
             to be placed in the log
-            only if save_log True, in minutes
+            only if save_osm_log True, in minutes
         split_day_night: bool, True if you want to split all metrics to
             daytime and nighttime patterns
             only for daily frequency
@@ -238,7 +250,7 @@ def gps_summaries(
     ids: Dict[str, List[int]] = {}
     locations: Dict[int, List[List[float]]] = {}
     tags: Dict[int, Dict[str, str]] = {}
-    if places_of_interest is not None or save_log:
+    if places_of_interest is not None or save_osm_log:
         ids, locations, tags = get_nearby_locations(traj)
         ids_keys_list = list(ids.keys())
 
@@ -425,7 +437,7 @@ def gps_summaries(
         all_place_times = []
         all_place_times_adjusted = []
         log_tags_temp = []
-        if places_of_interest is not None or save_log:
+        if places_of_interest is not None or save_osm_log:
             pause_vec = temp[temp[:, 0] == 2]
             pause_array: np.ndarray = np.array([])
             for row in pause_vec:
@@ -528,7 +540,7 @@ def gps_summaries(
                                 prob * pause[2] / 60
                             )
 
-                if save_log:
+                if save_osm_log:
                     if threshold is None:
                         threshold = 60
                         sys.stdout.write(
@@ -881,7 +893,7 @@ def gps_stats_main(
     save_traj: bool,
     parameters: Hyperparameters = None,
     places_of_interest: list = None,
-    save_log: bool = False,
+    save_osm_log: bool = False,
     threshold: int = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
@@ -907,11 +919,11 @@ def gps_stats_main(
             csv file, False if you don't
         places_of_interest: list of amenities or leisure places to watch,
             keywords as used in openstreetmaps
-        save_log: bool, True if you want to output a log of locations
+        save_osm_log: bool, True if you want to output a log of locations
             visited and their tags
         threshold: int, time spent in a pause needs to exceed the
             threshold to be placed in the log
-            only if save_log True, in minutes
+            only if save_osm_log True, in minutes
         split_day_night: bool, True if you want to split all metrics to
             datetime and nighttime patterns
             only for daily frequency
@@ -1047,7 +1059,7 @@ def gps_stats_main(
                     tz_str,
                     Frequency.HOURLY,
                     places_of_interest,
-                    save_log,
+                    save_osm_log,
                     threshold,
                     split_day_night,
                 )
@@ -1058,7 +1070,7 @@ def gps_stats_main(
                     tz_str,
                     Frequency.DAILY,
                     places_of_interest,
-                    save_log,
+                    save_osm_log,
                     threshold,
                     split_day_night,
                     person_point_radius,
@@ -1066,7 +1078,7 @@ def gps_stats_main(
                 )
                 write_all_summaries(participant_id, summary_stats2,
                                     f"{output_folder}/daily")
-                if save_log:
+                if save_osm_log:
                     os.makedirs(f"{output_folder}/logs", exist_ok=True)
                     with open(
                         f"{output_folder}/logs/locations_logs_hourly.json",
@@ -1084,14 +1096,14 @@ def gps_stats_main(
                     tz_str,
                     frequency,
                     places_of_interest,
-                    save_log,
+                    save_osm_log,
                     threshold,
                     split_day_night,
                 )
                 write_all_summaries(
                     participant_id, summary_stats, output_folder
                 )
-                if save_log:
+                if save_osm_log:
                     os.makedirs(f"{output_folder}/logs", exist_ok=True)
                     with open(
                         f"{output_folder}/logs/locations_logs.json",
