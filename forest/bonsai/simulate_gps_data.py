@@ -115,6 +115,7 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
             openrouteservice.exceptions.Timeout) as e:
         raise RuntimeError(e.message)
     coordinates = routes["features"][0]["geometry"]["coordinates"]
+    distance = routes["features"][0]["properties"]["summary"]["distance"]
     path_coordinates = [[coord[1], coord[0]] for coord in coordinates]
 
     # sometimes if exact coordinates of location are not in a road
