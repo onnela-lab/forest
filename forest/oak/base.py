@@ -27,6 +27,25 @@ from forest.utils import get_ids
 logger = logging.getLogger(__name__)
 
 
+def ismember(a: list, b: list) -> np.ndarray:
+    """Find element b in a.
+
+    Args:
+        a: list of datetime (accepts other types)
+            Set array
+        b: list of datetime (accepts other types)
+            Query array
+    Returns:
+        Numpy boolean array
+
+    """
+    bind = {}
+    for i, elt in enumerate(b):
+        if elt not in bind:
+            bind[elt] = True
+    return np.array([bind.get(itm, False) for itm in a])
+
+
 def rle(inarray: np.ndarray) -> tuple:
     """Runs length encoding.
 
@@ -605,7 +624,7 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
                     bout_time = [t_i.to_pydatetime() for t_i in bout_time[:-1]]
 
                     # find observations in this bout
-                    acc_ind = np.isin(t_shifted, bout_time)
+                    acc_ind = ismember(t_shifted, bout_time)
                     t_bout = timestamp[acc_ind]/1000
                     x_bout = x[acc_ind]
                     y_bout = y[acc_ind]
