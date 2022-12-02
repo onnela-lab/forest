@@ -126,6 +126,10 @@ The summary statistics that are generated are listed below:
   - int
   - Number of significant visited at any point over the course of a day
   - Significant locations are distinct pauses which are at least 15 minutes long and 50 meters apart. They are determined using K-means clustering on locations that a patient visits over the course of follow up. Set K=K+1 and repeat clustering until two significant locations are within 100 meters of one another. Then use the results from the previous step (K-1) as the total number of significant locations.
+* - total_flight_time
+  - Float
+  - Total time spent in flight over the course of a day (in hours)
+  - A flight is defined to be a longest straight-line trip of a particle from one location to another without a directional change or pause.
 * - av_flight_length
   - Float
   - Average of the length of all flights (straight line movement) that took place over the course of a day (in km)
@@ -134,6 +138,18 @@ The summary statistics that are generated are listed below:
   - Float
   - Standard deviation of the length of all flights (straight line movement) that took place over the course of a day (in km)
   - GPS is converted into a sequence of flights (straight line movement) and pauses (time spent stationary). The standard deviation of  flights of the day is reported.
+* - av_flight_duration
+  - Float
+  - Average of the duration of all flights (straight line movement) that took place over the course of a day (in hours)
+  - GPS is converted into a sequence of flights (straight line movement) and pauses (time spent stationary). The average of the duration of flights of the day is reported.
+* - sd_flight_duration
+  - Float
+  - Standard deviation of the duration of all flights (straight line movement) that took place over the course of a day (in hours)
+  - GPS is converted into a sequence of flights (straight line movement) and pauses (time spent stationary). The standard deviation of the duration of flights of the day is reported.
+* - total_pause_time
+  - Float
+  - Total time spent in pause over the course of a day (in hours)
+  - A pause is defined to be a longest period of time spent stationary without a directional change or flight.
 * - av_pause_duration
   - Float
   - Average of the duration of all pauses that took place over the course of a day (in hour)
