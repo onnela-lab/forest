@@ -1035,9 +1035,13 @@ def gps_stats_main(
             )
             all_bv_set[str(participant_id)] = bv_set = out_dict["BV_set"]
             all_memory_dict[str(participant_id)] = out_dict["memory_dict"]
-            imp_table = ImputeGPS(mobmat2, bv_set, parameters.method,
+            try:
+                imp_table = ImputeGPS(mobmat2, bv_set, parameters.method,
                                   parameters.switch, parameters.num,
                                   parameters.linearity, tz_str, pars1)
+            except Exception as e:
+                sys.stdout.write(f"Error: {e}\n")
+                continue
             traj = Imp2traj(imp_table, mobmat2, parameters.itrvl,
                             parameters.r, parameters.w, parameters.h)
             # save all_memory_dict and all_bv_set
