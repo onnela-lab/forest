@@ -44,6 +44,9 @@ def locate_home(MobMat,tz_str):
     Args: MobMat, a k*7 2d array, output from InferMobMat()
           tz_str, timezone, string
     Return: home_x, home_y, two scalar, represent the latitude and longtitude of user's home
+    Raises:
+        AssertionError: if not enough data to infer home location
+
     """
     ObsTraj = MobMat[MobMat[:,0]==2,:]
     hours = []
@@ -51,6 +54,8 @@ def locate_home(MobMat,tz_str):
         time_list = stamp2datetime((ObsTraj[i,3]+ObsTraj[i,6])/2,tz_str)
         hours.append(time_list[3])
     hours = np.array(hours)
+    assert ((hours>=19)+(hours<=9)).sum()>0, """No home location found: 
+        Too few observations at night"""
     home_pauses = ObsTraj[((hours>=19)+(hours<=9))*ObsTraj[:,0]==2,:]
     loc_x,loc_y,num_xy,t_xy = num_sig_places(home_pauses,20)
     home_index = num_xy.index(max(num_xy))
