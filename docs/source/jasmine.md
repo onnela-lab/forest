@@ -107,20 +107,6 @@ This file converts the imputed trajectory matrix to summary statistics.
 - `gps_quality_check`: checks the data quality of GPS data. If the quality is poor, the imputation will not be executed. 
 - `gps_stats_main`: this is the main function of the jasmine module and it calls every function defined before. It is the function you should use as an end user. 
 
-`simulate_gps_data.py`
-- `gen_basic_traj`: generate a flight from l_s to l_e 
-- `gen_basic_pause`: generate a pause at l_s (location), t_s(time) until a ending point t_e, or for a given period t_diff
-- `gen_route_traj`: generate trajectories given a route
-- `gtraj_with_regular_visits`: generate trajectories following a certain pattern (The subject visits a same place multiple times)
-- `gtraj_with_one_visit`: generate trajectories following a certain pattern (The subject visits a same place only one time)
-- `gtraj_random`: generate trajectories following a certain pattern (The subject visits random places)
-- `gen_all_traj`: A key function that calls gtraj_with_regular_visits, gtraj_with_one_visit and gtraj_random to generates various of trajectories
-- `remove_data`: randomly remove p% of data to mimic the real-world GPS data with missingness 
-- `prepare_data`: convert the data matrix to pandas data frame
-- `impute2second`: convert the trajectory matrix to GPS data matrix (1 Hz)
-- `int2str`: convert integers to string. if the integer x is single-digit, covert it to "0x".
-- `sim_GPS_data`: the master function of this module. It returns simulated GPS data with specified missing rate, together with the ground truth of distance travelled and hometime. 
-
 ## List of summary statistics
 
 The summary statistics that are generated are listed below:
