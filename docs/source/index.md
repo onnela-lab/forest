@@ -2,8 +2,8 @@
 :caption: Trees
 :hidden:
 
-jasmine.md
 bonsai.md
+jasmine.md
 oak.md
 poplar.md
 poplar-example-code.md
@@ -44,13 +44,13 @@ Forest is a library for analyzing smartphone-based high-throughput digital pheno
 
 Forest structure is based in subpackages, or *trees*, each of which addresses a specific area of analytics. 
 
-- [**Jasmine**](jasmine.md):
-  - Location data imputation and mobility summary statistics
-  - Input: GPS data
-  - Current maintainer: Georgios Efstathiadis
 - [**Bonsai**](bonsai.md):
   - Location and call/text log data generation of a synthetic population
   - Input: simulation parameters
+  - Current maintainer: Georgios Efstathiadis
+- [**Jasmine**](jasmine.md):
+  - Location data imputation and mobility summary statistics
+  - Input: GPS data
   - Current maintainer: Georgios Efstathiadis
 - [**Willow**](willow.md):
   - Call log and text log summary statistics 
