@@ -465,11 +465,12 @@ def gps_summaries(
                         )
                     else:
                         pause_array[
-                            great_circle_dist(
-                                row[1], row[2],
-                                pause_array[:, 0], pause_array[:, 1],
-                            )
-                            <= 2*place_point_radius,
+                            np.argmin(
+                                great_circle_dist(
+                                    row[1], row[2],
+                                    pause_array[:, 0], pause_array[:, 1],
+                                )
+                            ),
                             -1,
                         ] += (row[6] - row[3]) / 60
 
