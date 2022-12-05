@@ -1041,8 +1041,8 @@ def gps_stats_main(
                     parameters.switch, parameters.num,
                     parameters.linearity, tz_str, pars1
                 )
-            except Exception as e:
-                sys.stdout.write(f"Error: {e}\n")
+            except AssertionError as e:
+                sys.stderr.write(f"Error: {e}\n")
                 continue
             traj = Imp2traj(imp_table, mobmat2, parameters.itrvl,
                             parameters.r, parameters.w, parameters.h)
