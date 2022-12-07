@@ -83,9 +83,9 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
         y_bout_interp = y_bout_interp/9.80665
         z_bout_interp = z_bout_interp/9.80665
 
-        # calculate vm with new units
-        vm_bout_interp = np.sqrt(x_bout_interp**2 + y_bout_interp**2 +
-                                 z_bout_interp**2)
+    # calculate vm after unit verification
+    vm_bout_interp = np.sqrt(x_bout_interp**2 + y_bout_interp**2 +
+                             z_bout_interp**2) - 1
 
     return t_bout_interp, vm_bout_interp
 
