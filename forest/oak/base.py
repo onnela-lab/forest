@@ -565,8 +565,9 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
                     for t_unique in np.unique(np.array(t_hours)):
                         ind_to_store = [t_ind.to_pydatetime() for t_ind in
                                         days_hourly].index(t_unique)
-                        acc_ind = np.isin(t_hours, t_unique)
-                        cadence_temp = cadence_bout[acc_ind]
+                        cadence_ind = np.array([time == t_unique for time in
+                                                t_hours])
+                        cadence_temp = cadence_bout[cadence_ind]
                         cadence_temp = cadence_temp[np.where(cadence_temp > 0)]
 
                         # store hourly metrics
