@@ -99,13 +99,17 @@ def transform_point_to_circle(lat: float, lon: float, radius: float
     return transform(aeqd_to_wgs84, buffer)
 
 
-def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
+def get_nearby_locations(
+    traj: np.ndarray, osm_tags: List[str] = ["amenity", "leisure"]
+) -> Tuple[dict, dict, dict]:
     """This function returns a dictionary of nearby locations,
     a dictionary of nearby locations' names, and a dictionary of
     nearby locations' coordinates.
 
     Args:
         traj: numpy array, trajectory
+        osm_tags: list of strings, types of nearby locations
+            supported by Overpass API
     Returns:
         ids: dictionary, contains nearby locations' ids
         locations: dictionary, contains nearby locations' coordinates
@@ -133,11 +137,37 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
     for lat, lon in zip(latitudes, longitudes):
         bbox = bounding_box((lat, lon), 1000)
 
-        query += f"""
-        \tnode{bbox}['leisure'];
-        \tway{bbox}['leisure'];
-        \tnode{bbox}['amenity'];
-        \tway{bbox}['amenity'];"""
+        for tag in osm_tags:
+            if tag == "building":
+                query += f"""
+                \tnode{bbox}['building'='residential'];
+                \tway{bbox}['building'='residential'];
+                \tnode{bbox}['building'='office'];
+                \tway{bbox}['building'='office'];
+                \tnode{bbox}['building'='commercial'];
+                \tway{bbox}['building'='commercial'];
+                \tnode{bbox}['building'='supermarket'];
+                \tway{bbox}['building'='supermarket'];
+                \tnode{bbox}['building'='stadium'];
+                \tway{bbox}['building'='stadium'];"""
+            elif tag == "highway":
+                query += f"""
+                \tnode{bbox}['highway'='motorway'];
+                \tway{bbox}['highway'='motorway'];
+                \tnode{bbox}['highway'='trunk'];
+                \tway{bbox}['highway'='trunk'];
+                \tnode{bbox}['highway'='primary'];
+                \tway{bbox}['highway'='primary'];
+                \tnode{bbox}['highway'='secondary'];
+                \tway{bbox}['highway'='secondary'];
+                \tnode{bbox}['highway'='tertiary'];
+                \tway{bbox}['highway'='tertiary'];
+                \tnode{bbox}['highway'='road'];
+                \tway{bbox}['highway'='road'];"""
+            else:
+                query += f"""
+                \tnode{bbox}['{tag}'];
+                \tway{bbox}['{tag}'];"""
 
     query += "\n);\nout geom qt;"
 
@@ -166,16 +196,13 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
 
         element_id = element["id"]
 
-        if "amenity" in element["tags"]:
-            if element["tags"]["amenity"] not in ids.keys():
-                ids[element["tags"]["amenity"]] = [element_id]
-            else:
-                ids[element["tags"]["amenity"]].append(element_id)
-        elif "leisure" in element["tags"]:
-            if element["tags"]["leisure"] not in ids.keys():
-                ids[element["tags"]["leisure"]] = [element_id]
-            else:
-                ids[element["tags"]["leisure"]].append(element_id)
+        for tag in osm_tags:
+            if tag in element["tags"]:
+                if element["tags"][tag] not in ids.keys():
+                    ids[element["tags"][tag]] = [element_id]
+                else:
+                    ids[element["tags"][tag]].append(element_id)
+                continue
 
         if element["type"] == "node":
             locations[element_id] = [[element["lat"], element["lon"]]]
@@ -195,6 +222,7 @@ def gps_summaries(
     frequency: Frequency,
     places_of_interest: Union[List[str], None] = None,
     save_osm_log: bool = False,
+    osm_tags: List[str] = ["amenity", "leisure"],
     threshold: Union[int, None] = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
@@ -218,10 +246,13 @@ def gps_summaries(
             obs (1 as observed and 0 as imputed)
         tz_str: timezone
         frequency: Frequency, the time windows of the summary statistics
-        places_of_interest: list of amenities or leisure places to watch,
+        places_of_interest: list of "osm_tags" places to watch,
             keywords as used in openstreetmaps
+            e.g. ["cafe", "hospital", "restaurant"]
         save_osm_log: bool, True if you want to output a log of locations
             visited and their tags
+        osm_tags: list of tags to search for in openstreetmaps
+            avoid using a lot of them if large area is covered
         threshold: int, time spent in a pause needs to exceed the threshold
             to be placed in the log
             only if save_osm_log True, in minutes
@@ -251,7 +282,7 @@ def gps_summaries(
     locations: Dict[int, List[List[float]]] = {}
     tags: Dict[int, Dict[str, str]] = {}
     if places_of_interest is not None or save_osm_log:
-        ids, locations, tags = get_nearby_locations(traj)
+        ids, locations, tags = get_nearby_locations(traj, osm_tags)
         ids_keys_list = list(ids.keys())
 
     obs_traj = traj[traj[:, 7] == 1, :]
