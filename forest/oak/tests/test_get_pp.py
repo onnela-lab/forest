@@ -5,7 +5,7 @@ from forest.oak.base import preprocess_bout
 
 def test_get_pp(signal_bout, fs):
     timestamp, _, x, y, z = signal_bout
-    vm_bout = preprocess_bout(timestamp, x, y, z)[3]
+    vm_bout = preprocess_bout(timestamp, x, y, z)[1]
     vm_res_sec = vm_bout.reshape((fs, -1), order="F")
     pp = np.array([max(vm_res_sec[:, i])-min(vm_res_sec[:, i])
                    for i in range(vm_res_sec.shape[1])])
