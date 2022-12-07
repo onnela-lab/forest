@@ -926,6 +926,7 @@ def gps_stats_main(
     parameters: Hyperparameters = None,
     places_of_interest: list = None,
     save_osm_log: bool = False,
+    osm_tags: List[str] = ["amenity", "leisure"],
     threshold: int = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
@@ -953,6 +954,8 @@ def gps_stats_main(
             keywords as used in openstreetmaps
         save_osm_log: bool, True if you want to output a log of locations
             visited and their tags
+        osm_tags: list of tags to search for in openstreetmaps
+            avoid using a lot of them if large area is covered
         threshold: int, time spent in a pause needs to exceed the
             threshold to be placed in the log
             only if save_osm_log True, in minutes
@@ -1098,6 +1101,7 @@ def gps_stats_main(
                     Frequency.HOURLY,
                     places_of_interest,
                     save_osm_log,
+                    osm_tags,
                     threshold,
                     split_day_night,
                 )
@@ -1109,6 +1113,7 @@ def gps_stats_main(
                     Frequency.DAILY,
                     places_of_interest,
                     save_osm_log,
+                    osm_tags,
                     threshold,
                     split_day_night,
                     person_point_radius,
@@ -1135,6 +1140,7 @@ def gps_stats_main(
                     frequency,
                     places_of_interest,
                     save_osm_log,
+                    osm_tags,
                     threshold,
                     split_day_night,
                 )
