@@ -18,7 +18,7 @@ from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
-from forest.constants import OSM_OVERPASS_URL, Frequency
+from forest.constants import OSM_OVERPASS_URL, Frequency, OSMTags
 from forest.jasmine.data2mobmat import (GPS2MobMat, InferMobMat,
                                         great_circle_dist,
                                         pairwise_great_circle_dist)
@@ -100,7 +100,7 @@ def transform_point_to_circle(lat: float, lon: float, radius: float
 
 
 def get_nearby_locations(
-    traj: np.ndarray, osm_tags: Union[List[str], None] = None
+    traj: np.ndarray, osm_tags: Union[List[OSMTags], None] = None
 ) -> Tuple[dict, dict, dict]:
     """This function returns a dictionary of nearby locations,
     a dictionary of nearby locations' names, and a dictionary of
@@ -120,7 +120,7 @@ def get_nearby_locations(
     """
 
     if osm_tags is None:
-        osm_tags = ["amenity", "leisure"]
+        osm_tags = [OSMTags.AMENITY, OSMTags.LEISURE]
     pause_vec = traj[traj[:, 0] == 2]
     latitudes: List[float] = [pause_vec[0, 1]]
     longitudes: List[float] = [pause_vec[0, 2]]
@@ -140,7 +140,8 @@ def get_nearby_locations(
     for lat, lon in zip(latitudes, longitudes):
         bbox = bounding_box((lat, lon), 1000)
 
-        for tag in osm_tags:
+        for val in osm_tags:
+            tag = val.value
             if tag == "building":
                 query += f"""
                 \tnode{bbox}['building'='residential'];
@@ -199,7 +200,8 @@ def get_nearby_locations(
 
         element_id = element["id"]
 
-        for tag in osm_tags:
+        for val in osm_tags:
+            tag = val.value
             if tag in element["tags"]:
                 if element["tags"][tag] not in ids.keys():
                     ids[element["tags"][tag]] = [element_id]
