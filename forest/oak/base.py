@@ -415,7 +415,7 @@ def find_continuous_dominant_peaks(valid_peaks: np.ndarray, min_t: int,
 
 def run(study_folder: str, output_folder: str, tz_str: str = None,
         option: str = None, time_start: str = None, time_end: str = None,
-        users: list = None, fs: int = 10) -> None:
+        users: list = None) -> None:
     """Runs walking recognition and step counting algorithm over dataset.
 
     Determine paths to input and output folders, set analysis time frames,
@@ -436,8 +436,6 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
             final date of study in format: 'YYYY-mm-dd HH_MM_SS'
         users: list of strings
             beiwe ID selected for computation
-        fs: integer
-            sampling frequency
     """
 
     # determine timezone shift
@@ -482,8 +480,7 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
             time_min = time_min.replace(tzinfo=from_zone).astimezone(to_zone)
             time_max = datetime.strptime(time_end, fmt)
             time_max = time_max.replace(tzinfo=from_zone).astimezone(to_zone)
-            dates = [date for date in dates if
-                     date >= time_min and date <= time_max]
+            dates = [date for date in dates if time_min <= date <= time_max]
 
         dates_shifted = [date-timedelta(hours=date.hour) for date in dates]
 
@@ -522,99 +519,99 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
             file_ind = [i for i, x in enumerate(dates_shifted)
                         if x == d_datetime]
 
-            # initiate temporal metric
+            # check if there is at least one file for a given day
+            if len(file_ind) <= 0:
+                continue
+
+            # initiate dataframe
             data = pd.DataFrame()
 
             # load data for a given day
-            if len(file_ind) > 0:
-                for f in file_ind:
-                    logger.info("File: %d", f)
+            for f in file_ind:
+                logger.info("File: %d", f)
 
-                    # read data
-                    data = pd.concat([data,
-                                      pd.read_csv(os.path.join(source_folder,
-                                                               file_list[f]))],
-                                     axis=0)
-                # extract data
-                timestamp = np.array(data["timestamp"]) / 1000
-                x = np.array(data["x"], dtype="float64")  # x-axis acc.
-                y = np.array(data["y"], dtype="float64")  # y-axis acc.
-                z = np.array(data["z"], dtype="float64")  # z-axis acc.
+                # read data
+                file_path = os.path.join(source_folder, file_list[f])
+                data = pd.concat([data, pd.read_csv(file_path)], axis=0)
 
-                # preprocess data fragment
-                t_bout_interp, vm_bout = preprocess_bout(timestamp, x, y, z)
+            # extract data
+            timestamp = np.array(data["timestamp"]) / 1000
+            x = np.array(data["x"], dtype="float64")  # x-axis acc.
+            y = np.array(data["y"], dtype="float64")  # y-axis acc.
+            z = np.array(data["z"], dtype="float64")  # z-axis acc.
 
-                # get t as datetimes
-                t_datetime = [datetime.fromtimestamp(t_ind) for t_ind in
-                              t_bout_interp]
+            # preprocess data fragment
+            t_bout_interp, vm_bout = preprocess_bout(timestamp, x, y, z)
 
-                # transform t to full hours
-                t_hours = [t_i -
-                           timedelta(minutes=t_i.minute) -
-                           timedelta(seconds=t_i.second) -
-                           timedelta(microseconds=t_i.microsecond)
-                           for t_i in t_datetime]
-                t_hours = [date.replace(tzinfo=from_zone).astimezone(to_zone)
-                           for date in t_hours]
+            # get t as datetimes
+            t_datetime = [datetime.fromtimestamp(t_ind)
+                          for t_ind in t_bout_interp]
 
-                # find walking and estimate cadence
-                cadence_bout = find_walking(vm_bout)
+            # transform t to full hours
+            t_hours = [t_i -
+                       timedelta(minutes=t_i.minute) -
+                       timedelta(seconds=t_i.second) -
+                       timedelta(microseconds=t_i.microsecond)
+                       for t_i in t_datetime]
+            t_hours = [date.replace(tzinfo=from_zone).astimezone(to_zone)
+                       for date in t_hours]
 
-                # distribute metrics across hours
-                if option is None or option == 'both' or option == 'hourly':
-                    for t_unique in np.unique(np.array(t_hours)):
-                        ind_to_store = [t_ind.to_pydatetime() for t_ind in
-                                        days_hourly].index(t_unique)
-                        cadence_ind = np.array([time == t_unique for time in
-                                                t_hours])
-                        cadence_temp = cadence_bout[cadence_ind]
-                        cadence_temp = cadence_temp[np.where(cadence_temp > 0)]
+            # find walking and estimate cadence
+            cadence_bout = find_walking(vm_bout)
 
-                        # store hourly metrics
-                        steps_hourly[ind_to_store] = int(np.sum(cadence_temp))
-                        if len(cadence_temp) > 0:  # control for empty slices
-                            cadence_hourly[ind_to_store] = np.mean(
-                                cadence_temp)
-                        else:
-                            cadence_hourly[ind_to_store] = np.nan
-                        walkingtime_hourly[ind_to_store] = len(cadence_temp)
+            # distribute metrics across hours
+            if option is None or option == 'both' or option == 'hourly':
+                for t_unique in np.unique(np.array(t_hours)):
+                    ind_to_store = [t_ind.to_pydatetime() for t_ind in
+                                    days_hourly].index(t_unique)
+                    cadence_ind = np.array([time == t_unique for time in
+                                            t_hours])
+                    cadence_temp = cadence_bout[cadence_ind]
+                    cadence_temp = cadence_temp[np.where(cadence_temp > 0)]
 
-                cadence_bout = cadence_bout[np.where(cadence_bout > 0)]
+                    # store hourly metrics
+                    steps_hourly[ind_to_store] = int(np.sum(cadence_temp))
+                    if len(cadence_temp) > 0:  # control for empty slices
+                        cadence_hourly[ind_to_store] = np.mean(
+                            cadence_temp)
+                    else:
+                        cadence_hourly[ind_to_store] = np.nan
+                    walkingtime_hourly[ind_to_store] = len(cadence_temp)
 
-                # store daily metrics
-                steps_daily[d_ind] = int(np.sum(cadence_bout))
-                if len(cadence_bout) > 0:  # control for empty slices
-                    cadence_daily[d_ind] = np.mean(cadence_bout)
-                else:
-                    cadence_daily[d_ind] = np.nan
-                walkingtime_daily[d_ind] = len(cadence_bout)
+            cadence_bout = cadence_bout[np.where(cadence_bout > 0)]
 
-                # save results depending on "option"
-                if option is None or option == 'both' or option == 'daily':
-                    summary_stats = pd.DataFrame({'date':
-                                                  days.strftime('%Y-%m-%d'),
-                                                  'walking_time':
-                                                      walkingtime_daily[:, -1],
-                                                  'steps': steps_daily[:, -1],
-                                                  'cadence':
-                                                      cadence_daily[:, -1]})
-                    output_file = user + "_gait_daily.csv"
-                    dest_path = os.path.join(output_folder, "daily",
-                                             output_file)
-                    summary_stats.to_csv(dest_path, index=False)
-                if option is None or option == 'both' or option == 'hourly':
-                    summary_stats = pd.DataFrame({'date':
-                                                  [date.strftime(
-                                                      '%Y-%m-%d %H:%M:%S')
-                                                   for date in days_hourly],
-                                                  'walking_time':
-                                                      walkingtime_hourly[:,
-                                                                         -1],
-                                                  'steps': steps_hourly[:, -1],
-                                                  'cadence':
-                                                      cadence_hourly[:, -1]}
-                                                 )
-                    output_file = user + "_gait_hourly.csv"
-                    dest_path = os.path.join(output_folder, "hourly",
-                                             output_file)
-                    summary_stats.to_csv(dest_path, index=False)
+            # store daily metrics
+            steps_daily[d_ind] = int(np.sum(cadence_bout))
+            if len(cadence_bout) > 0:  # control for empty slices
+                cadence_daily[d_ind] = np.mean(cadence_bout)
+            else:
+                cadence_daily[d_ind] = np.nan
+            walkingtime_daily[d_ind] = len(cadence_bout)
+
+            # save results depending on "option"
+            if option is None or option == 'both' or option == 'daily':
+                summary_stats = pd.DataFrame({'date':
+                                              days.strftime('%Y-%m-%d'),
+                                              'walking_time':
+                                                  walkingtime_daily[:, -1],
+                                              'steps': steps_daily[:, -1],
+                                              'cadence':
+                                                  cadence_daily[:, -1]})
+                output_file = user + "_gait_daily.csv"
+                dest_path = os.path.join(output_folder, "daily",
+                                         output_file)
+                summary_stats.to_csv(dest_path, index=False)
+            if option is None or option == 'both' or option == 'hourly':
+                summary_stats = pd.DataFrame({'date':
+                                              [date.strftime(
+                                                  '%Y-%m-%d %H:%M:%S')
+                                               for date in days_hourly],
+                                              'walking_time':
+                                                  walkingtime_hourly[:, -1],
+                                              'steps': steps_hourly[:, -1],
+                                              'cadence': cadence_hourly[:, -1]}
+                                             )
+                output_file = user + "_gait_hourly.csv"
+                dest_path = os.path.join(output_folder, "hourly",
+                                         output_file)
+                summary_stats.to_csv(dest_path, index=False)
