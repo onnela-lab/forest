@@ -100,7 +100,7 @@ def transform_point_to_circle(lat: float, lon: float, radius: float
 
 
 def get_nearby_locations(
-    traj: np.ndarray, osm_tags: List[str] = ["amenity", "leisure"]
+    traj: np.ndarray, osm_tags: Union[List[str], None] = None
 ) -> Tuple[dict, dict, dict]:
     """This function returns a dictionary of nearby locations,
     a dictionary of nearby locations' names, and a dictionary of
@@ -110,6 +110,7 @@ def get_nearby_locations(
         traj: numpy array, trajectory
         osm_tags: list of strings, types of nearby locations
             supported by Overpass API
+            defaults to ["amenity", "leisure"]
     Returns:
         ids: dictionary, contains nearby locations' ids
         locations: dictionary, contains nearby locations' coordinates
@@ -118,6 +119,8 @@ def get_nearby_locations(
         RuntimeError: if the query to Overpass API fails
     """
 
+    if osm_tags is None:
+        osm_tags = ["amenity", "leisure"]
     pause_vec = traj[traj[:, 0] == 2]
     latitudes: List[float] = [pause_vec[0, 1]]
     longitudes: List[float] = [pause_vec[0, 2]]
@@ -222,7 +225,7 @@ def gps_summaries(
     frequency: Frequency,
     places_of_interest: Union[List[str], None] = None,
     save_osm_log: bool = False,
-    osm_tags: List[str] = ["amenity", "leisure"],
+    osm_tags: Union[List[str], None] = None,
     threshold: Union[int, None] = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
@@ -926,7 +929,7 @@ def gps_stats_main(
     parameters: Hyperparameters = None,
     places_of_interest: list = None,
     save_osm_log: bool = False,
-    osm_tags: List[str] = ["amenity", "leisure"],
+    osm_tags: Union[List[str], None] = None,
     threshold: int = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
