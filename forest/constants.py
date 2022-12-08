@@ -21,6 +21,7 @@ class Frequency(Enum):
     DAILY = "daily"
     BOTH = "both"
 
+
 class OSMTags(Enum):
     """This class enumerates all OSM keys."""
     AERIALWAY = "aerialway"
