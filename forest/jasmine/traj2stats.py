@@ -7,7 +7,7 @@ import json
 import os
 import pickle
 import sys
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -18,7 +18,7 @@ from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
-from forest.constants import OSM_OVERPASS_URL, Frequency, OSMTags
+from forest.constants import OSMTags, OSM_OVERPASS_URL, Frequency 
 from forest.jasmine.data2mobmat import (GPS2MobMat, InferMobMat,
                                         great_circle_dist,
                                         pairwise_great_circle_dist)
@@ -100,7 +100,7 @@ def transform_point_to_circle(lat: float, lon: float, radius: float
 
 
 def get_nearby_locations(
-    traj: np.ndarray, osm_tags: Union[List[OSMTags], None] = None
+    traj: np.ndarray, osm_tags: Optional[List[OSMTags]] = None
 ) -> Tuple[dict, dict, dict]:
     """This function returns a dictionary of nearby locations,
     a dictionary of nearby locations' names, and a dictionary of
@@ -140,9 +140,8 @@ def get_nearby_locations(
     for lat, lon in zip(latitudes, longitudes):
         bbox = bounding_box((lat, lon), 1000)
 
-        for val in osm_tags:
-            tag = val.value
-            if tag == "building":
+        for tag in osm_tags:
+            if tag == OSMTags.BUILDING:
                 query += f"""
                 \tnode{bbox}['building'='residential'];
                 \tway{bbox}['building'='residential'];
@@ -154,7 +153,7 @@ def get_nearby_locations(
                 \tway{bbox}['building'='supermarket'];
                 \tnode{bbox}['building'='stadium'];
                 \tway{bbox}['building'='stadium'];"""
-            elif tag == "highway":
+            elif tag == OSMTags.HIGHWAY:
                 query += f"""
                 \tnode{bbox}['highway'='motorway'];
                 \tway{bbox}['highway'='motorway'];
@@ -170,8 +169,8 @@ def get_nearby_locations(
                 \tway{bbox}['highway'='road'];"""
             else:
                 query += f"""
-                \tnode{bbox}['{tag}'];
-                \tway{bbox}['{tag}'];"""
+                \tnode{bbox}['{tag.value}'];
+                \tway{bbox}['{tag.value}'];"""
 
     query += "\n);\nout geom qt;"
 
@@ -200,13 +199,12 @@ def get_nearby_locations(
 
         element_id = element["id"]
 
-        for val in osm_tags:
-            tag = val.value
-            if tag in element["tags"]:
-                if element["tags"][tag] not in ids.keys():
-                    ids[element["tags"][tag]] = [element_id]
+        for tag in osm_tags:
+            if tag.value in element["tags"]:
+                if element["tags"][tag.value] not in ids.keys():
+                    ids[element["tags"][tag.value]] = [element_id]
                 else:
-                    ids[element["tags"][tag]].append(element_id)
+                    ids[element["tags"][tag.value]].append(element_id)
                 continue
 
         if element["type"] == "node":
@@ -931,7 +929,7 @@ def gps_stats_main(
     parameters: Hyperparameters = None,
     places_of_interest: list = None,
     save_osm_log: bool = False,
-    osm_tags: Union[List[OSMTags], None] = None,
+    osm_tags: Optional[List[OSMTags]] = None,
     threshold: int = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
