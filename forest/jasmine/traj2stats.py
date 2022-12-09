@@ -18,7 +18,7 @@ from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
-from forest.constants import OSMTags, OSM_OVERPASS_URL, Frequency
+from forest.constants import Frequency, OSM_OVERPASS_URL, OSMTags
 from forest.jasmine.data2mobmat import (GPS2MobMat, InferMobMat,
                                         great_circle_dist,
                                         pairwise_great_circle_dist)
@@ -223,10 +223,10 @@ def gps_summaries(
     traj: np.ndarray,
     tz_str: str,
     frequency: Frequency,
-    places_of_interest: Union[List[str], None] = None,
+    places_of_interest: Optional[List[str]] = None,
     save_osm_log: bool = False,
-    osm_tags: Union[List[OSMTags], None] = None,
-    threshold: Union[int, None] = None,
+    osm_tags: Optional[List[OSMTags]] = None,
+    threshold: Optional[int] = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
     place_point_radius: float = 7.5,
