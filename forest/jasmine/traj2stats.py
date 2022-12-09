@@ -7,7 +7,7 @@ import json
 import os
 import pickle
 import sys
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -18,7 +18,7 @@ from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
-from forest.constants import OSM_OVERPASS_URL, Frequency
+from forest.constants import Frequency, OSM_OVERPASS_URL, OSMTags
 from forest.jasmine.data2mobmat import (GPS2MobMat, InferMobMat,
                                         great_circle_dist,
                                         pairwise_great_circle_dist)
@@ -99,13 +99,18 @@ def transform_point_to_circle(lat: float, lon: float, radius: float
     return transform(aeqd_to_wgs84, buffer)
 
 
-def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
+def get_nearby_locations(
+    traj: np.ndarray, osm_tags: Optional[List[OSMTags]] = None
+) -> Tuple[dict, dict, dict]:
     """This function returns a dictionary of nearby locations,
     a dictionary of nearby locations' names, and a dictionary of
     nearby locations' coordinates.
 
     Args:
         traj: numpy array, trajectory
+        osm_tags: list of strings, types of nearby locations
+            supported by Overpass API
+            defaults to ["amenity", "leisure"]
     Returns:
         ids: dictionary, contains nearby locations' ids
         locations: dictionary, contains nearby locations' coordinates
@@ -114,6 +119,8 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
         RuntimeError: if the query to Overpass API fails
     """
 
+    if osm_tags is None:
+        osm_tags = [OSMTags.AMENITY, OSMTags.LEISURE]
     pause_vec = traj[traj[:, 0] == 2]
     latitudes: List[float] = [pause_vec[0, 1]]
     longitudes: List[float] = [pause_vec[0, 2]]
@@ -133,11 +140,37 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
     for lat, lon in zip(latitudes, longitudes):
         bbox = bounding_box((lat, lon), 1000)
 
-        query += f"""
-        \tnode{bbox}['leisure'];
-        \tway{bbox}['leisure'];
-        \tnode{bbox}['amenity'];
-        \tway{bbox}['amenity'];"""
+        for tag in osm_tags:
+            if tag == OSMTags.BUILDING:
+                query += f"""
+                \tnode{bbox}['building'='residential'];
+                \tway{bbox}['building'='residential'];
+                \tnode{bbox}['building'='office'];
+                \tway{bbox}['building'='office'];
+                \tnode{bbox}['building'='commercial'];
+                \tway{bbox}['building'='commercial'];
+                \tnode{bbox}['building'='supermarket'];
+                \tway{bbox}['building'='supermarket'];
+                \tnode{bbox}['building'='stadium'];
+                \tway{bbox}['building'='stadium'];"""
+            elif tag == OSMTags.HIGHWAY:
+                query += f"""
+                \tnode{bbox}['highway'='motorway'];
+                \tway{bbox}['highway'='motorway'];
+                \tnode{bbox}['highway'='trunk'];
+                \tway{bbox}['highway'='trunk'];
+                \tnode{bbox}['highway'='primary'];
+                \tway{bbox}['highway'='primary'];
+                \tnode{bbox}['highway'='secondary'];
+                \tway{bbox}['highway'='secondary'];
+                \tnode{bbox}['highway'='tertiary'];
+                \tway{bbox}['highway'='tertiary'];
+                \tnode{bbox}['highway'='road'];
+                \tway{bbox}['highway'='road'];"""
+            else:
+                query += f"""
+                \tnode{bbox}['{tag.value}'];
+                \tway{bbox}['{tag.value}'];"""
 
     query += "\n);\nout geom qt;"
 
@@ -166,16 +199,13 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
 
         element_id = element["id"]
 
-        if "amenity" in element["tags"]:
-            if element["tags"]["amenity"] not in ids.keys():
-                ids[element["tags"]["amenity"]] = [element_id]
-            else:
-                ids[element["tags"]["amenity"]].append(element_id)
-        elif "leisure" in element["tags"]:
-            if element["tags"]["leisure"] not in ids.keys():
-                ids[element["tags"]["leisure"]] = [element_id]
-            else:
-                ids[element["tags"]["leisure"]].append(element_id)
+        for tag in osm_tags:
+            if tag.value in element["tags"]:
+                if element["tags"][tag.value] not in ids.keys():
+                    ids[element["tags"][tag.value]] = [element_id]
+                else:
+                    ids[element["tags"][tag.value]].append(element_id)
+                continue
 
         if element["type"] == "node":
             locations[element_id] = [[element["lat"], element["lon"]]]
@@ -193,9 +223,10 @@ def gps_summaries(
     traj: np.ndarray,
     tz_str: str,
     frequency: Frequency,
-    places_of_interest: Union[List[str], None] = None,
+    places_of_interest: Optional[List[str]] = None,
     save_osm_log: bool = False,
-    threshold: Union[int, None] = None,
+    osm_tags: Optional[List[OSMTags]] = None,
+    threshold: Optional[int] = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
     place_point_radius: float = 7.5,
@@ -218,10 +249,13 @@ def gps_summaries(
             obs (1 as observed and 0 as imputed)
         tz_str: timezone
         frequency: Frequency, the time windows of the summary statistics
-        places_of_interest: list of amenities or leisure places to watch,
+        places_of_interest: list of "osm_tags" places to watch,
             keywords as used in openstreetmaps
+            e.g. ["cafe", "hospital", "restaurant"]
         save_osm_log: bool, True if you want to output a log of locations
             visited and their tags
+        osm_tags: list of tags to search for in openstreetmaps
+            avoid using a lot of them if large area is covered
         threshold: int, time spent in a pause needs to exceed the threshold
             to be placed in the log
             only if save_osm_log True, in minutes
@@ -251,7 +285,7 @@ def gps_summaries(
     locations: Dict[int, List[List[float]]] = {}
     tags: Dict[int, Dict[str, str]] = {}
     if places_of_interest is not None or save_osm_log:
-        ids, locations, tags = get_nearby_locations(traj)
+        ids, locations, tags = get_nearby_locations(traj, osm_tags)
         ids_keys_list = list(ids.keys())
 
     obs_traj = traj[traj[:, 7] == 1, :]
@@ -895,6 +929,7 @@ def gps_stats_main(
     parameters: Hyperparameters = None,
     places_of_interest: list = None,
     save_osm_log: bool = False,
+    osm_tags: Optional[List[OSMTags]] = None,
     threshold: int = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
@@ -922,6 +957,8 @@ def gps_stats_main(
             keywords as used in openstreetmaps
         save_osm_log: bool, True if you want to output a log of locations
             visited and their tags
+        osm_tags: list of tags to search for in openstreetmaps
+            avoid using a lot of them if large area is covered
         threshold: int, time spent in a pause needs to exceed the
             threshold to be placed in the log
             only if save_osm_log True, in minutes
@@ -1067,6 +1104,7 @@ def gps_stats_main(
                     Frequency.HOURLY,
                     places_of_interest,
                     save_osm_log,
+                    osm_tags,
                     threshold,
                     split_day_night,
                 )
@@ -1078,6 +1116,7 @@ def gps_stats_main(
                     Frequency.DAILY,
                     places_of_interest,
                     save_osm_log,
+                    osm_tags,
                     threshold,
                     split_day_night,
                     person_point_radius,
@@ -1104,6 +1143,7 @@ def gps_stats_main(
                     frequency,
                     places_of_interest,
                     save_osm_log,
+                    osm_tags,
                     threshold,
                     split_day_night,
                 )
