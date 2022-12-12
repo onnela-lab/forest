@@ -590,27 +590,22 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
 
             # save results depending on "option"
             if option is None or option == 'both' or option == 'daily':
-                summary_stats = pd.DataFrame({'date':
-                                              days.strftime('%Y-%m-%d'),
-                                              'walking_time':
-                                                  walkingtime_daily[:, -1],
-                                              'steps': steps_daily[:, -1],
-                                              'cadence':
-                                                  cadence_daily[:, -1]})
+                summary_stats = pd.DataFrame({
+                    'date': days.strftime('%Y-%m-%d'),
+                    'walking_time': walkingtime_daily[:, -1],
+                    'steps': steps_daily[:, -1],
+                    'cadence': cadence_daily[:, -1]})
                 output_file = user + "_gait_daily.csv"
                 dest_path = os.path.join(output_folder, "daily",
                                          output_file)
                 summary_stats.to_csv(dest_path, index=False)
             if option is None or option == 'both' or option == 'hourly':
-                summary_stats = pd.DataFrame({'date':
-                                              [date.strftime(
-                                                  '%Y-%m-%d %H:%M:%S')
-                                               for date in days_hourly],
-                                              'walking_time':
-                                                  walkingtime_hourly[:, -1],
-                                              'steps': steps_hourly[:, -1],
-                                              'cadence': cadence_hourly[:, -1]}
-                                             )
+                summary_stats = pd.DataFrame({
+                    'date': [date.strftime('%Y-%m-%d %H:%M:%S')
+                             for date in days_hourly],
+                    'walking_time': walkingtime_hourly[:, -1],
+                    'steps': steps_hourly[:, -1],
+                    'cadence': cadence_hourly[:, -1]})
                 output_file = user + "_gait_hourly.csv"
                 dest_path = os.path.join(output_folder, "hourly",
                                          output_file)
