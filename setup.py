@@ -16,7 +16,7 @@ requires = [
     'wheel'  # for ratelimit
 ]
 
-package_data = {'': ['*.csv', '*.json']}
+package_data = {'forest.poplar.raw': ['noncode/*.csv', 'noncode/*.json']}
 
 with open('README.md') as f:
     readme = f.read()

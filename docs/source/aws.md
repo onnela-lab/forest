@@ -1,3 +1,7 @@
+*Created by:* Marta Karas ([martakarass](https://github.com/martakarass)) on 2022-02-18
+
+*Credits*: Eli Jones ([biblicabeebli](https://github.com/biblicabeebli))
+
 # Working with Forest on AWS
 
 This page provides a quick start for using AWS EC2 and EBS to work  with Beiwe and other collaborators’ data. In particular, it includes guidelines to leverage AWS multicore computing environment and to run a Python file from multiple concurrent jobs running in the background. 

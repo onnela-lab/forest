@@ -7,7 +7,7 @@ import json
 import os
 import pickle
 import sys
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -18,7 +18,7 @@ from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
-from forest.constants import OSM_OVERPASS_URL, Frequency
+from forest.constants import Frequency, OSM_OVERPASS_URL, OSMTags
 from forest.jasmine.data2mobmat import (GPS2MobMat, InferMobMat,
                                         great_circle_dist,
                                         pairwise_great_circle_dist)
@@ -99,13 +99,18 @@ def transform_point_to_circle(lat: float, lon: float, radius: float
     return transform(aeqd_to_wgs84, buffer)
 
 
-def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
+def get_nearby_locations(
+    traj: np.ndarray, osm_tags: Optional[List[OSMTags]] = None
+) -> Tuple[dict, dict, dict]:
     """This function returns a dictionary of nearby locations,
     a dictionary of nearby locations' names, and a dictionary of
     nearby locations' coordinates.
 
     Args:
         traj: numpy array, trajectory
+        osm_tags: list of strings, types of nearby locations
+            supported by Overpass API
+            defaults to ["amenity", "leisure"]
     Returns:
         ids: dictionary, contains nearby locations' ids
         locations: dictionary, contains nearby locations' coordinates
@@ -114,6 +119,8 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
         RuntimeError: if the query to Overpass API fails
     """
 
+    if osm_tags is None:
+        osm_tags = [OSMTags.AMENITY, OSMTags.LEISURE]
     pause_vec = traj[traj[:, 0] == 2]
     latitudes: List[float] = [pause_vec[0, 1]]
     longitudes: List[float] = [pause_vec[0, 2]]
@@ -133,17 +140,55 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
     for lat, lon in zip(latitudes, longitudes):
         bbox = bounding_box((lat, lon), 1000)
 
-        query += f"""
-        \tnode{bbox}['leisure'];
-        \tway{bbox}['leisure'];
-        \tnode{bbox}['amenity'];
-        \tway{bbox}['amenity'];"""
+        for tag in osm_tags:
+            if tag == OSMTags.BUILDING:
+                query += f"""
+                \tnode{bbox}['building'='residential'];
+                \tway{bbox}['building'='residential'];
+                \tnode{bbox}['building'='office'];
+                \tway{bbox}['building'='office'];
+                \tnode{bbox}['building'='commercial'];
+                \tway{bbox}['building'='commercial'];
+                \tnode{bbox}['building'='supermarket'];
+                \tway{bbox}['building'='supermarket'];
+                \tnode{bbox}['building'='stadium'];
+                \tway{bbox}['building'='stadium'];"""
+            elif tag == OSMTags.HIGHWAY:
+                query += f"""
+                \tnode{bbox}['highway'='motorway'];
+                \tway{bbox}['highway'='motorway'];
+                \tnode{bbox}['highway'='trunk'];
+                \tway{bbox}['highway'='trunk'];
+                \tnode{bbox}['highway'='primary'];
+                \tway{bbox}['highway'='primary'];
+                \tnode{bbox}['highway'='secondary'];
+                \tway{bbox}['highway'='secondary'];
+                \tnode{bbox}['highway'='tertiary'];
+                \tway{bbox}['highway'='tertiary'];
+                \tnode{bbox}['highway'='road'];
+                \tway{bbox}['highway'='road'];"""
+            else:
+                query += f"""
+                \tnode{bbox}['{tag.value}'];
+                \tway{bbox}['{tag.value}'];"""
 
     query += "\n);\nout geom qt;"
 
     response = requests.post(OSM_OVERPASS_URL,
                              data={"data": query}, timeout=60)
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except (requests.exceptions.HTTPError
+            or requests.exceptions.ReadTimeout) as err:
+        sys.stdout.write(f"Timeout error: {err}\n")
+        sys.stdout.write(
+            "OpenStreetMap query is too large. "
+            "Do not use save_osm_log or places_of_interest "
+            "unless you need them.\n"
+        )
+        raise RuntimeError(
+            "Query to Overpass API failed to return data in alloted time"
+        )
 
     res = response.json()
     ids: Dict[str, List[int]] = {}
@@ -154,16 +199,13 @@ def get_nearby_locations(traj: np.ndarray) -> Tuple[dict, dict, dict]:
 
         element_id = element["id"]
 
-        if "amenity" in element["tags"]:
-            if element["tags"]["amenity"] not in ids.keys():
-                ids[element["tags"]["amenity"]] = [element_id]
-            else:
-                ids[element["tags"]["amenity"]].append(element_id)
-        elif "leisure" in element["tags"]:
-            if element["tags"]["leisure"] not in ids.keys():
-                ids[element["tags"]["leisure"]] = [element_id]
-            else:
-                ids[element["tags"]["leisure"]].append(element_id)
+        for tag in osm_tags:
+            if tag.value in element["tags"]:
+                if element["tags"][tag.value] not in ids.keys():
+                    ids[element["tags"][tag.value]] = [element_id]
+                else:
+                    ids[element["tags"][tag.value]].append(element_id)
+                continue
 
         if element["type"] == "node":
             locations[element_id] = [[element["lat"], element["lon"]]]
@@ -181,9 +223,10 @@ def gps_summaries(
     traj: np.ndarray,
     tz_str: str,
     frequency: Frequency,
-    places_of_interest: Union[List[str], None] = None,
-    save_log: bool = False,
-    threshold: Union[int, None] = None,
+    places_of_interest: Optional[List[str]] = None,
+    save_osm_log: bool = False,
+    osm_tags: Optional[List[OSMTags]] = None,
+    threshold: Optional[int] = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
     place_point_radius: float = 7.5,
@@ -206,13 +249,16 @@ def gps_summaries(
             obs (1 as observed and 0 as imputed)
         tz_str: timezone
         frequency: Frequency, the time windows of the summary statistics
-        places_of_interest: list of amenities or leisure places to watch,
+        places_of_interest: list of "osm_tags" places to watch,
             keywords as used in openstreetmaps
-        save_log: bool, True if you want to output a log of locations
+            e.g. ["cafe", "hospital", "restaurant"]
+        save_osm_log: bool, True if you want to output a log of locations
             visited and their tags
+        osm_tags: list of tags to search for in openstreetmaps
+            avoid using a lot of them if large area is covered
         threshold: int, time spent in a pause needs to exceed the threshold
             to be placed in the log
-            only if save_log True, in minutes
+            only if save_osm_log True, in minutes
         split_day_night: bool, True if you want to split all metrics to
             daytime and nighttime patterns
             only for daily frequency
@@ -238,8 +284,8 @@ def gps_summaries(
     ids: Dict[str, List[int]] = {}
     locations: Dict[int, List[List[float]]] = {}
     tags: Dict[int, Dict[str, str]] = {}
-    if places_of_interest is not None or save_log:
-        ids, locations, tags = get_nearby_locations(traj)
+    if places_of_interest is not None or save_osm_log:
+        ids, locations, tags = get_nearby_locations(traj, osm_tags)
         ids_keys_list = list(ids.keys())
 
     obs_traj = traj[traj[:, 7] == 1, :]
@@ -425,7 +471,7 @@ def gps_summaries(
         all_place_times = []
         all_place_times_adjusted = []
         log_tags_temp = []
-        if places_of_interest is not None or save_log:
+        if places_of_interest is not None or save_osm_log:
             pause_vec = temp[temp[:, 0] == 2]
             pause_array: np.ndarray = np.array([])
             for row in pause_vec:
@@ -453,11 +499,12 @@ def gps_summaries(
                         )
                     else:
                         pause_array[
-                            great_circle_dist(
-                                row[1], row[2],
-                                pause_array[:, 0], pause_array[:, 1],
-                            )
-                            <= 2*place_point_radius,
+                            np.argmin(
+                                great_circle_dist(
+                                    row[1], row[2],
+                                    pause_array[:, 0], pause_array[:, 1],
+                                )
+                            ),
                             -1,
                         ] += (row[6] - row[3]) / 60
 
@@ -528,7 +575,7 @@ def gps_summaries(
                                 prob * pause[2] / 60
                             )
 
-                if save_log:
+                if save_osm_log:
                     if threshold is None:
                         threshold = 60
                         sys.stdout.write(
@@ -603,8 +650,8 @@ def gps_summaries(
                     hour,
                     obs_dur / 60,
                     time_at_home / 60,
-                    dist_traveled,
-                    max_dist_home,
+                    dist_traveled / 1000,
+                    max_dist_home / 1000,
                     total_flight_time / 60,
                     av_f_len,
                     sd_f_len,
@@ -881,7 +928,8 @@ def gps_stats_main(
     save_traj: bool,
     parameters: Hyperparameters = None,
     places_of_interest: list = None,
-    save_log: bool = False,
+    save_osm_log: bool = False,
+    osm_tags: Optional[List[OSMTags]] = None,
     threshold: int = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
@@ -907,11 +955,13 @@ def gps_stats_main(
             csv file, False if you don't
         places_of_interest: list of amenities or leisure places to watch,
             keywords as used in openstreetmaps
-        save_log: bool, True if you want to output a log of locations
+        save_osm_log: bool, True if you want to output a log of locations
             visited and their tags
+        osm_tags: list of tags to search for in openstreetmaps
+            avoid using a lot of them if large area is covered
         threshold: int, time spent in a pause needs to exceed the
             threshold to be placed in the log
-            only if save_log True, in minutes
+            only if save_osm_log True, in minutes
         split_day_night: bool, True if you want to split all metrics to
             datetime and nighttime patterns
             only for daily frequency
@@ -997,6 +1047,9 @@ def gps_stats_main(
                 participant_id, study_folder, "gps",
                 tz_str, time_start, time_end,
             )
+            if data.shape == (0, 0):
+                sys.stdout.write("No data available.\n")
+                continue
             if orig_r is None:
                 parameters.r = parameters.itrvl
             if orig_h is None:
@@ -1020,9 +1073,15 @@ def gps_stats_main(
             )
             all_bv_set[str(participant_id)] = bv_set = out_dict["BV_set"]
             all_memory_dict[str(participant_id)] = out_dict["memory_dict"]
-            imp_table = ImputeGPS(mobmat2, bv_set, parameters.method,
-                                  parameters.switch, parameters.num,
-                                  parameters.linearity, tz_str, pars1)
+            try:
+                imp_table = ImputeGPS(
+                    mobmat2, bv_set, parameters.method,
+                    parameters.switch, parameters.num,
+                    parameters.linearity, tz_str, pars1
+                )
+            except RuntimeError as e:
+                sys.stderr.write(f"Error: {e}\n")
+                continue
             traj = Imp2traj(imp_table, mobmat2, parameters.itrvl,
                             parameters.r, parameters.w, parameters.h)
             # save all_memory_dict and all_bv_set
@@ -1044,7 +1103,8 @@ def gps_stats_main(
                     tz_str,
                     Frequency.HOURLY,
                     places_of_interest,
-                    save_log,
+                    save_osm_log,
+                    osm_tags,
                     threshold,
                     split_day_night,
                 )
@@ -1055,7 +1115,8 @@ def gps_stats_main(
                     tz_str,
                     Frequency.DAILY,
                     places_of_interest,
-                    save_log,
+                    save_osm_log,
+                    osm_tags,
                     threshold,
                     split_day_night,
                     person_point_radius,
@@ -1063,7 +1124,7 @@ def gps_stats_main(
                 )
                 write_all_summaries(participant_id, summary_stats2,
                                     f"{output_folder}/daily")
-                if save_log:
+                if save_osm_log:
                     os.makedirs(f"{output_folder}/logs", exist_ok=True)
                     with open(
                         f"{output_folder}/logs/locations_logs_hourly.json",
@@ -1081,14 +1142,15 @@ def gps_stats_main(
                     tz_str,
                     frequency,
                     places_of_interest,
-                    save_log,
+                    save_osm_log,
+                    osm_tags,
                     threshold,
                     split_day_night,
                 )
                 write_all_summaries(
                     participant_id, summary_stats, output_folder
                 )
-                if save_log:
+                if save_osm_log:
                     os.makedirs(f"{output_folder}/logs", exist_ok=True)
                     with open(
                         f"{output_folder}/logs/locations_logs.json",

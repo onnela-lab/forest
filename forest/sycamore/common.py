@@ -1,5 +1,4 @@
 import datetime
-import json
 import logging
 import os
 import re
@@ -12,15 +11,12 @@ import pandas as pd
 from forest.utils import get_ids
 from forest.sycamore.constants import (EARLIEST_DATE, QUESTION_TYPES_LOOKUP,
                                        ANDROID_NULLABLE_ANSWER_CHANGE_DATE)
+from forest.sycamore.read_audio import read_aggregate_audio_recordings_stream
+from forest.sycamore.utils import (read_json, get_month_from_today,
+                                   filename_to_timestamp)
 
 
 logger = logging.getLogger(__name__)
-
-
-def get_month_from_today():
-    """Get the date 31 days from today, in YYYY-MM-DD format"""
-    return (datetime.datetime.today() +
-            datetime.timedelta(31)).strftime("%Y-%m-%d")
 
 
 def safe_read_csv(filepath: str) -> pd.DataFrame:
@@ -45,19 +41,6 @@ def safe_read_csv(filepath: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def read_json(study_dir: str) -> dict:
-    """Read a json file into a dictionary
-
-    Args:
-        study_dir (str):  filepath to json file.
-    Returns:
-        A dict representation of the json file
-    """
-    with open(study_dir, "r") as f:
-        dictionary = json.load(f)
-    return dictionary
-
-
 def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
     """Standardizes question types using a lookup function
 
@@ -78,27 +61,6 @@ def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
         return lkp["Android"][q]
     else:
         return q
-
-
-def filename_to_timestamp(filename: str, tz_str: str = "UTC"
-                          ) -> pd.Timestamp:
-    """Extract a datetime from a filepath.
-
-    Args:
-        filename(str):
-            a string, with a csv file at the end formatted like
-            "YYYY-MM-DD HH_MM_SS+00_00"
-        tz_str(str):
-            Output Timezone
-
-    Returns:
-        The Timestamp corresponding to the date in the csv filename, in the
-        time zone corresponding to tz_str
-    """
-    str_to_convert = re.sub("_", ":", filename)[0:25]
-    time_written = pd.to_datetime(str_to_convert
-                                  ).tz_convert(tz_str).tz_localize(None)
-    return time_written
 
 
 def read_and_aggregate(
@@ -238,8 +200,17 @@ def aggregate_surveys(
         ] else row["event"],
         axis=1
     )
+    # Replace the question ID in these rows with a valid question ID for the
+    # survey so that survey scheduling metrics can incorporate surveys that
+    # were opened.
+    # If the only other rows in all_data were rows describing that the survey
+    # was first rendered, put "" for the question ID.
     all_data["question id"] = all_data.apply(
-        lambda row: np.nan if row["question id"] == row["event"]
+        lambda row:
+        (all_data.loc[(all_data["survey id"] == row["survey id"]) &
+                      (all_data["question id"] != all_data["event"]),
+                      "question id"].tolist() + [""])[0]
+        if row["question id"] == row["event"]
         else row["question id"],
         axis=1
     )
@@ -337,7 +308,6 @@ def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
                     if "answers" in q.keys():
                         for j, a in enumerate(q["answers"]):
                             surv["answer_" + str(j)] = a["text"]
-
                 output.append(pd.DataFrame([surv]))
     if len(output) == 0:
         logger.warning("No Data Found")
@@ -374,7 +344,7 @@ def aggregate_surveys_config(
         study_dir: str, config_path: str, study_tz: str = "UTC",
         users: list = None, time_start: str = EARLIEST_DATE,
         time_end: str = None, augment_with_answers: bool = True,
-        history_path: str = None,
+        history_path: str = None, include_audio_surveys: bool = True
 ) -> pd.DataFrame:
     """Aggregate surveys when config is available
 
@@ -404,6 +374,9 @@ def aggregate_surveys_config(
             survey history file is used to find instances of commas or
             semicolons in answer choices to determine the correct choice for
             Android radio questions
+        include_audio_surveys:
+            Whether to include submissions of audio surveys in addition to text
+            surveys
 
     Returns:
         DataFrame of questions and submission lines.
@@ -418,6 +391,20 @@ def aggregate_surveys_config(
         return agg_data
 
     # Merge data together and add configuration survey ID to all lines
+    # Pandas gives an error if question IDs are different data types.
+    # So, we will convert everything to string.
+    # But, if we just do raw conversion to string, we run into problems where
+    # it tries to merge on 'nan'. So, we will convert all of the 'nan' to None
+    # before merging.
+    agg_data["question id"] = np.where(
+        (agg_data["question id"].astype(str) == "nan").to_numpy(),
+        np.full(agg_data.shape[0], None), agg_data["question id"].astype(str)
+    )
+    config_surveys["question_id"] = np.where(
+        (config_surveys["question_id"].astype(str) == "nan").to_numpy(),
+        np.full(config_surveys.shape[0], None),
+        config_surveys["question_id"].astype(str)
+    )
     df_merged = agg_data.merge(
         config_surveys[["config_id", "question_id"]], how="left",
         left_on="question id", right_on="question_id"
@@ -454,15 +441,28 @@ def aggregate_surveys_config(
         df_merged = append_from_answers(df_merged, study_dir, users,
                                         study_tz, time_start, time_end,
                                         config_path, history_path)
+    if include_audio_surveys:
+        audio_surveys = read_aggregate_audio_recordings_stream(
+            study_dir, users, study_tz, config_path, time_start, time_end,
+            history_path
+        )
+        df_merged = pd.concat(
+            [df_merged, audio_surveys], axis=0, ignore_index=False
+        )
+    # mark NO_ANSWER_SELECTED as na because researchers will treat these the
+    # same, and researchers get confused if they see this as a possible answer
+    # that is distinct from na
+    df_merged.loc[
+        df_merged["answer"] == "NO_ANSWER_SELECTED", "answer"
+    ] = np.nan
 
     return df_merged.reset_index(drop=True)
 
 
 def aggregate_surveys_no_config(
         study_dir: str, study_tz: str = "UTC", users: list = None,
-        time_start: str = EARLIEST_DATE,
-        time_end: str = None,
-        augment_with_answers: bool = True
+        time_start: str = EARLIEST_DATE, time_end: str = None,
+        augment_with_answers: bool = True, include_audio_surveys: bool = True
 ) -> pd.DataFrame:
     """Clean aggregated data
 
@@ -481,6 +481,9 @@ def aggregate_surveys_no_config(
         augment_with_answers(bool):
             Whether to use the survey_answers stream to fill in missing surveys
             from survey_timings
+        include_audio_surveys:
+            Whether to include submissions of audio surveys in addition to text
+            surveys. Default is True
 
     Returns:
         DataFrame of questions and submission lines
@@ -497,7 +500,10 @@ def aggregate_surveys_no_config(
         axis=1
     )
 
-    # Remove notification and expiration lines
+    # Remove lines where the event is 'notified' or 'expired'. These lines
+    # will show up on file collected from iOS devices, and they happen when a
+    # user gets notified of a survey and the survey expires because another
+    # survey gets sent.
     agg_data = agg_data.loc[(~agg_data["question id"].isnull())]
 
     # Convert to the study's timezone
@@ -507,6 +513,14 @@ def aggregate_surveys_no_config(
         agg_data["data_stream"] = "survey_timings"
         agg_data = append_from_answers(agg_data, study_dir, users,
                                        study_tz, time_start, time_end)
+    if include_audio_surveys:
+        audio_surveys = read_aggregate_audio_recordings_stream(
+            study_dir, users, study_tz, None, time_start, time_end,
+            None
+        )
+        agg_data = pd.concat(
+            [agg_data, audio_surveys], axis=0, ignore_index=False
+        )
 
     return agg_data.reset_index(drop=True)
 
@@ -711,10 +725,6 @@ def read_user_answers_stream(
                 current_df = safe_read_csv(os.path.join(ans_dir, survey, file))
                 if current_df.shape[0] == 0:
                     continue
-                filename = os.path.basename(file)
-                current_df["UTC time"] = filename_to_timestamp(filename, "UTC")
-                current_df["survey id"] = survey
-
                 # Add a submission line if they at least saw all of the
                 # questions
                 current_df["submit_line"] = 0
@@ -723,8 +733,12 @@ def read_user_answers_stream(
                         current_df,
                         pd.DataFrame({"submit_line": [1], "answer": ""})
                     ]).reset_index()
-
+                # Now, add column values that should apply to all rows
+                current_df["survey id"] = survey
+                filename = os.path.basename(file)
+                current_df["UTC time"] = filename_to_timestamp(filename, "UTC")
                 current_df["surv_inst_flg"] = i
+
                 survey_dfs.append(current_df)
             if len(survey_dfs) == 0:
                 logger.warning("No survey_answers for user %s.", user)
@@ -1057,3 +1071,30 @@ def get_choices_with_sep_values(config_path: str = None,
             "responses may be output for android devices"
         )
     return qs_with_seps
+
+
+def write_data_by_user(df_to_write: pd.DataFrame, output_folder: str,
+                       users: list = None):
+    """
+    Write a dataframe to csv files, with a csv file corresponding to each user.
+
+    This function is used to mimic how files are written by
+        forest.jasmine.gps_stats_main and forest.willow.log_stats_main
+
+    Args:
+        output_folder: path to folder to write csv files in
+        df_to_write: dataframe to be written
+        users: list of users to split dataframe by
+
+    """
+    os.makedirs(output_folder, exist_ok=True)
+
+    if users is None:
+        users = df_to_write.beiwe_id.unique().tolist()
+    for user in users:
+        current_df = df_to_write.loc[df_to_write.beiwe_id == user, :].copy()
+        if current_df.shape[0] == 0:
+            continue
+        current_df.drop("beiwe_id", axis=1, inplace=True)
+        path_to_write = os.path.join(output_folder, user + ".csv")
+        current_df.to_csv(path_to_write, index=False)

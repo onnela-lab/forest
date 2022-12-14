@@ -8,6 +8,7 @@ import pandas as pd
 
 from forest.constants import Frequency
 from forest.sycamore.common import read_json
+from forest.sycamore.read_audio import get_audio_survey_id_dict
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,7 @@ def generate_survey_times(
 
         weeks = pd.Timedelta(t_end - t_start).days
         # Get ceiling number of weeks
-        weeks = math.floor(weeks / 7.0)
+        weeks = math.ceil(weeks / 7.0)
 
         # Roll dates
         t_lag = list(np.roll(np.array(timings, dtype="object"), -1))
@@ -128,9 +129,36 @@ def generate_survey_times(
     return surveys
 
 
+def get_question_ids(survey_dict: dict, audio_survey_id_dict: dict) -> list:
+    """Get question IDs from a survey's dict object.
+
+    Args:
+        survey_dict: A dict with information from a specific survey. For
+            example, this would come from read_json(config_path)["surveys"][0]
+        audio_survey_id_dict: Output from get_audio_survey_id_dict. Dict with
+            survey prompts as keys and survey IDs as values
+    Returns:
+        List of all question IDs for an individual. For audio surveys, it will
+        create a "question ID" that is identical to the survey ID
+
+    """
+    question_ids = []
+    for question in survey_dict["content"]:
+        if "question_id" in question.keys():
+            question_ids.append(question["question_id"])
+        elif "prompt" in question.keys():
+            audio_prompt = question["prompt"]
+            if audio_prompt not in audio_survey_id_dict.keys():
+                logger.warning("Unable to find survey ID for audio prompt " +
+                               audio_prompt)
+                continue
+            question_ids.append(audio_survey_id_dict[audio_prompt])
+    return question_ids
+
+
 def gen_survey_schedule(
         config_path: str, time_start: str, time_end: str, users: list,
-        all_interventions_dict: dict
+        all_interventions_dict: dict, history_path: str = None
 ) -> pd.DataFrame:
     """Get survey schedule for a number of users
 
@@ -152,11 +180,14 @@ def gen_survey_schedule(
             Dictionary containing a key for every beiwe id.
             Each value in the dict is a dict, with a key for each intervention
             and a timestamp for each intervention time
+        history_path: Filepath to the survey history file. If this is not
+            included, audio survey timings cannot be estimated.
 
     Returns:
         DataFrame with a line for every survey deployed to every user in
         the study for the given time range
     """
+    audio_survey_id_dict = get_audio_survey_id_dict(history_path)
     # List of surveys
     surveys = read_json(config_path)["surveys"]
     # For each survey create a list of survey times
@@ -212,8 +243,7 @@ def gen_survey_schedule(
             tbl["id"] = i
             tbl["beiwe_id"] = user
             # Get all question IDs for the survey
-            qs = [q["question_id"]
-                  for q in s["content"] if "question_id" in q.keys()]
+            qs = get_question_ids(s, audio_survey_id_dict)
             if len(qs) > 0:
                 q_ids = pd.DataFrame({"question_id": qs})
                 tbl = pd.merge(tbl, q_ids, how="cross")
@@ -229,7 +259,8 @@ def gen_survey_schedule(
 
 def survey_submits(
         config_path: str, time_start: str, time_end: str, users: list,
-        aggregated_data: pd.DataFrame, interventions_filepath: str = None
+        aggregated_data: pd.DataFrame, interventions_filepath: str = None,
+        history_path: str = None
 ) -> pd.DataFrame:
     """Get survey submits for users
 
@@ -247,6 +278,8 @@ def survey_submits(
             filepath where interventions json file is.
         aggregated_data(DataFrame):
             Dataframe of aggregated data. Output from aggregate_surveys_config
+        history_path: Filepath to the survey history file. If this is not
+            included, audio survey timings cannot be estimated.
 
     Returns:
         A DataFrame with deployment time and information about each user's
@@ -260,7 +293,7 @@ def survey_submits(
             interventions_filepath)
 
     sched = gen_survey_schedule(config_path, time_start, time_end, users,
-                                all_interventions_dict)
+                                all_interventions_dict, history_path)
     if sched.shape[0] == 0:  # return empty dataframe
         logger.error("Error: No survey schedules found")
         return pd.DataFrame(columns=[["survey id", "beiwe_id"]])
@@ -293,6 +326,31 @@ def survey_submits(
     agg["start_time"] = agg.groupby(
         ["beiwe_id", "survey id", "surv_inst_flg"]
     )["Local time"].transform("first")
+    # get rid of answers that were blank responses
+    only_real_answers = agg.loc[
+        ~agg.answer.isin(["", np.nan, None, [], "[]", "NO_ANSWER_SELECTED"]),
+        ["beiwe_id", "survey id", "surv_inst_flg", "question id"]]
+    # Look for the number of unique questions where the answer was a real thing
+    only_real_answers["num_questions_answered"] = only_real_answers.groupby(
+        ["beiwe_id", "survey id", "surv_inst_flg"]
+    )["question id"].transform(lambda x: x.nunique())
+    # When we do the join, we don't want to create any additional rows in the
+    # agg dataframe by having duplicate rows. We also don't want to have the
+    # duplicate column.
+    only_real_answers = only_real_answers[
+        ["beiwe_id", "survey id", "surv_inst_flg", "num_questions_answered"]
+    ].drop_duplicates()
+    # Append the num_questions_answered column to agg dataframe
+    agg = pd.merge(
+        agg, only_real_answers,
+        # We have to drop 'question id' so that rows with no answer will still
+        # get a num_questions_answered
+        on=["beiwe_id", "survey id", "surv_inst_flg"],
+        how="left"
+    )
+    # any rows that didn't get joined will be 0 for now
+    agg["num_questions_answered"] = agg["num_questions_answered"].fillna(0)
+
     # Merge survey submit lines onto the schedule data and identify submitted
     # lines
     # This creates a very long dataframe with all survey submissions/openings
@@ -303,7 +361,7 @@ def survey_submits(
         ].drop_duplicates(),
         agg[
             ["Local time", "config_id", "survey id", "beiwe_id", "submit_line",
-             "opened_line", "start_time"]
+             "opened_line", "start_time", "num_questions_answered"]
         ].loc[(agg.submit_line == 1) |
               (agg.opened_line == 1)].drop_duplicates(),
         how="left", left_on=["id", "beiwe_id"],
@@ -325,9 +383,15 @@ def survey_submits(
         (submit_lines["submit_flg"] == 1),
         1, 0
     )
+    # If they didn't open, they couldn't have started the survey
     submit_lines["start_time"] = np.where(
         (submit_lines["opened_flg"] == 0) & (submit_lines["submit_flg"] == 0),
         np.datetime64("NaT"), submit_lines["start_time"]
+    )
+    # If they didn't open, it doesn't make sense to have questions answered
+    submit_lines["num_questions_answered"] = np.where(
+        (submit_lines["opened_flg"] == 0) & (submit_lines["submit_flg"] == 0),
+        np.nan, submit_lines["num_questions_answered"]
     )
     # Find whether there were any submissions or openings in each time period
     submit_lines2 = submit_lines.groupby(
@@ -340,7 +404,9 @@ def survey_submits(
     merge_cols = ["delivery_time", "next_delivery_time", "survey id",
                   "beiwe_id", "config_id", "submit_flg", "opened_flg"]
     submit_lines3 = pd.merge(
-        submit_lines2, submit_lines[merge_cols + ["Local time", "start_time"]],
+        submit_lines2, submit_lines[
+            merge_cols + ["Local time", "start_time", "num_questions_answered"]
+        ],
         how="left", left_on=merge_cols, right_on=merge_cols
     )
     submit_lines3["submit_time"] = np.where(
@@ -351,7 +417,7 @@ def survey_submits(
     # Select appropriate columns
     submit_lines3 = submit_lines3[
         ["survey id", "delivery_time", "beiwe_id", "submit_flg", "opened_flg",
-         "submit_time", "start_time"]
+         "submit_time", "start_time", "num_questions_answered"]
     ]
     submit_lines3["time_to_submit"] = (
             submit_lines3["submit_time"] - submit_lines3["delivery_time"]

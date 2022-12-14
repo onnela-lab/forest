@@ -44,6 +44,9 @@ def locate_home(MobMat,tz_str):
     Args: MobMat, a k*7 2d array, output from InferMobMat()
           tz_str, timezone, string
     Return: home_x, home_y, two scalar, represent the latitude and longtitude of user's home
+    Raises:
+        RuntimeError: if not enough data to infer home location
+
     """
     ObsTraj = MobMat[MobMat[:,0]==2,:]
     hours = []
@@ -51,6 +54,10 @@ def locate_home(MobMat,tz_str):
         time_list = stamp2datetime((ObsTraj[i,3]+ObsTraj[i,6])/2,tz_str)
         hours.append(time_list[3])
     hours = np.array(hours)
+    if ((hours >= 19) + (hours <= 9)).sum() <= 0: 
+        raise RuntimeError(
+            "No home location found: Too few observations at night"
+        )
     home_pauses = ObsTraj[((hours>=19)+(hours<=9))*ObsTraj[:,0]==2,:]
     loc_x,loc_y,num_xy,t_xy = num_sig_places(home_pauses,20)
     home_index = num_xy.index(max(num_xy))
@@ -177,7 +184,7 @@ def create_tables(MobMat, BV_set):
     flight_table = BV_set[index,:]
     index = [BV_set[i,0]==2 for i in range(m)]
     pause_table = BV_set[index,:]
-    mis_table = np.zeros(8)
+    mis_table = np.zeros((1, 8))
     for i in range(n-1):
         if MobMat[i+1,3]!=MobMat[i,6]:
             ## also record if it's flight/pause before and after the missing interval
@@ -502,7 +509,7 @@ def Imp2traj(imp_table,MobMat,itrvl,r,w,h):
             which is an indicator showing if the peice of traj is imputed (0) or observed (1)
     """
     sys.stdout.write("Tidying up the trajectories..." + '\n')
-    mis_table = np.zeros(8)
+    mis_table = np.zeros((1, 8))
     for i in range(np.shape(MobMat)[0]-1):
         if MobMat[i+1,3]!=MobMat[i,6]:
             ## also record if it's flight/pause before and after the missing interval
@@ -553,8 +560,11 @@ def Imp2traj(imp_table,MobMat,itrvl,r,w,h):
                     for j in range(len(knots)-1):
                         traj.append([1,mat[knots[j],0],mat[knots[j],1],mat[knots[j],2],mat[knots[j+1],0],mat[knots[j+1],1],mat[knots[j+1],2]])
     traj = np.array(traj)
-    traj = np.hstack((traj,np.zeros((traj.shape[0],1))))
-    full_traj = np.vstack((traj,MobMat))
+    if traj.shape[0]!=0:
+        traj = np.hstack((traj,np.zeros((traj.shape[0],1))))
+        full_traj = np.vstack((traj,MobMat))
+    else:
+        full_traj = MobMat
     float_traj = full_traj[full_traj[:,3].argsort()].astype(float)
     final_traj = float_traj[float_traj[:,6]-float_traj[:,3]>0,:]
     return final_traj

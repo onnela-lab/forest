@@ -590,6 +590,7 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
 
             # save results depending on "option"
             if option is None or option == 'both' or option == 'daily':
+
                 summary_stats = pd.DataFrame({
                     'date': days.strftime('%Y-%m-%d'),
                     'walking_time': walkingtime_daily[:, -1],

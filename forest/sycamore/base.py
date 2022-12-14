@@ -6,7 +6,8 @@ from forest.constants import Frequency
 from forest.utils import get_ids
 from forest.sycamore.common import (aggregate_surveys_config,
                                     aggregate_surveys_no_config,
-                                    get_month_from_today
+                                    get_month_from_today,
+                                    write_data_by_user
                                     )
 from forest.sycamore.constants import EARLIEST_DATE
 from forest.sycamore.responses import (agg_changed_answers_summary,
@@ -24,7 +25,8 @@ def compute_survey_stats(
         start_date: str = EARLIEST_DATE, end_date: Optional[str] = None,
         config_path: Optional[str] = None, interventions_filepath: str = None,
         augment_with_answers: bool = True, submits_timeframe: str = "both",
-        submits_by_survey_id: bool = True, history_path: str = None
+        submits_by_survey_id: bool = True, history_path: str = None,
+        include_audio_surveys: bool = True
 ) -> bool:
     """Compute statistics on surveys
 
@@ -61,7 +63,11 @@ def compute_survey_stats(
     history_path: Path to survey history file. If this is included, the survey
             history file is used to find instances of commas or semicolons in
             answer choices to determine the correct choice for Android radio
-            questions
+            questions. In addition, this is used to generate timings for audio
+            surveys.
+    include_audio_surveys:
+            Whether to include submissions of audio surveys in addition to text
+            surveys
     """
     os.makedirs(output_folder, exist_ok=True)
     os.makedirs(os.path.join(output_folder, "summaries"), exist_ok=True)
@@ -76,7 +82,7 @@ def compute_survey_stats(
                        "Skipping some summary outputs.")
         agg_data = aggregate_surveys_no_config(
             study_folder, tz_str, users, start_date, end_date,
-            augment_with_answers
+            augment_with_answers, include_audio_surveys
         )
         if agg_data.shape[0] == 0:
             logger.error("Error: No survey data found in %s", study_folder)
@@ -84,7 +90,7 @@ def compute_survey_stats(
     else:
         agg_data = aggregate_surveys_config(
             study_folder, config_path, tz_str, users, start_date,
-            end_date, augment_with_answers, history_path
+            end_date, augment_with_answers, history_path, include_audio_surveys
         )
         if agg_data.shape[0] == 0:
             logger.error("Error: No survey data found in %s", study_folder)
@@ -104,7 +110,7 @@ def compute_survey_stats(
             # Create survey submits detail and summary
             ss_detail = survey_submits(
                 config_path, start_date, end_date,
-                users, agg_data, interventions_filepath
+                users, agg_data, interventions_filepath, history_path
             )
             ss_summary = summarize_submits(ss_detail, None,
                                            submits_by_survey_id)
@@ -169,3 +175,86 @@ def compute_survey_stats(
         index=False
     )
     return True
+
+
+def get_submits_for_tableau(
+        study_folder: str, output_folder: str, config_path: str,
+        tz_str: str = "UTC", start_date: str = EARLIEST_DATE,
+        end_date: Optional[str] = None, users: Optional[List] = None,
+        interventions_filepath: str = None,
+        submits_timeframe: Frequency = Frequency.DAILY,
+        history_path: str = None
+):
+    """Get survey submissions per day for integration into Tableau WDC
+    Args:
+    study_folder:
+        File path to study data
+    output_folder:
+        File path to output submission summaries
+    config_path:
+        File path to study configuration file
+    tz_str:
+        Timezone of study. This defaults to "UTC"
+    start_date:
+        The earliest date of survey data to read in, in YYYY-MM-DD format
+    end_date:
+        The latest survey data to read in, in YYYY-MM-DD format
+    users:
+        List of users in study for which we are generating a survey schedule
+    interventions_filepath:
+        filepath where interventions json file is.
+    submits_timeframe:
+        The timeframe to summarize survey submissions over, of class
+        forest.constants.Frequency. One of Frequency.DAILY, Frequency.HOURLY,
+        or Frequency.BOTH.
+    history_path: Filepath to the survey history file. If this is not
+            included, audio survey timings cannot be estimated.
+
+    Returns:
+    Writes a csv file for each user in the output folder with survey summary
+        statistics"""
+    os.makedirs(output_folder, exist_ok=True)
+    if users is None:
+        users = get_ids(study_folder)
+    if end_date is None:
+        end_date = get_month_from_today()
+    # Read, aggregate and clean data
+    else:
+        agg_data = aggregate_surveys_config(
+            study_folder, config_path, tz_str, users, start_date,
+            end_date, augment_with_answers=True, include_audio_surveys=True
+        )
+        if agg_data.shape[0] == 0:
+            logger.error("Error: No survey data found in %s", study_folder)
+            return
+        # Create survey submits detail and summary
+        ss_detail = survey_submits(
+            config_path, start_date, end_date,
+            users, agg_data, interventions_filepath, history_path
+        )
+        if ss_detail.shape[0] == 0:
+            logger.error("Error: no submission data found")
+            return
+        if Frequency(submits_timeframe) == Frequency.BOTH:
+            ss_summary_h = summarize_submits(
+                ss_detail, Frequency.HOURLY, False
+            )
+            ss_summary_d = summarize_submits(
+                ss_detail, Frequency.DAILY, False
+            )
+            write_data_by_user(ss_summary_d,
+                               os.path.join(output_folder, "both", "daily"),
+                               users)
+            write_data_by_user(ss_summary_h,
+                               os.path.join(output_folder, "both", "hourly"),
+                               users)
+        elif Frequency(submits_timeframe) == Frequency.HOURLY:
+            ss_summary_h = summarize_submits(
+                ss_detail, Frequency.HOURLY, False
+            )
+            write_data_by_user(ss_summary_h, output_folder, users)
+        elif Frequency(submits_timeframe) == Frequency.DAILY:
+            ss_summary_d = summarize_submits(
+                ss_detail, Frequency.DAILY, False
+            )
+            write_data_by_user(ss_summary_d, output_folder, users)
