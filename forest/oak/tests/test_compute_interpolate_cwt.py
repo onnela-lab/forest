@@ -7,7 +7,7 @@ from forest.oak.base import preprocess_bout, compute_interpolate_cwt
 
 def test_compute_interpolate_cwt(signal_bout, fs, wavelet):
     timestamp, _, x, y, z = signal_bout
-    vm_bout = preprocess_bout(timestamp, x, y, z)[3]
+    vm_bout = preprocess_bout(timestamp, x, y, z)[1]
 
     freqs_interp, coefs_interp = compute_interpolate_cwt(vm_bout, fs, wavelet)
 

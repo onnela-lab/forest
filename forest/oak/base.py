@@ -27,31 +27,6 @@ from forest.utils import get_ids
 logger = logging.getLogger(__name__)
 
 
-def rle(inarray: np.ndarray) -> tuple:
-    """Runs length encoding.
-
-    Args:
-        inarray: array of Boolean values
-            input for run length encoding
-
-    Returns:
-        Tuple of running length, starting index, and running values
-
-    """
-    array_length = len(inarray)
-    if array_length == 0:
-        return None, None, None
-
-    pairwise_unequal = inarray[1:] != inarray[:-1]  # pairwise unequal
-    ind = np.append(np.where(pairwise_unequal),
-                    array_length - 1)  # must include last element position
-    run_length = np.diff(np.append(-1, ind))  # run lengths
-    start_ind = np.cumsum(np.append(0, run_length))[:-1]  # position
-    val = inarray[ind]  # running values
-
-    return run_length, start_ind, val
-
-
 def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
                     z_bout: np.ndarray, fs: int = 10) -> tuple:
     """Preprocesses accelerometer bout to a common format.
@@ -94,22 +69,25 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
     # number of full seconds of measurements
     num_seconds = np.floor(len(x_bout_interp)/fs)
 
-    # trim measurement to full seconds
-    x_bout = x_bout_interp[:int(num_seconds*fs)]
-    y_bout = y_bout_interp[:int(num_seconds*fs)]
-    z_bout = z_bout_interp[:int(num_seconds*fs)]
+    # trim and decimate t
+    t_bout_interp = t_bout_interp[:int(num_seconds*fs)]
+    t_bout_interp = t_bout_interp[::fs]
 
-    vm_bout = np.sqrt(x_bout**2 + y_bout**2 + z_bout**2)
+    # calculate vm
+    vm_bout_interp = np.sqrt(x_bout_interp**2 + y_bout_interp**2 +
+                             z_bout_interp**2)
 
     # standardize measurement to gravity units (g) if its recorded in m/s**2
-    if np.mean(vm_bout) > 5:
-        x_bout = x_bout/9.80665
-        y_bout = y_bout/9.80665
-        z_bout = z_bout/9.80665
+    if np.mean(vm_bout_interp) > 5:
+        x_bout_interp = x_bout_interp/9.80665
+        y_bout_interp = y_bout_interp/9.80665
+        z_bout_interp = z_bout_interp/9.80665
 
-    vm_bout = np.sqrt(x_bout**2 + y_bout**2 + z_bout**2) - 1
+    # calculate vm after unit verification
+    vm_bout_interp = np.sqrt(x_bout_interp**2 + y_bout_interp**2 +
+                             z_bout_interp**2) - 1
 
-    return x_bout, y_bout, z_bout, vm_bout
+    return t_bout_interp, vm_bout_interp
 
 
 def adjust_bout(inarray: np.ndarray, fs: int = 10) -> np.ndarray:
@@ -437,7 +415,7 @@ def find_continuous_dominant_peaks(valid_peaks: np.ndarray, min_t: int,
 
 def run(study_folder: str, output_folder: str, tz_str: str = None,
         option: str = None, time_start: str = None, time_end: str = None,
-        users: list = None, fs: int = 10) -> None:
+        users: list = None) -> None:
     """Runs walking recognition and step counting algorithm over dataset.
 
     Determine paths to input and output folders, set analysis time frames,
@@ -458,8 +436,6 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
             final date of study in format: 'YYYY-mm-dd HH_MM_SS'
         users: list of strings
             beiwe ID selected for computation
-        fs: integer
-            sampling frequency
     """
 
     # determine timezone shift
@@ -504,8 +480,7 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
             time_min = time_min.replace(tzinfo=from_zone).astimezone(to_zone)
             time_max = datetime.strptime(time_end, fmt)
             time_max = time_max.replace(tzinfo=from_zone).astimezone(to_zone)
-            dates = [date for date in dates if
-                     date >= time_min and date <= time_max]
+            dates = [date for date in dates if time_min <= date <= time_max]
 
         dates_shifted = [date-timedelta(hours=date.hour) for date in dates]
 
@@ -533,9 +508,9 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
         cadence_daily = np.full((len(days), 1), np.nan)
         walkingtime_daily = np.full((len(days), 1), np.nan)
 
-        steps_hourly = np.full((len(days), 24), np.nan)
-        cadence_hourly = np.full((len(days), 24), np.nan)
-        walkingtime_hourly = np.full((len(days), 24), np.nan)
+        steps_hourly = np.full((len(days_hourly), 1), np.nan)
+        cadence_hourly = np.full((len(days_hourly), 1), np.nan)
+        walkingtime_hourly = np.full((len(days_hourly), 1), np.nan)
 
         for d_ind, d_datetime in enumerate(days):
             logger.info("Day: %d", d_ind)
@@ -544,135 +519,95 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
             file_ind = [i for i, x in enumerate(dates_shifted)
                         if x == d_datetime]
 
-            # initiate temporal metric
-            cadence_temp_daily = []
+            # check if there is at least one file for a given day
+            if len(file_ind) <= 0:
+                continue
 
+            # initiate dataframe
+            data = pd.DataFrame()
+
+            # load data for a given day
             for f in file_ind:
                 logger.info("File: %d", f)
 
-                # initiate temporal metric
-                cadence_temp_hourly = []
-
-                # hour of the day
-                h_ind = int((dates[f] - dates_shifted[f]).seconds/60/60)
-
                 # read data
-                data = pd.read_csv(os.path.join(source_folder, file_list[f]))
+                file_path = os.path.join(source_folder, file_list[f])
+                data = pd.concat([data, pd.read_csv(file_path)], axis=0)
 
-                try:
-                    t = data["UTC time"].tolist()
-                    timestamp = np.array(data["timestamp"])
-                    x = np.array(data["x"], dtype="float64")  # x-axis acc.
-                    y = np.array(data["y"], dtype="float64")  # y-axis acc.
-                    z = np.array(data["z"], dtype="float64")  # z-axis acc.
+            # extract data
+            timestamp = np.array(data["timestamp"]) / 1000
+            x = np.array(data["x"], dtype="float64")  # x-axis acc.
+            y = np.array(data["y"], dtype="float64")  # y-axis acc.
+            z = np.array(data["z"], dtype="float64")  # z-axis acc.
 
-                except (IndexError, RuntimeError):
-                    logger.error('Corrupted file')
-                    continue
+            # preprocess data fragment
+            t_bout_interp, vm_bout = preprocess_bout(timestamp, x, y, z)
 
-                # process time format to allow identification of bout samples
-                t = [t_ind.replace("T", " ") for t_ind in t]
-                t = [datetime.strptime(t_ind, '%Y-%m-%d %H:%M:%S.%f')
-                     for t_ind in t]
-                t_shifted = [t_i-timedelta(microseconds=t_i.microsecond)
-                             for t_i in t]
+            # get t as datetimes
+            t_datetime = [datetime.fromtimestamp(t_ind)
+                          for t_ind in t_bout_interp]
 
-                # find seconds with enough samples
-                hour_start = t_shifted[0]
-                hour_start = (hour_start -
-                              timedelta(minutes=hour_start.minute) -
-                              timedelta(seconds=hour_start.second))
-                hour_end = hour_start + timedelta(hours=1)
-                t_sec_bins = pd.date_range(hour_start,
-                                           hour_end, freq='S').tolist()
-                samples_per_sec, t_sec_bins = np.histogram(t_shifted,
-                                                           t_sec_bins)
+            # transform t to full hours
+            t_hours = [t_i -
+                       timedelta(minutes=t_i.minute) -
+                       timedelta(seconds=t_i.second) -
+                       timedelta(microseconds=t_i.microsecond)
+                       for t_i in t_datetime]
+            t_hours = [date.replace(tzinfo=from_zone).astimezone(to_zone)
+                       for date in t_hours]
 
-                # seconds with enough samples / 9 should be in fact fs
-                samples_enough = samples_per_sec >= (fs - 1)
+            # find walking and estimate cadence
+            cadence_bout = find_walking(vm_bout)
 
-                # find bouts with sufficient duration (here, minimum 5s)
-                run_length, start_ind, val = rle(samples_enough)
-                bout_start = start_ind[val & (run_length >= 5)]
-                bout_duration = run_length[val & (run_length >= 5)]
+            # distribute metrics across hours
+            if option is None or option == 'both' or option == 'hourly':
+                for t_unique in np.unique(np.array(t_hours)):
+                    ind_to_store = [t_ind.to_pydatetime() for t_ind in
+                                    days_hourly].index(t_unique)
+                    cadence_ind = np.array([time == t_unique for time in
+                                            t_hours])
+                    cadence_temp = cadence_bout[cadence_ind]
+                    cadence_temp = cadence_temp[np.where(cadence_temp > 0)]
 
-                for b_ind, b_datetime in enumerate(bout_start):
-                    # create a list with second-level timestamps
-                    bout_time = pd.date_range(
-                        t_sec_bins[bout_start[b_ind]],
-                        t_sec_bins[bout_start[b_ind] + bout_duration[b_ind]],
-                        freq='S').tolist()
-                    bout_time = [t_i.to_pydatetime() for t_i in bout_time[:-1]]
-
-                    # find observations in this bout
-                    acc_ind = np.isin(t_shifted, bout_time)
-                    t_bout = timestamp[acc_ind]/1000
-                    x_bout = x[acc_ind]
-                    y_bout = y[acc_ind]
-                    z_bout = z[acc_ind]
-
-                    # compute only if phone is on the body
-                    if np.sum([np.std(x_bout), np.std(y_bout),
-                               np.std(z_bout)]) > 0.1:
-
-                        # interpolate bout to 10Hz and calculate vm
-                        vm_bout = preprocess_bout(t_bout, x_bout, y_bout,
-                                                  z_bout)[3]
-
-                        # find walking and estimate steps
-                        cadence_bout = find_walking(vm_bout)
-                        cadence_bout = cadence_bout[np.where(cadence_bout
-                                                             > 0)]
-                        cadence_temp_daily.append(cadence_bout)
-                        cadence_temp_hourly.append(cadence_bout)
-
-                if option is None or option == 'both' or option == 'hourly':
-                    cadence_temp_hourly = [item for sublist in
-                                           cadence_temp_hourly
-                                           for item in sublist]
-
-                    walkingtime_hourly[d_ind, h_ind] = len(
-                        cadence_temp_hourly)
-                    steps_hourly[d_ind, h_ind] = int(np.sum(
-                        cadence_temp_hourly))
-                    if len(cadence_temp_hourly) > 0:
-                        cadence_hourly[d_ind, h_ind] = np.mean(
-                            cadence_temp_hourly)
+                    # store hourly metrics
+                    steps_hourly[ind_to_store] = int(np.sum(cadence_temp))
+                    if len(cadence_temp) > 0:  # control for empty slices
+                        cadence_hourly[ind_to_store] = np.mean(
+                            cadence_temp)
                     else:
-                        cadence_hourly[d_ind, h_ind] = np.nan
+                        cadence_hourly[ind_to_store] = np.nan
+                    walkingtime_hourly[ind_to_store] = len(cadence_temp)
 
+            cadence_bout = cadence_bout[np.where(cadence_bout > 0)]
+
+            # store daily metrics
+            steps_daily[d_ind] = int(np.sum(cadence_bout))
+            if len(cadence_bout) > 0:  # control for empty slices
+                cadence_daily[d_ind] = np.mean(cadence_bout)
+            else:
+                cadence_daily[d_ind] = np.nan
+            walkingtime_daily[d_ind] = len(cadence_bout)
+
+            # save results depending on "option"
             if option is None or option == 'both' or option == 'daily':
-                cadence_temp_daily = [item for sublist in
-                                      cadence_temp_daily
-                                      for item in sublist]
 
-                walkingtime_daily[d_ind] = len(cadence_temp_daily)
-                steps_daily[d_ind] = int(np.sum(cadence_temp_daily))
-                if len(cadence_temp_daily) > 0:
-                    cadence_daily[d_ind] = np.mean(cadence_temp_daily)
-                else:
-                    cadence_daily[d_ind] = np.nan
-
-        # save results
-        if option is None or option == 'both' or option == 'daily':
-            summary_stats = pd.DataFrame({'date': days.strftime('%Y-%m-%d'),
-                                          'walking_time':
-                                              walkingtime_daily[:, -1],
-                                          'steps': steps_daily[:, -1],
-                                          'cadence': cadence_daily[:, -1]})
-
-            output_file = user + "_gait_daily.csv"
-            dest_path = os.path.join(output_folder, "daily", output_file)
-            summary_stats.to_csv(dest_path, index=False)
-
-        if option is None or option == 'both' or option == 'hourly':
-            summary_stats = pd.DataFrame({'date': days_hourly.
-                                          strftime('%Y-%m-%d %H:%M:%S'),
-                                          'walking_time': walkingtime_hourly.
-                                          flatten(),
-                                          'steps': steps_hourly.flatten(),
-                                          'cadence': cadence_hourly.flatten()})
-
-            output_file = user + "_gait_hourly.csv"
-            dest_path = os.path.join(output_folder, "hourly", output_file)
-            summary_stats.to_csv(dest_path, index=False)
+                summary_stats = pd.DataFrame({
+                    'date': days.strftime('%Y-%m-%d'),
+                    'walking_time': walkingtime_daily[:, -1],
+                    'steps': steps_daily[:, -1],
+                    'cadence': cadence_daily[:, -1]})
+                output_file = user + "_gait_daily.csv"
+                dest_path = os.path.join(output_folder, "daily",
+                                         output_file)
+                summary_stats.to_csv(dest_path, index=False)
+            if option is None or option == 'both' or option == 'hourly':
+                summary_stats = pd.DataFrame({
+                    'date': [date.strftime('%Y-%m-%d %H:%M:%S')
+                             for date in days_hourly],
+                    'walking_time': walkingtime_hourly[:, -1],
+                    'steps': steps_hourly[:, -1],
+                    'cadence': cadence_hourly[:, -1]})
+                output_file = user + "_gait_hourly.csv"
+                dest_path = os.path.join(output_folder, "hourly",
+                                         output_file)
+                summary_stats.to_csv(dest_path, index=False)
