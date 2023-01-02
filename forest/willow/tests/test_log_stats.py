@@ -1,12 +1,13 @@
 import pandas as pd
 
+from forest.constants import Frequency
 from forest.willow.log_stats import comm_logs_summaries
 
 ID = "6b38vskd"
 STAMP_START = 1453837206
 STAMP_END = 1454634000
 TZ_STR = "America/New_York"
-OPTION = "daily"
+OPTION = Frequency.DAILY
 
 
 def test_comm_log_summaries_with_empty_data():
