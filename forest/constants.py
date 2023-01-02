@@ -20,6 +20,9 @@ class Frequency(Enum):
     HOURLY = "hourly"
     DAILY = "daily"
     BOTH = "both"
+    THREE_HOURLY = "three_hourly"
+    SIX_HOURLY = "six_hourly"
+    TWELVE_HOURLY = "twelve_hourly"
 
 
 class OSMTags(Enum):

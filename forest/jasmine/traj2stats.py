@@ -276,7 +276,12 @@ def gps_summaries(
         ValueError: Frequency is not valid
     """
 
-    if frequency == Frequency.HOURLY:
+    if (
+        frequency == Frequency.HOURLY or
+        frequency == Frequency.THREE_HOURLY or
+        frequency == Frequency.SIX_HOURLY or
+        frequency == Frequency.TWELVE_HOURLY
+    ):
         split_day_night = False
     elif frequency == Frequency.BOTH:
         raise ValueError("Frequency must be 'hourly' or 'daily'")
@@ -293,7 +298,7 @@ def gps_summaries(
     summary_stats: List[List[float]] = []
     log_tags: Dict[str, List[dict]] = {}
     saved_polygons: Dict[str, Polygon] = {}
-    if frequency == Frequency.HOURLY:
+    if frequency != Frequency.DAILY:
         # find starting and ending time
         sys.stdout.write("Calculating the hourly summary stats...\n")
         time_list = stamp2datetime(traj[0, 3], tz_str)
@@ -304,7 +309,14 @@ def gps_summaries(
         end_stamp = datetime2stamp(time_list, tz_str)
         # start_time, end_time are exact points
         # (if it ends at 2019-3-8 11 o'clock, then 11 shouldn't be included)
-        window = 60 * 60
+        if frequency == Frequency.HOURLY:
+            window = 60 * 60
+        elif frequency == Frequency.THREE_HOURLY:
+            window = 60 * 60 * 3
+        elif frequency == Frequency.SIX_HOURLY:
+            window = 60 * 60 * 6
+        elif frequency == Frequency.TWELVE_HOURLY:
+            window = 60 * 60 * 12
         no_windows = (end_stamp - start_stamp) // window
     else:
         # find starting and ending time
