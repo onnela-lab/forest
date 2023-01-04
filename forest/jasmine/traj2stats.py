@@ -283,7 +283,7 @@ def gps_summaries(
         frequency == Frequency.TWELVE_HOURLY
     ):
         split_day_night = False
-    elif frequency == Frequency.BOTH:
+    elif frequency == Frequency.HOURLY_AND_DAILY:
         raise ValueError("Frequency must be 'hourly' or 'daily'")
 
     ids: Dict[str, List[int]] = {}
@@ -309,14 +309,7 @@ def gps_summaries(
         end_stamp = datetime2stamp(time_list, tz_str)
         # start_time, end_time are exact points
         # (if it ends at 2019-3-8 11 o'clock, then 11 shouldn't be included)
-        if frequency == Frequency.HOURLY:
-            window = 60 * 60
-        elif frequency == Frequency.THREE_HOURLY:
-            window = 60 * 60 * 3
-        elif frequency == Frequency.SIX_HOURLY:
-            window = 60 * 60 * 6
-        elif frequency == Frequency.TWELVE_HOURLY:
-            window = 60 * 60 * 12
+        window = frequency.value * 60 * 60
         no_windows = (end_stamp - start_stamp) // window
     else:
         # find starting and ending time
@@ -629,7 +622,7 @@ def gps_summaries(
         else:
             av_p_dur = 0
             sd_p_dur = 0
-        if frequency == Frequency.HOURLY:
+        if frequency != Frequency.DAILY:
             if obs_dur == 0:
                 res = [
                     year,
@@ -800,7 +793,7 @@ def gps_summaries(
             places_of_interest3 = [
                 f"{pl}_adjusted" for pl in places_of_interest
             ]
-        if frequency == Frequency.HOURLY:
+        if frequency != Frequency.DAILY:
             summary_stats_df.columns = (
                 [
                     "year",
@@ -1042,7 +1035,7 @@ def gps_stats_main(
         for participant_id in participant_ids:
             all_bv_set[str(participant_id)] = None
 
-    if frequency == Frequency.BOTH:
+    if frequency == Frequency.HOURLY_AND_DAILY:
         os.makedirs(f"{output_folder}/hourly", exist_ok=True)
         os.makedirs(f"{output_folder}/daily", exist_ok=True)
     if save_traj:
@@ -1109,7 +1102,7 @@ def gps_stats_main(
                     f"{output_folder}/trajectory/{participant_id}.csv",
                     index=False
                 )
-            if frequency == Frequency.BOTH:
+            if frequency == Frequency.HOURLY_AND_DAILY:
                 summary_stats1, logs1 = gps_summaries(
                     traj,
                     tz_str,
