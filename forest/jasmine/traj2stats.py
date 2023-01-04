@@ -278,7 +278,7 @@ def gps_summaries(
 
     if frequency == Frequency.HOURLY_AND_DAILY:
         raise ValueError("Frequency must be 'hourly' or 'daily'")
-    
+
     if frequency != Frequency.DAILY:
         split_day_night = False
 
