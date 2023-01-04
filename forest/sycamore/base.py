@@ -122,7 +122,7 @@ def compute_survey_stats(
                     os.path.join(output_folder, "summaries",
                                  "submits_summary.csv"), index=False
                 )
-                if Frequency(submits_timeframe) == Frequency.BOTH:
+                if Frequency(submits_timeframe) == Frequency.HOURLY_AND_DAILY:
                     ss_summary_h = summarize_submits(
                         ss_detail, Frequency.HOURLY, submits_by_survey_id
                     )
@@ -206,7 +206,7 @@ def get_submits_for_tableau(
     submits_timeframe:
         The timeframe to summarize survey submissions over, of class
         forest.constants.Frequency. One of Frequency.DAILY, Frequency.HOURLY,
-        or Frequency.BOTH.
+        or Frequency.HOURLY_AND_DAILY.
     history_path: Filepath to the survey history file. If this is not
             included, audio survey timings cannot be estimated.
 
@@ -235,7 +235,7 @@ def get_submits_for_tableau(
         if ss_detail.shape[0] == 0:
             logger.error("Error: no submission data found")
             return
-        if Frequency(submits_timeframe) == Frequency.BOTH:
+        if Frequency(submits_timeframe) == Frequency.HOURLY_AND_DAILY:
             ss_summary_h = summarize_submits(
                 ss_detail, Frequency.HOURLY, False
             )
