@@ -276,15 +276,11 @@ def gps_summaries(
         ValueError: Frequency is not valid
     """
 
-    if (
-        frequency == Frequency.HOURLY or
-        frequency == Frequency.THREE_HOURLY or
-        frequency == Frequency.SIX_HOURLY or
-        frequency == Frequency.TWELVE_HOURLY
-    ):
-        split_day_night = False
-    elif frequency == Frequency.HOURLY_AND_DAILY:
+    if frequency == Frequency.HOURLY_AND_DAILY:
         raise ValueError("Frequency must be 'hourly' or 'daily'")
+    
+    if frequency != Frequency.DAILY:
+        split_day_night = False
 
     ids: Dict[str, List[int]] = {}
     locations: Dict[int, List[List[float]]] = {}
