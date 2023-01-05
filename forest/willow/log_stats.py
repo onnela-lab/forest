@@ -121,7 +121,7 @@ def comm_logs_summaries(
             num_mms_r = sum(index_mms_r.astype(int))
             total_char_s = sum(m_len[index_s])
             total_char_r = sum(m_len[index_r])
-            if frequency == "daily":
+            if frequency == Frequency.DAILY:
                 received_no_response = []
                 sent_no_response = []
                 # find the phone number in sent_from, but not in send_to
@@ -179,7 +179,7 @@ def comm_logs_summaries(
             )
             total_time_in_call = sum(dur_in_min[index_in_call])
             total_time_out_call = sum(dur_in_min[index_out_call])
-        if frequency == "daily":
+        if frequency == Frequency.DAILY:
             newline = [
                 year,
                 month,
@@ -203,7 +203,7 @@ def comm_logs_summaries(
                 text_reciprocity_incoming,
                 text_reciprocity_outgoing,
             ]
-        if frequency == "hourly":
+        else:
             newline = [
                 year,
                 month,
@@ -227,7 +227,7 @@ def comm_logs_summaries(
                 total_char_r,
             ]
         summary_stats.append(newline)
-    if frequency == "daily":
+    if frequency == Frequency.DAILY:
         stats_pdframe = pd.DataFrame(
             summary_stats,
             columns=[
@@ -254,7 +254,7 @@ def comm_logs_summaries(
                 "text_reciprocity_outgoing",
             ],
         )
-    if frequency == "hourly":
+    else:
         stats_pdframe = pd.DataFrame(
             summary_stats,
             columns=[
