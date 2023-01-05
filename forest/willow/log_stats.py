@@ -49,13 +49,7 @@ def comm_logs_summaries(
         table_end = datetime2stamp(
             [end_year, end_month, end_day, end_hour, 0, 0], tz_str
         )
-        step_size = 3600
-        if frequency == Frequency.THREE_HOURLY:
-            step_size *= 3
-        elif frequency == Frequency.SIX_HOURLY:
-            step_size *= 6
-        elif frequency == Frequency.TWELVE_HOURLY:
-            step_size *= 12
+        step_size = 3600 * frequency.value
     elif frequency == Frequency.DAILY:
         table_start = datetime2stamp(
             (start_year, start_month, start_day, 0, 0, 0), tz_str
@@ -302,7 +296,7 @@ def log_stats_main(
 ):
     if os.path.exists(output_folder) is False:
         os.mkdir(output_folder)
-    if frequency == Frequency.BOTH:
+    if frequency == Frequency.HOURLY_AND_DAILY:
         if os.path.exists(output_folder + "/hourly") is False:
             os.mkdir(output_folder + "/hourly")
         if os.path.exists(output_folder + "/daily") is False:
@@ -333,7 +327,7 @@ def log_stats_main(
                     stamp_start = min(text_stamp_start, call_stamp_start)
                     stamp_end = max(text_stamp_end, call_stamp_end)
                     # process data
-                    if frequency == Frequency.BOTH:
+                    if frequency == Frequency.HOURLY_AND_DAILY:
                         stats_pdframe1 = comm_logs_summaries(
                             ID,
                             text_data,
