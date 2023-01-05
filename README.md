@@ -119,7 +119,7 @@ gps_to_csv(sample_gps_data, path_to_synthetic_gps_data, start_date, end_date)
 # See https://github.com/onnela-lab/forest/wiki/Jasmine-documentation#input for details
 # time zone where the study took place (assumes that all participants were always in this time zone)
 tz_str = "Etc/GMT-1"
-# Generate summary metrics Frequency.HOURLY, Frequency.DAILY or Frequency.BOTH
+# Generate summary metrics Frequency.HOURLY, Frequency.DAILY or Frequency.HOURLY_AND_DAILY
 frequency = Frequency.DAILY
 # Save imputed trajectories?
 save_traj = False
