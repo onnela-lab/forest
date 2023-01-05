@@ -24,7 +24,8 @@ def compute_survey_stats(
         users: Optional[List] = None,
         start_date: str = EARLIEST_DATE, end_date: Optional[str] = None,
         config_path: Optional[str] = None, interventions_filepath: str = None,
-        augment_with_answers: bool = True, submits_timeframe: str = "both",
+        augment_with_answers: bool = True,
+        submits_timeframe: Frequency = Frequency.HOURLY_AND_DAILY,
         submits_by_survey_id: bool = True, history_path: str = None,
         include_audio_surveys: bool = True
 ) -> bool:
@@ -51,8 +52,9 @@ def compute_survey_stats(
         Whether to use the survey_answers stream to fill in missing surveys
         from survey_timings
     submits_timeframe:
-        The timeframe to summarize survey submissions over. One of
-        "both", "daily", or "hourly". An overall summary for each user is
+        The timeframe to summarize survey submissions over of class
+        forest.constants.Frequency
+        An overall summary for each user is
         always generated ("submits_summary_overall.csv"), and submissions can
         also be generated across days ("submits_summary_daily.csv"), hours
         ("submits_summary_hourly.csv") or both.
@@ -122,7 +124,7 @@ def compute_survey_stats(
                     os.path.join(output_folder, "summaries",
                                  "submits_summary.csv"), index=False
                 )
-                if Frequency(submits_timeframe) == Frequency.BOTH:
+                if submits_timeframe == Frequency.HOURLY_AND_DAILY:
                     ss_summary_h = summarize_submits(
                         ss_detail, Frequency.HOURLY, submits_by_survey_id
                     )
@@ -137,7 +139,7 @@ def compute_survey_stats(
                         os.path.join(output_folder, "summaries",
                                      "submits_summary_hourly.csv"), index=False
                     )
-                elif Frequency(submits_timeframe) == Frequency.HOURLY:
+                elif submits_timeframe == Frequency.HOURLY:
                     ss_summary_h = summarize_submits(
                         ss_detail, Frequency.HOURLY, submits_by_survey_id
                     )
@@ -145,7 +147,7 @@ def compute_survey_stats(
                         os.path.join(output_folder, "summaries",
                                      "submits_summary_hourly.csv"), index=False
                     )
-                elif Frequency(submits_timeframe) == Frequency.DAILY:
+                elif submits_timeframe == Frequency.DAILY:
                     ss_summary_d = summarize_submits(
                         ss_detail, Frequency.DAILY, submits_by_survey_id
                     )
@@ -205,8 +207,7 @@ def get_submits_for_tableau(
         filepath where interventions json file is.
     submits_timeframe:
         The timeframe to summarize survey submissions over, of class
-        forest.constants.Frequency. One of Frequency.DAILY, Frequency.HOURLY,
-        or Frequency.BOTH.
+        forest.constants.Frequency.
     history_path: Filepath to the survey history file. If this is not
             included, audio survey timings cannot be estimated.
 
@@ -235,7 +236,7 @@ def get_submits_for_tableau(
         if ss_detail.shape[0] == 0:
             logger.error("Error: no submission data found")
             return
-        if Frequency(submits_timeframe) == Frequency.BOTH:
+        if submits_timeframe == Frequency.HOURLY_AND_DAILY:
             ss_summary_h = summarize_submits(
                 ss_detail, Frequency.HOURLY, False
             )
@@ -248,12 +249,12 @@ def get_submits_for_tableau(
             write_data_by_user(ss_summary_h,
                                os.path.join(output_folder, "both", "hourly"),
                                users)
-        elif Frequency(submits_timeframe) == Frequency.HOURLY:
+        elif submits_timeframe == Frequency.HOURLY:
             ss_summary_h = summarize_submits(
                 ss_detail, Frequency.HOURLY, False
             )
             write_data_by_user(ss_summary_h, output_folder, users)
-        elif Frequency(submits_timeframe) == Frequency.DAILY:
+        elif submits_timeframe == Frequency.DAILY:
             ss_summary_d = summarize_submits(
                 ss_detail, Frequency.DAILY, False
             )

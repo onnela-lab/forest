@@ -17,9 +17,12 @@ OSM_OVERPASS_URL = os.getenv("FOREST_OSM_OVERPASS_URL",
 
 class Frequency(Enum):
     """This class enumerates possible frequencies for summary data."""
-    HOURLY = "hourly"
-    DAILY = "daily"
-    BOTH = "both"
+    HOURLY = 1
+    DAILY = 24
+    HOURLY_AND_DAILY = "hourly_and_daily"
+    THREE_HOURLY = 3
+    SIX_HOURLY = 6
+    TWELVE_HOURLY = 12
 
 
 class OSMTags(Enum):
