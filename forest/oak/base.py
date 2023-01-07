@@ -22,6 +22,7 @@ from scipy.signal import find_peaks
 from scipy.signal.windows import tukey
 from ssqueezepy import ssq_cwt
 
+from forest.constants import Frequency
 from forest.utils import get_ids
 
 logger = logging.getLogger(__name__)
@@ -414,7 +415,7 @@ def find_continuous_dominant_peaks(valid_peaks: np.ndarray, min_t: int,
 
 
 def run(study_folder: str, output_folder: str, tz_str: str = None,
-        option: str = None, time_start: str = None, time_end: str = None,
+        frequency: Frequency = Frequency.DAILY, time_start: str = None, time_end: str = None,
         users: list = None) -> None:
     """Runs walking recognition and step counting algorithm over dataset.
 
@@ -428,8 +429,8 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
             local repository to store results
         tz_str: string
             local time zone, e.g., "America/New_York"
-        option: string
-            summary statistics format (accepts 'both', 'hourly', 'daily')
+        frequency: Frequency
+            summary statistics format, Frequency class at constants.py
         time_start: string
             initial date of study in format: 'YYYY-mm-dd HH_MM_SS'
         time_end: string
@@ -446,10 +447,11 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
     to_zone = tz.gettz(tz_str)
 
     # create folders to store results
-    if option is None or option == 'both' or option == 'daily':
+    if frequency == Frequency.HOURLY_AND_DAILY:
         os.makedirs(os.path.join(output_folder, "daily"), exist_ok=True)
-    if option is None or option == 'both' or option == 'hourly':
         os.makedirs(os.path.join(output_folder, "hourly"), exist_ok=True)
+    else:
+        os.makedirs(os.path.join(output_folder, frequency.value), exist_ok=True)
 
     if users is None:
         users = get_ids(study_folder)
@@ -560,7 +562,7 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
             cadence_bout = find_walking(vm_bout)
 
             # distribute metrics across hours
-            if option is None or option == 'both' or option == 'hourly':
+            if frequency is None or frequency == 'both' or frequency == 'hourly':
                 for t_unique in np.unique(np.array(t_hours)):
                     ind_to_store = [t_ind.to_pydatetime() for t_ind in
                                     days_hourly].index(t_unique)
@@ -588,8 +590,8 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
                 cadence_daily[d_ind] = np.nan
             walkingtime_daily[d_ind] = len(cadence_bout)
 
-            # save results depending on "option"
-            if option is None or option == 'both' or option == 'daily':
+            # save results depending on "frequency"
+            if frequency is None or frequency == 'both' or frequency == 'daily':
 
                 summary_stats = pd.DataFrame({
                     'date': days.strftime('%Y-%m-%d'),
@@ -600,7 +602,7 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
                 dest_path = os.path.join(output_folder, "daily",
                                          output_file)
                 summary_stats.to_csv(dest_path, index=False)
-            if option is None or option == 'both' or option == 'hourly':
+            if frequency is None or frequency == 'both' or frequency == 'hourly':
                 summary_stats = pd.DataFrame({
                     'date': [date.strftime('%Y-%m-%d %H:%M:%S')
                              for date in days_hourly],
