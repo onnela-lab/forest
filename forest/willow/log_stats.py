@@ -6,66 +6,53 @@ import numpy as np
 
 from forest.constants import Frequency
 from forest.poplar.legacy.common_funcs import (
-    read_data,
-    write_all_summaries,
-    datetime2stamp,
-    stamp2datetime,
+    read_data, write_all_summaries, datetime2stamp, stamp2datetime
 )
 
 
 def comm_logs_summaries(
-    ID: str, df_text, df_call, stamp_start, stamp_end, tz_str, frequency
+    df_text, df_call, stamp_start, stamp_end, tz_str, frequency
 ):
     """
     Docstring
     Args:
-        Beiwe ID is needed here only for debugging.
-          The other inputs are the outputs from read_comm_logs().
         frequency: Frequency class, determining resolution of the summary stats
         tz_str: timezone where the study was/is conducted
+        The other inputs are the outputs from read_comm_logs().
     Return: pandas dataframe of summary stats
     """
     summary_stats = []
-    [
-        start_year,
-        start_month,
-        start_day,
-        start_hour,
-        start_min,
-        start_sec,
-    ] = stamp2datetime(stamp_start, tz_str)
-    [
-        end_year, end_month, end_day, end_hour, end_min, end_sec
-    ] = stamp2datetime(stamp_end, tz_str)
+    start_year, start_month, start_day, start_hour, _, _ = stamp2datetime(
+        stamp_start, tz_str
+    )
+    end_year, end_month, end_day, end_hour, _, _ = stamp2datetime(
+        stamp_end, tz_str
+    )
 
     # determine the starting and ending timestamp again based on the frequency
-    if frequency in [
-        Frequency.HOURLY, Frequency.THREE_HOURLY,
-        Frequency.SIX_HOURLY, Frequency.TWELVE_HOURLY
-    ]:
-        table_start = datetime2stamp(
-            [start_year, start_month, start_day, start_hour, 0, 0], tz_str
-        )
-        table_end = datetime2stamp(
-            [end_year, end_month, end_day, end_hour, 0, 0], tz_str
-        )
-        step_size = 3600 * frequency.value
-    elif frequency == Frequency.DAILY:
+    if frequency == Frequency.HOURLY_AND_DAILY:
+        raise ValueError("frequency not of correct type")
+
+    if frequency == Frequency.DAILY:
         table_start = datetime2stamp(
             (start_year, start_month, start_day, 0, 0, 0), tz_str
         )
         table_end = datetime2stamp(
             (end_year, end_month, end_day, 0, 0, 0), tz_str
         )
-        step_size = 3600 * 24
     else:
-        raise ValueError("frequency not of correct type")
+        table_start = datetime2stamp(
+            [start_year, start_month, start_day, start_hour, 0, 0], tz_str
+        )
+        table_end = datetime2stamp(
+            [end_year, end_month, end_day, end_hour, 0, 0], tz_str
+        )
+
+    step_size = 3600 * frequency.value
 
     # for each chunk, calculate the summary statistics (colmean or count)
     for stamp in np.arange(table_start, table_end + 1, step=step_size):
-        (year, month, day, hour, minute, second) = stamp2datetime(
-            stamp, tz_str
-        )
+        year, month, day, hour, minute, second = stamp2datetime(stamp, tz_str)
         (
             num_in_call,
             num_out_call,
@@ -134,13 +121,11 @@ def comm_logs_summaries(
                 text_reciprocity_incoming = 0
                 text_reciprocity_outgoing = 0
                 for tel in received_no_response:
-                    text_reciprocity_incoming = text_reciprocity_incoming
                     text_reciprocity_incoming += sum(
                         index_r *
                         (np.array(temp_text["hashed phone number"]) == tel)
                     )
                 for tel in sent_no_response:
-                    text_reciprocity_outgoing = text_reciprocity_outgoing
                     text_reciprocity_outgoing += sum(
                         index_s *
                         (np.array(temp_text["hashed phone number"]) == tel)
@@ -179,109 +164,63 @@ def comm_logs_summaries(
             )
             total_time_in_call = sum(dur_in_min[index_in_call])
             total_time_out_call = sum(dur_in_min[index_out_call])
+        newline = [
+            num_in_call,
+            num_out_call,
+            num_mis_call,
+            num_uniq_in_call,
+            num_uniq_out_call,
+            num_uniq_mis_call,
+            total_time_in_call,
+            total_time_out_call,
+            num_s,
+            num_r,
+            num_mms_s,
+            num_mms_r,
+            num_s_tel,
+            num_r_tel,
+            total_char_s,
+            total_char_r,
+        ]
         if frequency == Frequency.DAILY:
-            newline = [
-                year,
-                month,
-                day,
-                num_in_call,
-                num_out_call,
-                num_mis_call,
-                num_uniq_in_call,
-                num_uniq_out_call,
-                num_uniq_mis_call,
-                total_time_in_call,
-                total_time_out_call,
-                num_s,
-                num_r,
-                num_mms_s,
-                num_mms_r,
-                num_s_tel,
-                num_r_tel,
-                total_char_s,
-                total_char_r,
+            newline = [year, month, day] + newline + [
                 text_reciprocity_incoming,
                 text_reciprocity_outgoing,
             ]
         else:
-            newline = [
-                year,
-                month,
-                day,
-                hour,
-                num_in_call,
-                num_out_call,
-                num_mis_call,
-                num_uniq_in_call,
-                num_uniq_out_call,
-                num_uniq_mis_call,
-                total_time_in_call,
-                total_time_out_call,
-                num_s,
-                num_r,
-                num_mms_s,
-                num_mms_r,
-                num_s_tel,
-                num_r_tel,
-                total_char_s,
-                total_char_r,
-            ]
+            newline = [year, month, day, hour] + newline
         summary_stats.append(newline)
+    columns = [
+        "num_in_call",
+        "num_out_call",
+        "num_mis_call",
+        "num_in_caller",
+        "num_out_caller",
+        "num_mis_caller",
+        "total_mins_in_call",
+        "total_mins_out_call",
+        "num_s",
+        "num_r",
+        "num_mms_s",
+        "num_mms_r",
+        "num_s_tel",
+        "num_r_tel",
+        "total_char_s",
+        "total_char_r",
+    ]
     if frequency == Frequency.DAILY:
-        stats_pdframe = pd.DataFrame(
+        return pd.DataFrame(
             summary_stats,
-            columns=[
-                "year",
-                "month",
-                "day",
-                "num_in_call",
-                "num_out_call",
-                "num_mis_call",
-                "num_in_caller",
-                "num_out_caller",
-                "num_mis_caller",
-                "total_mins_in_call",
-                "total_mins_out_call",
-                "num_s",
-                "num_r",
-                "num_mms_s",
-                "num_mms_r",
-                "num_s_tel",
-                "num_r_tel",
-                "total_char_s",
-                "total_char_r",
+            columns=["year", "month", "day"] + columns + [
                 "text_reciprocity_incoming",
                 "text_reciprocity_outgoing",
-            ],
+                ],
         )
     else:
-        stats_pdframe = pd.DataFrame(
+        return pd.DataFrame(
             summary_stats,
-            columns=[
-                "year",
-                "month",
-                "day",
-                "hour",
-                "num_in_call",
-                "num_out_call",
-                "num_mis_call",
-                "num_in_caller",
-                "num_out_caller",
-                "num_mis_caller",
-                "total_mins_in_call",
-                "total_mins_out_call",
-                "num_s",
-                "num_r",
-                "num_mms_s",
-                "num_mms_r",
-                "num_s_tel",
-                "num_r_tel",
-                "total_char_s",
-                "total_char_r",
-            ],
+            columns=["year", "month", "day", "hour"] + columns,
         )
-
-    return stats_pdframe
 
 
 # Main function/wrapper should take standard arguments with Beiwe names:
