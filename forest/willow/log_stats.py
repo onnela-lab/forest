@@ -268,7 +268,6 @@ def log_stats_main(
                     # process data
                     if frequency == Frequency.HOURLY_AND_DAILY:
                         stats_pdframe1 = comm_logs_summaries(
-                            ID,
                             text_data,
                             call_data,
                             stamp_start,
@@ -277,7 +276,6 @@ def log_stats_main(
                             Frequency.HOURLY,
                         )
                         stats_pdframe2 = comm_logs_summaries(
-                            ID,
                             text_data,
                             call_data,
                             stamp_start,
@@ -293,7 +291,6 @@ def log_stats_main(
                         )
                     else:
                         stats_pdframe = comm_logs_summaries(
-                            ID,
                             text_data,
                             call_data,
                             stamp_start,
