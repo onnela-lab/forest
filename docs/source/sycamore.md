@@ -4,6 +4,15 @@
 
 Use `sycamore` to process and analyze Beiwe survey data.
 
+## Installation
+
+Before using sycamore, dependencies for librosa (ffmpeg and libsndfile1) must be installed first in order to enable processing of audio survey files.  
+
+To install these dependencies on ubuntu, simply run:  
+`sudo apt-get install -y ffmpeg libsndfile1`  
+
+For more information, see the [librosa documentation](https://librosa.org/doc/latest/install.html)
+
 ## Import
 
 User-facing functions can be imported directly from sycamore:
@@ -14,8 +23,8 @@ User-facing functions can be imported directly from sycamore:
 `from forest.sycamore import survey_submits_no_config` 
 `from forest.sycamore import agg_changed_answers_summary` 
 
-## Usage:  
-Download raw data from your Beiwe server and use this package to process the data in the `survey_timings` data stream, using `survey_answers` as a backup for possible missing `survey_timings` files. Summary data provides metrics around survey submissions and survey question completion. Additional outputs are generated if a config file is provided.
+## Usage:   
+Download raw data from your Beiwe server and use this package to process the data in the `survey_timings`, `survey_answers`, and `audio_recordings` data streams, using `survey_answers` as a backup for possible missing `survey_timings` files. Summary data provides metrics around survey submissions and survey question completion. Sycamore takes various auxiliary files which can be downloaded from the Beiwe website to ensure accurate output.  
 
 ## Data:   
 Methods are designed for use on the `survey_timings` and `survey_answers` data from the Beiwe app.
@@ -41,13 +50,13 @@ from forest.sycamore import compute_survey_stats
 study_dir = path/to/data  
 output_dir = path/to/output
 beiwe_ids = list of ids in study_dir
-time_start = start time
-time_end = end time  
+start_date = "2022-01-01"
+end_date = "2022-06-04"
 study_tz = Timezone of study (if not defined, defaults to 'UTC')
 
 compute_survey_stats(
-    study_dir, output_dir, study_tz, beiwe_ids, time_start=time_start, 
-    time_end = time_end
+    study_dir, output_dir, study_tz, beiwe_ids, start_date=start_date, 
+    end_date=end_date
 )
 ```
 
@@ -55,19 +64,24 @@ compute_survey_stats(
 ```
 config_path = path/to/config file
 interventions_path = path/to/interventions file
+history_path = path/to/history/file
 study_dir = path/to/data  
 output_dir = path/to/output
 beiwe_ids = list of ids in study_dir
-time_start = start time
-time_end = end time  
+start_date = "2022-01-01"
+end_date = "2022-06-04"
 study_tz = Timezone of study (if not defined, defaults to 'UTC')
 
+
 compute_survey_stats(
-    study_dir, output_dir, study_tz, beiwe_ids, time_start=time_start, 
-    time_end=time_end, config_path, interventions_path
+    study_dir, output_dir, study_tz, beiwe_ids, start_date=start_date, 
+    end_date=end_date, config_path, interventions_path, 
+    history_path=history_path
 )
 
 ```
+
+Most users should be able to use `compute_survey_stats` for all of their survey processing needs. However, if a study has collected a very large number of surveys, subprocesses are also exposed to reduce processing time. 
 
 ___
 ## 2. `sycamore.common.aggregate_surveys_config`
@@ -78,7 +92,7 @@ Aggregate all survey information from a study, using the config file to infer in
 ```
 from forest.sycamore import aggregate_surveys_config
 
-agg_data = aggregate_surveys_config(study_dir, config_path, study_tz)
+agg_data = aggregate_surveys_config(study_dir, config_path, study_tz, history_path=history_path)
 ```
 
 ___
@@ -92,6 +106,7 @@ from forest.sycamore.submits import survey_submits
 
 config_path = path/to/config file
 interventions_path = path/to/interventions file
+history_path = path/to/history/file
 study_dir = path/to/data  
 output_dir = path/to/output
 beiwe_ids = list of ids in study_dir
@@ -101,11 +116,9 @@ study_tz = Timezone of study (if not defined, defaults to 'UTC')
 
 agg_data = aggregate_surveys_config(study_dir, config_path, study_tz)
 
-all_interventions_dict = get_all_interventions_dict(interventions_path)
-
 submits_detail, submits_summary = survey_submits(
-    config_path, time_start, time_end, beiwe_ids, agg_data, 
-    all_interventions_dict
+    config_path, time_start, time_end, beiwe_ids, interventions_path, agg_data, 
+    history_path
 )
 ```
  
@@ -118,9 +131,8 @@ Used to extract an alternative survey submits table that does not include delive
 from forest.sycamore import survey_submits_no_config
 
 study_dir = path/to/data  
-study_tz = Timezone of study (if not defined, defaults to 'UTC')
 
-submits_tbl = survey_submits_no_config(study_dir, study_tz)
+submits_tbl = survey_submits_no_config(study_dir)
 
 ```
  
@@ -133,6 +145,7 @@ Used to extract data summarizing user responses
 from forest.sycamore import agg_changed_answers_summary
 
 config_path = path/to/config file
+history_path = path/to/history/file
 study_dir = path/to/data  
 output_dir = path/to/output
 beiwe_ids = list of ids in study_dir
@@ -140,7 +153,7 @@ time_start = start time
 time_end = end time  
 study_tz = Timezone of study (if not defined, defaults to 'UTC')
 
-agg_data = aggregate_surveys_config(study_dir, config_path, study_tz)
+agg_data = aggregate_surveys_config(study_dir, config_path, study_tz, history_path=history_path)
 
 ca_detail, ca_summary = agg_changed_answers_summary(config_path, agg_data)
  
