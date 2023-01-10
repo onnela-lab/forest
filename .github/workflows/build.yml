@@ -9,17 +9,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ['ubuntu-20.04', 'windows-2019', 'macos-11']
+        os: ['ubuntu-22.04', 'windows-2022', 'macos-12']
     steps:
       - name: Checkout Forest code from GitHub repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.8
       - name: Install Forest dependencies
         # required by librosa
-        if: ${{ matrix.os == 'ubuntu-20.04' }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         run: sudo apt-get install -y ffmpeg libsndfile1
       - name: Install Forest
         run: pip install -e .
