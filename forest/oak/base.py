@@ -577,6 +577,7 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
                     t_ind_pydate = [t_ind.to_pydatetime() for t_ind in
                                     days_hourly]
                     # get indexes of ranges of dates that contain t_unique
+                    ind_to_store = -1
                     for ind_to_store, t_ind in enumerate(t_ind_pydate):
                         if (
                             t_ind <= t_unique
@@ -623,8 +624,7 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
                     'steps': steps_daily[:, -1],
                     'cadence': cadence_daily[:, -1]})
                 output_file = user + "_gait_daily.csv"
-                dest_path = os.path.join(output_folder, "daily",
-                                         output_file)
+                dest_path = os.path.join(output_folder, "daily", output_file)
                 summary_stats.to_csv(dest_path, index=False)
             if frequency != Frequency.DAILY:
                 summary_stats = pd.DataFrame({
@@ -638,6 +638,5 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
                     freq_name = "hourly"
                 else:
                     freq_name = frequency.name.lower()
-                dest_path = os.path.join(output_folder, freq_name,
-                                         output_file)
+                dest_path = os.path.join(output_folder, freq_name, output_file)
                 summary_stats.to_csv(dest_path, index=False)
