@@ -4,6 +4,7 @@ import logging
 import os
 from typing import Dict
 
+import librosa
 import numpy as np
 import pandas as pd
 
@@ -11,7 +12,6 @@ from forest.sycamore.constants import EARLIEST_DATE
 from forest.sycamore.utils import (read_json, get_month_from_today,
                                    filename_to_timestamp)
 from forest.utils import get_ids
-
 
 logger = logging.getLogger(__name__)
 
@@ -118,15 +118,18 @@ def read_user_audio_recordings_stream(
     for survey in survey_ids:
         # get all audio files in the survey subdirectory
         all_files = []
-        for filepath in os.listdir(os.path.join(audio_dir, survey)):
-            filename = os.path.basename(filepath)
-            valid_file = (filepath.endswith(".wav")
-                          or filepath.endswith(".mp4")
+        all_durations = []
+        for filename in os.listdir(os.path.join(audio_dir, survey)):
+            valid_file = (filename.endswith(".wav")
+                          or filename.endswith(".mp4")
                           and (timestamp_start
                                < filename_to_timestamp(filename, tz_str)
                                < timestamp_end))
             if valid_file:
-                all_files.append(filepath)
+                all_files.append(filename)
+                all_durations.append(librosa.get_duration(
+                    filename=os.path.join(audio_dir, survey, filename)
+                ))
 
         if len(all_files) == 0:
             logger.warning("No audio_recordings for user %s in given time "
@@ -146,17 +149,23 @@ def read_user_audio_recordings_stream(
         # We need to enumerate to tell different survey occasions apart
         for i, file in enumerate(all_files):
             filename = os.path.basename(file)
+            submit_time = filename_to_timestamp(filename, "UTC")
+            start_time = submit_time - pd.Timedelta(all_durations[i], unit="s")
+            # Later on, we will delete all rows with blank responses. So, we
+            # want two rows with the timings and an additional row to be
+            # deleted later.
+
             current_df = pd.DataFrame({
-                "UTC time": [filename_to_timestamp(filename, "UTC")] * 2,
-                "survey id": [survey] * 2,
-                "question_id": [survey] * 2,
-                "answer": ["audio recording", ""],
-                "question type": ["audio recording", ""],
-                "question text": [survey_prompt] * 2,
-                "question answer options": ["audio recording", ""],
-                "submit_line": [0, 1],  # one of the lines will be a submit
+                "UTC time": [start_time, submit_time, submit_time],
+                "survey id": [survey] * 3,
+                "question id": [survey] * 3,
+                "answer": ["audio recording"]*2 + [""],
+                "question type": ["audio recording"]*2 + [""],
+                "question text": [survey_prompt] * 3,
+                "question answer options": ["audio recording"]*2 + [""],
+                "submit_line": [0, 0, 1],  # one of the lines will be a submit
                 # line
-                "surv_inst_flg": [i] * 2
+                "surv_inst_flg": [i] * 3
             })
             survey_dfs.append(current_df)
         if len(survey_dfs) == 0:

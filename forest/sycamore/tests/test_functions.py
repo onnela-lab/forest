@@ -384,8 +384,8 @@ def test_read_user_audio_recordings_stream():
     df = read_user_audio_recordings_stream(
         SAMPLE_DIR, "audioqdz", history_path=AUDIO_SURVEY_HISTORY
     )
-    assert df.shape[0] == 16
-    assert df["UTC time"].nunique() == 8
+    assert df.shape[0] == 24  # 8 surveys, 3 per survey
+    assert df["UTC time"].nunique() == 16  # 2 times per survey
     assert df["survey id"].nunique() == 2
     assert df["question text"].nunique() == 2
 
@@ -394,8 +394,8 @@ def test_read_user_audio_recordings_stream_no_history():
     df = read_user_audio_recordings_stream(
         SAMPLE_DIR, "audioqdz"
     )
-    assert df.shape[0] == 16
-    assert df["UTC time"].nunique() == 8
+    assert df.shape[0] == 24  # 8 surveys, 3 lines per survey
+    assert df["UTC time"].nunique() == 16   # 8 surveys, 2 times per survey
     assert df["question text"].nunique() == 1
     assert df["survey id"].nunique() == 2
 
@@ -404,8 +404,8 @@ def test_read_aggregate_audio_recordings_stream():
     df = read_aggregate_audio_recordings_stream(
         SAMPLE_DIR, history_path=AUDIO_SURVEY_HISTORY
     )
-    assert df.shape[0] == 26
-    assert df["UTC time"].nunique() == 8
+    assert df.shape[0] == 39  # 13 surveys, with 3 lines each
+    assert df["UTC time"].nunique() == 16  # 8 times, 2 times per survey
     assert df["survey id"].nunique() == 2
     assert df["question text"].nunique() == 2
     assert df["beiwe_id"].nunique() == 2
@@ -413,8 +413,8 @@ def test_read_aggregate_audio_recordings_stream():
 
 def test_read_aggregate_audio_recordings_stream_no_history():
     df = read_aggregate_audio_recordings_stream(SAMPLE_DIR)
-    assert df.shape[0] == 26
-    assert df["UTC time"].nunique() == 8
+    assert df.shape[0] == 39
+    assert df["UTC time"].nunique() == 16
     assert df["survey id"].nunique() == 2
     assert df["question text"].nunique() == 1  # should only have "UNKNOWN"
     assert df["question text"].unique().tolist() == ["UNKNOWN"]
@@ -423,7 +423,7 @@ def test_read_aggregate_audio_recordings_stream_no_history():
 
 def test_aggregate_surveys_no_config_with_audio():
     agg_data = aggregate_surveys_no_config(SAMPLE_DIR, study_tz="UTC",)
-    assert agg_data.shape[0] == 76
+    assert agg_data.shape[0] == 89
     assert len(agg_data.DOW.unique()) == 4
 
 

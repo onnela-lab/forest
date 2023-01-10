@@ -2,6 +2,7 @@ from setuptools import setup, find_packages
 
 requires = [
     'holidays',  # poplar
+    'librosa',  # for audio file durations in sycamore
     'numpy',
     'openrouteservice',
     'pandas',
