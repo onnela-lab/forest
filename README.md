@@ -144,13 +144,10 @@ participant_ids = None
 log_stats_main(path_to_synthetic_log_data, path_to_log_summary, tz_str, option, time_start, time_end, participant_ids)
 ```
 
-## For contributors
-
 ## More info
 
-[Beiwe platform for smartphone data collection](https://www.beiwe.org/)
-[Onnela lab](https://www.hsph.harvard.edu/onnela-lab/)
+* [Beiwe platform for smartphone data collection](https://www.beiwe.org/)
+* [Onnela lab](https://www.hsph.harvard.edu/onnela-lab/)
 
-## Version
-
-Forest 1.0
+## Publications
+Straczkiewicz, M., Huang, E.J. & Onnela, JP. A “one-size-fits-most” walking recognition method for smartphones, smartwatches, and wearable accelerometers. _npj Digit. Med._ **6**, 29 (2023). https://doi.org/10.1038/s41746-022-00745-z Open Access: https://rdcu.be/c6dGV
