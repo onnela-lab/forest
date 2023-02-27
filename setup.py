@@ -19,10 +19,10 @@ requires = [
 
 package_data = {'forest.poplar.raw': ['noncode/*.csv', 'noncode/*.json']}
 
-with open('README.md') as f:
+with open('README.md', encoding='utf-8') as f:
     readme = f.read()
 
-with open('LICENSE.md') as f:
+with open('LICENSE.md', encoding='utf-8') as f:
     license = f.read()
 
 setup(
