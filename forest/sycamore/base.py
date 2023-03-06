@@ -37,7 +37,10 @@ def compute_survey_stats(
     study_folder:
         File path to study data
     config_path:
-        File path to study configuration file
+        File path to study configuration file. Study configuration files can be
+        downloaded by clicking "Edit this Study" on the Beiwe website, then
+        clicking "Export study settings JSON file" under "Export/Import study
+        settings".
     start_date:
         The earliest date of survey data to read in, in YYYY-MM-DD format
     end_date:
@@ -47,7 +50,10 @@ def compute_survey_stats(
     tz_str:
         Timezone of study. This defaults to "UTC"
     interventions_filepath:
-        filepath where interventions json file is.
+        filepath where interventions json file is. The interventions json file
+        can be downloaded by clicking "Edit this Study" on the Beiwe
+        website, then clicking clicking "Download Interventions" next to
+        "Intervention Data".
     augment_with_answers:
         Whether to use the survey_answers stream to fill in missing surveys
         from survey_timings
@@ -63,13 +69,15 @@ def compute_survey_stats(
         surveys in submits_summary.csv. By default, this is True, so a
         different line for each survey will be generated.
     history_path: Path to survey history file. If this is included, the survey
-            history file is used to find instances of commas or semicolons in
-            answer choices to determine the correct choice for Android radio
-            questions. In addition, this is used to generate timings for audio
-            surveys.
+        history file is used to find instances of commas or semicolons in
+        answer choices to determine the correct choice for Android radio
+        questions. In addition, this is used to generate timings for audio
+        surveys. The survey history json file can be downloaded by clicking
+        "Edit this Study" on the Beiwe website, then clicking clicking
+        "Download Surveys" next to "Survey History".
     include_audio_surveys:
-            Whether to include submissions of audio surveys in addition to text
-            surveys
+        Whether to include submissions of audio surveys in addition to text
+        surveys
     """
     os.makedirs(output_folder, exist_ok=True)
     os.makedirs(os.path.join(output_folder, "summaries"), exist_ok=True)

@@ -29,6 +29,9 @@ Download raw data from your Beiwe server and use this package to process the dat
 ## Data:   
 Methods are designed for use on the `survey_timings` and `survey_answers` data from the Beiwe app.
 
+## Auxiliary files:   
+Sycamore requires users to manually download files from the Beiwe website to create some outputs. These files can be downloaded by clicking "Edit this Study" on the study page, and clicking on the relevant file. When running Sycamore, pass the path to the file downloaded by clicking "Export study settings JSON file" under "Export/Import study settings" to the `config_path` argument. Pass the file downloaded by clicking "Download Interventions" next to "Intervention Data" to the `interventions_filepath` argument. And, pass the file downloaded by clicking "Download Surveys" next to "Survey History" to the `history_path` argument. 
+
 ___
 ## Functions  
 1.  [`sycamore.base.compute_survey_stats`](#1-sycamorebasecompute_survey_stats)
@@ -63,7 +66,7 @@ compute_survey_stats(
 *Example (with config file)* 
 ```
 config_path = path/to/config file
-interventions_path = path/to/interventions file
+interventions_filepath = path/to/interventions file
 history_path = path/to/history/file
 study_dir = path/to/data  
 output_dir = path/to/output
@@ -75,7 +78,7 @@ study_tz = Timezone of study (if not defined, defaults to 'UTC')
 
 compute_survey_stats(
     study_dir, output_dir, study_tz, beiwe_ids, start_date=start_date, 
-    end_date=end_date, config_path, interventions_path, 
+    end_date=end_date, config_path, interventions_filepath, 
     history_path=history_path
 )
 
