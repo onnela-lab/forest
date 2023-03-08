@@ -133,7 +133,7 @@ def read_user_audio_recordings_stream(
 
         if len(all_files) == 0:
             logger.info("No audio_recordings for user %s in given time "
-                           "frames.", user)
+                        "frames.", user)
             return pd.DataFrame(columns=["Local time"],
                                 dtype="datetime64[ns]")
 

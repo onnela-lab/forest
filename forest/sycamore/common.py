@@ -715,7 +715,7 @@ def read_user_answers_stream(
 
             if len(all_files) == 0:
                 logger.info("No survey_answers for user %s in given time "
-                               "frames.", user)
+                            "frames.", user)
                 return pd.DataFrame(columns=["Local time"],
                                     dtype="datetime64[ns]")
 
