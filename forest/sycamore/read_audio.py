@@ -106,7 +106,7 @@ def read_user_audio_recordings_stream(
         time_end = get_month_from_today()
     audio_dir = os.path.join(download_folder, user, "audio_recordings")
     if not os.path.isdir(audio_dir):
-        logger.warning("No survey_answers for user %s.", user)
+        logger.info("No audio_recordings for user %s.", user)
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
 
     # get all survey IDs included for this user (data will have one folder
@@ -132,8 +132,8 @@ def read_user_audio_recordings_stream(
                 ))
 
         if len(all_files) == 0:
-            logger.warning("No audio_recordings for user %s in given time "
-                           "frames.", user)
+            logger.info("No audio_recordings for user %s in given time "
+                        "frames.", user)
             return pd.DataFrame(columns=["Local time"],
                                 dtype="datetime64[ns]")
 
@@ -169,7 +169,7 @@ def read_user_audio_recordings_stream(
             })
             survey_dfs.append(current_df)
         if len(survey_dfs) == 0:
-            logger.warning("No survey_answers for user %s.", user)
+            logger.info("No survey_answers for user %s.", user)
             return pd.DataFrame(columns=["Local time"],
                                 dtype="datetime64[ns]")
         survey_data = pd.concat(survey_dfs, axis=0, ignore_index=True)
@@ -236,7 +236,7 @@ def read_aggregate_audio_recordings_stream(
     if users is None:
         users = get_ids(download_folder)
     if len(users) == 0:
-        logger.warning("No users found")
+        logger.info("No users found")
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
 
     all_users_list = [
@@ -249,7 +249,7 @@ def read_aggregate_audio_recordings_stream(
     aggregated_data = pd.concat(all_users_list, axis=0, ignore_index=True)
 
     if aggregated_data.shape[0] == 0:
-        logger.warning("No audio_recordings data found")
+        logger.info("No audio_recordings data found")
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
 
     aggregated_data["data_stream"] = "audio_recordings"

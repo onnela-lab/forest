@@ -112,7 +112,7 @@ def read_and_aggregate(
                     < timestamp_end):
                 survey_data_list.append(safe_read_csv(file))
         if len(survey_data_list) == 0:
-            logger.warning("No survey_timings for user %s.", user)
+            logger.info("No survey_timings for user %s.", user)
             return pd.DataFrame(columns=["UTC time"], dtype="datetime64[ns]")
 
         survey_data: pd.DataFrame = pd.concat(survey_data_list,
@@ -124,7 +124,7 @@ def read_and_aggregate(
         survey_data["DOW"] = survey_data["UTC time"].dt.dayofweek
         return survey_data
     else:
-        logger.warning("No survey_timings for user %s.", user)
+        logger.info("No survey_timings for user %s.", user)
         return pd.DataFrame(columns=["UTC time"], dtype="datetime64[ns]")
 
 
@@ -310,7 +310,7 @@ def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
                             surv["answer_" + str(j)] = a["text"]
                 output.append(pd.DataFrame([surv]))
     if len(output) == 0:
-        logger.warning("No Data Found")
+        logger.warning("No Data Found in config file")
         return pd.DataFrame()
     output = pd.concat(output).reset_index(drop=True)
     return output
@@ -714,8 +714,8 @@ def read_user_answers_stream(
                     all_files.append(filepath)
 
             if len(all_files) == 0:
-                logger.warning("No survey_answers for user %s in given time "
-                               "frames.", user)
+                logger.info("No survey_answers for user %s in given time "
+                            "frames.", user)
                 return pd.DataFrame(columns=["Local time"],
                                     dtype="datetime64[ns]")
 
@@ -741,7 +741,7 @@ def read_user_answers_stream(
 
                 survey_dfs.append(current_df)
             if len(survey_dfs) == 0:
-                logger.warning("No survey_answers for user %s.", user)
+                logger.info("No survey_answers for user %s.", user)
                 return pd.DataFrame(columns=["UTC time"],
                                     dtype="datetime64[ns]")
             survey_data = pd.concat(survey_dfs, axis=0, ignore_index=True)
@@ -764,7 +764,7 @@ def read_user_answers_stream(
             return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
         return pd.concat(all_surveys, axis=0, ignore_index=True)
     else:
-        logger.warning("No survey_answers for user %s.", user)
+        logger.info("No survey_answers for user %s.", user)
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
 
 
@@ -821,7 +821,7 @@ def read_aggregate_answers_stream(
     aggregated_data = pd.concat(all_users_list, axis=0, ignore_index=True)
 
     if aggregated_data.shape[0] == 0:
-        logger.warning("No survey_answers data found")
+        logger.info("No survey_answers data found")
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
 
     aggregated_data = fix_radio_answer_choices(aggregated_data, config_path,
