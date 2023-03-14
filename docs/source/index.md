@@ -85,6 +85,8 @@ The outputs of the GPS module contains:
 2. imputed trajectories (.csv) in terms of timestamp, latitude and longitude. By default, it is set to FALSE;   
 3. all_BV_set (.pkl), which is a dictionary, with the key as the user ID and the value as a numpy array, where each column represents [start_timestamp, start_latitude, start_longitude, end_timestamp, end_latitude, end_longitude]. If it is your first time run the code, it is set to NULL by default. If you want to continue your analysis from here in the future, all_BV_set is expected to be an input in your new analysis and it will be updated in that run. The size of the file should be fixed overtime;   
 4. all_memory_dict (.pkl), which is also a dictionary, with the key as user ID and the value as a numpy array of other parameters for the user. If it is your first time run the code, it is set to NULL by default. If you want to continue your analysis from here in the future, all_memory_dict is expected to be an input in your new analysis and it will be updated in that run. The size of the file should be fixed overtime.   
+5. locations_log (.json) json file created if `save_osm_log` is set to True. It contains information on the places visited by the user, their tags and the time of visit.
+
 
 #### List of summary statistics
 
