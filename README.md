@@ -128,12 +128,12 @@ parameters = None
 # list of locations to track if visited, leave None if don't want these summary statistics
 places_of_interest = ['cafe', 'bar', 'hospital']
 # True if want to save a log of all locations and attributes of those locations visited
-save_log = True
+save_osm_log = True
 # threshold of time spent in a location to count as being in that location, in minutes
 threshold = 15
 
 # 3. Impute location data and generate mobility summary metrics using the simulated data above
-gps_stats_main(path_to_synthetic_gps_data, path_to_gps_summary, tz_str, frequency, save_traj, parameters, places_of_interest, save_log, threshold)
+gps_stats_main(path_to_synthetic_gps_data, path_to_gps_summary, tz_str, frequency, save_traj, parameters, places_of_interest, save_osm_log, threshold)
 
 # 4. Generate daily summary metrics for call/text logs
 option = Frequency.DAILY
