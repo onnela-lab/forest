@@ -119,7 +119,7 @@ gps_to_csv(sample_gps_data, path_to_synthetic_gps_data, start_date, end_date)
 # See https://github.com/onnela-lab/forest/wiki/Jasmine-documentation#input for details
 # time zone where the study took place (assumes that all participants were always in this time zone)
 tz_str = "Etc/GMT-1"
-# Generate summary metrics Frequency.HOURLY, Frequency.DAILY or Frequency.HOURLY_AND_DAILY
+# Generate summary metrics e.g. Frequency.HOURLY, Frequency.DAILY or Frequency.HOURLY_AND_DAILY (see Frequency class in traj2stats.py)
 frequency = Frequency.DAILY
 # Save imputed trajectories?
 save_traj = False
@@ -136,7 +136,7 @@ threshold = 15
 gps_stats_main(path_to_synthetic_gps_data, path_to_gps_summary, tz_str, frequency, save_traj, parameters, places_of_interest, save_log, threshold)
 
 # 4. Generate daily summary metrics for call/text logs
-option = "daily"
+option = Frequency.DAILY
 time_start = None 
 time_end = None
 participant_ids = None
