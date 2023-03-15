@@ -11,12 +11,12 @@ For instructions on how to install forest, please visit [here](https://github.co
 
 ### Input
 
-When using jasmine, you should call function `gps_stats_main(study_folder, output_folder, tz_str, option, save_traj, time_start = None, time_end = None, beiwe_id = None, parameters = None, all_memory_dict = None, all_BV_set=None)` and specify:
+When using jasmine, you should call function `gps_stats_main(study_folder, output_folder, tz_str, frequency, save_traj, parameters = None, save_osm_log = None, osm_tags = None, threshold, split_day_night, person_point_radius = 2, place_point_radius = 7.5, time_start = None, time_end = None, participant_ids = None, all_memory_dict = None, all_BV_set = None, quality_threshold = 0.05)` in the `traj2stats` module and specify:
    - `study_folder`, string, the path of the study folder. The study folder should contain individual participant folder with a subfolder `gps` inside
    - `output_folder`, string, the path of the folder where you want to save results
 
 Furthermore, if you want to use jasmine for some participants only or for some time only, you can specify:
-   - `beiwe_id`: a list of beiwe IDs. If it is set to None (default), then it is a list of all available beiwe IDs in your study folder.
+   - `participant_ids`: a list of beiwe IDs. If it is set to None (default), then it is a list of all available beiwe IDs in your study folder.
    - `time_start`, `time_end` are starting time and ending time of the window of interest.  
      The time should be a list of integers with format [year, month, day, hour, minute, second] (default: None).  
      If `time_start` is None and `time_end` is None: then it reads all the available files.  
@@ -25,10 +25,17 @@ Furthermore, if you want to use jasmine for some participants only or for some t
 
 In addition, the main function takes four arguments that provide further flexibility:  
    - `tz_str`, string, the timezone where the study is/was conducted. Please use "`pytz.all_timezones`" to check all options. For example, "America/New_York".
-   - `option`, 'daily' or 'hourly' or 'both' for the temporal resolution for summary statistics.
+   - `frequency`, Frequency class, the frequency of the summary stats (resolution for summary statistics) e.g. Frequency.HOURLY, Frequency.DAILY, etc.
    - `save_traj`, bool, True if you want to save the trajectories as a csv file, False if you don't (default: False).
-   - `all_memory_dict` and `all_BV_set` are dictionaries from previous run (none if it's the first time).
    - `parameters`, a list of parameters, by default it is set to None. The details are as below.
+   - `places_of_interest`, a list of places of interest, by default it is set to None. The details are as used in openstreetmaps
+   - `save_osm_log`, bool, True if you want to output a log of locations visited and their tags(default: False).
+   - `osm_tags`, list of OSMTags class, a list of tags to filter the places of interest, by default it is set to None. The details are as used in openstreetmaps. Avoid using a lot of them if large area is covered.
+   - `threshold`, int, time spent in a pause needs to exceed the threshold to be placed in the log
+   - `split_day_night`, bool, True if you want to split all metrics to datetime and nighttime patterns (only for Frequency.DAILY)
+   - person_point_radius, float, radius of the person's circle when discovering places near him in pauses (default: 2)
+   - `place_point_radius`, float, radius of place's circle when place is returned as centre coordinates from osm (default: 7.5)
+   - `all_memory_dict` and `all_BV_set` are dictionaries from previous run (none if it's the first time).
 
 You can also tweak the parameters that change the assumptions of the imputation and summary statistics. The parameters are  
 (1) `l1`: the scale parameter in the abs function in the daily kernel;   
@@ -69,6 +76,9 @@ You can also tweak the parameters that change the assumptions of the imputation 
 (5) all_memory_dict (.pkl)\
     - It is also a dictionary, with the key as user ID and the value as a numpy array of other parameters for the user. If it is your first time run the code, it is set to NULL by default. If you want to continue your analysis from here in the future, all_memory_dict is expected to be an input in your new analysis and it will be updated in that run. The size of the file should be fixed overtime.
 
+(6) locations_log (.json)\
+    - json file created if `save_osm_log` is set to True. It contains information on the places visited by the user, their tags and the time of visit.
+
 ##  Description of functions in package: 
 `data2mobmat.py`
 This file contains the functions to convert the raw GPS data to a mobility matrix (2d numpy array), where each column represents movement status(flight/pause/undecided), starting latitude, starting longitude, starting timestamp, ending latitude, ending longitude, ending timestamp. This module focuses on summarizing observed data to trajectories but not unobserved period.
@@ -103,6 +113,9 @@ This file imputes the missing trajectories based on the observed trajectory matr
 
 `traj2stats.py`
 This file converts the imputed trajectory matrix to summary statistics.
+- `Hyperparameters`: @dataclass to store the hyperparameters for the imputation process.
+- `transform_point_to_circle`: transform a transforms a set of cooordinates to a shapely circle with a provided radius.
+- `get_nearby_locations`: return a dictionary of nearby locations, a dictionary of nearby locations' names, and a dictionary of nearby locations' coordinates.
 - `gps_summaries`: converts the imputed trajectory matrix to summary statistics.
 - `gps_quality_check`: checks the data quality of GPS data. If the quality is poor, the imputation will not be executed. 
 - `gps_stats_main`: this is the main function of the jasmine module and it calls every function defined before. It is the function you should use as an end user. 
