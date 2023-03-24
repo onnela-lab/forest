@@ -4,9 +4,10 @@ from datetime import datetime
 from itertools import islice
 from pathlib import Path
 
-import mano
 import pandas as pd
 import requests
+
+import mano
 
 SPACE = "    "
 BRANCH = "│   "
