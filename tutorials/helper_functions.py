@@ -1,17 +1,17 @@
-from pathlib import Path
-from itertools import islice
-import pandas as pd
 import os
 import sys
 from datetime import datetime
+from itertools import islice
+from pathlib import Path
+
 import mano
-import mano.sync as msync
+import pandas as pd
 import requests
 
-space = "    "
-branch = "│   "
-tee = "├── "
-last = "└── "
+SPACE = "    "
+BRANCH = "│   "
+TEE = "├── "
+LAST = "└── "
 
 
 def tree(
@@ -25,29 +25,29 @@ def tree(
     files = 0
     directories = 0
 
-    def inner(dir_path: Path, prefix: str = "", level=-1):
+    def inner(directory: Path, prefix: str = "", level2: int = -1):
         nonlocal files, directories
-        if not level:
+        if not level2:
             return  # 0, stop iterating
         if limit_to_directories:
-            contents = [d for d in dir_path.iterdir() if d.is_dir()]
+            contents = [d for d in directory.iterdir() if d.is_dir()]
         else:
-            contents = list(dir_path.iterdir())
-        pointers = [tee] * (len(contents) - 1) + [last]
+            contents = list(directory.iterdir())
+        pointers = [TEE] * (len(contents) - 1) + [LAST]
         for pointer, path in zip(pointers, contents):
             if path.is_dir():
                 yield prefix + pointer + path.name
                 directories += 1
-                extension = branch if pointer == tee else space
+                extension = BRANCH if pointer == TEE else SPACE
                 yield from inner(
-                    path, prefix=prefix + extension, level=level - 1
+                    path, prefix + extension, level2 - 1
                 )
             elif not limit_to_directories:
                 yield prefix + pointer + path.name
                 files += 1
 
     print(dir_path.name)
-    iterator = inner(dir_path, level=level)
+    iterator = inner(dir_path, level2=level)
     for line in islice(iterator, length_limit):
         print(line)
     if next(iterator, None):
@@ -63,7 +63,7 @@ def concatenate_summaries(dir_path: Path, output_filename: str):
     Checks to see if there is an hourly or daily folder first,
     then concatenates sub-folders first.
     """
-    dir_path = Path(dir_path)  # accept string coerceable to Path
+    dir_path = Path(dir_path)  # accept string coercible to Path
     if os.path.exists(dir_path / "hourly"):
         concatenate_folder(
             dir_path / "hourly", output_filename[0:-4] + "_hourly" + ".csv"
@@ -114,7 +114,7 @@ def download_data(
     keyring,
     study_id,
     download_folder,
-    users=[],
+    users=None,
     time_start="2008-01-01",
     time_end=None,
     data_streams=None,
@@ -163,36 +163,35 @@ def download_data(
         return
 
     if not os.path.isdir(download_folder):
-        os.mkdir(download_folder)
+        os.makedirs(download_folder, exist_ok=True)
 
     if time_end is None:
         time_end = datetime.today().strftime("%Y-%m-%d") + "T23:59:00"
 
-    if users == []:
+    if users is None:
         print("Obtaining list of users...")
-        num_tries = 1
+        num_tries = 0
         while num_tries < 5:
             try:
                 users = [u for u in mano.users(keyring, study_id)]
-                num_tries = 6
+                break
             except KeyboardInterrupt:
                 print("Someone closed the program")
                 sys.exit()
             except mano.APIError as e:
                 print("Something is wrong with your credentials:")
                 print(e)
-                num_tries = 6
+                break
             except Exception:
-                num_tries = num_tries + 1
+                num_tries += 1
 
     for u in users:
         zf = None
-        download_success = False
         num_tries = 0
-        while not download_success:
+        while num_tries < 5:
+            print(f"Downloading data for {u}")
             try:
-                print(f"Downloading data for {u}")
-                zf = msync.download(
+                zf = mano.sync.download(
                     keyring,
                     study_id,
                     u,
@@ -200,21 +199,23 @@ def download_data(
                     time_start=time_start,
                     time_end=time_end,
                 )
-                if zf is not None:
-                    zf.extractall(download_folder)
-                download_success = True
+                break
             except requests.exceptions.ChunkedEncodingError:
                 print(f"Network failed in download of {u}, try {num_tries}")
-                num_tries = num_tries + 1
+                num_tries += 1
             except KeyboardInterrupt:
                 print("Someone closed the program")
                 sys.exit()
             except mano.APIError as e:
                 print("Something is wrong with your credentials:")
                 print(e)
-                download_success = True
-            if num_tries > 5:
-                download_success = True
-                print(f"Too many failures; skipping user {u}")
+                break
+
+        if num_tries == 5:
+            print(f"Too many failures; skipping user {u}")
+            continue
+
         if zf is None:
             print(f"No data for {u}; nothing written")
+        else:
+            zf.extractall(download_folder)
