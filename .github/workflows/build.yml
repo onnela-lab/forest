@@ -20,7 +20,9 @@ jobs:
       - name: Install Forest dependencies
         # required by librosa
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
-        run: sudo apt-get install -y ffmpeg libsndfile1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg libsndfile1
       - name: Install Forest
         run: pip install -e .
       - name: Install dev dependecies
