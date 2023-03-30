@@ -163,8 +163,7 @@ def download_data(
         print("Error: Did you set up the keyring_studies.py file?")
         return
 
-    if not os.path.isdir(download_folder):
-        os.makedirs(download_folder, exist_ok=True)
+    os.makedirs(download_folder, exist_ok=True)
 
     if time_end is None:
         time_end = datetime.today().strftime("%Y-%m-%d") + "T23:59:00"
@@ -175,7 +174,6 @@ def download_data(
         while num_tries < 5:
             try:
                 users = [u for u in mano.users(keyring, study_id)]
-                break
             except KeyboardInterrupt:
                 print("Someone closed the program")
                 sys.exit()
@@ -185,6 +183,8 @@ def download_data(
                 break
             except Exception:
                 num_tries += 1
+            else:
+                break
 
     for u in users:
         zf = None
@@ -200,7 +200,6 @@ def download_data(
                     time_start=time_start,
                     time_end=time_end,
                 )
-                break
             except requests.exceptions.ChunkedEncodingError:
                 print(f"Network failed in download of {u}, try {num_tries}")
                 num_tries += 1
@@ -211,10 +210,10 @@ def download_data(
                 print("Something is wrong with your credentials:")
                 print(e)
                 break
-
-        if num_tries == 5:
+            else:
+                break
+        else:
             print(f"Too many failures; skipping user {u}")
-            continue
 
         if zf is None:
             print(f"No data for {u}; nothing written")
