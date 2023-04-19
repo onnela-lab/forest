@@ -707,6 +707,8 @@ def gps_summaries(
             t_sig = np.array(t_xy)[np.array(t_xy) / 60 > 15]
             p = t_sig / sum(t_sig)
             entropy = -sum(p * np.log(p + 0.00001))
+            if num_sig == 1:
+                entropy = 0
             if temp.shape[0] == 1:
                 diameter = 0
             else:
