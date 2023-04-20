@@ -707,6 +707,10 @@ def gps_summaries(
             t_sig = np.array(t_xy)[np.array(t_xy) / 60 > 15]
             p = t_sig / sum(t_sig)
             entropy = -sum(p * np.log(p + 0.00001))
+            # if there is only one significant place, the entropy is zero
+            # but here it is -log(1.00001) < 0
+            # but the small value is added to avoid log(0)
+            # this is a bit of a hack, but it works
             if num_sig == 1:
                 entropy = 0
             if temp.shape[0] == 1:
