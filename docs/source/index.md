@@ -253,7 +253,7 @@ The summary statistics that are generated are listed below:
 ```{note}
 For best performance with Sycamore, do not change survey questions and answer after the study period has started. 
 ```
-The following variables are created in the "submits_summary.csv" file. This file will only be generated if the config file and intervention timings file are provided. The `submits_summary_daily.csv` and `submits_summary_hourly.csv` files contain the same columns, but with additional granularity at the day or hourly levels rather than at the user level. 
+The following variables are created in the "submits_summary.csv" file. This file will only be generated if the config file and intervention timings file are provided.
 ```{list-table}
 :header-rows: 1
 * - Variable
@@ -261,19 +261,7 @@ The following variables are created in the "submits_summary.csv" file. This file
   - Description
 * - survey id
   - str
-  - ID of the survey for which this row applies to. Note: If `submits_by_survey_id` is False, surveys will not be aggregated at the survey level (they will only be aggregated by user) so this column will not appear. 
-* - year
-  - int
-  - Year of the time period at which submits/deliveries are being aggregated. This is only included in `submits_summary_daily.csv` and `submits_summary_hourly.csv`
-* - month
-  - int
-  - Month of the time period at which submits/deliveries are being aggregated. This is only included in `submits_summary_daily.csv` and `submits_summary_hourly.csv`
-* - day
-  - int
-  -  Day over which submits/deliveries are being aggregated. This is only included in `submits_summary_daily.csv` and `submits_summary_hourly.csv`
-* - hour
-  - int
-  -  Hour over which submits/deliveries are being aggregated. This is only included in `submits_summary_hourly.csv`
+  - ID of the survey
 * - num_surveys
   - int
   - Number of surveys scheduled for delivery to the individual during the period
