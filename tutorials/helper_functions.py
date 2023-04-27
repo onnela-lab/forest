@@ -8,7 +8,7 @@ import pandas as pd
 import requests
 
 import mano
-from mano import sync as msync
+import mano.sync as msync
 
 SPACE = "    "
 BRANCH = "│   "
