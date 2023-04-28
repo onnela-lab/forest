@@ -8,6 +8,7 @@ import pandas as pd
 import requests
 
 import mano
+import mano.sync as msync
 
 SPACE = "    "
 BRANCH = "│   "
@@ -192,7 +193,7 @@ def download_data(
         while num_tries < 5:
             print(f"Downloading data for {u}")
             try:
-                zf = mano.sync.download(
+                zf = msync.download(
                     keyring,
                     study_id,
                     u,
