@@ -190,18 +190,18 @@ ca_detail, ca_summary = agg_changed_answers_summary(config_path, agg_data)
  
 ```
 
-#FAQ:  
+# FAQ:  
 
-## In the `submits_summary.csv` file, there are some rows where `num_submitted_surveys` is greater than `num_surveys`. How could a user have submitted more surveys than were delivered to them?  
+**In the `submits_summary.csv` file, there are some rows where `num_submitted_surveys` is greater than `num_surveys`. How could a user have submitted more surveys than were delivered to them?**   
 
 Sycamore doesn't know exactly when surveys were delivered to users. Survey delivery times are estimated using the study configuration file which you enter when you run the code. For example, imagine that you started running a study in March with survey deliveries happening daily, and in April you decided to switch your surveys to be delivered weekly. If you ran Sycamore in April, your config file would tell Sycamore that surveys were delivered weekly throughout the whole study. So, if you had a user submitting surveys daily during March, they would have ~30 survey submissions, but Sycamore would think that only ~5 surveys had been delivered during that time.   
 
 In addition, this may happen if a researcher manually re-sends surveys, because Sycamore has no information about manual (unscheduled) deliveries.   
 
-## In the `submits_and_deliveries.csv` file, there are a ton of rows with deliveries but no submissions. Why is this happening?   
+**In the `submits_and_deliveries.csv` file, there are a ton of rows with deliveries but no submissions. Why is this happening?**    
 
 If surveys are sent on a weekly schedule, Sycamore assumes that there is a survey delivered every week between the `start_date` and `end_date` which you entered. If you want there to be fewer empty rows in your output, you can move `start_date` and `end_date` to be closer to the actual start and end dates of your study.   
 
-## What does `surv_inst_flg` mean in the outputs?  
+**What does `surv_inst_flg` mean in the outputs?**   
 
 `surv_inst_flg` is a unique identifying number to distinguish different times when the same individual took the same survey. This column is useful for joining outputs together.  
