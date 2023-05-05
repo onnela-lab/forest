@@ -190,7 +190,7 @@ ca_detail, ca_summary = agg_changed_answers_summary(config_path, agg_data)
  
 ```
 
-# FAQ:  
+## FAQ
 
 **In the `submits_summary.csv` file, there are some rows where `num_submitted_surveys` is greater than `num_surveys`. How could a user have submitted more surveys than were delivered to them?**   
 
