@@ -123,7 +123,7 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
     stamp_start = 1e12
     stamp_end: int = 0
     folder_path = os.path.join(study_folder, beiwe_id, datastream)
-    files_in_range = []
+    files_in_range: List[str] = []
     # if text folder exists, call folder must exists
     if not os.path.exists(os.path.join(study_folder, beiwe_id)):
         logger.warning('User %s does not exist, please check the ID again.',
@@ -186,9 +186,9 @@ def read_data(beiwe_id: str, study_folder: str, datastream: str, tz_str: str,
             stamp_end = min(stamp_end1, stamp_end2)
 
         # extract the filenames in range
-        files_in_range = filenames[
+        files_in_range = list(filenames[
             (filestamps >= stamp_start) * (filestamps < stamp_end)
-        ]
+        ])
         if len(files_in_range) == 0:
             logger.warning('User %s: There are no %s data in range.',
                            beiwe_id, datastream)
