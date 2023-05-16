@@ -639,7 +639,7 @@ def gps_summaries(
                     pd.NA,
                 ]
                 if places_of_interest is not None:
-                    for p in range(2 * len(places_of_interest) + 1):
+                    for place_int in range(2 * len(places_of_interest) + 1):
                         res.append(pd.NA)
                 summary_stats.append(res)
                 log_tags[f"{day}/{month}/{year} {hour}:00"] = []
@@ -743,7 +743,7 @@ def gps_summaries(
                     pd.NA,
                 ]
                 if places_of_interest is not None:
-                    for p in range(2 * len(places_of_interest) + 1):
+                    for place_int in range(2 * len(places_of_interest) + 1):
                         res.append(pd.NA)
                 summary_stats.append(res)
                 log_tags[f"{day}/{month}/{year}"] = []

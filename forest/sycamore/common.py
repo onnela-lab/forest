@@ -292,6 +292,8 @@ def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
 
     for i, s in enumerate(surveys):
         # Pull out timings
+        if s["content"] is None:
+            continue
         for q in s["content"]:
             if "question_id" in q.keys():
                 surv = {
