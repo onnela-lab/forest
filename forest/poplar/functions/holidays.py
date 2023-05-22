@@ -10,7 +10,7 @@ from ..constants.time import DATE_FORMAT
 logger = getLogger(__name__)
 
 
-US_HOLIDAYS = holidays.UnitedStates()
+US_HOLIDAYS = holidays.UnitedStates() # type: ignore[attr-defined]
 
 
 def is_US_holiday(date, date_format = DATE_FORMAT):
