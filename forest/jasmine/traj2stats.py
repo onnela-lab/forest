@@ -108,9 +108,9 @@ def get_nearby_locations(
 
     Args:
         traj: numpy array, trajectory
-        osm_tags: list of strings, types of nearby locations
-            supported by Overpass API
-            defaults to ["amenity", "leisure"]
+        osm_tags: list of OSMTags (in constants),
+            types of nearby locations supported by Overpass API
+            defaults to [OSMTags.AMENITY, OSMTags.LEISURE]
     Returns:
         ids: dictionary, contains nearby locations' ids
         locations: dictionary, contains nearby locations' coordinates
@@ -960,7 +960,7 @@ def gps_stats_main(
             (resolution for summary statistics)
         save_traj: bool, True if you want to save the trajectories as a
             csv file, False if you don't
-        places_of_interest: list of amenities or leisure places to watch,
+        places_of_interest: list of places to watch,
             keywords as used in openstreetmaps
         save_osm_log: bool, True if you want to output a log of locations
             visited and their tags
