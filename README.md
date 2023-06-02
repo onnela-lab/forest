@@ -119,7 +119,7 @@ gps_to_csv(sample_gps_data, path_to_synthetic_gps_data, start_date, end_date)
 # See https://github.com/onnela-lab/forest/wiki/Jasmine-documentation#input for details
 # time zone where the study took place (assumes that all participants were always in this time zone)
 tz_str = "Etc/GMT-1"
-# Generate summary metrics e.g. Frequency.HOURLY, Frequency.DAILY or Frequency.HOURLY_AND_DAILY (see Frequency class in traj2stats.py)
+# Generate summary metrics e.g. Frequency.HOURLY, Frequency.DAILY or Frequency.HOURLY_AND_DAILY (see Frequency class in constants.py)
 frequency = Frequency.DAILY
 # Save imputed trajectories?
 save_traj = False
@@ -129,11 +129,24 @@ parameters = None
 places_of_interest = ['cafe', 'bar', 'hospital']
 # True if want to save a log of all locations and attributes of those locations visited
 save_osm_log = True
+# list of OpenStreetMap tags to use for identifying locations, leave None to default to amenity and leisure tagged locations or if you don't want to use OSM (see OSMTags class in constants.py)
+osm_tags = None
 # threshold of time spent in a location to count as being in that location, in minutes
 threshold = 15
 
 # 3. Impute location data and generate mobility summary metrics using the simulated data above
-gps_stats_main(path_to_synthetic_gps_data, path_to_gps_summary, tz_str, frequency, save_traj, parameters, places_of_interest, save_osm_log, threshold)
+gps_stats_main(
+    study_folder = path_to_synthetic_gps_data,
+    output_folder = path_to_gps_summary,
+    tz_str = tz_str,
+    frequency = frequency,
+    save_traj = save_traj,
+    parameters = parameters,
+    places_of_interest = places_of_interest,
+    save_osm_log = save_osm_log,
+    osm_tags = None,
+    threshold = threshold,
+)
 
 # 4. Generate daily summary metrics for call/text logs
 option = Frequency.DAILY
