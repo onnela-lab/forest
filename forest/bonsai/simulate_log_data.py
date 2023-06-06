@@ -15,20 +15,19 @@ from ..poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 ORIG_TIME = datetime2stamp([2020, 8, 24, 0, 0, 0], "America/New_York")
 
 
-def gen_status() -> int:
+def gen_status() -> str:
     """
     Generates a random status based on a probability distribution.
 
     This function generates a status for a user activity. With probability 80%, the function
-    returns 0 (indicating inactivity). Otherwise, it returns 1 (indicating activity).
+    returns "inactive", and with probability 20%, the function returns "active".
 
     Returns:
-        int: 0 if generated random value is less than or equal to 0.8 (indicating inactivity), 
-        1 otherwise (indicating activity).
+        str: The status, either "active" or "inactive".
     """
     if np.random.random() <= 0.8:
-        return 0
-    return 1
+        return "inactive"
+    return "active"
 
 
 def exist_text_call(hour: int, status: str) -> int:
@@ -47,8 +46,9 @@ def exist_text_call(hour: int, status: str) -> int:
         int: 1 if a random number is less than or equal to the determined probability
         (indicating a text or call exists), 0 otherwise.
     """
+    prob: float
     if hour in [0, 1, 2, 3, 4, 5, 6]:
-        prob = 0
+        prob = 0.
     elif hour in [7, 8, 22, 23]:
         prob = 0.01
     else:
@@ -207,21 +207,21 @@ def gen_call_dur() -> int:
     return dur
 
 
-def gen_timestamp_call(dur: list) -> tuple:
+def gen_timestamp_call(dur: np.ndarray) -> tuple:
     """
-    Generates timestamps for a call.
+    Generates timestamps for calls.
 
-    Given a duration, this function generates a list of timestamps for a call.
+    Given durations, this function generates a list of timestamps for a call.
 
     Args:
-        dur (int): The duration of the call.
+        dur (np.ndarray): The duration of the call.
 
     Returns:
         tuple: A tuple containing the modified duration and a list of timestamps for the call.
     """
     stamps = []
     if sum(dur) > 60 * 60:
-        dur = dur / 2
+        dur /= 2
     else:
         current_t = 0
         remain = 60 * 60 - sum(dur)
@@ -297,7 +297,7 @@ def gen_text_files(output_folder: str):
                                 ) * 1000,
                             ]
                             data.append(new_line)
-                    data = pd.DataFrame(
+                    data2 = pd.DataFrame(
                         data,
                         columns=[
                             "timestamp",
@@ -308,7 +308,7 @@ def gen_text_files(output_folder: str):
                             "time sent",
                         ],
                     )
-                    data.to_csv(
+                    data2.to_csv(
                         f"{output_folder}/{idx}/texts/{filename}",
                         index=False
                     )
@@ -352,8 +352,9 @@ def gen_call_files(output_folder: str):
                             all_dir.append(directions[k])
                             all_phone.append(contacts[g])
 
-                    all_dur = np.array(all_dur)
-                    all_dur, all_stamps = gen_timestamp_call(all_dur)
+                    all_dur, all_stamps = gen_timestamp_call(
+                        np.array(all_dur)
+                    )
                     for z in range(len(all_dur)):
                         if all_dir[z] == 1:
                             call_type = "Outgoing Call"
@@ -369,7 +370,7 @@ def gen_call_files(output_folder: str):
                             all_dur[z],
                         ]
                         data.append(new_line)
-                    data = pd.DataFrame(
+                    data2 = pd.DataFrame(
                         data,
                         columns=[
                             "timestamp",
@@ -379,7 +380,7 @@ def gen_call_files(output_folder: str):
                             "duration in seconds",
                         ],
                     )
-                    data.to_csv(
+                    data2.to_csv(
                         f"{output_folder}/{idx}/calls/{filename}",
                         index=False
                     )
