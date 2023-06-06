@@ -19,8 +19,9 @@ def gen_status() -> str:
     """
     Generates a random status based on a probability distribution.
 
-    This function generates a status for a user activity. With probability 80%, the function
-    returns "inactive", and with probability 20%, the function returns "active".
+    This function generates a status for a user activity.
+    With probability 80%, the function returns "inactive",
+    and with probability 20%,the function returns "active".
 
     Returns:
         str: The status, either "active" or "inactive".
@@ -34,17 +35,18 @@ def exist_text_call(hour: int, status: str) -> int:
     """
     Determines whether a text or call exists.
 
-    Given an hour and a status (active or inactive), this function determines 
-    the probability of a text or call existing. Different hours have different 
-    base probabilities, and if the status is active, the base probability is tripled.
+    Given an hour and a status (active or inactive), this function determines
+    the probability of a text or call existing. Different hours have different
+    base probabilities, and if the status is active,
+    the base probability is tripled.
 
     Args:
         hour (int): The hour at which the function checks for a text or call.
         status (str): The activity status, either "active" or "inactive".
 
     Returns:
-        int: 1 if a random number is less than or equal to the determined probability
-        (indicating a text or call exists), 0 otherwise.
+        int: 1 if a random number is less than or equal to the determined
+         probability (indicating a text or call exists), 0 otherwise.
     """
     prob: float
     if hour in [0, 1, 2, 3, 4, 5, 6]:
@@ -80,8 +82,9 @@ def number_of_distinct_inds(stream: str) -> int:
     """
     Determines the number of distinct individuals in a stream.
 
-    This function generates a random number and based on that, it determines 
-    the number of distinct individuals in the given stream (either "texts" or "calls").
+    This function generates a random number and based on that, it determines
+    the number of distinct individuals in the given stream
+    (either "texts" or "calls").
 
     Args:
         stream (str): The type of stream, either "texts" or "calls".
@@ -113,7 +116,7 @@ def gen_round(stream: str) -> int:
     """
     Generates a round number for a given stream.
 
-    This function generates a random number and based on that, it determines 
+    This function generates a random number and based on that, it determines
     the round number for the given stream (either "texts" or "calls").
 
     Args:
@@ -148,8 +151,8 @@ def gen_dir(round_num: int) -> list:
     """
     Generates a list of direction values.
 
-    This function generates a list of round_num direction values (either 1 or 0)
-    based on a certain probability distribution.
+    This function generates a list of round_num direction values
+    (either 1 or 0) based on a certain probability distribution.
 
     Args:
         round_num (int): The number of direction values to generate.
@@ -217,7 +220,8 @@ def gen_timestamp_call(dur: np.ndarray) -> tuple:
         dur (np.ndarray): The duration of the call.
 
     Returns:
-        tuple: A tuple containing the modified duration and a list of timestamps for the call.
+        tuple: A tuple containing the modified duration
+         and a list of timestamps for the call.
     """
     stamps = []
     if sum(dur) > 60 * 60:
@@ -237,7 +241,8 @@ def gen_timestamp_text(round_num: int) -> list:
     """
     Generates timestamps for a text.
 
-    Given a round number, this function generates a list of timestamps for a text.
+    Given a round number, this function generates a list of timestamps
+    for a text.
 
     Args:
         round_num (int): The round number.
