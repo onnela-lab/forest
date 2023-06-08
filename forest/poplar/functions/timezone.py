@@ -13,27 +13,18 @@ logger = getLogger(__name__)
 
 
 def get_timezone(
-    latitude: float, longitude: float, try_closest: bool = True
+    latitude: float, longitude: float,
 ) -> Optional[str]:
     """Get timezone from latitude and longitude.
 
     Args:
         latitude, longitude (float): Coordinates.
-        try_closest (bool): If True and no timezone found, will try to
-            find closest timezone within +/- 1 degree latitude & longitude.
 
     Returns:
         timezone (str): Timezone string that can be read by pytz.timezone().
     """
     tf_obj = TimezoneFinder()
     timezone = tf_obj.timezone_at(lng=longitude, lat=latitude)
-    if timezone is None and try_closest:
-        logger.warning(
-            "No timezone found for %s, %s.  Looking for closest\
-                       timezone.",
-            str(latitude), str(longitude)
-        )
-        timezone = tf_obj.closest_timezone_at(lat=latitude, lng=longitude)
     return timezone
 
 
