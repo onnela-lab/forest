@@ -31,7 +31,7 @@ def setup_directories(dirpath_list: Union[str, List[str]]) -> None:
 def write_json(
     dictionary: Union[dict, OrderedDict], name: str,
     dirpath: str, indent: int = 4
-) -> str:
+) -> Union[str, None]:
     """Writes a dictionary to a JSON file.
 
     Args:
@@ -55,7 +55,7 @@ def write_json(
 
 def read_json(
     filepath: str, ordered: bool = False
-) -> Union[dict, OrderedDict]:
+) -> Union[dict, OrderedDict, None]:
     """
     Read a JSON file into a dictionary.
 
@@ -76,6 +76,7 @@ def read_json(
         return dictionary
     except Exception:
         logger.warning("Unable to read JSON file.")
+        return None
 
 
 def setup_csv(

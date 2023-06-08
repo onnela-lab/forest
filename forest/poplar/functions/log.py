@@ -5,7 +5,7 @@
 
 """
 import logging
-from typing import List
+from typing import List, Union
 
 from .io import setup_csv
 
@@ -82,7 +82,9 @@ def attributes_to_csv(attribute_list: list) -> ExtendedLogFormat:
         return extended_format
     except Exception:
         logger.warning("Unable to assemble logging format and header.")
-        return None
+        return ExtendedLogFormat(
+            [], AVAILABLE_ATTRIBUTES
+        )
 
 
 BASIC_CSV_LOG = attributes_to_csv(
