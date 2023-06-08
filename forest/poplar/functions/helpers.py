@@ -1,10 +1,8 @@
-"""Tools for common data processing tasks.
-
-"""
+"""Tools for common data processing tasks."""
 import os
 from logging import getLogger
 from collections import OrderedDict
-from typing import (List, Union)
+from typing import List, Union
 
 import numpy as np
 import pandas as pd
@@ -14,11 +12,12 @@ logger = getLogger(__name__)
 
 
 def clean_dataframe(
-        df: pd.DataFrame, drop_duplicates: bool = True, sort: bool = True,
-        update_index: bool = True
+    df: pd.DataFrame,
+    drop_duplicates: bool = True,
+    sort: bool = True,
+    update_index: bool = True,
 ) -> pd.DataFrame:
-    """
-    Clean up a pandas dataframe that contains Beiwe data.
+    """Clean up a pandas dataframe that contains Beiwe data.
 
     Args:
         df (pandas.DataFrame): A pandas dataframe.
@@ -36,18 +35,21 @@ def clean_dataframe(
         try:
             df.sort_values(by=["timestamp"], inplace=True)
         except KeyError:
-            logger.exception("Unable to sort by timestamp."
-                             "No column named timestamp")
+            logger.exception(
+                "Unable to sort by timestamp." "No column named timestamp"
+            )
         except TypeError:
-            logger.exception("Unable to sort by timestamp."
-                             "Multiple types in column")
+            logger.exception(
+                "Unable to sort by timestamp." "Multiple types in column"
+            )
 
     if update_index:
         df.set_index(np.arange(len(df)), inplace=True)
 
 
-def get_windows(df: pd.DataFrame, start: int, end: int, window_length_ms: int
-                ) -> OrderedDict:
+def get_windows(
+    df: pd.DataFrame, start: int, end: int, window_length_ms: int
+) -> OrderedDict:
     """
     Generate evenly spaced windows over a time period.  For each window,
     figure out which rows of a data frame were observed during the window.
@@ -69,23 +71,27 @@ def get_windows(df: pd.DataFrame, start: int, end: int, window_length_ms: int
             that fall within the corresponding window.
     """
     if (end - start) % window_length_ms != 0:
-        logger.warning("The window length doesn't evenly divide the interval."
-                       "Returning empty OrderedDict")
+        logger.warning(
+            "The window length doesn't evenly divide the interval."
+            "Returning empty OrderedDict"
+        )
     else:
         try:
             windows: OrderedDict = OrderedDict.fromkeys(
-                np.arange(start, end, window_length_ms), list()
+                np.arange(start, end, window_length_ms), []
             )
             for i in range(len(df)):
                 key = df.timestamp[i] - (df.timestamp[i] % window_length_ms)
                 windows[key].append(i)
             return windows
         except KeyError:
-            logger.warning("Unable to identify windows"
-                           "Returning empty OrderedDict")
+            logger.warning(
+                "Unable to identify windows" "Returning empty OrderedDict"
+            )
         except ZeroDivisionError:
-            logger.exception("window_length_ms was set to 0"
-                             "Returning empty OrderedDict")
+            logger.exception(
+                "window_length_ms was set to 0" "Returning empty OrderedDict"
+            )
     return OrderedDict()
 
 
@@ -104,9 +110,9 @@ def directory_size(dirpath: str, ndigits=1) -> tuple:
     """
     size = 0
     file_count = 0
-    for path, dirs, filenames in os.walk(dirpath):
-        for f in filenames:
-            filepath = os.path.join(path, f)
+    for path, _, filenames in os.walk(dirpath):
+        for file in filenames:
+            filepath = os.path.join(path, file)
             size += os.path.getsize(filepath)
             file_count += 1
     size = round(size / (2**20), ndigits)
@@ -134,8 +140,9 @@ def sort_by(list_to_sort: list, list_to_sort_by: list) -> list:
         logger.warning("Lists are not the same length. List not sorted.")
     else:
         try:
-            sorted_list = [i for _, i in
-                           sorted(zip(list_to_sort_by, list_to_sort))]
+            sorted_list = [
+                i for _, i in sorted(zip(list_to_sort_by, list_to_sort))
+            ]
             return sorted_list
         except TypeError:
             logger.exception("list_to_sort_by has multiple types")
@@ -152,7 +159,7 @@ def join_lists(list_of_lists: List[list]) -> List:
     Returns:
         joined_list (list)
     """
-    if not all([type(i) is list for i in list_of_lists]):
+    if not all(isinstance(i, list) for i in list_of_lists):
         logger.warning("This is not a list of lists. Returning Empty List")
     else:
         joined_list = [i for sublist in list_of_lists for i in sublist]
@@ -162,25 +169,58 @@ def join_lists(list_of_lists: List[list]) -> List:
 
 # Dictionary of some summary statistics:
 def sample_range(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
+    """Range of a sample.
+
+    Args:
+        a (Union[pd.DataFrame, np.ndarray, pd.Series, list]): A sample.
+
+    Returns:
+        float: Range of the sample.
+    """
     return np.max(a) - np.min(a)
 
 
 def iqr(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
+    """Interquartile range of a sample.
+
+    Args:
+        a (Union[pd.DataFrame, np.ndarray, pd.Series, list]): A sample.
+
+    Returns:
+        float: Interquartile range of the sample.
+    """
     return np.percentile(a, 75) - np.percentile(a, 25)
 
 
 def sample_std(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
+    """Standard deviation of a sample.
+
+    Args:
+        a (Union[pd.DataFrame, np.ndarray, pd.Series, list]): A sample.
+
+    Returns:
+        float: Standard deviation of the sample.
+    """
     return np.std(a, ddof=1)
 
 
 def sample_var(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
+    """Variance of a sample.
+
+    Args:
+        a (Union[pd.DataFrame, np.ndarray, pd.Series, list]): A sample.
+
+    Returns:
+        float: Variance of the sample.
+    """
     return np.var(a, ddof=1)
 
 
-STATS = {"mean":   np.mean,
-         "median": np.median,
-         "range":  sample_range,
-         "iqr":    iqr,
-         "std":    sample_std,
-         "var":    sample_var
-         }
+STATS = {
+    "mean": np.mean,
+    "median": np.median,
+    "range": sample_range,
+    "iqr": iqr,
+    "std": sample_std,
+    "var": sample_var,
+}
