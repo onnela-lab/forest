@@ -1,6 +1,5 @@
 [flake8]
 exclude =
-    forest/bonsai/simulate_log_data.py,
     forest/jasmine/data2mobmat.py,
     forest/jasmine/mobmat2traj.py,
     forest/jasmine/sogp_gps.py,
