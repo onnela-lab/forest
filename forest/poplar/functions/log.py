@@ -5,7 +5,7 @@
 
 """
 import logging
-from typing import List, Union
+from typing import List
 
 from .io import setup_csv
 
