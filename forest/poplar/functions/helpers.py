@@ -28,11 +28,6 @@ def clean_dataframe(
 
     Returns:
         None
-
-    Raises:
-        KeyError:  If sort is True and df doesn't have a 'timestamp' column.
-        TypeError:  If sort is True and df has multiple types in the
-            'timestamp' column.
     """
     if drop_duplicates:
         df.drop_duplicates(inplace=True)
@@ -74,10 +69,6 @@ def get_windows(
         windows (OrderedDict):  Keys are timestamps corresponding to the
             beginning of each window.  Values are lists of row indices in df
             that fall within the corresponding window.
-
-    Raises:
-        KeyError:  If df doesn't have a 'timestamp' column.
-        ZeroDivisionError:  If window_length_ms is 0.
     """
     if (end - start) % window_length_ms != 0:
         logger.warning(
@@ -140,9 +131,6 @@ def sort_by(list_to_sort: list, list_to_sort_by: list) -> list:
     Returns:
         sorted_list (list): Items of list_to_sort, arranged according
             to values in list_to_sort_by.
-
-    Raises:
-        TypeError:  If list_to_sort_by contains multiple types.
 
     Example:
         >>> sort_by([1, 2, 3, 4], ["b", "c", "a", "d"])
