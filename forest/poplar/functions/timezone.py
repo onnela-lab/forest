@@ -28,7 +28,9 @@ def get_timezone(
     return timezone
 
 
-def get_offset(timestamp: int, timezone: Union[str, pytz.BaseTzInfo]) -> float:
+def get_offset(
+    timestamp: int, timezone: Union[str, pytz.BaseTzInfo]
+) -> Optional[float]:
     """Get UTC offset, given timestamp and timezone.
 
     Args:
@@ -42,6 +44,9 @@ def get_offset(timestamp: int, timezone: Union[str, pytz.BaseTzInfo]) -> float:
     if isinstance(timezone, str):
         timezone = pytz.timezone(timezone)
     datetime_date = datetime.datetime.fromtimestamp(timestamp / 1000, timezone)
-    offset_s = datetime_date.utcoffset().total_seconds()
+    offset_utc = datetime_date.utcoffset()
+    if offset_utc is None:
+        return None
+    offset_s = offset_utc.total_seconds()
     offset = offset_s / HOUR_S
     return offset
