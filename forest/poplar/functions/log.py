@@ -5,6 +5,8 @@
 
 """
 import logging
+from typing import List
+
 from .io import setup_csv
 
 
@@ -41,7 +43,7 @@ class ExtendedLogFormat:
     """
     Class for assembling logging format and header for writing records to CSV.
     """
-    def __init__(self, attribute_list, available_attributes):
+    def __init__(self, attribute_list: list, available_attributes: dict):
         """
         Args:
             attribute_list (list): List of keys from available_attributes.
@@ -59,7 +61,7 @@ class ExtendedLogFormat:
                 self.header.append(attr)
 
 
-def attributes_to_csv(attribute_list):
+def attributes_to_csv(attribute_list: list) -> ExtendedLogFormat:
     """
     Given a list of attributes (keys of AVAILABLE_ATTRIBUTES), returns a
     logging format with header for writing records to CSV.
@@ -113,12 +115,12 @@ TRACEBACK_CSV_LOG = attributes_to_csv(
 
 
 def log_to_csv(
-    log_dir,
-    level=logging.DEBUG,
-    log_name="log",
-    log_format=BASIC_CSV_LOG.attributes,
-    header=BASIC_CSV_LOG.header,
-):
+    log_dir: str,
+    level: int = logging.DEBUG,
+    log_name: str = "log",
+    log_format: str = BASIC_CSV_LOG.attributes,
+    header: List[str] = BASIC_CSV_LOG.header,
+) -> None:
     """
     Configure the logging system to write messages to a csv.
     Overwrites any existing logging handlers and configurations.
