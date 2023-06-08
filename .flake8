@@ -4,7 +4,6 @@ exclude =
     forest/jasmine/data2mobmat.py,
     forest/jasmine/mobmat2traj.py,
     forest/jasmine/sogp_gps.py,
-    forest/poplar/classes,
     forest/poplar/constants,
     forest/poplar/functions/holidays.py,
     forest/poplar/functions/io.py,
