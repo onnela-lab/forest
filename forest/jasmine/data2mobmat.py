@@ -50,7 +50,7 @@ def cartesian(
 
 
 def great_circle_dist(
-    lat1: Union[float, np.ndarray], lon1: Union[float, np.ndarray], 
+    lat1: Union[float, np.ndarray], lon1: Union[float, np.ndarray],
     lat2: Union[float, np.ndarray], lon2: Union[float, np.ndarray]
 ) -> Union[float, np.ndarray]:
     """This function calculates the great circle distance
