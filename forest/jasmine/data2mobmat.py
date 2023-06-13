@@ -205,7 +205,7 @@ def collapse_data(
 
     idx_avgmat: int = 0
     count: int = 0
-    numitrvl: int = 1
+    num_interval: int = 1
 
     # Initialize the first row of the output matrix
     # [1, timestamp, latitude, longitude]
@@ -217,7 +217,7 @@ def collapse_data(
             # Accumulate latitude and longitude for averaging later
             nextline[2] += data.iloc[i, 2]
             nextline[3] += data.iloc[i, 3]
-            numitrvl += 1
+            num_interval += 1
         else:
             # When the current row's timestamp exceeds the current interval,
             # we compute the average for latitude and longitude
@@ -255,7 +255,7 @@ def collapse_data(
             nextline = [
                 1, t_start + interval / 2, data.iloc[i, 2], data.iloc[i, 3]
             ]
-            numitrvl = 1
+            num_interval = 1
 
     # Trim the output matrix to remove unused rows
     avgmat = avgmat[0:count, :]
