@@ -50,20 +50,20 @@ def cartesian(
 
 
 def great_circle_dist(
-    lat1: Union[float, np.ndarray], lon1: Union[float, np.ndarray],
-    lat2: Union[float, np.ndarray], lon2: Union[float, np.ndarray]
-) -> Union[float, np.ndarray]:
+    lat1: float, lon1: float,
+    lat2: float, lon2: float
+) -> float:
     """This function calculates the great circle distance
         between two locations.
 
     Args:
-        lat1: Union[float, np.ndarray], latitude of location1,
+        lat1: float, latitude of location1,
             range[-180, 180]
-        lon1: Union[float, np.ndarray], longitude of location1,
+        lon1: float, longitude of location1,
             range[-180, 180]
-        lat2: Union[float, np.ndarray], latitude of location2,
+        lat2: float, latitude of location2,
             range[-180, 180]
-        lon2: Union[float, np.ndarray], longitude of location2,
+        lon2: float, longitude of location2,
             range[-180, 180]
     Returns:
         the great circle distance between location1 and location2
