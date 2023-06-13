@@ -19,7 +19,7 @@ from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
 from forest.constants import Frequency, OSM_OVERPASS_URL, OSMTags
-from forest.jasmine.data2mobmat import (GPS2MobMat, InferMobMat,
+from forest.jasmine.data2mobmat import (gps_to_mobmat, infer_mobmat,
                                         great_circle_dist,
                                         pairwise_great_circle_dist)
 from forest.jasmine.mobmat2traj import (Imp2traj, ImputeGPS, locate_home,
@@ -37,8 +37,8 @@ class Hyperparameters:
 
     Args:
         itrvl, accuracylim, r, w, h: hyperparameters for the
-            GPS2MobMat function.
-        itrvl, r: hyperparameters for the InferMobMat function.
+            gps_to_mobmat function.
+        itrvl, r: hyperparameters for the infer_mobmat function.
         l1, l2, l3, a1, a2, b1, b2, b3, sigma2, tol, d: hyperparameters
             for the BV_select function.
         l1, l2, a1, a2, b1, b2, b3, g, method, switch, num, linearity:
@@ -1064,11 +1064,11 @@ def gps_stats_main(
             if orig_w is None:
                 parameters.w = np.mean(data.accuracy)
             # process data
-            mobmat1 = GPS2MobMat(
+            mobmat1 = gps_to_mobmat(
                 data, parameters.itrvl, parameters.accuracylim,
                 parameters.r, parameters.w, parameters.h
             )
-            mobmat2 = InferMobMat(mobmat1, parameters.itrvl, parameters.r)
+            mobmat2 = infer_mobmat(mobmat1, parameters.itrvl, parameters.r)
             out_dict = BV_select(
                 mobmat2,
                 parameters.sigma2,
