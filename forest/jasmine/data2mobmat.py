@@ -189,7 +189,8 @@ def collapse_data(
             - if it is 4, it is a missing interval and the subsequent columns
                 are starting timestamp, ending timestamp, None
     """
-    # Filter out rows where the GPS accuracy is beyond the provided accuracy_limit
+    # Filter out rows where the GPS accuracy is beyond
+    # the provided accuracy_limit
     data = data[data.accuracy < accuracylim]
 
     # Get the start and end timestamps in seconds
@@ -581,17 +582,21 @@ def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
                             y1[i] = y0[i]
                         else:
                             status = 1
-                            s_x = x0[i] - interval / 2 / (t0[i + 1] - t1[i]) * (
-                                x0[i + 1] - x0[i]
+                            s_x = (
+                                x0[i] - interval / 2 /
+                                (t0[i + 1] - t1[i]) * (x0[i + 1] - x0[i])
                             )
-                            s_y = y0[i] - interval / 2 / (t0[i + 1] - t1[i]) * (
-                                y0[i + 1] - y0[i]
+                            s_y = (
+                                y0[i] - interval / 2 /
+                                (t0[i + 1] - t1[i]) * (y0[i + 1] - y0[i])
                             )
-                            e_x = x0[i] + interval / 2 / (t0[i + 1] - t1[i]) * (
-                                x0[i + 1] - x0[i]
+                            e_x = (
+                                x0[i] + interval / 2 /
+                                (t0[i + 1] - t1[i]) * (x0[i + 1] - x0[i])
                             )
-                            e_y = y0[i] + interval / 2 / (t0[i + 1] - t1[i]) * (
-                                y0[i + 1] - y0[i]
+                            e_y = (
+                                y0[i] + interval / 2 /
+                                (t0[i + 1] - t1[i]) * (y0[i + 1] - y0[i])
                             )
                             x0[i] = s_x
                             x1[i] = e_x
