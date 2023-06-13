@@ -171,69 +171,95 @@ def pairwise_great_circle_dist(latlon_array: np.ndarray) -> List[float]:
 
 
 def collapse_data(
-    data: pd.DataFrame, itrvl: float, accuracylim: float
+    data: pd.DataFrame, interval: float, accuracylim: float
 ) -> np.ndarray:
     """This function collapses the raw data into a 2d numpy array,
         with each row as a chunk of data.
 
     Args:
         data: pd.DataFrame, the pd dataframe from read_data()
-        itrvl: float, the window size of moving average,  unit is second
-        accuracylim: float, a threshold
-            we filter out GPS record with accuracy higher than this threshold.
+        interval: float, the window size of moving average in seconds
+        accuracylim: float, a threshold to filter out GPS record
+            with accuracy higher than this limit.
     Returns:
-        a 2d numpy array, average over the measures every itrvl seconds
-            with first col as an indicator
-            if it is 1, it is observed, and
-                 second col as timestamp
-                 third col as latitude
-                 fourth col as longitude
-            if it is 4, it is an missing interval and
-                 second col is starting timestamp
-                 third col is ending timestamp
-                 fourth is none
+        a 2d numpy array, average over the measures every interval seconds
+            with first column as an indicator:
+            - if it is 1, it is observed, and the subsequent columns
+                are timestamp, latitude, longitude
+            - if it is 4, it is a missing interval and the subsequent columns
+                are starting timestamp, ending timestamp, None
     """
+    # Filter out rows where the GPS accuracy is beyond the provided accuracy_limit
     data = data[data.accuracy < accuracylim]
+
+    # Get the start and end timestamps in seconds
     t_start = sorted(np.array(data.timestamp))[0] / 1000
     t_end = sorted(np.array(data.timestamp))[-1] / 1000
-    avgmat = np.empty([int(np.ceil((t_end - t_start) / itrvl)) + 2, 4])
+
+    # Initialize an empty 2D numpy array for the collapsed data
+    avgmat = np.empty([int(np.ceil((t_end - t_start) / interval)) + 2, 4])
+
     sys.stdout.write(
-        f"Collapse data within {itrvl} second intervals ...\n"
+        f"Collapse data within {interval} second intervals ...\n"
     )
-    idam = 0
-    count = 0
-    nextline = [1, t_start + itrvl / 2, data.iloc[0, 2], data.iloc[0, 3]]
-    numitrvl = 1
+
+    idx_avgmat: int = 0
+    count: int = 0
+    numitrvl: int = 1
+
+    # Initialize the first row of the output matrix
+    # [1, timestamp, latitude, longitude]
+    nextline = [1, t_start + interval / 2, data.iloc[0, 2], data.iloc[0, 3]]
+
     for i in np.arange(1, data.shape[0]):
-        if data.iloc[i, 0] / 1000 < t_start + itrvl:
-            nextline[2] = nextline[2] + data.iloc[i, 2]
-            nextline[3] = nextline[3] + data.iloc[i, 3]
-            numitrvl = numitrvl + 1
+        # If the timestamp of the current row is within the current interval
+        if data.iloc[i, 0] / 1000 < t_start + interval:
+            # Accumulate latitude and longitude for averaging later
+            nextline[2] += data.iloc[i, 2]
+            nextline[3] += data.iloc[i, 3]
+            numitrvl += 1
         else:
-            nextline[2] = nextline[2] / numitrvl
-            nextline[3] = nextline[3] / numitrvl
-            avgmat[idam, :] = nextline
-            count = count + 1
-            idam = idam + 1
-            nummiss = int(
-                np.floor((data.iloc[i, 0] / 1000 - (t_start + itrvl)) / itrvl)
+            # When the current row's timestamp exceeds the current interval,
+            # we compute the average for latitude and longitude
+            nextline[2] /= num_interval
+            nextline[3] /= num_interval
+
+            # Store the averaged data in the output matrix
+            avgmat[idx_avgmat, :] = nextline
+
+            count += 1
+            idx_avgmat += 1
+
+            # Compute the number of missing intervals
+            num_miss = int(
+                np.floor(
+                    (data.iloc[i, 0] / 1000 - (t_start + interval)) / interval
+                    )
             )
-            if nummiss > 0:
-                avgmat[idam, :] = [
-                    4,
-                    t_start + itrvl,
-                    t_start + itrvl * (nummiss + 1),
-                    None,
+
+            # If there are missing intervals
+            if num_miss > 0:
+                # Insert a row of missing interval into the output matrix
+                avgmat[idx_avgmat, :] = [
+                    4, t_start + interval,
+                    t_start + interval * (num_miss + 1), None,
                 ]
-                count = count + 1
-                idam = idam + 1
-            t_start = t_start + itrvl * (nummiss + 1)
-            nextline[0] = 1
-            nextline[1] = t_start + itrvl / 2
-            nextline[2] = data.iloc[i, 2]
-            nextline[3] = data.iloc[i, 3]
+                count += 1
+                idx_avgmat += 1
+
+            # Move the start time to the end
+            # of the last missing interval or the current interval
+            t_start += interval * (num_miss + 1)
+
+            # Initialize the next row of the output matrix
+            nextline = [
+                1, t_start + interval / 2, data.iloc[i, 2], data.iloc[i, 3]
+            ]
             numitrvl = 1
+
+    # Trim the output matrix to remove unused rows
     avgmat = avgmat[0:count, :]
+
     return avgmat
 
 
@@ -270,7 +296,7 @@ def exist_knot(mat: np.ndarray, w: float) -> Tuple[int, Optional[int]]:
 
 
 def extract_flights(
-    mat: np.ndarray, itrvl: float, r: float, w: float, h: float
+    mat: np.ndarray, interval: float, r: float, w: float, h: float
 ) -> np.ndarray:
     """This function extracts flights and pauses from one observed chunk.
 
@@ -281,7 +307,7 @@ def extract_flights(
     Args:
         mat: np.array, avgmat from collapse_data(),
             just one observed chunk without missing intervals
-        itrvl: float, the window size of moving average,  unit is second
+        interval: float, the window size of moving average,  unit is second
         r: float, the maximam radius of a pause
         w: float, a threshold for distance,
             if the distance to the great circle is greater than
@@ -299,8 +325,8 @@ def extract_flights(
     if len(mat.shape) == 1:
         out_arr = np.array(
             [
-                3, mat[2], mat[3], mat[1] - itrvl / 2,
-                None, None, mat[1] + itrvl / 2
+                3, mat[2], mat[3], mat[1] - interval / 2,
+                None, None, mat[1] + interval / 2
             ]
         )
     elif len(mat.shape) == 2 and mat.shape[0] == 1:
@@ -309,10 +335,10 @@ def extract_flights(
                 3,
                 mat[0, 2],
                 mat[0, 3],
-                mat[0, 1] - itrvl / 2,
+                mat[0, 1] - interval / 2,
                 None,
                 None,
-                mat[0, 1] + itrvl / 2,
+                mat[0, 1] + interval / 2,
             ]
         )
     else:
@@ -327,10 +353,10 @@ def extract_flights(
                     2,
                     m_lon,
                     m_lat,
-                    mat[0, 1] - itrvl / 2,
+                    mat[0, 1] - interval / 2,
                     m_lon,
                     m_lat,
-                    mat[n - 1, 1] + itrvl / 2,
+                    mat[n - 1, 1] + interval / 2,
                 ]
             )
         # if it's not pause only, there is at least one flight
@@ -427,7 +453,7 @@ def extract_flights(
 
 
 def gps_to_mobmat(
-    data: pd.DataFrame, itrvl: float, accuracylim: float,
+    data: pd.DataFrame, interval: float, accuracylim: float,
     r: float, w: float, h: float
 ) -> np.ndarray:
     """This function takes raw input (GPS)
@@ -440,7 +466,7 @@ def gps_to_mobmat(
 
     Args:
         data: pd.DataFrame, dataframe from read_data()
-        itrvl: float, the window size of moving average,  unit is second
+        interval: float, the window size of moving average,  unit is second
         accuracylim: float, a threshold.
             We filter out GPS record with accuracy higher than this threshold.
         r: float, the maximum radius of a pause
@@ -456,7 +482,7 @@ def gps_to_mobmat(
             [status, lat_start, lon_start, stamp_start,
             lat_end, lon_end, stamp_end]
     """
-    avgmat = collapse_data(data, itrvl, accuracylim)
+    avgmat = collapse_data(data, interval, accuracylim)
     outmat = np.zeros(7)
     curind = 0
     sys.stdout.write("Extract flights and pauses ..." + "\n")
@@ -466,21 +492,21 @@ def gps_to_mobmat(
             # chunk by the missing intervals (status=4)
             # extract the flights and pauses from each observed chunk
             temp = extract_flights(
-                avgmat[np.arange(curind, i), :], itrvl, r, w, h
+                avgmat[np.arange(curind, i), :], interval, r, w, h
             )
             outmat = np.vstack((outmat, temp))
             curind = i + 1
     if curind < avgmat.shape[0]:
         # print(np.arange(curind,avgmat.shape[0]))
         temp = extract_flights(
-            avgmat[np.arange(curind, avgmat.shape[0]), :], itrvl, r, w, h
+            avgmat[np.arange(curind, avgmat.shape[0]), :], interval, r, w, h
         )
         outmat = np.vstack((outmat, temp))
     mobmat = np.delete(outmat, 0, 0)
     return mobmat
 
 
-def infer_mobmat(mobmat: np.ndarray, itrvl: float, r: float) -> np.ndarray:
+def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
     """This function takes the first-step trajectory mat
         as input and return the final trajectory mat as output.
 
@@ -497,7 +523,7 @@ def infer_mobmat(mobmat: np.ndarray, itrvl: float, r: float) -> np.ndarray:
 
     Args:
         mobmat: np.array, a 2d numpy array (output from gps_to_mobmat())
-        itrvl: float, the window size of moving average,  unit is second
+        interval: float, the window size of moving average,  unit is second
         r: float, the maximam radius of a pause
     Returns:
         a 2d numpy array as a final trajectory mat
@@ -518,7 +544,7 @@ def infer_mobmat(mobmat: np.ndarray, itrvl: float, r: float) -> np.ndarray:
             y1[i] = y0[i]
         if status == 3 and i > 0:
             d = great_circle_dist(x0[i], y0[i], x1[i - 1], y1[i - 1])
-            if t0[i] - t1[i - 1] <= itrvl * 3:
+            if t0[i] - t1[i - 1] <= interval * 3:
                 if d < r:
                     status = 2
                     x1[i] = x0[i]
@@ -526,45 +552,45 @@ def infer_mobmat(mobmat: np.ndarray, itrvl: float, r: float) -> np.ndarray:
                 else:
                     status = 1
                     s_x = (
-                        x0[i] - itrvl / 2 /
+                        x0[i] - interval / 2 /
                         (t0[i] - t1[i - 1]) * (x0[i] - x1[i - 1])
                     )
                     s_y = (
-                        y0[i] - itrvl / 2 /
+                        y0[i] - interval / 2 /
                         (t0[i] - t1[i - 1]) * (y0[i] - y1[i - 1])
                     )
                     e_x = (
-                        x0[i] + itrvl / 2 /
+                        x0[i] + interval / 2 /
                         (t0[i] - t1[i - 1]) * (x0[i] - x1[i - 1])
                     )
                     e_y = (
-                        y0[i] + itrvl / 2 /
+                        y0[i] + interval / 2 /
                         (t0[i] - t1[i - 1]) * (y0[i] - y1[i - 1])
                     )
                     x0[i] = s_x
                     x1[i] = e_x
                     y0[i] = s_y
                     y1[i] = e_y
-            if t0[i] - t1[i - 1] > itrvl * 3:
+            if t0[i] - t1[i - 1] > interval * 3:
                 if (i + 1) < len(code):
                     f = great_circle_dist(x0[i], y0[i], x0[i + 1], y0[i + 1])
-                    if t0[i + 1] - t1[i] <= itrvl * 3:
+                    if t0[i + 1] - t1[i] <= interval * 3:
                         if f < r:
                             status = 2
                             x1[i] = x0[i]
                             y1[i] = y0[i]
                         else:
                             status = 1
-                            s_x = x0[i] - itrvl / 2 / (t0[i + 1] - t1[i]) * (
+                            s_x = x0[i] - interval / 2 / (t0[i + 1] - t1[i]) * (
                                 x0[i + 1] - x0[i]
                             )
-                            s_y = y0[i] - itrvl / 2 / (t0[i + 1] - t1[i]) * (
+                            s_y = y0[i] - interval / 2 / (t0[i + 1] - t1[i]) * (
                                 y0[i + 1] - y0[i]
                             )
-                            e_x = x0[i] + itrvl / 2 / (t0[i + 1] - t1[i]) * (
+                            e_x = x0[i] + interval / 2 / (t0[i + 1] - t1[i]) * (
                                 x0[i + 1] - x0[i]
                             )
-                            e_y = y0[i] + itrvl / 2 / (t0[i + 1] - t1[i]) * (
+                            e_y = y0[i] + interval / 2 / (t0[i + 1] - t1[i]) * (
                                 y0[i + 1] - y0[i]
                             )
                             x0[i] = s_x
