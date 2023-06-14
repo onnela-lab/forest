@@ -168,7 +168,7 @@ def pairwise_great_circle_dist(latlon_array: np.ndarray) -> List[float]:
 
 
 def collapse_data(
-    data: pd.DataFrame, interval: float, accuracylim: float
+    data: pd.DataFrame, interval: float, accuracy_limit: float
 ) -> np.ndarray:
     """This function collapses the raw data into a 2d numpy array,
         with each row as a chunk of data.
@@ -176,7 +176,7 @@ def collapse_data(
     Args:
         data: pd.DataFrame, the pd dataframe from read_data()
         interval: float, the window size of moving average in seconds
-        accuracylim: float, a threshold to filter out GPS record
+        accuracy_limit: float, a threshold to filter out GPS record
             with accuracy higher than this limit.
     Returns:
         a 2d numpy array, average over the measures every interval seconds
@@ -188,7 +188,7 @@ def collapse_data(
     """
     # Filter out rows where the GPS accuracy is beyond
     # the provided accuracy_limit
-    data = data[data.accuracy < accuracylim]
+    data = data[data.accuracy < accuracy_limit]
 
     # Get the start and end timestamps in seconds
     t_start = sorted(np.array(data.timestamp))[0] / 1000
@@ -568,11 +568,11 @@ def extract_flights(
 
 
 def gps_to_mobmat(
-    data: pd.DataFrame, interval: float, accuracylim: float,
+    raw_gps_data: pd.DataFrame, interval: float, accuracy_limit: float,
     r: float, w: float, h: float
 ) -> np.ndarray:
-    """This function takes raw input (GPS)
-        as input and return the first-step trajectory mat as output.
+    """This function transforms raw GPS data
+     to a matrix of first-step trajectories.
 
     It calls collapse_data() and extract_flights().
     Additionally, it divides the trajectory mat
@@ -580,9 +580,9 @@ def gps_to_mobmat(
     on each observed chunk and stack them over
 
     Args:
-        data: pd.DataFrame, dataframe from read_data()
+        raw_gps_data: pd.DataFrame, dataframe from read_data()
         interval: float, the window size of moving average,  unit is second
-        accuracylim: float, a threshold.
+        accuracy_limit: float, a threshold.
             We filter out GPS record with accuracy higher than this threshold.
         r: float, the maximum radius of a pause
         w: float, a threshold for distance,
@@ -592,32 +592,35 @@ def gps_to_mobmat(
             between two timestamps is less than h,
             consider it as a pause and a knot
     Returns:
-        a 2d numpy array of all observed trajectories(first-step),
-            with headers as
+        A 2D numpy array of observed trajectories (first-step) with columns as
             [status, lat_start, lon_start, stamp_start,
             lat_end, lon_end, stamp_end]
     """
-    avgmat = collapse_data(data, interval, accuracylim)
-    outmat = np.zeros(7)
-    curind = 0
-    sys.stdout.write("Extract flights and pauses ..." + "\n")
+    avgmat = collapse_data(raw_gps_data, interval, accuracy_limit)
+    trajectory_matrix = np.zeros(7)
+    current_index = 0
+    sys.stdout.write("Extract flights and pauses ...\n")
+
     for i in range(avgmat.shape[0]):
+        # if the status of the data is 4 (missing data), divide the continuous data
+        # into chunks and extract flights and pauses from each observed chunk
         if avgmat[i, 0] == 4:
-            # divide the intermitted observeds
-            # chunk by the missing intervals (status=4)
-            # extract the flights and pauses from each observed chunk
             temp = extract_flights(
-                avgmat[np.arange(curind, i), :], interval, r, w, h
+                avgmat[np.arange(current_index, i), :], interval, r, w, h
             )
-            outmat = np.vstack((outmat, temp))
-            curind = i + 1
-    if curind < avgmat.shape[0]:
-        # print(np.arange(curind,avgmat.shape[0]))
+            trajectory_matrix = np.vstack((trajectory_matrix, temp))
+            current_index = i + 1
+    
+    # handle remaining data after the last missing data
+    if current_index < avgmat.shape[0]:
         temp = extract_flights(
-            avgmat[np.arange(curind, avgmat.shape[0]), :], interval, r, w, h
+            avgmat[np.arange(current_index, avgmat.shape[0]), :], interval, r, w, h
         )
-        outmat = np.vstack((outmat, temp))
-    mobmat = np.delete(outmat, 0, 0)
+        trajectory_matrix = np.vstack((trajectory_matrix, temp))
+
+    # remove the first row of zeros from the trajectory matrix
+    mobmat = np.delete(trajectory_matrix, 0, 0)
+
     return mobmat
 
 
