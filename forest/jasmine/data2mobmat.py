@@ -311,7 +311,7 @@ def exist_knot(avg_mat: np.ndarray, distance_threshold: float) -> Tuple[int, Opt
 
 
 def extract_flights(
-    mat: np.ndarray, interval: float, r: float, w: float, h: float
+    input_matrix: np.ndarray, interval: float, r: float, w: float, h: float
 ) -> np.ndarray:
     """This function extracts flights and pauses from one observed chunk.
 
@@ -320,7 +320,7 @@ def extract_flights(
     If there is pause, mark it as status "2" (pause)
 
     Args:
-        mat: np.array, avgmat from collapse_data(),
+        input_matrix: np.array, avgmat from collapse_data(),
             just one observed chunk without missing intervals
         interval: float, the window size of moving average,  unit is second
         r: float, the maximam radius of a pause
@@ -331,140 +331,159 @@ def extract_flights(
             between two timestamps is less than h,
             consider it as a pause and a knot
     Returns:
-        a 2d numpy array of trajectories, with headers as
+        a 2d numpy array of trajectories, with structure as
             [status, lat_start, lon_start,
             stamp_start, lat_end, lon_end, stamp_end]
     """
-    # sometimes mat is a 1d array and sometimes it's 2d array
+    # sometimes input_matrix is a 1d array and sometimes it's 2d array
     # which correspond to if and elif below
-    if len(mat.shape) == 1:
+    # Check if the input_matrix is a single measure (1D array)
+    if len(input_matrix.shape) == 1:
         out_arr = np.array(
             [
-                3, mat[2], mat[3], mat[1] - interval / 2,
-                None, None, mat[1] + interval / 2
+                3, input_matrix[2], input_matrix[3], input_matrix[1] - interval / 2,
+                None, None, input_matrix[1] + interval / 2
             ]
         )
-    elif len(mat.shape) == 2 and mat.shape[0] == 1:
+    # Check if the input_matrix has only one row (one measure in a 2D array)
+    elif len(input_matrix.shape) == 2 and input_matrix.shape[0] == 1:
         out_arr = np.array(
             [
                 3,
-                mat[0, 2],
-                mat[0, 3],
-                mat[0, 1] - interval / 2,
+                input_matrix[0, 2],
+                input_matrix[0, 3],
+                input_matrix[0, 1] - interval / 2,
                 None,
                 None,
-                mat[0, 1] + interval / 2,
+                input_matrix[0, 1] + interval / 2,
             ]
         )
     else:
-        n = mat.shape[0]
-        mat = np.hstack((mat, np.arange(n).reshape((n, 1))))
-        # pause only
-        if n > 1 and max(pairwise_great_circle_dist(mat[:, 2:4])) < r:
-            m_lon = (mat[0, 2] + mat[n - 1, 2]) / 2
-            m_lat = (mat[0, 3] + mat[n - 1, 3]) / 2
+        nrows = input_matrix.shape[0]
+        # Add a new column for indices
+        input_matrix = np.hstack((input_matrix, np.arange(nrows).reshape((nrows, 1))))
+
+        # Check if all points are within the maximum pause radius, indicating a pause
+        if nrows > 1 and max(pairwise_great_circle_dist(input_matrix[:, 2:4])) < r:
+            mean_lon = (input_matrix[0, 2] + input_matrix[nrows - 1, 2]) / 2
+            mean_lat = (input_matrix[0, 3] + input_matrix[nrows - 1, 3]) / 2
             out_arr = np.array(
                 [
                     2,
-                    m_lon,
-                    m_lat,
-                    mat[0, 1] - interval / 2,
-                    m_lon,
-                    m_lat,
-                    mat[n - 1, 1] + interval / 2,
+                    mean_lon,
+                    mean_lat,
+                    input_matrix[0, 1] - interval / 2,
+                    mean_lon,
+                    mean_lat,
+                    input_matrix[nrows - 1, 1] + interval / 2,
                 ]
             )
-        # if it's not pause only, there is at least one flight
+        # Not a simple pause, contains at least one flight
         else:
-            complete = 0
-            knots = [0, n - 1]
-            mov = np.array(
+            # Initialize the knot index list with the start and end indices of the matrix
+            knot_indices = [0, nrows - 1]
+            # Compute movement distances between consecutive points
+            movement_distances = np.array(
                 [
                     great_circle_dist(
-                        mat[i, 2], mat[i, 3], mat[i + 1, 2], mat[i + 1, 3]
+                        input_matrix[i, 2], input_matrix[i, 3], input_matrix[i + 1, 2], input_matrix[i + 1, 3]
                     )
-                    for i in range(n - 1)
+                    for i in range(nrows - 1)
                 ]
             )
-            pause_index = np.arange(0, n - 1)[mov < h]
-            temp = []
-            for j in range(len(pause_index) - 1):
-                if pause_index[j + 1] - pause_index[j] == 1:
-                    temp.append(pause_index[j])
-                    temp.append(pause_index[j + 1])
+            # Indices where the movement is less than the pause threshold, considered as pauses
+            pause_indices = np.arange(0, nrows - 1)[movement_distances < h]
+
+            temp_indices = []
+            for j in range(len(pause_indices) - 1):
+                if pause_indices[j + 1] - pause_indices[j] == 1:
+                    temp_indices.extend([pause_indices[j], pause_indices[j + 1]])
+
             # all the consequential numbers in between are inserted twice,
             # but start and end are inserted once
-            long_pause = np.unique(temp)[
+            long_pause_indices = np.unique(temp_indices)[
                 np.array(
-                    [len(list(group)) for key, group in groupby(temp)]
+                    [len(list(group)) for key, group in groupby(temp_indices)]
                 ) == 1
             ]
             # pause 0,1,2, correspond to point [0,1,2,3],
             # so the end number should plus 1
-            long_pause[np.arange(1, len(long_pause), 2)] = (
-                long_pause[np.arange(1, len(long_pause), 2)] + 1
-            )
+            # Adjust pause indices to represent points, not movements
+            long_pause_indices[np.arange(1, len(long_pause_indices), 2)] += 1
             # the key is to update the knot list and sort them
-            knots.extend(long_pause.tolist())
-            knots.sort()
-            knots = unique(knots)
-            # while loop until there is no more knot
-            while complete == 0:
-                mat_list = []
-                for i in range(len(knots) - 1):
-                    mat_list.append(
-                        mat[knots[i]:min(knots[i + 1] + 1, n - 1), :]
+            knot_indices.extend(long_pause_indices.tolist())
+            knot_indices.sort()
+            knot_indices = unique(knot_indices)
+
+            # While loop to continue process until no more knot is detected
+            knot_detection_complete = False
+            while not knot_detection_complete:
+                sub_matrices = []
+                for i in range(len(knot_indices) - 1):
+                    knot_start = knot_indices[i]
+                    knot_end = min(knot_indices[i + 1] + 1, nrows - 1)
+                    sub_matrices.append(
+                        input_matrix[knot_start:knot_end, :]
                     )
-                knot_yes = np.empty(len(mat_list))
-                knot_pos = np.empty(len(mat_list))
-                for i, mat_val in enumerate(mat_list):
-                    knot_yes[i], knot_pos[i] = exist_knot(mat_val, w)
-                if sum(knot_yes) == 0:
-                    complete = 1
+
+                knot_exists_in_submatrix = np.empty(len(sub_matrices))
+                knot_position_in_submatrix = np.empty(len(sub_matrices))
+                for i, sub_matrix in enumerate(sub_matrices):
+                    knot_exists_in_submatrix[i], knot_position_in_submatrix[i] = exist_knot(sub_matrix, w)
+                
+                # If no knots detected, stop the while loop
+                if sum(knot_exists_in_submatrix) == 0:
+                    knot_detection_complete = True
                 else:
-                    for i, mat_val in enumerate(mat_list):
-                        if knot_yes[i] == 1:
-                            knots.append(
-                                int(mat_val[int(knot_pos[i]), 4])
+                    for i, sub_matrix in enumerate(sub_matrices):
+                        if knot_exists_in_submatrix[i] == 1:
+                            knot_indices.append(
+                                int(sub_matrix[int(knot_position_in_submatrix[i]), 4])
                             )
-                    knots.sort()
-            out = []
-            for j in range(len(knots) - 1):
-                start = knots[j]
-                end = knots[j + 1]
-                mov = np.array(
+                    knot_indices.sort()
+            
+            # After all knots detected, prepare the output by detecting flights and pauses
+            flight_and_pause_data = []
+            for j in range(len(knot_indices) - 1):
+                start_index = knot_indices[j]
+                end_index = knot_indices[j + 1]
+                # calculate the movement distance between two timestamps
+                movement_distances = np.array(
                     [
                         great_circle_dist(
-                            mat[i, 2], mat[i, 3], mat[i + 1, 2], mat[i + 1, 3]
+                            input_matrix[i, 2], input_matrix[i, 3], input_matrix[i + 1, 2], input_matrix[i + 1, 3]
                         )
-                        for i in np.arange(start, end)
+                        for i in np.arange(start_index, end_index)
                     ]
                 )
-                if sum(mov >= h) == 0:
-                    m_lon = (mat[start, 2] + mat[end, 2]) / 2
-                    m_lat = (mat[start, 3] + mat[end, 3]) / 2
-                    nextline = [
+                # if there is no movement, consider it as a pause
+                if sum(movement_distances >= h) == 0:
+                    mean_lon = (input_matrix[start_index, 2] + input_matrix[end_index, 2]) / 2
+                    mean_lat = (input_matrix[start_index, 3] + input_matrix[end_index, 3]) / 2
+                    flight_and_pause_data.append([
                         2,
-                        m_lon,
-                        m_lat,
-                        mat[start, 1],
-                        m_lon,
-                        m_lat,
-                        mat[end, 1],
-                    ]
+                        mean_lon,
+                        mean_lat,
+                        input_matrix[start_index, 1],
+                        mean_lon,
+                        mean_lat,
+                        input_matrix[end_index, 1],
+                    ])
+                # if there is movement, consider it as a flight
                 else:
-                    nextline = [
+                    flight_and_pause_data.append([
                         1,
-                        mat[start, 2],
-                        mat[start, 3],
-                        mat[start, 1],
-                        mat[end, 2],
-                        mat[end, 3],
-                        mat[end, 1],
-                    ]
-                out.append(nextline)
-            out_arr = np.array(out)
-    return out_arr
+                        input_matrix[start_index, 2],
+                        input_matrix[start_index, 3],
+                        input_matrix[start_index, 1],
+                        input_matrix[end_index, 2],
+                        input_matrix[end_index, 3],
+                        input_matrix[end_index, 1],
+                    ])
+
+            output_array = np.array(flight_and_pause_data)
+
+    return output_array
 
 
 def gps_to_mobmat(
