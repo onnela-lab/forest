@@ -92,29 +92,26 @@ def great_circle_dist(
 
 
 def shortest_dist_to_great_circle(
-    lat: np.ndarray,
-    lon: np.ndarray,
-    lat_start: float,
-    lon_start: float,
-    lat_end: float,
-    lon_end: float,
+    location1: np.ndarray,
+    location2: Tuple[float, float],
+    location3: Tuple[float, float]
 ) -> np.ndarray:
     """This function calculates the shortest distance from location 1
         to the great circle determined by location 2 and 3.
 
     Args:
-        lat: 1d np.array, latitude of location1, range[-180, 180]
-        lon: 1d np.array, longitude of location1, range[-180, 180]
-        lat_start: float, latitude of location2, range[-180, 180]
-        lon_start: float, longitude of location2, range[-180, 180]
-        lat_end: float, latitude of location3, range[-180, 180]
-        lon_end: float, longitude of location3, range[-180, 180]
+        location1: 2d np.array with latitudes and longitudes of locations, range[-180, 180]
+        location2: Tuple[float, float], latitude and longitude of location 2
+        location3: Tuple[float, float], latitude and longitude of location 3
     Returns:
         the shortest distance from location 1 to the great circle
             determined by location 2 and 3
             (the path which is perpendicular to the great circle)
             unit is meter, data type matches the input
     """
+    lat_start, lon_start = location2
+    lat_end, lon_end = location3
+    lat, lon = location1[:, 0], location1[:, 1]
     # if loc2 and 3 are too close to determine a great circle, return 0
     if (
         abs(lat_start - lat_end) < TOLERANCE
@@ -290,19 +287,16 @@ def exist_knot(
     if num_rows > 1:
 
         # Get the latitude and longitude at the start and end of the data
-        lat_start = avg_mat[0, 2]
-        lon_start = avg_mat[0, 3]
-        lat_end = avg_mat[num_rows - 1, 2]
-        lon_end = avg_mat[num_rows - 1, 3]
+        location2 = avg_mat[0, [2, 3]]
+        location3 = avg_mat[num_rows - 1, [2, 3]]
 
         # Get the entire latitude and longitude data columns
-        lat = avg_mat[:, 2]
-        lon = avg_mat[:, 3]
+        location1 = avg_mat[:, [2, 3]]
 
         # Calculate the shortest distance from each point
         # to the great circle defined by the start and end points
         shortest_distances = shortest_dist_to_great_circle(
-            lat, lon, lat_start, lon_start, lat_end, lon_end
+            location1, location2, location3
         )
 
         # If the maximum distance is less than the threshold,
