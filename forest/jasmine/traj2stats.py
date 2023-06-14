@@ -63,9 +63,9 @@ class Hyperparameters:
     method: str = "GLC"
     itrvl: int = 10
     accuracylim: int = 51
-    r: Union[int, None] = None
-    w: Union[float, None] = None
-    h: Union[int, None] = None
+    r: Optional[float] = None
+    w: Optional[float] = None
+    h: Optional[float] = None
 
 
 def transform_point_to_circle(lat: float, lon: float, radius: float
@@ -1018,10 +1018,6 @@ def gps_stats_main(
         parameters.b1, parameters.b2, parameters.b3, parameters.g
     ]
 
-    orig_r = parameters.r
-    orig_w = parameters.w
-    orig_h = parameters.h
-
     # participant_ids should be a list of str
     if participant_ids is None:
         participant_ids = get_ids(study_folder)
@@ -1057,18 +1053,24 @@ def gps_stats_main(
             if data.shape == (0, 0):
                 sys.stdout.write("No data available.\n")
                 continue
-            if orig_r is None:
-                parameters.r = parameters.itrvl
-            if orig_h is None:
-                parameters.h = parameters.r
-            if orig_w is None:
-                parameters.w = np.mean(data.accuracy)
+            if parameters.r is None:
+                params_r = float(parameters.itrvl)
+            else:
+                params_r = parameters.r
+            if parameters.h is None:
+                params_h = params_r
+            else:
+                params_h = parameters.h
+            if parameters.w is None:
+                params_w = np.mean(data.accuracy)
+            else:
+                params_w = parameters.w
             # process data
             mobmat1 = gps_to_mobmat(
                 data, parameters.itrvl, parameters.accuracylim,
-                parameters.r, parameters.w, parameters.h
+                params_r, params_w, params_h
             )
-            mobmat2 = infer_mobmat(mobmat1, parameters.itrvl, parameters.r)
+            mobmat2 = infer_mobmat(mobmat1, parameters.itrvl, params_r)
             out_dict = BV_select(
                 mobmat2,
                 parameters.sigma2,
@@ -1090,7 +1092,7 @@ def gps_stats_main(
                 sys.stderr.write(f"Error: {e}\n")
                 continue
             traj = Imp2traj(imp_table, mobmat2, parameters.itrvl,
-                            parameters.r, parameters.w, parameters.h)
+                            params_r, params_w, params_h)
             # save all_memory_dict and all_bv_set
             with open(f"{output_folder}/all_memory_dict.pkl", "wb") as f:
                 pickle.dump(all_memory_dict, f)
