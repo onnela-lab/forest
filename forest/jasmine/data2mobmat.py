@@ -264,35 +264,49 @@ def collapse_data(
     return avgmat
 
 
-def exist_knot(mat: np.ndarray, w: float) -> Tuple[int, Optional[int]]:
-    """This function checks if there is a knot in the observed chunk.
+def exist_knot(avg_mat: np.ndarray, distance_threshold: float) -> Tuple[int, Optional[int]]:
+    """This function checks if there is a knot in the observed data chunk.
 
     Args:
-        mat: np.array, avgmat from collapse_data()
-        w: float, a threshold for distance,
-            if the distance to the great circle is greater than
-            this threshold, we consider there is a knot
+        avg_mat: np.ndarray, avgmat from collapse_data()
+        distance_threshold : float, The distance threshold for detecting a knot.
+            If the distance to the great circle is greater than
+            this threshold, it is considered a knot.
+
     Returns:
-        a tuple of two elements
-            the first element is an indicator,
-                if there is a knot, it is 1, otherwise 0
-            the second element is the index of the knot,
-                if there is a knot, otherwise None
+        Tuple[int, Optional[int]]: A tuple containing two elements:
+            - The first element is an indicator, which is 1 if a knot is found, otherwise 0.
+            - The second element is the index of the knot if it exists, otherwise None.
     """
-    n = mat.shape[0]
-    if n > 1:
-        lat_start = mat[0, 2]
-        lon_start = mat[0, 3]
-        lat_end = mat[n - 1, 2]
-        lon_end = mat[n - 1, 3]
-        lat = mat[:, 2]
-        lon = mat[:, 3]
-        d = shortest_dist_to_great_circle(
+    # Get the number of rows in the observed_data array
+    num_rows = avg_mat.shape[0]
+
+    # If there is more than one row of data
+    if num_rows > 1:
+
+        # Get the latitude and longitude at the start and end of the data
+        lat_start = avg_mat[0, 2]
+        lon_start = avg_mat[0, 3]
+        lat_end = avg_mat[num_rows - 1, 2]
+        lon_end = avg_mat[num_rows - 1, 3]
+
+        # Get the entire latitude and longitude data columns
+        lat = avg_mat[:, 2]
+        lon = avg_mat[:, 3]
+
+        # Calculate the shortest distance from each point to the great circle defined by the start and end points
+        shortest_distances = shortest_dist_to_great_circle(
             lat, lon, lat_start, lon_start, lat_end, lon_end
         )
-        if max(d) < w:
+
+        # If the maximum distance is less than the threshold, return 0 and None (indicating no knot found)
+        if max(shortest_distances) < w:
             return 0, None
-        return 1, int(np.argmax(d))
+
+        # If a knot was found, return 1 and the index of the knot
+        return 1, int(np.argmax(shortest_distances))
+
+    # If there is only one row of data, return 0 and None (indicating no knot found)
     return 0, None
 
 
