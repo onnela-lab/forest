@@ -547,7 +547,7 @@ def extract_flights(
     if len(input_matrix.shape) == 1:
         return mark_single_measure(input_matrix, interval)
     # Check if the input_matrix has only one row (one measure in a 2D array)
-    elif len(input_matrix.shape) == 2 and input_matrix.shape[0] == 1:
+    if len(input_matrix.shape) == 2 and input_matrix.shape[0] == 1:
         return mark_single_measure(input_matrix[0, :], interval)
 
     nrows = input_matrix.shape[0]
