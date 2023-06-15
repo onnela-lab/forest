@@ -696,8 +696,8 @@ def compute_future_flight_positions(
 
     # Calculate the change in x and y positions between
     # the current point and the next point
-    delta_x = mobmat[index + 1, 1] - mobmat[index, 4]
-    delta_y = mobmat[index + 1, 2] - mobmat[index, 5]
+    delta_x = mobmat[index + 1, 1] - mobmat[index, 1]
+    delta_y = mobmat[index + 1, 2] - mobmat[index, 2]
 
     # Calculate the rate of change for x and y positions over time
     rate_of_change_x = delta_x / time_diff
@@ -708,16 +708,16 @@ def compute_future_flight_positions(
     adjustment_end = interval / 2 * rate_of_change_y
 
     # Adjust the start and end x and y positions using the adjustment factors
-    start_x = mobmat[index, 4] - adjustment_start
-    start_y = mobmat[index, 5] - adjustment_end
-    end_x = mobmat[index, 4] + adjustment_start
-    end_y = mobmat[index, 5] + adjustment_end
+    start_x = mobmat[index, 2] - adjustment_start
+    start_y = mobmat[index, 3] - adjustment_end
+    end_x = mobmat[index, 2] + adjustment_start
+    end_y = mobmat[index, 3] + adjustment_end
 
     # Update the mobility matrix with the new start and end positions
-    mobmat[index, 4] = start_x
-    mobmat[index, 1] = end_x
-    mobmat[index, 5] = start_y
-    mobmat[index, 2] = end_y
+    mobmat[index, 1] = start_x
+    mobmat[index, 4] = end_x
+    mobmat[index, 2] = start_y
+    mobmat[index, 5] = end_y
 
     return mobmat
 
