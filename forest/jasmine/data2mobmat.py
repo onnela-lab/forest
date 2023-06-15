@@ -100,7 +100,8 @@ def shortest_dist_to_great_circle(
         to the great circle determined by location 2 and 3.
 
     Args:
-        location1: 2d np.array with latitudes and longitudes of locations, range[-180, 180]
+        location1: 2d np.array with latitudes and longitudes
+         of locations, range[-180, 180]
         location2: Tuple[float, float], latitude and longitude of location 2
         location3: Tuple[float, float], latitude and longitude of location 3
     Returns:
@@ -602,7 +603,8 @@ def gps_to_mobmat(
     sys.stdout.write("Extract flights and pauses ...\n")
 
     for i in range(avgmat.shape[0]):
-        # if the status of the data is 4 (missing data), divide the continuous data
+        # if the status of the data is 4 (missing data)
+        # divide the continuous data
         # into chunks and extract flights and pauses from each observed chunk
         if avgmat[i, 0] == 4:
             temp = extract_flights(
@@ -610,11 +612,12 @@ def gps_to_mobmat(
             )
             trajectory_matrix = np.vstack((trajectory_matrix, temp))
             current_index = i + 1
-    
+
     # handle remaining data after the last missing data
     if current_index < avgmat.shape[0]:
         temp = extract_flights(
-            avgmat[np.arange(current_index, avgmat.shape[0]), :], interval, r, w, h
+            avgmat[np.arange(current_index, avgmat.shape[0]), :],
+            interval, r, w, h
         )
         trajectory_matrix = np.vstack((trajectory_matrix, temp))
 
@@ -624,191 +627,396 @@ def gps_to_mobmat(
     return mobmat
 
 
-def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
-    """This function takes the first-step trajectory mat
-        as input and return the final trajectory mat as output.
-
-    This function is the second step of the trajectory imputation.
-    It calls gps_to_mobmat() and does the following:
-        (1) infer the unknown status ("code==3" in the script below)
-        (2) combine close pauses
-        (3) join all flights
-            (the end of first flight and the start of next flight)
-            and pauses to form a continuous trajectory
-    it also stacks one more column on the mobmat from gps_to_mobmat(),
-    which is a col of 1, indicating
-    they are observed intsead of imputed, for future use.
+def compute_flight_positions(
+    index: int, mobmat: np.ndarray, interval: float
+) -> np.ndarray:
+    """Computes the flight positions of the given index in the trajectory.
 
     Args:
-        mobmat: np.array, a 2d numpy array (output from gps_to_mobmat())
+        index: int, the current index in the trajectory.
+        mobmat: np.array, a 2d numpy array
+            (the mobility matrix output from gps_to_mobmat())
+        interval: float, the window size of moving average,  unit is second
+
+    Returns:
+        The updated mobility matrix.
+    """
+
+    # Calculate the time difference between
+    # the current point and the previous point
+    time_diff = mobmat[index, 3] - mobmat[index - 1, 6]
+
+    # Calculate the change in x and y positions between
+    # the current point and the previous point
+    delta_x = mobmat[index, 1] - mobmat[index - 1, 4]
+    delta_y = mobmat[index, 2] - mobmat[index - 1, 5]
+
+    # Calculate the rate of change for x and y positions over time
+    rate_of_change_x = delta_x / time_diff
+    rate_of_change_y = delta_y / time_diff
+
+    # Calculate the adjustment factor for the start and end points
+    adjustment_start = interval / 2 * rate_of_change_x
+    adjustment_end = interval / 2 * rate_of_change_y
+
+    # Adjust the start and end x and y positions using the adjustment factors
+    start_x = mobmat[index, 1] - adjustment_start
+    start_y = mobmat[index, 2] - adjustment_end
+    end_x = mobmat[index, 1] + adjustment_start
+    end_y = mobmat[index, 2] + adjustment_end
+
+    # Update the mobility matrix with the new start and end positions
+    mobmat[index, 1] = start_x
+    mobmat[index, 4] = end_x
+    mobmat[index, 2] = start_y
+    mobmat[index, 5] = end_y
+
+    return mobmat
+
+
+def compute_future_flight_positions(
+    index: int, mobmat: np.ndarray, interval: float
+) -> np.ndarray:
+    """Computes the flight positions of the given index in the trajectory.
+     using the next point instead of the previous point
+
+    Args:
+        index: int, the current index in the trajectory.
+        mobmat: np.array, a 2d numpy array
+            (the mobility matrix output from gps_to_mobmat())
+        interval: float, the window size of moving average,  unit is second
+
+    Returns:
+        The updated mobility matrix.
+    """
+
+    # Calculate the time difference between
+    # the current point and the next point
+    time_diff = mobmat[index + 1, 3] - mobmat[index, 6]
+
+    # Calculate the change in x and y positions between
+    # the current point and the next point
+    delta_x = mobmat[index + 1, 1] - mobmat[index, 4]
+    delta_y = mobmat[index + 1, 2] - mobmat[index, 5]
+
+    # Calculate the rate of change for x and y positions over time
+    rate_of_change_x = delta_x / time_diff
+    rate_of_change_y = delta_y / time_diff
+
+    # Calculate the adjustment factor for the start and end points
+    adjustment_start = interval / 2 * rate_of_change_x
+    adjustment_end = interval / 2 * rate_of_change_y
+
+    # Adjust the start and end x and y positions using the adjustment factors
+    start_x = mobmat[index, 4] - adjustment_start
+    start_y = mobmat[index, 5] - adjustment_end
+    end_x = mobmat[index, 4] + adjustment_start
+    end_y = mobmat[index, 5] + adjustment_end
+
+    # Update the mobility matrix with the new start and end positions
+    mobmat[index, 4] = start_x
+    mobmat[index, 1] = end_x
+    mobmat[index, 5] = start_y
+    mobmat[index, 2] = end_y
+
+    return mobmat
+
+
+def infer_status_and_positions(
+    index: int, mobmat: np.ndarray,
+    interval: float, r: float
+) -> np.ndarray:
+    """Infers the status and positions of the given index in the trajectory.
+
+    Args:
+        index: int, the current index in the trajectory.
+        mobmat: np.array, a 2d numpy array
+         (the mobility matrix output from gps_to_mobmat())
         interval: float, the window size of moving average,  unit is second
         r: float, the maximam radius of a pause
+
     Returns:
-        a 2d numpy array as a final trajectory mat
+        The updated mobility matrix.
+
+    Raises:
+        ValueError: If the index is less than 0.
     """
-    sys.stdout.write("Infer unclassified windows ..." + "\n")
-    code = mobmat[:, 0]
-    x0 = mobmat[:, 1]
-    y0 = mobmat[:, 2]
-    t0 = mobmat[:, 3]
-    x1 = mobmat[:, 4]
-    y1 = mobmat[:, 5]
-    t1 = mobmat[:, 6]
 
-    for i, status in enumerate(code):
-        if status == 3 and i == 0:
-            status = 2
-            x1[i] = x0[i]
-            y1[i] = y0[i]
-        if status == 3 and i > 0:
-            d = great_circle_dist(x0[i], y0[i], x1[i - 1], y1[i - 1])
-            if t0[i] - t1[i - 1] <= interval * 3:
-                if d < r:
-                    status = 2
-                    x1[i] = x0[i]
-                    y1[i] = y0[i]
-                else:
-                    status = 1
-                    s_x = (
-                        x0[i] - interval / 2 /
-                        (t0[i] - t1[i - 1]) * (x0[i] - x1[i - 1])
-                    )
-                    s_y = (
-                        y0[i] - interval / 2 /
-                        (t0[i] - t1[i - 1]) * (y0[i] - y1[i - 1])
-                    )
-                    e_x = (
-                        x0[i] + interval / 2 /
-                        (t0[i] - t1[i - 1]) * (x0[i] - x1[i - 1])
-                    )
-                    e_y = (
-                        y0[i] + interval / 2 /
-                        (t0[i] - t1[i - 1]) * (y0[i] - y1[i - 1])
-                    )
-                    x0[i] = s_x
-                    x1[i] = e_x
-                    y0[i] = s_y
-                    y1[i] = e_y
-            if t0[i] - t1[i - 1] > interval * 3:
-                if (i + 1) < len(code):
-                    f = great_circle_dist(x0[i], y0[i], x0[i + 1], y0[i + 1])
-                    if t0[i + 1] - t1[i] <= interval * 3:
-                        if f < r:
-                            status = 2
-                            x1[i] = x0[i]
-                            y1[i] = y0[i]
-                        else:
-                            status = 1
-                            s_x = (
-                                x0[i] - interval / 2 /
-                                (t0[i + 1] - t1[i]) * (x0[i + 1] - x0[i])
-                            )
-                            s_y = (
-                                y0[i] - interval / 2 /
-                                (t0[i + 1] - t1[i]) * (y0[i + 1] - y0[i])
-                            )
-                            e_x = (
-                                x0[i] + interval / 2 /
-                                (t0[i + 1] - t1[i]) * (x0[i + 1] - x0[i])
-                            )
-                            e_y = (
-                                y0[i] + interval / 2 /
-                                (t0[i + 1] - t1[i]) * (y0[i + 1] - y0[i])
-                            )
-                            x0[i] = s_x
-                            x1[i] = e_x
-                            y0[i] = s_y
-                            y1[i] = e_y
+    # status of the current index
+    status: int = 3
+
+    # If the status is unknown and it's the first index
+    # set the status to 2 (pause)
+    if index == 0:
+        status = 2
+        mobmat[index, [4, 5]] = mobmat[index, [1, 2]]
+    # If the status is unknown and it's not the first index,
+    # infer the status based on its distance to the previous
+    # point and the time interval
+    elif index > 0:
+        # calculate the distance to the previous point
+        distance = great_circle_dist(
+            mobmat[index, 1], mobmat[index, 2],
+            mobmat[index - 1, 4], mobmat[index - 1, 5]
+        )
+        # if the time difference to the previous point is
+        # less than or equal to 3 times the time interval
+        if mobmat[index, 3] - mobmat[index - 1, 6] <= interval * 3:
+            # if the distance is less than the maximum radius of a pause
+            # assign the status as 'pause' (status code 2)
+            if distance < r:
+                status = 2  # pause
+                mobmat[index, [4, 5]] = mobmat[index, [1, 2]]
+            # if the distance is greater than the maximum radius of a pause
+            # assign the status as 'flight' (status code 1)
+            else:
+                status = 1  # flight
+                mobmat = compute_flight_positions(index, mobmat, interval)
+        # if the time difference to the previous point
+        # is more than 3 times the time interval
+        else:
+            # if there is a next point
+            if (index + 1) < mobmat.shape[0]:
+                # calculate the distance to the next point
+                future_distance = great_circle_dist(
+                    mobmat[index, 1], mobmat[index, 2],
+                    mobmat[index + 1, 1], mobmat[index + 1, 2]
+                )
+                # if the time difference to the next point is
+                # less than or equal to 3 times the time interval
+                if mobmat[index + 1, 3] - mobmat[index, 6] <= interval * 3:
+                    # if the distance is less than
+                    # the maximum radius of a pause
+                    # assign the status as 'pause' (status code 2)
+                    if future_distance < r:
+                        status = 2  # pause
+                        mobmat[index, [4, 5]] = mobmat[index, [1, 2]]
+                    # if the distance is greater
+                    # than the maximum radius of a pause
+                    # assign the status as 'flight' (status code 1)
                     else:
-                        status = 2
-                        x1[i] = x0[i]
-                        y1[i] = y0[i]
+                        status = 1  # flight
+                        mobmat = compute_future_flight_positions(
+                            index, mobmat, interval
+                        )
+                # if the time difference to the next point is
+                # more than 3 times the time interval
+                # assign the status as 'pause' (status code 2)
                 else:
-                    status = 2
-                    x1[i] = x0[i]
-                    y1[i] = y0[i]
-        mobmat[i, :] = [status, x0[i], y0[i], t0[i], x1[i], y1[i], t1[i]]
+                    status = 2  # pause
+                    mobmat[index, [4, 5]] = mobmat[index, [1, 2]]
+            # if there is no next point
+            # assign the status as 'pause' (status code 2)
+            else:
+                status = 2  # pause
+                mobmat[index, [4, 5]] = mobmat[index, [1, 2]]
+    else:
+        raise ValueError("Index must be greater than or equal to 0")
 
-    # merge consecutive pauses
-    sys.stdout.write("Merge consecutive pauses and bridge gaps ..." + "\n")
-    k = []
-    for j in np.arange(1, len(code)):
-        if code[j] == 2 and code[j - 1] == 2 and t0[j] == t1[j - 1]:
-            k.append(j - 1)
-            k.append(j)
-    # all the consequential numbers in between are
-    # inserted twice, but start and end are inserted once
-    rk = np.unique(k)[
-        np.array([len(list(group)) for key, group in groupby(k)]) == 1
+    mobmat[index, 0] = status
+
+    return mobmat
+
+
+def merge_pauses_and_bridge_gaps(mobmat: np.ndarray) -> np.ndarray:
+    """Merge consecutive pauses and bridge any gaps in mobility matrix.
+
+    Args:
+        mobmat: np.array, a 2d numpy array
+
+    Returns:
+        Updated mobility matrix with merged pauses and bridged gaps.
+    """
+
+    # Initialize a list to hold indices of consecutive pauses
+    consecutive_pause_indices = []
+
+    # Iterate over the mobility matrix, starting from the second row
+    for j in range(1, mobmat.shape[0]):
+        # If current and previous status are 'pause' and their times are equal,
+        # add their indices to the list
+        if (
+            mobmat[j, 0] == 2 and mobmat[j - 1, 0] == 2
+            and mobmat[j, 3] == mobmat[j - 1, 6]
+        ):
+            consecutive_pause_indices.extend([j - 1, j])
+
+    # Find unique indices where start and end of pauses occur
+    # These indices are those that are inserted only once in the list
+    pause_boundaries = np.unique(consecutive_pause_indices)[
+        np.array(
+            [
+                len(list(group)) for key, group
+                in groupby(consecutive_pause_indices)
+            ]
+        ) == 1
     ]
-    for j in range(int(len(rk) / 2)):
-        start = rk[2 * j]
-        end = rk[2 * j + 1]
-        mx = np.mean(x0[np.arange(start, end + 1)])
-        my = np.mean(y0[np.arange(start, end + 1)])
-        mobmat[start, :] = [2, mx, my, t0[start], mx, my, t1[end]]
-        mobmat[np.arange(start + 1, end + 1), 0] = 5
+
+    # Iterate over each pair of start and end indices
+    for j in range(len(pause_boundaries) // 2):
+        start = pause_boundaries[2 * j]
+        end = pause_boundaries[2 * j + 1]
+
+        # Compute mean x and y coordinates over the pause interval
+        mean_x = np.mean(mobmat[start:(end+1), 1])
+        mean_y = np.mean(mobmat[start:(end+1), 2])
+
+        # Replace the start of the pause interval
+        # with mean coordinates and appropriate times
+        mobmat[start, :] = [
+            2, mean_x, mean_y, mobmat[start, 3],
+            mean_x, mean_y, mobmat[end, 6]
+        ]
+
+        # Set status of bridged gaps to 5
+        mobmat[(start + 1):(end + 1), 0] = 5
+
+    # Remove bridged gaps from the mobility matrix
     mobmat = mobmat[mobmat[:, 0] != 5, :]
 
-    # check missing intervals,
-    # if starting and ending point are close, make them same
+    return mobmat
+
+
+def correct_missing_intervals(
+    mobmat: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Corrects missing intervals in the mobility matrix.
+
+    Args:
+        mobmat: np.array, a 2d numpy array
+
+    Returns:
+        Tuple of corrected mobility matrix and array of new pauses.
+    """
+
+    # Initialize a list to hold new pauses
     new_pauses = []
-    for j in np.arange(1, mobmat.shape[0]):
+
+    # Iterate over the mobility matrix, starting from the second row
+    for j in range(1, mobmat.shape[0]):
+        # Check if there's a gap in time between current and previous rows
         if mobmat[j, 3] > mobmat[j - 1, 6]:
-            d = great_circle_dist(
+
+            # Compute the distance between current and previous positions
+            distance = great_circle_dist(
                 mobmat[j, 1], mobmat[j, 2], mobmat[j - 1, 4], mobmat[j - 1, 5]
             )
-            if d < 10:
+
+            # If the distance is less than 10 units, start correcting positions
+            if distance < 10:
+
+                # For consecutive pauses, make them stay at the same position
                 if mobmat[j, 0] == 2 and mobmat[j - 1, 0] == 2:
                     initial_x = mobmat[j - 1, 4]
                     initial_y = mobmat[j - 1, 5]
-                    mobmat[j, 1] = mobmat[j, 4] = mobmat[j - 1, 1] = mobmat[
-                        j - 1, 4
-                    ] = initial_x
-                    mobmat[j, 2] = mobmat[j, 5] = mobmat[j - 1, 2] = mobmat[
-                        j - 1, 5
-                    ] = initial_y
+
+                    # Make sure both pause positions
+                    # re at the same coordinates
+                    mobmat[j, [1, 4]] = mobmat[j - 1, [1, 4]] = initial_x
+                    mobmat[j, [2, 5]] = mobmat[j - 1, [2, 5]] = initial_y
+
+                # If moving state follows a pause,
+                # make it start from where the pause ended
                 if mobmat[j, 0] == 1 and mobmat[j - 1, 0] == 2:
-                    mobmat[j, 1] = mobmat[j - 1, 4]
-                    mobmat[j, 2] = mobmat[j - 1, 5]
+                    mobmat[j, [1, 2]] = mobmat[j - 1, [4, 5]]
+
+                # If pause follows a moving state,
+                # make the movement end where the pause starts
                 if mobmat[j, 0] == 2 and mobmat[j - 1, 0] == 1:
-                    mobmat[j - 1, 4] = mobmat[j, 1]
-                    mobmat[j - 1, 5] = mobmat[j, 2]
+                    mobmat[j - 1, [4, 5]] = mobmat[j, [1, 2]]
+
+                # For consecutive moving states, make them meet at the midpoint
                 if mobmat[j, 0] == 1 and mobmat[j - 1, 0] == 1:
                     mean_x = (mobmat[j, 1] + mobmat[j - 1, 4]) / 2
                     mean_y = (mobmat[j, 2] + mobmat[j - 1, 5]) / 2
                     mobmat[j - 1, 4] = mobmat[j, 1] = mean_x
                     mobmat[j - 1, 5] = mobmat[j, 2] = mean_y
-                new_pauses.append(
-                    [
-                        2,
-                        mobmat[j, 1],
-                        mobmat[j, 2],
-                        mobmat[j - 1, 6],
-                        mobmat[j, 1],
-                        mobmat[j, 2],
-                        mobmat[j, 3],
-                        0,
-                    ]
-                )
-    new_pauses_arr = np.array(new_pauses)
+
+                # Add the corrected interval as a new pause
+                new_pause = [
+                    2,
+                    mobmat[j, 1],
+                    mobmat[j, 2],
+                    mobmat[j - 1, 6],
+                    mobmat[j, 1],
+                    mobmat[j, 2],
+                    mobmat[j, 3],
+                    0,
+                ]
+                new_pauses.append(new_pause)
+
+    # Convert the list of new pauses into a numpy array
+    new_pauses_array = np.array(new_pauses)
+
+    return new_pauses_array, mobmat
+
+
+def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
+    """This function takes the first-step trajectory matrix
+        as input and return the final trajectory matrix as output.
+
+    It carries out the following steps:
+        1) Infers the unknown status for observations in the matrix.
+        2) Combines close pauses into single pause events.
+        3) Joins flights (sequences of observations) together
+            to form a continuous trajectory.
+    In addition, it adds a column to the trajectory matrix indicating
+     whether an observation is 'observed' (1) or 'imputed' (0).
+
+    Args:
+        mobmat: np.array, a 2d numpy array (output from gps_to_mobmat())
+        interval: float, the window size of moving average,  unit is second
+        r: float, the maximam radius of a pause
+
+    Returns:
+        a 2d numpy array as a final trajectory matrix
+    """
+    sys.stdout.write("Infer unclassified windows ...\n")
+
+    n_rows = mobmat.shape[0]
+
+    # Infer unknown status
+    # The 'unknown' status (code 3)
+    # is inferred based on neighbouring data points
+    # and specific conditions about time intervals and distances.
+    for i, status in enumerate(mobmat[:, 0]):
+        if status == 3:
+            mobmat = infer_status_and_positions(i, mobmat, interval, r)
+
+    # merge consecutive pauses
+    sys.stdout.write("Merge consecutive pauses and bridge gaps ...\n")
+    mobmat = merge_pauses_and_bridge_gaps(mobmat)
+
+    # check for missing intervals and correct them
+    new_pauses_array, mobmat = correct_missing_intervals(mobmat)
 
     # connect flights and pauses
-    for j in np.arange(1, mobmat.shape[0]):
+    for j in np.arange(1, n_rows):
+        # If the current and previous states form a flight-pause pair
+        # and their times are contiguous
+        # (their end and start times are the same),
+        # then we need to make sure the position
+        # of the flight and pause match up.
         if (
             mobmat[j, 0] * mobmat[j - 1, 0] == 2
             and mobmat[j, 3] == mobmat[j - 1, 6]
         ):
+            # If the current state is a flight, update its starting position
+            # to be the same as the ending position of the preceding pause.
             if mobmat[j, 0] == 1:
-                mobmat[j, 1] = mobmat[j - 1, 4]
-                mobmat[j, 2] = mobmat[j - 1, 5]
+                mobmat[j, [1, 2]] = mobmat[j - 1, [4, 5]]
+            # If the previous state is a flight, update its ending position
+            # to be the same as the starting position of the following pause.
             if mobmat[j - 1, 0] == 1:
-                mobmat[j - 1, 4] = mobmat[j, 1]
-                mobmat[j - 1, 5] = mobmat[j, 2]
+                mobmat[j - 1, [4, 5]] = mobmat[j, [1, 2]]
 
+    # Add a column of 1s to indicate that all observations are observed
     mobmat = np.hstack(
-        (mobmat, np.ones(mobmat.shape[0]).reshape(mobmat.shape[0], 1))
+        (mobmat, np.ones(n_rows).reshape(n_rows, 1))
     )
-    mobmat = np.vstack((mobmat, new_pauses_arr))
+    # Append new pauses to the trajectory matrix
+    mobmat = np.vstack((mobmat, new_pauses_array))
+    # Sort the matrix by start time
     mobmat = mobmat[mobmat[:, 3].argsort()].astype(float)
+
     return mobmat
