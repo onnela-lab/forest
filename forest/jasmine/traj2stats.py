@@ -178,8 +178,10 @@ def get_nearby_locations(
                              data={"data": query}, timeout=60)
     try:
         response.raise_for_status()
-    except (requests.exceptions.HTTPError
-            or requests.exceptions.ReadTimeout) as err:
+    except (
+        requests.exceptions.HTTPError,
+        requests.exceptions.ReadTimeout
+    ) as err:
         sys.stdout.write(f"Timeout error: {err}\n")
         sys.stdout.write(
             "OpenStreetMap query is too large. "
@@ -714,7 +716,7 @@ def gps_summaries(
             if num_sig == 1:
                 entropy = 0
             if temp.shape[0] == 1:
-                diameter = 0
+                diameter = 0.
             else:
                 diameters = pairwise_great_circle_dist(temp[:, [1, 2]])
                 diameter = max(diameters)
@@ -933,19 +935,19 @@ def gps_stats_main(
     tz_str: str,
     frequency: Frequency,
     save_traj: bool,
-    parameters: Hyperparameters = None,
-    places_of_interest: list = None,
+    parameters: Optional[Hyperparameters] = None,
+    places_of_interest: Optional[list] = None,
     save_osm_log: bool = False,
     osm_tags: Optional[List[OSMTags]] = None,
-    threshold: int = None,
+    threshold: Optional[int] = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
     place_point_radius: float = 7.5,
-    time_start: list = None,
-    time_end: list = None,
-    participant_ids: list = None,
-    all_memory_dict: dict = None,
-    all_bv_set: dict = None,
+    time_start: Optional[list] = None,
+    time_end: Optional[list] = None,
+    participant_ids: Optional[list] = None,
+    all_memory_dict: Optional[dict] = None,
+    all_bv_set: Optional[dict] = None,
     quality_threshold: float = 0.05,
 ):
     """This the main function to do the GPS imputation.
