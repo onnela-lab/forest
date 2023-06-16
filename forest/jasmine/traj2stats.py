@@ -449,17 +449,17 @@ def gps_summaries(
                 temp[-1, 6] = t1_temp
 
         obs_dur = sum((temp[:, 6] - temp[:, 3])[temp[:, 7] == 1])
-        d_home_1 = great_circle_dist(
+        d_home_1 = great_circle_dist_vec(
             home_lat, home_lon, temp[:, 1], temp[:, 2]
             )
-        d_home_2 = great_circle_dist(
+        d_home_2 = great_circle_dist_vec(
             home_lat, home_lon, temp[:, 4], temp[:, 5]
             )
         d_home = (d_home_1 + d_home_2) / 2
         max_dist_home = max(np.concatenate((d_home_1, d_home_2)))
         time_at_home = sum((temp[:, 6] - temp[:, 3])[d_home <= 50])
         mov_vec = np.round(
-            great_circle_dist(
+            great_circle_dist_vec(
                 temp[:, 4], temp[:, 5], temp[:, 1], temp[:, 2]
             ),
             0,
@@ -488,7 +488,7 @@ def gps_summaries(
                         )
                     elif (
                         np.min(
-                            great_circle_dist(
+                            great_circle_dist_vec(
                                 row[1], row[2],
                                 pause_array[:, 0], pause_array[:, 1],
                             )
@@ -503,7 +503,7 @@ def gps_summaries(
                     else:
                         pause_array[
                             np.argmin(
-                                great_circle_dist(
+                                great_circle_dist_vec(
                                     row[1], row[2],
                                     pause_array[:, 0], pause_array[:, 1],
                                 )
@@ -698,7 +698,7 @@ def gps_summaries(
                 (temp_pause[:, 6] - temp_pause[:, 3]) / total_pause_time,
                 temp_pause[:, 2],
             )
-            r_vec = great_circle_dist(
+            r_vec = great_circle_dist_vec(
                 centroid_x, centroid_y, temp_pause[:, 1], temp_pause[:, 2]
             )
             radius = np.dot(
