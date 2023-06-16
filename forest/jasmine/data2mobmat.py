@@ -93,8 +93,8 @@ def great_circle_dist(
 
 def shortest_dist_to_great_circle(
     location1: np.ndarray,
-    location2: Tuple[float, float],
-    location3: Tuple[float, float]
+    location2: np.ndarray,
+    location3: np.ndarray
 ) -> np.ndarray:
     """This function calculates the shortest distance from location 1
         to the great circle determined by location 2 and 3.
@@ -102,8 +102,8 @@ def shortest_dist_to_great_circle(
     Args:
         location1: 2d np.array with latitudes and longitudes
          of locations, range[-180, 180]
-        location2: Tuple[float, float], latitude and longitude of location 2
-        location3: Tuple[float, float], latitude and longitude of location 3
+        location2: np.ndarray, latitude and longitude of location 2
+        location3: np.ndarray, latitude and longitude of location 3
     Returns:
         the shortest distance from location 1 to the great circle
             determined by location 2 and 3
@@ -288,11 +288,8 @@ def exist_knot(
     if num_rows > 1:
 
         # Get the latitude and longitude at the start and end of the data
-        # and convert to tuples
         location2 = avg_mat[0, [2, 3]]
-        location2_tuple = tuple(location2)
         location3 = avg_mat[num_rows - 1, [2, 3]]
-        location3_tuple = tuple(location3)
 
         # Get the entire latitude and longitude data columns
         location1 = avg_mat[:, [2, 3]]
@@ -300,7 +297,7 @@ def exist_knot(
         # Calculate the shortest distance from each point
         # to the great circle defined by the start and end points
         shortest_distances = shortest_dist_to_great_circle(
-            location1, location2_tuple, location3_tuple
+            location1, location2, location3
         )
 
         # If the maximum distance is less than the threshold,
