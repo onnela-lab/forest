@@ -21,6 +21,7 @@ from forest.bonsai.simulate_gps_data import bounding_box
 from forest.constants import Frequency, OSM_OVERPASS_URL, OSMTags
 from forest.jasmine.data2mobmat import (gps_to_mobmat, infer_mobmat,
                                         great_circle_dist,
+                                        great_circle_dist_vec,
                                         pairwise_great_circle_dist)
 from forest.jasmine.mobmat2traj import (Imp2traj, ImputeGPS, locate_home,
                                         num_sig_places)
