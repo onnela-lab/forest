@@ -50,11 +50,11 @@ def cartesian(
 
 
 def great_circle_dist(
-    lat1: Union[float, np.ndarray], lon1: Union[float, np.ndarray],
-    lat2: Union[float, np.ndarray], lon2: Union[float, np.ndarray]
-) -> Union[float, np.ndarray]:
+    lat1: float, lon1: float,
+    lat2: float, lon2: float
+) -> float:
     """This function calculates the great circle distance
-        between two locations.
+     between two locations.
 
     Args:
         lat1: float, latitude of location1,
@@ -78,14 +78,46 @@ def great_circle_dist(
     )
 
     # due to measurement errors, temp may be out of the domain of "arccos"
-    # lat, lon sometimes could be np.array,
-    # so there are two version of this correction
-    if isinstance(temp, np.ndarray):
-        temp[temp > 1] = 1
-        temp[temp < -1] = -1
-    else:
-        temp = min(temp, 1)
-        temp = max(temp, -1)
+    temp = min(temp, 1)
+    temp = max(temp, -1)
+
+    theta = np.arccos(temp)
+    distance = theta * R
+    return distance
+
+
+def great_circle_dist_vec(
+    lat1: Union[float, np.ndarray], lon1: Union[float, np.ndarray],
+    lat2: Union[float, np.ndarray], lon2: Union[float, np.ndarray]
+) -> np.ndarray:
+    """This function calculates the great circle distance
+     between various pairs of locations.
+
+    Args:
+        lat1: Union[float, np.ndarray], latitude of location1,
+            range[-180, 180]
+        lon1: Union[float, np.ndarray], longitude of location1,
+            range[-180, 180]
+        lat2: Union[float, np.ndarray], latitude of location2,
+            range[-180, 180]
+        lon2: Union[float, np.ndarray], longitude of location2,
+            range[-180, 180]
+    Returns:
+        the great circle distance between location1 and location2
+    """
+    lat1 = lat1 / 180 * math.pi
+    lon1 = lon1 / 180 * math.pi
+    lat2 = lat2 / 180 * math.pi
+    lon2 = lon2 / 180 * math.pi
+    temp = (
+        np.cos(lat1) * np.cos(lat2) * np.cos(lon1 - lon2)
+        + np.sin(lat1) * np.sin(lat2)
+    )
+
+    # due to measurement errors, temp may be out of the domain of "arccos"
+    temp[temp > 1] = 1
+    temp[temp < -1] = -1
+
     theta = np.arccos(temp)
     distance = theta * R
     return distance
