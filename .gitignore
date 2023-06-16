@@ -18,3 +18,12 @@ __pycache__/
 
 #sphinx build
 docs/_build/
+
+.venv
+.vscode
+issues
+results
+output
+test*
+plan*
+gps_output
