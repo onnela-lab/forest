@@ -288,8 +288,11 @@ def exist_knot(
     if num_rows > 1:
 
         # Get the latitude and longitude at the start and end of the data
+        # and convert to tuples
         location2 = avg_mat[0, [2, 3]]
+        location2_tuple = tuple(location2)
         location3 = avg_mat[num_rows - 1, [2, 3]]
+        location3_tuple = tuple(location3)
 
         # Get the entire latitude and longitude data columns
         location1 = avg_mat[:, [2, 3]]
@@ -297,7 +300,7 @@ def exist_knot(
         # Calculate the shortest distance from each point
         # to the great circle defined by the start and end points
         shortest_distances = shortest_dist_to_great_circle(
-            location1, location2, location3
+            location1, location2_tuple, location3_tuple
         )
 
         # If the maximum distance is less than the threshold,
