@@ -762,9 +762,6 @@ def infer_status_and_positions(
         ValueError: If the index is less than 0.
     """
 
-    # status of the current index
-    status: int = 3
-
     # If the status is unknown and it's the first index
     # set the status to 2 (pause)
     if index == 0:
