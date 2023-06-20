@@ -762,15 +762,17 @@ def infer_status_and_positions(
         ValueError: If the index is less than 0.
     """
 
+    if index < 0:
+        raise ValueError("Index must be greater than or equal to 0")
     # If the status is unknown and it's the first index
     # set the status to 2 (pause)
-    if index == 0:
+    elif index == 0:
         status = 2
         mobmat[index, [4, 5]] = mobmat[index, [1, 2]]
     # If the status is unknown and it's not the first index,
     # infer the status based on its distance to the previous
     # point and the time interval
-    elif index > 0:
+    else:
         # calculate the distance to the previous point
         distance = great_circle_dist(
             mobmat[index, 1], mobmat[index, 2],
@@ -827,8 +829,6 @@ def infer_status_and_positions(
             else:
                 status = 2  # pause
                 mobmat[index, [4, 5]] = mobmat[index, [1, 2]]
-    else:
-        raise ValueError("Index must be greater than or equal to 0")
 
     mobmat[index, 0] = status
 
