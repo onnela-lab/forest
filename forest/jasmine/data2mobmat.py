@@ -359,7 +359,7 @@ def mark_single_measure(
 
 
 def mark_complete_pause(
-    input_matrix: np.ndarray, interval: float, nrows: int, r: float
+    input_matrix: np.ndarray, interval: float, nrows: int,
 ) -> np.ndarray:
     """Marks a complete pause as status "2" (pause) if
      all points are within the maximum pause radius.
@@ -369,7 +369,6 @@ def mark_complete_pause(
             just one observed chunk without missing intervals
         interval: float, the window size of moving average,  unit is second
         nrows: int, the number of rows in the input_matrix
-        r: float, the maximum radius of a pause
 
     Returns:
         a 2d numpy array of trajectories, with structure as
@@ -581,7 +580,7 @@ def extract_flights(
     # Check if all points are within the maximum pause radius
     # indicating a pause
     if nrows > 1 and max(pairwise_great_circle_dist(input_matrix[:, 2:4])) < r:
-        return mark_complete_pause(input_matrix, interval, nrows, r)
+        return mark_complete_pause(input_matrix, interval, nrows)
 
     # Not a simple pause, contains at least one flight
     # Detect knots in the data
