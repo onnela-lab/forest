@@ -15,17 +15,6 @@ R = 6.371 * 10 ** 6
 TOLERANCE = 1e-6
 
 
-def unique(anylist: list) -> list:
-    """This function returns a list of unique elements in anylist.
-
-    Args:
-        anylist: list, could be a list of any type
-    Returns:
-        a list of unique elements in anylist
-    """
-    return list(set(anylist))
-
-
 def cartesian(
     lat: Union[float, np.ndarray], lon: Union[float, np.ndarray]
 ) -> Union[
@@ -454,7 +443,7 @@ def detect_knots(
     # the key is to update the knot list and sort them
     knot_indices.extend(long_pause_indices.tolist())
     knot_indices.sort()
-    knot_indices = unique(knot_indices)
+    knot_indices = list(set(knot_indices))
 
     # While loop to continue process until no more knot is detected
     knot_detection_complete = False
