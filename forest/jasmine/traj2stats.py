@@ -7,7 +7,7 @@ import json
 import os
 import pickle
 import sys
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -19,8 +19,9 @@ from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
 from forest.constants import Frequency, OSM_OVERPASS_URL, OSMTags
-from forest.jasmine.data2mobmat import (GPS2MobMat, InferMobMat,
+from forest.jasmine.data2mobmat import (gps_to_mobmat, infer_mobmat,
                                         great_circle_dist,
+                                        great_circle_dist_vec,
                                         pairwise_great_circle_dist)
 from forest.jasmine.mobmat2traj import (Imp2traj, ImputeGPS, locate_home,
                                         num_sig_places)
@@ -37,8 +38,8 @@ class Hyperparameters:
 
     Args:
         itrvl, accuracylim, r, w, h: hyperparameters for the
-            GPS2MobMat function.
-        itrvl, r: hyperparameters for the InferMobMat function.
+            gps_to_mobmat function.
+        itrvl, r: hyperparameters for the infer_mobmat function.
         l1, l2, l3, a1, a2, b1, b2, b3, sigma2, tol, d: hyperparameters
             for the BV_select function.
         l1, l2, a1, a2, b1, b2, b3, g, method, switch, num, linearity:
@@ -63,9 +64,9 @@ class Hyperparameters:
     method: str = "GLC"
     itrvl: int = 10
     accuracylim: int = 51
-    r: Union[int, None] = None
-    w: Union[float, None] = None
-    h: Union[int, None] = None
+    r: Optional[float] = None
+    w: Optional[float] = None
+    h: Optional[float] = None
 
 
 def transform_point_to_circle(lat: float, lon: float, radius: float
@@ -178,8 +179,10 @@ def get_nearby_locations(
                              data={"data": query}, timeout=60)
     try:
         response.raise_for_status()
-    except (requests.exceptions.HTTPError
-            or requests.exceptions.ReadTimeout) as err:
+    except (
+        requests.exceptions.HTTPError,
+        requests.exceptions.ReadTimeout
+    ) as err:
         sys.stdout.write(f"Timeout error: {err}\n")
         sys.stdout.write(
             "OpenStreetMap query is too large. "
@@ -447,17 +450,17 @@ def gps_summaries(
                 temp[-1, 6] = t1_temp
 
         obs_dur = sum((temp[:, 6] - temp[:, 3])[temp[:, 7] == 1])
-        d_home_1 = great_circle_dist(
+        d_home_1 = great_circle_dist_vec(
             home_lat, home_lon, temp[:, 1], temp[:, 2]
             )
-        d_home_2 = great_circle_dist(
+        d_home_2 = great_circle_dist_vec(
             home_lat, home_lon, temp[:, 4], temp[:, 5]
             )
         d_home = (d_home_1 + d_home_2) / 2
         max_dist_home = max(np.concatenate((d_home_1, d_home_2)))
         time_at_home = sum((temp[:, 6] - temp[:, 3])[d_home <= 50])
         mov_vec = np.round(
-            great_circle_dist(
+            great_circle_dist_vec(
                 temp[:, 4], temp[:, 5], temp[:, 1], temp[:, 2]
             ),
             0,
@@ -486,7 +489,7 @@ def gps_summaries(
                         )
                     elif (
                         np.min(
-                            great_circle_dist(
+                            great_circle_dist_vec(
                                 row[1], row[2],
                                 pause_array[:, 0], pause_array[:, 1],
                             )
@@ -501,7 +504,7 @@ def gps_summaries(
                     else:
                         pause_array[
                             np.argmin(
-                                great_circle_dist(
+                                great_circle_dist_vec(
                                     row[1], row[2],
                                     pause_array[:, 0], pause_array[:, 1],
                                 )
@@ -696,7 +699,7 @@ def gps_summaries(
                 (temp_pause[:, 6] - temp_pause[:, 3]) / total_pause_time,
                 temp_pause[:, 2],
             )
-            r_vec = great_circle_dist(
+            r_vec = great_circle_dist_vec(
                 centroid_x, centroid_y, temp_pause[:, 1], temp_pause[:, 2]
             )
             radius = np.dot(
@@ -714,7 +717,7 @@ def gps_summaries(
             if num_sig == 1:
                 entropy = 0
             if temp.shape[0] == 1:
-                diameter = 0
+                diameter = 0.
             else:
                 diameters = pairwise_great_circle_dist(temp[:, [1, 2]])
                 diameter = max(diameters)
@@ -933,19 +936,19 @@ def gps_stats_main(
     tz_str: str,
     frequency: Frequency,
     save_traj: bool,
-    parameters: Hyperparameters = None,
-    places_of_interest: list = None,
+    parameters: Optional[Hyperparameters] = None,
+    places_of_interest: Optional[list] = None,
     save_osm_log: bool = False,
     osm_tags: Optional[List[OSMTags]] = None,
-    threshold: int = None,
+    threshold: Optional[int] = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
     place_point_radius: float = 7.5,
-    time_start: list = None,
-    time_end: list = None,
-    participant_ids: list = None,
-    all_memory_dict: dict = None,
-    all_bv_set: dict = None,
+    time_start: Optional[list] = None,
+    time_end: Optional[list] = None,
+    participant_ids: Optional[list] = None,
+    all_memory_dict: Optional[dict] = None,
+    all_bv_set: Optional[dict] = None,
     quality_threshold: float = 0.05,
 ):
     """This the main function to do the GPS imputation.
@@ -1018,10 +1021,6 @@ def gps_stats_main(
         parameters.b1, parameters.b2, parameters.b3, parameters.g
     ]
 
-    orig_r = parameters.r
-    orig_w = parameters.w
-    orig_h = parameters.h
-
     # participant_ids should be a list of str
     if participant_ids is None:
         participant_ids = get_ids(study_folder)
@@ -1057,18 +1056,24 @@ def gps_stats_main(
             if data.shape == (0, 0):
                 sys.stdout.write("No data available.\n")
                 continue
-            if orig_r is None:
-                parameters.r = parameters.itrvl
-            if orig_h is None:
-                parameters.h = parameters.r
-            if orig_w is None:
-                parameters.w = np.mean(data.accuracy)
+            if parameters.r is None:
+                params_r = float(parameters.itrvl)
+            else:
+                params_r = parameters.r
+            if parameters.h is None:
+                params_h = params_r
+            else:
+                params_h = parameters.h
+            if parameters.w is None:
+                params_w = np.mean(data.accuracy)
+            else:
+                params_w = parameters.w
             # process data
-            mobmat1 = GPS2MobMat(
+            mobmat1 = gps_to_mobmat(
                 data, parameters.itrvl, parameters.accuracylim,
-                parameters.r, parameters.w, parameters.h
+                params_r, params_w, params_h
             )
-            mobmat2 = InferMobMat(mobmat1, parameters.itrvl, parameters.r)
+            mobmat2 = infer_mobmat(mobmat1, parameters.itrvl, params_r)
             out_dict = BV_select(
                 mobmat2,
                 parameters.sigma2,
@@ -1090,7 +1095,7 @@ def gps_stats_main(
                 sys.stderr.write(f"Error: {e}\n")
                 continue
             traj = Imp2traj(imp_table, mobmat2, parameters.itrvl,
-                            parameters.r, parameters.w, parameters.h)
+                            params_r, params_w, params_h)
             # save all_memory_dict and all_bv_set
             with open(f"{output_folder}/all_memory_dict.pkl", "wb") as f:
                 pickle.dump(all_memory_dict, f)

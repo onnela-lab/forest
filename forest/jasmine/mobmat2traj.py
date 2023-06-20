@@ -3,7 +3,7 @@ import math
 import numpy as np
 import scipy.stats as stat
 from ..poplar.legacy.common_funcs import stamp2datetime
-from .data2mobmat import great_circle_dist, ExistKnot
+from .data2mobmat import great_circle_dist, exist_knot
 
 ## the details of the functions are in paper [Liu and Onnela (2020)]
 def num_sig_places(data,dist):
@@ -548,7 +548,7 @@ def Imp2traj(imp_table,MobMat,itrvl,r,w,h):
                         knot_yes = np.empty(len(mat_list))
                         knot_pos = np.empty(len(mat_list))
                         for i in range(len(mat_list)):
-                            knot_yes[i] , knot_pos[i] = ExistKnot(mat_list[i],w)
+                            knot_yes[i] , knot_pos[i] = exist_knot(mat_list[i],w)
                         if sum(knot_yes)==0:
                             complete = 1
                         else:
