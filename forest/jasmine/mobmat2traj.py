@@ -3,56 +3,90 @@ trajectories. It is part of the Jasmine package.
 """
 import sys
 import math
+
 import numpy as np
 import scipy.stats as stat
+
 from ..poplar.legacy.common_funcs import stamp2datetime
 from .data2mobmat import great_circle_dist, exist_knot
 
 
 # the details of the functions are in paper [Liu and Onnela (2020)]
-def num_sig_places(data, dist):
+def update_existing_place(loc_x, loc_y, num_xy, t_xy, data, index):
+    """Update the existing significant place with the new data point.
+
+    Args:
+        loc_x: list, a list of latitudes of significant places
+        loc_y: list, a list of longitudes of significant places
+        num_xy: list, a list of frequency/counts
+            (appear in the dataset) of significant places
+        t_xy: list, a list of duration at those significant places
+        data: 1d np.ndarray, (7)
+        index: int, index of the existing significant place
     """
-    Args: data, 2d array like mobmat (k*7)
-          dist, a scalar, hyperparameters, radius of a significant place
-    Return: loc_x: a list of latitudes of significant places
-            loc_y: a list of longitudes of significant places
-            num_xy: a list of frequency/counts (appear in the dataset)
-             of significant places
-            t_xy: a list of duration at those significant places
+    loc_x[index] = (loc_x[index] * num_xy[index] + data[1]) / (num_xy[index] + 1)
+    loc_y[index] = (loc_y[index] * num_xy[index] + data[2]) / (num_xy[index] + 1)
+    num_xy[index] += 1
+    t_xy[index] += data[6] - data[3]
+
+
+def add_new_place(loc_x, loc_y, num_xy, t_xy, data):
+    """Add a new significant place from the new data point.
+
+    Args:
+        loc_x: list, a list of latitudes of significant places
+        loc_y: list, a list of longitudes of significant places
+        num_xy: list, a list of frequency/counts
+            (appear in the dataset) of significant places
+        t_xy: list, a list of duration at those significant places
+        data: 1d np.ndarray, (7)
+    """
+    loc_x.append(data[1])
+    loc_y.append(data[2])
+    num_xy.append(1)
+    t_xy.append(data[6] - data[3])
+
+
+def num_sig_places(data, dist_threshold):
+    """This function is used to find significant places
+
+    Args:
+        data: 2d np.ndarray, (k*7)
+        dist_threshold: float, hyperparameters, radius of a significant place
+    Returns: 
+        loc_x: list, a list of latitudes of significant places
+        loc_y: list, a list of longitudes of significant places
+        num_xy: list, a list of frequency/counts
+         (appear in the dataset) of significant places
+        t_xy: list, a list of duration at those significant places
     """
     loc_x = []
     loc_y = []
     num_xy = []
     t_xy = []
+
     for i in range(data.shape[0]):
-        if len(loc_x) == 0:
-            loc_x.append(data[i, 1])
-            loc_y.append(data[i, 2])
-            num_xy.append(1)
-            t_xy.append(data[i, 6] - data[i, 3])
+        if not loc_x:
+            add_new_place(loc_x, loc_y, num_xy, t_xy, data[i])
+            continue
+
+        distances = great_circle_dist(
+            np.full(len(loc_x), data[i, 1]),
+            np.full(len(loc_x), data[i, 2]),
+            np.array(loc_x),
+            np.array(loc_y),
+        )
+
+        min_distance_index = np.argmin(distances)
+        if distances[min_distance_index] > dist_threshold:
+            # add a new significant place if the distance is larger than dist_threshold
+            add_new_place(loc_x, loc_y, num_xy, t_xy, data[i])
         else:
-            distances = []
-            for j in range(len(loc_x)):
-                distances.append(
-                    great_circle_dist(
-                        data[i, 1], data[i, 2], loc_x[j], loc_y[j]
-                    )
-                )
-            index = np.argmin(distances)
-            if min(distances) > dist:
-                loc_x.append(data[i, 1])
-                loc_y.append(data[i, 2])
-                num_xy.append(1)
-                t_xy.append(data[i, 6] - data[i, 3])
-            else:
-                loc_x[index] = (loc_x[index] * num_xy[index] + data[i, 1]) / (
-                    num_xy[index] + 1
-                )
-                loc_y[index] = (loc_y[index] * num_xy[index] + data[i, 2]) / (
-                    num_xy[index] + 1
-                )
-                num_xy[index] = num_xy[index] + 1
-                t_xy[index] = t_xy[index] + data[i, 6] - data[i, 3]
+            # update the existing significant place
+            update_existing_place(
+                loc_x, loc_y, num_xy, t_xy, data[i], min_distance_index
+            )
+
     return loc_x, loc_y, num_xy, t_xy
 
 
