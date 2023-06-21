@@ -24,8 +24,12 @@ def update_existing_place(loc_x, loc_y, num_xy, t_xy, data, index):
         data: 1d np.ndarray, (7)
         index: int, index of the existing significant place
     """
-    loc_x[index] = (loc_x[index] * num_xy[index] + data[1]) / (num_xy[index] + 1)
-    loc_y[index] = (loc_y[index] * num_xy[index] + data[2]) / (num_xy[index] + 1)
+    loc_x[index] = (
+        loc_x[index] * num_xy[index] + data[1]
+    ) / (num_xy[index] + 1)
+    loc_y[index] = (
+        loc_y[index] * num_xy[index] + data[2]
+    ) / (num_xy[index] + 1)
     num_xy[index] += 1
     t_xy[index] += data[6] - data[3]
 
@@ -52,8 +56,9 @@ def num_sig_places(data, dist_threshold):
 
     Args:
         data: 2d np.ndarray, (k*7)
-        dist_threshold: float, hyperparameters, radius of a significant place
-    Returns: 
+        dist_threshold: float,
+         radius of a significant place
+    Returns:
         loc_x: list, a list of latitudes of significant places
         loc_y: list, a list of longitudes of significant places
         num_xy: list, a list of frequency/counts
@@ -79,7 +84,8 @@ def num_sig_places(data, dist_threshold):
 
         min_distance_index = np.argmin(distances)
         if distances[min_distance_index] > dist_threshold:
-            # add a new significant place if the distance is larger than dist_threshold
+            # add a new significant place
+            # if the distance is larger than dist_threshold
             add_new_place(loc_x, loc_y, num_xy, t_xy, data[i])
         else:
             # update the existing significant place
@@ -90,34 +96,59 @@ def num_sig_places(data, dist_threshold):
     return loc_x, loc_y, num_xy, t_xy
 
 
-def locate_home(mob_mat, tz_str):
-    """
-    Args: mob_mat, a k*7 2d array, output from InferMobMat()
-          tz_str, timezone, string
-    Return: home_x, home_y, two scalar,
-     represent the latitude and longtitude of user's home
+def locate_home(mob_mat, timezone):
+    """This function is used to locate the home of a user
+
+    Args:
+        mob_mat: np.ndarray, a k*7 2d array
+            output from InferMobMat()
+        timezone: str, timezone
+    Returns:
+        home_x, home_y: scalars,
+            represent the latitude and longtitude of user's home
     Raises:
         RuntimeError: if not enough data to infer home location
-
     """
+    # Extract the observed trajectories from the mobility matrix
     obs_traj = mob_mat[mob_mat[:, 0] == 2, :]
+
+    # Initialize list to hold the hours of each observation
     hours = []
+
+    # Convert timestamp to datetime and store the hour of each observation
     for i in range(obs_traj.shape[0]):
         time_list = stamp2datetime(
-            (obs_traj[i, 3] + obs_traj[i, 6]) / 2, tz_str
+            (obs_traj[i, 3] + obs_traj[i, 6]) / 2, timezone
         )
         hours.append(time_list[3])
-    hours = np.array(hours)
-    if ((hours >= 19) + (hours <= 9)).sum() <= 0:
+
+    # Convert list to numpy array
+    hours_arr = np.array(hours)
+
+    # If there are no observations between 19:00 and 09:00, raise an error
+    if ((hours_arr >= 19) + (hours_arr <= 9)).sum() <= 0:
         raise RuntimeError(
             "No home location found: Too few observations at night"
         )
-    home_pauses = obs_traj[
-        ((hours >= 19) + (hours <= 9)) * obs_traj[:, 0] == 2, :
+
+    # Extract the pauses (observed trajectories)
+    # that occurred between 19:00 and 09:00
+    home_time_pauses = obs_traj[
+        ((hours_arr >= 19) + (hours_arr <= 9)) * obs_traj[:, 0] == 2, :
     ]
-    loc_x, loc_y, num_xy, _ = num_sig_places(home_pauses, 20)
-    home_index = num_xy.index(max(num_xy))
-    home_x, home_y = loc_x[home_index], loc_y[home_index]
+
+    # Identify significant places during home-time pauses
+    locations_lat, locations_lon, frequency, _ = num_sig_places(
+        home_time_pauses, 20
+    )
+
+    # Find the index of the most frequently visited location,
+    # which is presumed to be home
+    home_index = np.argmax(frequency)
+
+    # Extract the latitude and longitude of the inferred home location
+    home_x, home_y = locations_lat[home_index], locations_lon[home_index]
+
     return home_x, home_y
 
 
