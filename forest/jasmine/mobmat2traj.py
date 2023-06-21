@@ -152,40 +152,78 @@ def locate_home(mob_mat, timezone):
     return home_x, home_y
 
 
-def calculate_k1(method, current_t, current_x, current_y, bv_set, pars):
+def calculate_k1(method, timestamp, x_coord, y_coord, bv_set, parameters):
+    """Calculate the similarity measure between
+     a given point and a set of base vectors,
+     using one of three specified methods: 'TL', 'GL', or 'GLC'.
+
+    Args:
+        method: str,
+            Method to use for the calculation. Should be 'TL', 'GL', or 'GLC'.
+        timestamp: float,
+            The timestamp of the point to compare.
+        x_coord: float,
+            The x-coordinate (e.g. longitude) of the point to compare.
+        y_coord: float,
+            The y-coordinate (e.g. lattitude) of the point to compare.
+        bv_set: np.ndarray,
+            A set of base vectors to compare with, typically
+            a subset of output from BV_select().
+        parameters: list,
+            A list of parameters to use for the calculation.
+
+    Returns:
+        similarity_measures: np.ndarray,
+            A 1d array of similarity measures
+            between the given point and each base vector.
+
+    Raises:
+        ValueError: If an invalid method is specified.
     """
-    Args: method, string, should be 'TL', or 'GL' or 'GLC'
-          current_t, current_x, current_y are scalars
-          bv_set, 2d array, the (subset of) output from BV_select()
-          pars, a list of parameters
-    Return: 1d array of similarity measures
-     between this triplet and each in bv_set
-    """
-    [l1, l2, a1, a2, b1, b2, b3, g] = pars
+    [
+        length_1, length_2, amplitude_1, amplitude_2,
+        weight_1, weight_2, weight_3, spatial_scale
+    ] = parameters
+
     mean_x = ((bv_set[:, 1] + bv_set[:, 4]) / 2).astype(float)
     mean_y = ((bv_set[:, 2] + bv_set[:, 5]) / 2).astype(float)
     mean_t = ((bv_set[:, 3] + bv_set[:, 6]) / 2).astype(float)
+
+    if method not in ["TL", "GL", "GLC"]:
+        raise ValueError(
+            f"Invalid method: {method}. Expected 'TL', 'GL', or 'GLC'."
+        )
+    # 'TL' method
     if method == "TL":
-        k1 = np.exp(-abs(current_t - mean_t) / l1) * np.exp(
-            -((np.sin(abs(current_t - mean_t) / 86400 * math.pi)) ** 2) / a1
+        k1 = np.exp(-abs(timestamp - mean_t) / length_1) * np.exp(
+            -((np.sin(abs(timestamp - mean_t) / 86400 * math.pi)) ** 2)
+            / amplitude_1
         )
-        k2 = np.exp(-abs(current_t - mean_t) / l2) * np.exp(
-            -((np.sin(abs(current_t - mean_t) / 604800 * math.pi)) ** 2) / a2
+        k2 = np.exp(-abs(timestamp - mean_t) / length_2) * np.exp(
+            -((np.sin(abs(timestamp - mean_t) / 604800 * math.pi)) ** 2)
+            / amplitude_2
         )
-        return b1 / (b1 + b2) * k1 + b2 / (b1 + b2) * k2
+        return (
+            weight_1 / (weight_1 + weight_2) * k1
+            + weight_2 / (weight_1 + weight_2) * k2
+        )
+    # 'GL' method
     if method == "GL":
-        dist = great_circle_dist(current_x, current_y, mean_x, mean_y)
-        return np.exp(-dist / g)
+        distance = great_circle_dist(x_coord, y_coord, mean_x, mean_y)
+        return np.exp(-distance / spatial_scale)
+    # 'GLC' method
     if method == "GLC":
-        k1 = np.exp(-abs(current_t - mean_t) / l1) * np.exp(
-            -((np.sin(abs(current_t - mean_t) / 86400 * math.pi)) ** 2) / a1
+        k1 = np.exp(-abs(timestamp - mean_t) / length_1) * np.exp(
+            -((np.sin(abs(timestamp - mean_t) / 86400 * math.pi)) ** 2)
+            / amplitude_1
         )
-        k2 = np.exp(-abs(current_t - mean_t) / l2) * np.exp(
-            -((np.sin(abs(current_t - mean_t) / 604800 * math.pi)) ** 2) / a2
+        k2 = np.exp(-abs(timestamp - mean_t) / length_2) * np.exp(
+            -((np.sin(abs(timestamp - mean_t) / 604800 * math.pi)) ** 2)
+            / amplitude_2
         )
-        dist = great_circle_dist(current_x, current_y, mean_x, mean_y)
-        k3 = np.exp(-dist / g)
-        return b1 * k1 + b2 * k2 + b3 * k3
+        distance = great_circle_dist(x_coord, y_coord, mean_x, mean_y)
+        k3 = np.exp(-distance / spatial_scale)
+        return weight_1 * k1 + weight_2 * k2 + weight_3 * k3
     return None
 
 
