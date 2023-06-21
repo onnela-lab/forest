@@ -1,3 +1,6 @@
+"""This module contains functions to convert the mobility matrix into
+trajectories. It is part of the Jasmine package.
+"""
 import sys
 import math
 import numpy as np
@@ -28,15 +31,15 @@ def num_sig_places(data, dist):
             num_xy.append(1)
             t_xy.append(data[i, 6] - data[i, 3])
         else:
-            d = []
+            distances = []
             for j in range(len(loc_x)):
-                d.append(
+                distances.append(
                     great_circle_dist(
                         data[i, 1], data[i, 2], loc_x[j], loc_y[j]
                     )
                 )
-            index = d.index(min(d))
-            if min(d) > dist:
+            index = np.argmin(distances)
+            if min(distances) > dist:
                 loc_x.append(data[i, 1])
                 loc_y.append(data[i, 2])
                 num_xy.append(1)
@@ -53,9 +56,9 @@ def num_sig_places(data, dist):
     return loc_x, loc_y, num_xy, t_xy
 
 
-def locate_home(MobMat, tz_str):
+def locate_home(mob_mat, tz_str):
     """
-    Args: MobMat, a k*7 2d array, output from InferMobMat()
+    Args: mob_mat, a k*7 2d array, output from InferMobMat()
           tz_str, timezone, string
     Return: home_x, home_y, two scalar,
      represent the latitude and longtitude of user's home
@@ -63,38 +66,40 @@ def locate_home(MobMat, tz_str):
         RuntimeError: if not enough data to infer home location
 
     """
-    ObsTraj = MobMat[MobMat[:, 0] == 2, :]
+    obs_traj = mob_mat[mob_mat[:, 0] == 2, :]
     hours = []
-    for i in range(ObsTraj.shape[0]):
-        time_list = stamp2datetime((ObsTraj[i, 3] + ObsTraj[i, 6]) / 2, tz_str)
+    for i in range(obs_traj.shape[0]):
+        time_list = stamp2datetime(
+            (obs_traj[i, 3] + obs_traj[i, 6]) / 2, tz_str
+        )
         hours.append(time_list[3])
     hours = np.array(hours)
     if ((hours >= 19) + (hours <= 9)).sum() <= 0:
         raise RuntimeError(
             "No home location found: Too few observations at night"
         )
-    home_pauses = ObsTraj[
-        ((hours >= 19) + (hours <= 9)) * ObsTraj[:, 0] == 2, :
+    home_pauses = obs_traj[
+        ((hours >= 19) + (hours <= 9)) * obs_traj[:, 0] == 2, :
     ]
-    loc_x, loc_y, num_xy, t_xy = num_sig_places(home_pauses, 20)
+    loc_x, loc_y, num_xy, _ = num_sig_places(home_pauses, 20)
     home_index = num_xy.index(max(num_xy))
     home_x, home_y = loc_x[home_index], loc_y[home_index]
     return home_x, home_y
 
 
-def K1(method, current_t, current_x, current_y, BV_set, pars):
+def calculate_k1(method, current_t, current_x, current_y, bv_set, pars):
     """
     Args: method, string, should be 'TL', or 'GL' or 'GLC'
           current_t, current_x, current_y are scalars
-          BV_set, 2d array, the (subset of) output from BV_select()
+          bv_set, 2d array, the (subset of) output from BV_select()
           pars, a list of parameters
     Return: 1d array of similarity measures
-     between this triplet and each in BV_set
+     between this triplet and each in bv_set
     """
     [l1, l2, a1, a2, b1, b2, b3, g] = pars
-    mean_x = ((BV_set[:, 1] + BV_set[:, 4]) / 2).astype(float)
-    mean_y = ((BV_set[:, 2] + BV_set[:, 5]) / 2).astype(float)
-    mean_t = ((BV_set[:, 3] + BV_set[:, 6]) / 2).astype(float)
+    mean_x = ((bv_set[:, 1] + bv_set[:, 4]) / 2).astype(float)
+    mean_y = ((bv_set[:, 2] + bv_set[:, 5]) / 2).astype(float)
+    mean_t = ((bv_set[:, 3] + bv_set[:, 6]) / 2).astype(float)
     if method == "TL":
         k1 = np.exp(-abs(current_t - mean_t) / l1) * np.exp(
             -((np.sin(abs(current_t - mean_t) / 86400 * math.pi)) ** 2) / a1
@@ -104,8 +109,8 @@ def K1(method, current_t, current_x, current_y, BV_set, pars):
         )
         return b1 / (b1 + b2) * k1 + b2 / (b1 + b2) * k2
     if method == "GL":
-        d = great_circle_dist(current_x, current_y, mean_x, mean_y)
-        return np.exp(-d / g)
+        dist = great_circle_dist(current_x, current_y, mean_x, mean_y)
+        return np.exp(-dist / g)
     if method == "GLC":
         k1 = np.exp(-abs(current_t - mean_t) / l1) * np.exp(
             -((np.sin(abs(current_t - mean_t) / 86400 * math.pi)) ** 2) / a1
@@ -113,12 +118,13 @@ def K1(method, current_t, current_x, current_y, BV_set, pars):
         k2 = np.exp(-abs(current_t - mean_t) / l2) * np.exp(
             -((np.sin(abs(current_t - mean_t) / 604800 * math.pi)) ** 2) / a2
         )
-        d = great_circle_dist(current_x, current_y, mean_x, mean_y)
-        k3 = np.exp(-d / g)
+        dist = great_circle_dist(current_x, current_y, mean_x, mean_y)
+        k3 = np.exp(-dist / g)
         return b1 * k1 + b2 * k2 + b3 * k3
+    return None
 
 
-def I_flight(
+def indicate_flight(
     method,
     current_t,
     current_x,
@@ -126,7 +132,7 @@ def I_flight(
     dest_t,
     dest_x,
     dest_y,
-    BV_set,
+    bv_set,
     switch,
     num,
     pars,
@@ -134,7 +140,7 @@ def I_flight(
     """
     Args: method, string, should be 'TL', or 'GL' or 'GLC'
           current_t, current_x, current_y, dest_t,dest_x,dest_y are scalars
-          BV_set, 2d array, the (subset of) output from BV_select()
+          bv_set, 2d array, the (subset of) output from BV_select()
           switch: the number of binary variables we want to generate,
            this controls the difficulty to change
              the status from flight to pause or from pause to flight
@@ -143,11 +149,11 @@ def I_flight(
     Return: 1d array of 0 and 1, of length switch,
      indicator of a incoming flight
     """
-    K = K1(method, current_t, current_x, current_y, BV_set, pars)
-    flight_K = K[BV_set[:, 0] == 1]
-    pause_K = K[BV_set[:, 0] == 2]
-    sorted_flight = np.sort(flight_K)[::-1]
-    sorted_pause = np.sort(pause_K)[::-1]
+    k1 = calculate_k1(method, current_t, current_x, current_y, bv_set, pars)
+    flight_k = k1[bv_set[:, 0] == 1]
+    pause_k = k1[bv_set[:, 0] == 2]
+    sorted_flight = np.sort(flight_k)[::-1]
+    sorted_pause = np.sort(pause_k)[::-1]
     p0 = np.mean(sorted_flight[0:num]) / (
         np.mean(sorted_flight[0:num]) + np.mean(sorted_pause[0:num]) + 1e-8
     )
@@ -156,10 +162,8 @@ def I_flight(
     # design an exponential function here to adjust
     # the probability based on the speed needed
     # p = p0*exp(|v-2|+/s)  v=2--p=p0   v=14--p=1
-    if p0 < 1e-5:
-        p0 = 1e-5
-    if p0 > 1 - 1e-5:
-        p0 = 1 - 1e-5
+    p0 = max(p0, 1e-5)
+    p0 = min(p0, 1 - 1e-5)
     s = -12 / np.log(p0)
     p1 = min(1, p0 * np.exp(min(max(0, v_dest - 2) / s, 1e2)))
     out = stat.bernoulli.rvs(p1, size=switch)
@@ -205,8 +209,7 @@ def adjust_direction(
     )
     if inner < 0:
         return -norm_x, -norm_y
-    else:
-        return norm_x, norm_y
+    return norm_x, norm_y
 
 
 def multiplier(t_diff):
@@ -216,12 +219,11 @@ def multiplier(t_diff):
     """
     if t_diff <= 30 * 60:
         return 1
-    elif t_diff <= 180 * 60:
+    if t_diff <= 180 * 60:
         return 5
-    elif t_diff <= 1080 * 60:
+    if t_diff <= 1080 * 60:
         return 10
-    else:
-        return 50
+    return 50
 
 
 def checkbound(current_x, current_y, start_x, start_y, end_x, end_y):
@@ -242,40 +244,39 @@ def checkbound(current_x, current_y, start_x, start_y, end_x, end_y):
         and current_y > min_y - 0.01
     ):
         return 1
-    else:
-        return 0
+    return 0
 
 
-def create_tables(MobMat, BV_set):
+def create_tables(mob_mat, bv_set):
     """
-    Args: MobMat, 2d array, output from InferMobMat()
-          BV_set, 2d array, output from BV_select()
+    Args: mob_mat, 2d array, output from InferMobMat()
+          bv_set, 2d array, output from BV_select()
     Return: 3 2d arrays, one for observed flights,
      one for observed pauses, one for missing interval
      (where the last two cols are the status
      of previous obs traj and next obs traj)
     """
-    n = np.shape(MobMat)[0]
-    m = np.shape(BV_set)[0]
-    index = [BV_set[i, 0] == 1 for i in range(m)]
-    flight_table = BV_set[index, :]
-    index = [BV_set[i, 0] == 2 for i in range(m)]
-    pause_table = BV_set[index, :]
+    mob_mat_rows = np.shape(mob_mat)[0]
+    bv_set_rows = np.shape(bv_set)[0]
+    index = [bv_set[i, 0] == 1 for i in range(bv_set_rows)]
+    flight_table = bv_set[index, :]
+    index = [bv_set[i, 0] == 2 for i in range(bv_set_rows)]
+    pause_table = bv_set[index, :]
     mis_table = np.zeros((1, 8))
-    for i in range(n - 1):
-        if MobMat[i + 1, 3] != MobMat[i, 6]:
+    for i in range(mob_mat_rows - 1):
+        if mob_mat[i + 1, 3] != mob_mat[i, 6]:
             # also record if it's flight/pause
             # before and after the missing interval
             mov = np.array(
                 [
-                    MobMat[i, 4],
-                    MobMat[i, 5],
-                    MobMat[i, 6],
-                    MobMat[i + 1, 1],
-                    MobMat[i + 1, 2],
-                    MobMat[i + 1, 3],
-                    MobMat[i, 0],
-                    MobMat[i + 1, 0],
+                    mob_mat[i, 4],
+                    mob_mat[i, 5],
+                    mob_mat[i, 6],
+                    mob_mat[i + 1, 1],
+                    mob_mat[i + 1, 2],
+                    mob_mat[i + 1, 3],
+                    mob_mat[i, 0],
+                    mob_mat[i + 1, 0],
                 ]
             )
             mis_table = np.vstack((mis_table, mov))
@@ -283,11 +284,11 @@ def create_tables(MobMat, BV_set):
     return flight_table, pause_table, mis_table
 
 
-def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
+def impute_gps(mob_mat, bv_set, method, switch, num, linearity, tz_str, pars):
     """
     This is the algorithm for the bi-directional imputation in the paper
-    Args: MobMat, 2d array, output from InferMobMat()
-          BV_set, 2d array, output from BV_select()
+    Args: mob_mat, 2d array, output from InferMobMat()
+          bv_set, 2d array, output from BV_select()
           method, string, should be 'TL', or 'GL' or 'GLC'
           switch, the number of binary variables we want to
              generate, this controls the difficulty to change
@@ -297,13 +298,13 @@ def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
                a more linear traj from starting point toward destination
                a small one tends to have more random directions
           tz_str, timezone
-    Return: 2d array simialr to MobMat, but it
+    Return: 2d array simialr to mob_mat, but it
             is a complete imputed traj (first-step result)
             with headers [imp_s,imp_x0,imp_y0,imp_t0,imp_x1,imp_y1,imp_t1]
     """
-    home_x, home_y = locate_home(MobMat, tz_str)
-    sys.stdout.write("Imputing missing trajectories ..." + "\n")
-    flight_table, pause_table, mis_table = create_tables(MobMat, BV_set)
+    home_x, home_y = locate_home(mob_mat, tz_str)
+    sys.stdout.write("Imputing missing trajectories ...\n")
+    flight_table, pause_table, mis_table = create_tables(mob_mat, bv_set)
     imp_x0 = np.array([])
     imp_x1 = np.array([])
     imp_y0 = np.array([])
@@ -322,10 +323,10 @@ def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
             mis_table[i, 0], mis_table[i, 1], mis_table[i, 3], mis_table[i, 4]
         )
         t_diff = mis_table[i, 5] - mis_table[i, 2]
-        D1 = great_circle_dist(
+        distance1 = great_circle_dist(
             mis_table[i, 0], mis_table[i, 1], home_x, home_y
         )
-        D2 = great_circle_dist(
+        distance2 = great_circle_dist(
             mis_table[i, 3], mis_table[i, 4], home_x, home_y
         )
         # if a person remains at the same place at the begining
@@ -379,7 +380,11 @@ def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
                 imp_t1 = np.append(imp_t1, [t_s, t_e, mis_table[i, 5]])
         # add one more check about how many flights observed
         # in the nearby 24 hours
-        elif nearby_flight <= 5 and t_diff > 6 * 60 * 60 and min(D1, D2) > 50:
+        elif (
+            nearby_flight <= 5
+            and t_diff > 6 * 60 * 60
+            and min(distance1, distance2) > 50
+        ):
             if d_diff < 3000:
                 v_random = np.random.uniform(low=1, high=1.8)
                 t_need = min(d_diff / v_random, t_diff)
@@ -431,9 +436,9 @@ def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
             end_y = mis_table[i, 4]
             start_s = mis_table[i, 6]
             end_s = mis_table[i, 7]
-            if t_diff > 4 * 60 * 60 and min(D1, D2) <= 50:
+            if t_diff > 4 * 60 * 60 and min(distance1, distance2) <= 50:
                 t_need = min(d_diff / 0.6, t_diff)
-                if D1 <= 50:
+                if distance1 <= 50:
                     imp_s = np.append(imp_s, 2)
                     imp_t0 = np.append(imp_t0, start_t)
                     imp_t1 = np.append(imp_t1, end_t - t_need)
@@ -486,7 +491,7 @@ def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
 
                     if direction == "forward":
                         direction = ""
-                        I0 = I_flight(
+                        I0 = indicate_flight(
                             method,
                             start_t,
                             start_x,
@@ -494,7 +499,7 @@ def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
                             end_t,
                             end_x,
                             end_y,
-                            BV_set,
+                            bv_set,
                             switch,
                             num,
                             pars,
@@ -502,7 +507,7 @@ def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
                         if (sum(I0 == 1) == switch and start_s == 2) or (
                             sum(I0 == 0) < switch and start_s == 1
                         ):
-                            weight = K1(
+                            weight = calculate_k1(
                                 method, start_t, start_x, start_y,
                                 flight_table, pars
                             )
@@ -599,8 +604,8 @@ def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
                                 start_s = 1
                                 counter = counter + 1
                             if end_t > start_t and check2 == 0:
-                                sp = mov1 / delta_t
-                                t_need = mov2 / sp
+                                speed = mov1 / delta_t
+                                t_need = mov2 / speed
                                 imp_s = np.append(imp_s, 1)
                                 imp_t0 = np.append(imp_t0, start_t)
                                 current_t = start_t + t_need
@@ -615,7 +620,7 @@ def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
                                 start_s = 1
                                 counter = counter + 1
                             else:
-                                weight = K1(
+                                weight = calculate_k1(
                                     method, start_t, start_x, start_y,
                                     pause_table, pars
                                 )
@@ -653,7 +658,7 @@ def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
 
                     if direction == "backward":
                         direction = ""
-                        I1 = I_flight(
+                        I1 = indicate_flight(
                             method,
                             end_t,
                             end_x,
@@ -661,7 +666,7 @@ def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
                             start_t,
                             start_x,
                             start_y,
-                            BV_set,
+                            bv_set,
                             switch,
                             num,
                             pars,
@@ -669,7 +674,7 @@ def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
                         if (sum(I1 == 1) == switch and end_s == 2) or (
                             sum(I1 == 0) < switch and end_s == 1
                         ):
-                            weight = K1(
+                            weight = calculate_k1(
                                 method, end_t, end_x, end_y,
                                 flight_table, pars
                             )
@@ -768,8 +773,8 @@ def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
                                 end_s = 1
                                 counter = counter + 1
                             if end_t > start_t and check2 == 0:
-                                sp = mov1 / delta_t
-                                t_need = mov2 / sp
+                                speed = mov1 / delta_t
+                                t_need = mov2 / speed
                                 imp_s = np.append(imp_s, 1)
                                 imp_t1 = np.append(imp_t1, end_t)
                                 current_t = end_t - t_need
@@ -784,7 +789,7 @@ def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
                                 end_s = 1
                                 counter = counter + 1
                             else:
-                                weight = K1(
+                                weight = calculate_k1(
                                     method, end_t, end_x, end_y,
                                     pause_table, pars
                                 )
@@ -826,16 +831,15 @@ def ImputeGPS(MobMat, BV_set, method, switch, num, linearity, tz_str, pars):
     return imp_table
 
 
-def Imp2traj(imp_table, MobMat, itrvl, r, w, h):
+def imp_to_traj(imp_table, mob_mat, r, w, h):
     """
     This function tidies up the first-step imputed trajectory,
     such as combining pauses, flights shared by
     both observed and missing intervals, also combine consecutive flight
     with slightly different directions
     as one longer flight
-    Args: imp_table, 2d array, output from ImputeGPS()
-          MobMat, 2d array, output from InferMobMat()
-          itrvl: the window size of moving average,  unit is second
+    Args: imp_table, 2d array, output from impute_gps()
+          mob_mat, 2d array, output from InferMobMat()
               r: the maximum radius of a pause
               w: a threshold for distance, if the distance to the
                  great circle is greater than
@@ -850,20 +854,20 @@ def Imp2traj(imp_table, MobMat, itrvl, r, w, h):
     """
     sys.stdout.write("Tidying up the trajectories..." + "\n")
     mis_table = np.zeros((1, 8))
-    for i in range(np.shape(MobMat)[0] - 1):
-        if MobMat[i + 1, 3] != MobMat[i, 6]:
+    for i in range(np.shape(mob_mat)[0] - 1):
+        if mob_mat[i + 1, 3] != mob_mat[i, 6]:
             # also record if it's flight/pause
             # before and after the missing interval
             mov = np.array(
                 [
-                    MobMat[i, 4],
-                    MobMat[i, 5],
-                    MobMat[i, 6],
-                    MobMat[i + 1, 1],
-                    MobMat[i + 1, 2],
-                    MobMat[i + 1, 3],
-                    MobMat[i, 0],
-                    MobMat[i + 1, 0],
+                    mob_mat[i, 4],
+                    mob_mat[i, 5],
+                    mob_mat[i, 6],
+                    mob_mat[i + 1, 1],
+                    mob_mat[i + 1, 2],
+                    mob_mat[i + 1, 3],
+                    mob_mat[i, 0],
+                    mob_mat[i + 1, 0],
                 ]
             )
             mis_table = np.vstack((mis_table, mov))
@@ -940,17 +944,17 @@ def Imp2traj(imp_table, MobMat, itrvl, r, w, h):
                             )
                         knot_yes = np.empty(len(mat_list))
                         knot_pos = np.empty(len(mat_list))
-                        for i in range(len(mat_list)):
+                        for i, mat_elem in enumerate(mat_list):
                             knot_yes[i], knot_pos[i] = exist_knot(
-                                mat_list[i], w
+                                mat_elem, w
                             )
                         if sum(knot_yes) == 0:
                             complete = 1
                         else:
-                            for i in range(len(mat_list)):
+                            for i, mat_elem in enumerate(mat_list):
                                 if knot_yes[i] == 1:
                                     knots.append(
-                                        int((mat_list[i])[int(knot_pos[i]), 3])
+                                        int((mat_elem)[int(knot_pos[i]), 3])
                                     )
                             knots.sort()
                     for j in range(len(knots) - 1):
@@ -968,9 +972,9 @@ def Imp2traj(imp_table, MobMat, itrvl, r, w, h):
     traj = np.array(traj)
     if traj.shape[0] != 0:
         traj = np.hstack((traj, np.zeros((traj.shape[0], 1))))
-        full_traj = np.vstack((traj, MobMat))
+        full_traj = np.vstack((traj, mob_mat))
     else:
-        full_traj = MobMat
+        full_traj = mob_mat
     float_traj = full_traj[full_traj[:, 3].argsort()].astype(float)
     final_traj = float_traj[float_traj[:, 6] - float_traj[:, 3] > 0, :]
     return final_traj
