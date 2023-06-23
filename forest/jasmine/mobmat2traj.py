@@ -323,32 +323,77 @@ def adjust_direction(
     dest_y,
 ):
     """
-    Args: linearity, a scalar that controls the smoothness of a trajectory
-          a large linearity tends to have a more linear traj
-          from starting point toward destination
-          a small one tends to have more random directions
+    This function adjusts the trajectory direction based on
+     a given linearity parameter.
 
-          delta_x,delta_y,start_x,start_y,end_x,end_y,origin_x
-          ,origin_y,dest_x,dest_y are scalars
-    Return: 2 scalars, represent the adjusted dispacement in two axises
+    Args:
+        linearity: float,
+         Controls the smoothness of a trajectory.
+         A larger value tends to result in a more linear trajectory
+         from the starting point towards the destination,
+         while a smaller value leads to more random directions.
+        delta_x, delta_y: float,
+         Initial displacements in the x and y axes.
+        start_x, start_y: float,
+         Coordinates of the start point.
+        end_x, end_y: float,
+         Coordinates of the end point.
+        origin_x, origin_y: float,
+         Coordinates of the origin point.
+        dest_x, dest_y: float,
+         Coordinates of the destination point.
+
+    Returns:
+        tuple: Two floats representing
+         the adjusted displacement in the x and y axes.
     """
-    norm1 = np.sqrt((dest_x - origin_x) ** 2 + (dest_y - origin_y) ** 2)
-    k = np.random.uniform(
-        low=0, high=linearity
-    )  # this is another parameter which controls the smoothness
-    new_x = delta_x + k * (dest_x - origin_x) / norm1
-    new_y = delta_y + k * (dest_y - origin_y) / norm1
-    norm2 = np.sqrt(delta_x**2 + delta_y**2)
-    norm3 = np.sqrt(new_x**2 + new_y**2)
-    norm_x = new_x * norm2 / norm3
-    norm_y = new_y * norm2 / norm3
-    inner = np.inner(
-        np.array([end_x - start_x, end_y - start_y]),
-        np.array([norm_x, norm_y])
+    # Calculate the norm of the vector from origin to destination
+    origin_to_dest_norm = np.sqrt(
+        (dest_x - origin_x) ** 2 + (dest_y - origin_y) ** 2
     )
-    if inner < 0:
-        return -norm_x, -norm_y
-    return norm_x, norm_y
+
+    # Generate a random number with
+    # uniform distribution within the range [0, linearity]
+    smoothness_factor = np.random.uniform(low=0, high=linearity)
+
+    # Adjust the displacement based on the smoothness factor
+    adjusted_delta_x = delta_x + smoothness_factor * (
+        dest_x - origin_x
+    ) / origin_to_dest_norm
+    adjusted_delta_y = delta_y + smoothness_factor * (
+        dest_y - origin_y
+    ) / origin_to_dest_norm
+
+    # Calculate the norms of the initial and adjusted displacements
+    initial_displacement_norm = np.sqrt(delta_x**2 + delta_y**2)
+    adjusted_displacement_norm = np.sqrt(
+        adjusted_delta_x**2 + adjusted_delta_y**2
+    )
+
+    # Normalize the adjusted displacement to maintain
+    # the same magnitude as the initial displacement
+    normalized_delta_x = (
+        adjusted_delta_x
+        * initial_displacement_norm / adjusted_displacement_norm
+    )
+    normalized_delta_y = (
+        adjusted_delta_y
+        * initial_displacement_norm / adjusted_displacement_norm
+    )
+
+    # Calculate the inner product of the vector
+    # from start to end and the adjusted displacement vector
+    inner_product = np.inner(
+        np.array([end_x - start_x, end_y - start_y]),
+        np.array([normalized_delta_x, normalized_delta_y])
+    )
+
+    # If the inner product is less than zero,
+    # reverse the direction of the adjusted displacement
+    if inner_product < 0:
+        return -normalized_delta_x, -normalized_delta_y
+
+    return normalized_delta_x, normalized_delta_y
 
 
 def multiplier(t_diff):
