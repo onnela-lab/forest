@@ -397,30 +397,53 @@ def adjust_direction(
 
 
 def multiplier(t_diff):
+    """This function generates a multiplier
+     based on the time difference between two points.
+
+    Args:
+        t_diff, float, difference in time (unit in second)
+
+    Returns:
+        float, a multiplication coefficient
     """
-    Args: a scalar, difference in time (unit in second)
-    Return: a scalar, a multiplication coefficient
-    """
+    # If the time difference is less than 30 minutes,
     if t_diff <= 30 * 60:
         return 1
+    # If the time difference is less than 3 hours,
     if t_diff <= 180 * 60:
         return 5
+    # If the time difference is less than 18 hours,
     if t_diff <= 1080 * 60:
         return 10
     return 50
 
 
 def checkbound(current_x, current_y, start_x, start_y, end_x, end_y):
-    """
-    Args: all scalars
-    Return: 1/0, indicates whether (current_x, current_y)
+    """This function checks whether a point is out of the boundary
+     determined by the starting and ending points.
+
+    Args:
+        current_x, current_y: float,
+            Coordinates of the current point.
+        start_x, start_y: float,
+            Coordinates of the start point.
+        end_x, end_y: float,
+            Coordinates of the end point.
+
+    Returns:
+        binary indicator, int, indicates whether (current_x, current_y)
             is out of the boundary determiend by
             starting and ending points
     """
+    # Calculate the maximum and minimum x and y coordinates
+    # of the starting and ending points
+    # to determine the boundary box of the trajectory
     max_x = max(start_x, end_x)
     min_x = min(start_x, end_x)
     max_y = max(start_y, end_y)
     min_y = min(start_y, end_y)
+    # If the current point is inside of the boundary box,
+    # return 1, otherwise return 0
     if (
         current_x < max_x + 0.01
         and current_x > min_x - 0.01
@@ -432,25 +455,40 @@ def checkbound(current_x, current_y, start_x, start_y, end_x, end_y):
 
 
 def create_tables(mob_mat, bv_set):
+    """This function creates three tables:
+        one for observed flights, one for observed pauses,
+        and one for missing intervals.
+
+    Args:
+        mob_mat: 2d np.ndarray, output from InferMobMat()
+        bv_set: np.ndarray, output from BV_select()
+
+    Returns:
+        3 2d np.ndarray, one for observed flights,
+         one for observed pauses, one for missing interval
+         (where the last two cols are the status
+         of previous obs traj and next obs traj)
     """
-    Args: mob_mat, 2d array, output from InferMobMat()
-          bv_set, 2d array, output from BV_select()
-    Return: 3 2d arrays, one for observed flights,
-     one for observed pauses, one for missing interval
-     (where the last two cols are the status
-     of previous obs traj and next obs traj)
-    """
+    # Number of rows in the mobility matrix and bv_set
     mob_mat_rows = np.shape(mob_mat)[0]
     bv_set_rows = np.shape(bv_set)[0]
-    index = [bv_set[i, 0] == 1 for i in range(bv_set_rows)]
-    flight_table = bv_set[index, :]
-    index = [bv_set[i, 0] == 2 for i in range(bv_set_rows)]
-    pause_table = bv_set[index, :]
+
+    # Create flight table: select rows from bv_set where first column equals 1
+    flight_table = bv_set[[bv_set[i, 0] == 1 for i in range(bv_set_rows)], :]
+
+    # Create pause table: select rows from bv_set where first column equals 2
+    pause_table = bv_set[[bv_set[i, 0] == 2 for i in range(bv_set_rows)], :]
+
+    # Initialize missing intervals table
     mis_table = np.zeros((1, 8))
+
+    # Iterate over mobility matrix rows to find missing intervals
     for i in range(mob_mat_rows - 1):
+        # Check if end of current interval doesn't match
+        # the start of the next interval
         if mob_mat[i + 1, 3] != mob_mat[i, 6]:
-            # also record if it's flight/pause
-            # before and after the missing interval
+            # Record missing interval along with its status
+            # (flight/pause) before and after
             mov = np.array(
                 [
                     mob_mat[i, 4],
@@ -463,8 +501,13 @@ def create_tables(mob_mat, bv_set):
                     mob_mat[i + 1, 0],
                 ]
             )
+            # Append the missing interval to the table
             mis_table = np.vstack((mis_table, mov))
+
+    # Remove the first row of missing_intervals_table
+    # (which was initialized to zero)
     mis_table = np.delete(mis_table, 0, 0)
+
     return flight_table, pause_table, mis_table
 
 
