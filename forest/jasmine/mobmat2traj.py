@@ -241,36 +241,72 @@ def indicate_flight(
     pars,
 ):
     """
-    Args: method, string, should be 'TL', or 'GL' or 'GLC'
-          current_t, current_x, current_y, dest_t,dest_x,dest_y are scalars
-          bv_set, 2d array, the (subset of) output from BV_select()
-          switch: the number of binary variables we want to generate,
-           this controls the difficulty to change
-             the status from flight to pause or from pause to flight
-          num: check top k similarities
-           (avoid the cumulative effect of many low prob trajs)
-    Return: 1d array of 0 and 1, of length switch,
-     indicator of a incoming flight
+    This function generates a binary variable to indicate
+     whether a person is moving or not.
+
+    Args:
+        method: str, the method to be used for calculation,
+         should be either 'TL', 'GL', or 'GLC'.
+        current_t: float, the current time point.
+        current_x: float, the current longitudinal position.
+        current_y: float, the current latitudinal position.
+        dest_t: float, the time point at the destination.
+        dest_x: float, the longitudinal position of the destination.
+        dest_y: float, the latitudinal position of the destination.
+        bv_subset: np.ndarray,
+         the subset of output from the BV_select() function.
+         It is a 2D array.
+        switch: int, the number of binary variables to be generated.
+        num: int, checks the top k similarities.
+         This helps to avoid the cumulative effect
+         of many low probability trajectories.
+        pars: list, the parameters that are required
+         for the calculate_k1 function.
+
+    Returns:
+        numpy.ndarray: A 1D array of 0 and 1,
+         indicating the status of an incoming flight.
     """
+    # Calculate k1 using the specified method
     k1 = calculate_k1(method, current_t, current_x, current_y, bv_set, pars)
+
+    # Select flight and pause indicators from the bv_subset
     flight_k = k1[bv_set[:, 0] == 1]
     pause_k = k1[bv_set[:, 0] == 2]
+
+    # Sort the flight and pause indicators
     sorted_flight = np.sort(flight_k)[::-1]
     sorted_pause = np.sort(pause_k)[::-1]
-    p0 = np.mean(sorted_flight[0:num]) / (
-        np.mean(sorted_flight[0:num]) + np.mean(sorted_pause[0:num]) + 1e-8
+
+    # Calculate the probability p0
+    p0 = np.mean(sorted_flight[:num]) / (
+        np.mean(sorted_flight[:num]) + np.mean(sorted_pause[:num]) + 1e-8
     )
-    d_dest = great_circle_dist(current_x, current_y, dest_x, dest_y)
-    v_dest = d_dest / (dest_t - current_t + 0.0001)
+
+    # Calculate the great circle distance to
+    # the destination and the required speed
+    distance_to_destination = great_circle_dist(
+        current_x, current_y,
+        dest_x, dest_y
+    )
+    speed_to_destination = distance_to_destination / (
+        dest_t - current_t + 0.0001
+    )
+
+    # Adjust the probability based on the required speed
+    # to reach the destination
     # design an exponential function here to adjust
     # the probability based on the speed needed
     # p = p0*exp(|v-2|+/s)  v=2--p=p0   v=14--p=1
     p0 = max(p0, 1e-5)
     p0 = min(p0, 1 - 1e-5)
     s = -12 / np.log(p0)
-    p1 = min(1, p0 * np.exp(min(max(0, v_dest - 2) / s, 1e2)))
-    out = stat.bernoulli.rvs(p1, size=switch)
-    return out
+    p1 = min(1, p0 * np.exp(min(max(0, speed_to_destination - 2) / s, 1e2)))
+
+    # Generate the binary variables
+    movement_indicator = stat.bernoulli.rvs(p1, size=switch)
+
+    return movement_indicator
 
 
 def adjust_direction(
