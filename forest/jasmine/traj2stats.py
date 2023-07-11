@@ -340,7 +340,7 @@ def get_nearby_locations_local(
 
         locations[element_id] = [[element_location.lat, element_location.lon]]
 
-        tags[element_id] = element_tags
+        tags[element_id] = dict(element_tags)
 
     for way in local_osm_handler.ways:
 
@@ -368,7 +368,7 @@ def get_nearby_locations_local(
                 and isinstance(x.location, osmium.osm.Location)
         ]
 
-        tags[element_id] = element_tags
+        tags[element_id] = dict(element_tags)
 
     return ids, locations, tags
 
