@@ -321,36 +321,54 @@ def get_nearby_locations_local(
     for node in local_osm_handler.nodes:
 
         element_id = node.id
+        element_tags = node.tags
+        element_location = node.location
+        if element_id is None:
+            continue
+        if not isinstance(element_tags, dict):
+            continue
+        if not isinstance(element_location, osmium.osm.Location):
+            continue
 
         for tag in osm_tags:
-            if tag.value in node.tags:
+            if tag.value in element_tags.keys():
                 node_descr = node.tags[tag.value]
                 if node_descr not in ids.keys():
                     ids[node_descr] = [element_id]
                 else:
                     ids[node_descr].append(element_id)
 
-        locations[element_id] = [[node.location.lat, node.location.lon]]
+        locations[element_id] = [[element_location.lat, element_location.lon]]
 
-        tags[element_id] = node.tags
+        tags[element_id] = element_tags
 
     for way in local_osm_handler.ways:
 
         element_id = way.id
+        element_tags = way.tags
+        element_nodes = way.nodes
+        if element_id is None:
+            continue
+        if not isinstance(element_tags, dict):
+            continue
+        if not isinstance(element_nodes, list):
+            continue
 
         for tag in osm_tags:
-            if tag.value in way.tags:
-                way_descr = way.tags[tag.value]
+            if tag.value in element_tags.keys():
+                way_descr = element_tags[tag.value]
                 if way_descr not in ids.keys():
                     ids[way_descr] = [element_id]
                 else:
                     ids[way_descr].append(element_id)
 
         locations[element_id] = [
-                [x.location.lat, x.location.lon] for x in way.nodes
-            ]
+                [x.location.lat, x.location.lon] for x in element_nodes
+                if isinstance(x, osmium.osm.Node)
+                and isinstance(x.location, osmium.osm.Location)
+        ]
 
-        tags[element_id] = way.tags
+        tags[element_id] = element_tags
 
     return ids, locations, tags
 
