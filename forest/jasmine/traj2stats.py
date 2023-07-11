@@ -363,6 +363,7 @@ def gps_summaries(
     places_of_interest: Optional[List[str]] = None,
     save_osm_log: bool = False,
     osm_tags: Optional[List[OSMTags]] = None,
+    osm_local_file: Optional[str] = None,
     threshold: Optional[int] = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
@@ -393,6 +394,7 @@ def gps_summaries(
             visited and their tags
         osm_tags: list of tags to search for in openstreetmaps
             avoid using a lot of them if large area is covered
+        osm_local_file: str, path to local osm file
         threshold: int, time spent in a pause needs to exceed the threshold
             to be placed in the log
             only if save_osm_log True, in minutes
@@ -423,7 +425,12 @@ def gps_summaries(
     locations: Dict[int, List[List[float]]] = {}
     tags: Dict[int, Dict[str, str]] = {}
     if places_of_interest is not None or save_osm_log:
-        ids, locations, tags = get_nearby_locations(traj, osm_tags)
+        if osm_local_file is None:
+            ids, locations, tags = get_nearby_locations(traj, osm_tags)
+        else:
+            ids, locations, tags = get_nearby_locations_local(
+                traj, osm_local_file, osm_tags
+            )
         ids_keys_list = list(ids.keys())
 
     obs_traj = traj[traj[:, 7] == 1, :]
@@ -1268,6 +1275,7 @@ def gps_stats_main(
                     places_of_interest,
                     save_osm_log,
                     osm_tags,
+                    osm_local_file,
                     threshold,
                     split_day_night,
                 )
@@ -1280,6 +1288,7 @@ def gps_stats_main(
                     places_of_interest,
                     save_osm_log,
                     osm_tags,
+                    osm_local_file,
                     threshold,
                     split_day_night,
                     person_point_radius,
@@ -1307,6 +1316,7 @@ def gps_stats_main(
                     places_of_interest,
                     save_osm_log,
                     osm_tags,
+                    osm_local_file,
                     threshold,
                     split_day_night,
                 )
