@@ -14,7 +14,8 @@ requires = [
     'shapely',  # jasmine
     'ssqueezepy',  # oak
     'timezonefinder',  # poplar, bonsai
-    'wheel'  # for ratelimit
+    'wheel',  # for ratelimit
+    'osmium',  # jasmine
 ]
 
 package_data = {'forest.poplar.raw': ['noncode/*.csv', 'noncode/*.json']}
