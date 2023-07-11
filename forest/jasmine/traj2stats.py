@@ -331,7 +331,7 @@ def get_nearby_locations_local(
             continue
 
         for tag in osm_tags:
-            if tag.value in element_tags.keys():
+            if tag.value in element_tags:
                 node_descr = element_tags[tag.value]
                 if node_descr not in ids.keys():
                     ids[node_descr] = [element_id]
@@ -351,11 +351,11 @@ def get_nearby_locations_local(
             continue
         if not isinstance(element_tags, osmium.osm.TagList):
             continue
-        if not isinstance(element_nodes, osmium.osm.NodeList):
+        if not isinstance(element_nodes, osmium.osm.WayNodeList):
             continue
 
         for tag in osm_tags:
-            if tag.value in element_tags.keys():
+            if tag.value in element_tags:
                 way_descr = element_tags[tag.value]
                 if way_descr not in ids.keys():
                     ids[way_descr] = [element_id]
