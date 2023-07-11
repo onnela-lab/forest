@@ -79,7 +79,7 @@ class OSMHandler(osmium.SimpleHandler):
 
     def __init__(self, bbox):
         """Initializes the OSMHandler class."""
-        super(NamesHandler, self).__init__()
+        super(OSMHandler, self).__init__()
         self.nodes: List[osmium.osm.mutable.Node] = []
         self.ways: List[osmium.osm.mutable.Way] = []
         self.bbox: Polygon = bbox
@@ -113,7 +113,7 @@ class OSMHandler(osmium.SimpleHandler):
             filename: str, name of the file
             locations: bool, whether to save locations
         """
-        super(NamesHandler, self).apply_file(filename, locations)
+        super(OSMHandler, self).apply_file(filename, locations)
 
 
 def transform_point_to_circle(lat: float, lon: float, radius: float
@@ -270,7 +270,8 @@ def get_nearby_locations(
 
 
 def get_nearby_locations_local(
-    traj: np.ndarray, osm_local_file: str, osm_tags: Optional[List[OSMTags]] = None
+    traj: np.ndarray, osm_local_file: str,
+    osm_tags: Optional[List[OSMTags]] = None
 ) -> Tuple[dict, dict, dict]:
     """This function returns a dictionary of nearby locations,
     a dictionary of nearby locations' names, and a dictionary of
@@ -309,12 +310,10 @@ def get_nearby_locations_local(
             longitudes.append(row[2])
             # update bounding box with union of current and new bounding box
             bbox = bbox.union(box(bounding_box((row[1], row[2]), 1000)))
-        
 
     sys.stdout.write("Loading osm file...\n")
     local_osm_handler = OSMHandler(bbox)
 
-    res = response.json()
     ids: Dict[str, List[int]] = {}
     locations: Dict[int, List[List[float]]] = {}
     tags: Dict[int, Dict[str, str]] = {}
@@ -331,7 +330,7 @@ def get_nearby_locations_local(
                 else:
                     ids[node_descr].append(element_id)
 
-        locations[element_id] = [[node.location.lat, node.location.lon]]            
+        locations[element_id] = [[node.location.lat, node.location.lon]]
 
         tags[element_id] = node.tags
 
@@ -1258,7 +1257,6 @@ def gps_stats_main(
                 # check if the file exists
                 if not os.path.exists(osm_local_file):
                     raise FileNotFoundError(
-                        errno.ENOENT, os.strerror(errno.ENOENT),
                         osm_local_file
                     )
                 # check if the file is a valid osm file
@@ -1266,7 +1264,7 @@ def gps_stats_main(
                     raise ValueError(
                         "The file is not a valid osm file. (must be .pbf)"
                     )
-                
+
             if frequency == Frequency.HOURLY_AND_DAILY:
                 summary_stats1, logs1 = gps_summaries(
                     traj,
