@@ -10,10 +10,11 @@ import sys
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+import osmium
 import pandas as pd
 from pyproj import Transformer
 import requests
-from shapely.geometry import Point
+from shapely.geometry import Point, box
 from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
 
@@ -67,6 +68,52 @@ class Hyperparameters:
     r: Optional[float] = None
     w: Optional[float] = None
     h: Optional[float] = None
+
+
+class OSMHandler(osmium.SimpleHandler):
+    """Class used to extract data from an osm file.
+
+    Args:
+        bbox: shapely.geometry.Polygon, bounding box
+    """
+
+    def __init__(self, bbox):
+        """Initializes the OSMHandler class."""
+        super(NamesHandler, self).__init__()
+        self.nodes: List[osmium.osm.mutable.Node] = []
+        self.ways: List[osmium.osm.mutable.Way] = []
+        self.bbox: Polygon = bbox
+
+    def node(self, n):
+        """Adds a node to the list of nodes if it is in the bounding box.
+
+        Args:
+            n: osmium.osm.mutable.Node, node
+        """
+        if self.bbox.contains(Point(n.location.lat, n.location.lon)):
+            self.nodes.append(n)
+
+    def way(self, w):
+        """Adds a way to the list of ways if it is in the bounding box.
+
+        Args:
+            w: osmium.osm.mutable.Way, way
+        """
+        n = w.nodes[0]
+        if self.bbox.contains(Point(n.location.lat, n.location.lon)):
+            self.ways.append(w)
+
+    def relation(self, r):
+        pass
+
+    def apply_file(self, filename, locations=True):
+        """Applies the OSMHandler class to a file.
+
+        Args:
+            filename: str, name of the file
+            locations: bool, whether to save locations
+        """
+        super(NamesHandler, self).apply_file(filename, locations)
 
 
 def transform_point_to_circle(lat: float, lon: float, radius: float
@@ -218,6 +265,93 @@ def get_nearby_locations(
             ]
 
         tags[element_id] = element["tags"]
+
+    return ids, locations, tags
+
+
+def get_nearby_locations_local(
+    traj: np.ndarray, osm_local_file: str, osm_tags: Optional[List[OSMTags]] = None
+) -> Tuple[dict, dict, dict]:
+    """This function returns a dictionary of nearby locations,
+    a dictionary of nearby locations' names, and a dictionary of
+    nearby locations' coordinates. Uses local osm file.
+
+    Args:
+        traj: numpy array, trajectory
+        osm_local_file: str, path to local osm file
+        osm_tags: list of OSMTags (in constants),
+            types of nearby locations supported by Overpass API
+            defaults to [OSMTags.AMENITY, OSMTags.LEISURE]
+    Returns:
+        ids: dictionary, contains nearby locations' ids
+        locations: dictionary, contains nearby locations' coordinates
+        tags: dictionary, contains nearby locations' tags
+    Raises:
+        RuntimeError: if the query to Overpass API fails
+    """
+
+    if osm_tags is None:
+        osm_tags = [OSMTags.AMENITY, OSMTags.LEISURE]
+    pause_vec = traj[traj[:, 0] == 2]
+    latitudes: List[float] = [pause_vec[0, 1]]
+    longitudes: List[float] = [pause_vec[0, 2]]
+    # initialize bounding box
+    bbox = box(bounding_box((latitudes[0], longitudes[0]), 1000))
+    for row in pause_vec:
+        minimum_distance = np.min([
+            great_circle_dist(row[1], row[2], lat, lon)
+            for lat, lon in zip(latitudes, longitudes)
+            ])
+        # only add coordinates to the list if they are not too close
+        # with the other coordinates in the list
+        if minimum_distance > 1000:
+            latitudes.append(row[1])
+            longitudes.append(row[2])
+            # update bounding box with union of current and new bounding box
+            bbox = bbox.union(box(bounding_box((row[1], row[2]), 1000)))
+        
+
+    sys.stdout.write("Loading osm file...\n")
+    local_osm_handler = OSMHandler(bbox)
+
+    res = response.json()
+    ids: Dict[str, List[int]] = {}
+    locations: Dict[int, List[List[float]]] = {}
+    tags: Dict[int, Dict[str, str]] = {}
+
+    for node in local_osm_handler.nodes:
+
+        element_id = node.id
+
+        for tag in osm_tags:
+            if tag.value in node.tags:
+                node_descr = node.tags[tag.value]
+                if node_descr not in ids.keys():
+                    ids[node_descr] = [element_id]
+                else:
+                    ids[node_descr].append(element_id)
+
+        locations[element_id] = [[node.location.lat, node.location.lon]]            
+
+        tags[element_id] = node.tags
+
+    for way in local_osm_handler.ways:
+
+        element_id = way.id
+
+        for tag in osm_tags:
+            if tag.value in way.tags:
+                way_descr = way.tags[tag.value]
+                if way_descr not in ids.keys():
+                    ids[way_descr] = [element_id]
+                else:
+                    ids[way_descr].append(element_id)
+
+        locations[element_id] = [
+                [x.location.lat, x.location.lon] for x in way.nodes
+            ]
+
+        tags[element_id] = way.tags
 
     return ids, locations, tags
 
@@ -940,6 +1074,7 @@ def gps_stats_main(
     places_of_interest: Optional[list] = None,
     save_osm_log: bool = False,
     osm_tags: Optional[List[OSMTags]] = None,
+    osm_local_file: Optional[str] = None,
     threshold: Optional[int] = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
@@ -969,6 +1104,8 @@ def gps_stats_main(
             visited and their tags
         osm_tags: list of tags to search for in openstreetmaps
             avoid using a lot of them if large area is covered
+        osm_local_file: str, path to a local osm file
+            if None, then uses API
         threshold: int, time spent in a pause needs to exceed the
             threshold to be placed in the log
             only if save_osm_log True, in minutes
@@ -1109,6 +1246,20 @@ def gps_stats_main(
                     f"{output_folder}/trajectory/{participant_id}.csv",
                     index=False
                 )
+            # check for local osm file
+            if osm_local_file is not None:
+                # check if the file exists
+                if not os.path.exists(osm_local_file):
+                    raise FileNotFoundError(
+                        errno.ENOENT, os.strerror(errno.ENOENT),
+                        osm_local_file
+                    )
+                # check if the file is a valid osm file
+                if not osm_local_file.endswith(".pbf"):
+                    raise ValueError(
+                        "The file is not a valid osm file. (must be .pbf)"
+                    )
+                
             if frequency == Frequency.HOURLY_AND_DAILY:
                 summary_stats1, logs1 = gps_summaries(
                     traj,
