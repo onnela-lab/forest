@@ -80,8 +80,10 @@ class OSMHandler(osmium.SimpleHandler):
     def __init__(self, bbox):
         """Initializes the OSMHandler class."""
         super(OSMHandler, self).__init__()
-        self.nodes: List[osmium.osm.mutable.Node] = []
-        self.ways: List[osmium.osm.mutable.Way] = []
+        
+        self.ids: List[int] = []
+        self.tags: Dict[str, str] = []
+        self.locations: List[List[float]] = []
         self.bbox: Polygon = bbox
 
     def node(self, n):
@@ -91,7 +93,11 @@ class OSMHandler(osmium.SimpleHandler):
             n: osmium.osm.mutable.Node, node
         """
         if self.bbox.contains(Point(n.location.lat, n.location.lon)):
-            self.nodes.append(n)
+            self.ids.append(n.id)
+            self.locations.append([[n.location.lat, n.location.lon]])                    
+            self.tags.append(
+                {tag.k: tag.v for tag in n.tags}
+            )
 
     def way(self, w):
         """Adds a way to the list of ways if it is in the bounding box.
@@ -101,7 +107,11 @@ class OSMHandler(osmium.SimpleHandler):
         """
         n = w.nodes[0]
         if self.bbox.contains(Point(n.location.lat, n.location.lon)):
-            self.ways.append(w)
+            self.ids.append(w.id)
+            self.locations.append([[n2.location.lat, n2.location.lon] for n2 in w.nodes])
+            self.tags.append(
+                {tag.k: tag.v for tag in w.tags}
+            )
 
     def relation(self, r):
         pass
@@ -297,7 +307,8 @@ def get_nearby_locations_local(
     latitudes: List[float] = [pause_vec[0, 1]]
     longitudes: List[float] = [pause_vec[0, 2]]
     # initialize bounding box
-    bbox = box(bounding_box((latitudes[0], longitudes[0]), 1000))
+    bbox_tuple = bounding_box((latitudes[0], longitudes[0]), 1000)
+    bbox = box(*bbox_tuple)
     for row in pause_vec:
         minimum_distance = np.min([
             great_circle_dist(row[1], row[2], lat, lon)
@@ -309,26 +320,21 @@ def get_nearby_locations_local(
             latitudes.append(row[1])
             longitudes.append(row[2])
             # update bounding box with union of current and new bounding box
-            bbox = bbox.union(box(bounding_box((row[1], row[2]), 1000)))
+            bbox_tuple = bounding_box((row[1], row[2]), 1000)
+            bbox = bbox.union(box(*bbox_tuple))
 
     sys.stdout.write("Loading osm file...\n")
     local_osm_handler = OSMHandler(bbox)
+    local_osm_handler.apply_file(osm_local_file)
 
     ids: Dict[str, List[int]] = {}
     locations: Dict[int, List[List[float]]] = {}
     tags: Dict[int, Dict[str, str]] = {}
 
-    for node in local_osm_handler.nodes:
+    for idx, element_id in enumerate(local_osm_handler.ids):
 
-        element_id = node.id
-        element_tags = node.tags
-        element_location = node.location
-        if element_id is None:
-            continue
-        if not isinstance(element_tags, osmium.osm.TagList):
-            continue
-        if not isinstance(element_location, osmium.osm.Location):
-            continue
+        element_tags = local_osm_handler.tags[idx]
+        element_location = local_osm_handler.locations[idx]
 
         for tag in osm_tags:
             if tag.value in element_tags:
@@ -338,37 +344,9 @@ def get_nearby_locations_local(
                 else:
                     ids[node_descr].append(element_id)
 
-        locations[element_id] = [[element_location.lat, element_location.lon]]
+        locations[element_id] = element_location
 
-        tags[element_id] = dict(element_tags)
-
-    for way in local_osm_handler.ways:
-
-        element_id = way.id
-        element_tags = way.tags
-        element_nodes = way.nodes
-        if element_id is None:
-            continue
-        if not isinstance(element_tags, osmium.osm.TagList):
-            continue
-        if not isinstance(element_nodes, osmium.osm.WayNodeList):
-            continue
-
-        for tag in osm_tags:
-            if tag.value in element_tags:
-                way_descr = element_tags[tag.value]
-                if way_descr not in ids.keys():
-                    ids[way_descr] = [element_id]
-                else:
-                    ids[way_descr].append(element_id)
-
-        locations[element_id] = [
-                [x.location.lat, x.location.lon] for x in element_nodes
-                if isinstance(x, osmium.osm.Node)
-                and isinstance(x.location, osmium.osm.Location)
-        ]
-
-        tags[element_id] = dict(element_tags)
+        tags[element_id] = element_tags
 
     return ids, locations, tags
 
