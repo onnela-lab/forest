@@ -80,10 +80,10 @@ class OSMHandler(osmium.SimpleHandler):
     def __init__(self, bbox):
         """Initializes the OSMHandler class."""
         super(OSMHandler, self).__init__()
-        
+
         self.ids: List[int] = []
-        self.tags: Dict[str, str] = []
-        self.locations: List[List[float]] = []
+        self.tags: List[Dict[str, str]] = []
+        self.locations: List[List[List[float]]] = []
         self.bbox: Polygon = bbox
 
     def node(self, n):
@@ -94,7 +94,7 @@ class OSMHandler(osmium.SimpleHandler):
         """
         if self.bbox.contains(Point(n.location.lat, n.location.lon)):
             self.ids.append(n.id)
-            self.locations.append([[n.location.lat, n.location.lon]])                    
+            self.locations.append([[n.location.lat, n.location.lon]])
             self.tags.append(
                 {tag.k: tag.v for tag in n.tags}
             )
@@ -108,7 +108,9 @@ class OSMHandler(osmium.SimpleHandler):
         n = w.nodes[0]
         if self.bbox.contains(Point(n.location.lat, n.location.lon)):
             self.ids.append(w.id)
-            self.locations.append([[n2.location.lat, n2.location.lon] for n2 in w.nodes])
+            self.locations.append([
+                [n2.location.lat, n2.location.lon] for n2 in w.nodes
+            ])
             self.tags.append(
                 {tag.k: tag.v for tag in w.tags}
             )
