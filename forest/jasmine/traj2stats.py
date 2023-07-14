@@ -77,7 +77,7 @@ class OSMHandler(osmium.SimpleHandler):
         bbox: shapely.geometry.Polygon, bounding box
     """
 
-    def __init__(self, bbox):
+    def __init__(self, bbox, osm_tags):
         """Initializes the OSMHandler class."""
         super(OSMHandler, self).__init__()
 
@@ -85,6 +85,7 @@ class OSMHandler(osmium.SimpleHandler):
         self.tags: List[Dict[str, str]] = []
         self.locations: List[List[List[float]]] = []
         self.bbox: Polygon = bbox
+        self.osm_tags: List[str] = [t.value for t in osm_tags]
 
     def node(self, n):
         """Adds a node to the list of nodes if it is in the bounding box.
@@ -93,11 +94,11 @@ class OSMHandler(osmium.SimpleHandler):
             n: osmium.osm.mutable.Node, node
         """
         if self.bbox.contains(Point(n.location.lat, n.location.lon)):
-            self.ids.append(n.id)
-            self.locations.append([[n.location.lat, n.location.lon]])
-            self.tags.append(
-                {tag.k: tag.v for tag in n.tags}
-            )
+            tags = {tag.k: tag.v for tag in n.tags}
+            if self.check_tags(tags):
+                self.ids.append(n.id)
+                self.locations.append([[n.location.lat, n.location.lon]])
+                self.tags.append(tags)
 
     def way(self, w):
         """Adds a way to the list of ways if it is in the bounding box.
@@ -107,16 +108,29 @@ class OSMHandler(osmium.SimpleHandler):
         """
         n = w.nodes[0]
         if self.bbox.contains(Point(n.location.lat, n.location.lon)):
-            self.ids.append(w.id)
-            self.locations.append([
-                [n2.location.lat, n2.location.lon] for n2 in w.nodes
-            ])
-            self.tags.append(
-                {tag.k: tag.v for tag in w.tags}
-            )
+            tags = {tag.k: tag.v for tag in w.tags}
+            if self.check_tags(tags):
+                self.ids.append(w.id)
+                self.locations.append([
+                    [n2.location.lat, n2.location.lon] for n2 in w.nodes
+                ])
+                self.tags.append(tags)
 
     def relation(self, r):
         pass
+
+    def check_tags(self, tags):
+        """Checks whether the tags are in the list of tags.
+
+        Args:
+            tags: dict, tags of a node or way
+        Returns:
+            bool, True if the tags are in the list of tags
+        """
+        for tag in self.osm_tags:
+            if tag in tags.keys():
+                return True
+        return False
 
     def apply_file(self, filename, locations=True):
         """Applies the OSMHandler class to a file.
@@ -326,7 +340,7 @@ def get_nearby_locations_local(
             bbox = bbox.union(box(*bbox_tuple))
 
     sys.stdout.write("Loading osm file...\n")
-    local_osm_handler = OSMHandler(bbox)
+    local_osm_handler = OSMHandler(bbox, osm_tags)
     local_osm_handler.apply_file(osm_local_file)
 
     ids: Dict[str, List[int]] = {}
