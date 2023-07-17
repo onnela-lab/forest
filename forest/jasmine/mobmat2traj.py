@@ -101,7 +101,7 @@ def locate_home(mob_mat, timezone):
 
     Args:
         mob_mat: np.ndarray, a k*7 2d array
-            output from InferMobMat()
+            output from infer_mobmat()
         timezone: str, timezone
     Returns:
         home_x, home_y: scalars,
@@ -460,7 +460,7 @@ def create_tables(mob_mat, bv_set):
         and one for missing intervals.
 
     Args:
-        mob_mat: 2d np.ndarray, output from InferMobMat()
+        mob_mat: 2d np.ndarray, output from infer_mobmat()
         bv_set: np.ndarray, output from BV_select()
 
     Returns:
@@ -556,6 +556,7 @@ def adjust_delta_if_needed(start_t, delta_t, delta_x, delta_y, end_t):
         delta_y = delta_y * delta_t / temp
     return delta_x, delta_y, delta_t
 
+
 def calculate_position(start_t, end_t, try_t, start_delta, end_delta):
     """This function calculates the position of a point
         at a given time.
@@ -574,18 +575,21 @@ def calculate_position(start_t, end_t, try_t, start_delta, end_delta):
     time_part1 = try_t - start_t
     time_part2 = end_t - try_t
     res = time_part2 / time_diff * start_delta + \
-              time_part1 / time_diff * end_delta
+        time_part1 / time_diff * end_delta
 
     return res
+
 
 def update_table(imp_table, array):
     return np.vstack((imp_table, np.array(array)))
 
 
-def forward_impute(start_t, start_x, start_y, end_t, end_x, end_y, 
-                       bv_set, switch, num, pars, flight_table, linearity, 
-                       mis_row, pause_table, imp_table, 
-                       start_s, method, counter):
+def forward_impute(
+    start_t, start_x, start_y, end_t, end_x, end_y,
+    bv_set, switch, num, pars, flight_table, linearity,
+    mis_row, pause_table, imp_table,
+    start_s, method, counter
+):
     """
     This function imputes a missing interval
         from the start point to the end point.
@@ -612,14 +616,15 @@ def forward_impute(start_t, start_x, start_y, end_t, end_x, end_y,
 
     Returns:
         imp_table: updated imp_table
-        start_s: int, status of the start point
-        start_t: float, start time
-        start_x, start_y: float, start position
+        tuple of 4 elements:
+            start_s: int, status of the start point
+            start_t: float, start time
+            start_x, start_y: float, start position
         counter: updated counter
     """
 
     I0 = indicate_flight(
-        method, start_t, start_x, start_y, end_t, end_x, 
+        method, start_t, start_x, start_y, end_t, end_x,
         end_y, bv_set, switch, num, pars
     )
 
@@ -638,19 +643,23 @@ def forward_impute(start_t, start_x, start_y, end_t, end_x, end_y,
         delta_x, delta_y, delta_t = calculate_delta(flight_table, flight_index)
 
         delta_x, delta_y, delta_t = adjust_delta_if_needed(
-            start_t, delta_t, 
+            start_t, delta_t,
             delta_x, delta_y, end_t
         )
 
         delta_x, delta_y = adjust_direction(
             linearity, delta_x, delta_y,
-            start_x, start_y, end_x, end_y, 
+            start_x, start_y, end_x, end_y,
             *mis_row[[0, 1, 3, 4]],
         )
 
         try_t = start_t + delta_t
-        try_x = calculate_position(start_t, end_t, try_t, start_x + delta_x, end_x)
-        try_y = calculate_position(start_t, end_t, try_t, start_y + start_t, end_y)
+        try_x = calculate_position(
+            start_t, end_t, try_t, start_x + delta_x, end_x
+        )
+        try_y = calculate_position(
+            start_t, end_t, try_t, start_y + start_t, end_y
+        )
 
         mov1 = great_circle_dist(try_x, try_y, start_x, start_y)
         mov2 = great_circle_dist(end_x, end_y, start_x, start_y)
@@ -664,47 +673,76 @@ def forward_impute(start_t, start_x, start_y, end_t, end_x, end_y,
         # conditions and actions
         if end_t > start_t and check1 == 1 and check2 == 1:
             current_t = start_t + delta_t
-            current_x = calculate_position(start_t, end_t, current_t,
-                                            start_x + delta_x, end_x)
-            current_y = calculate_position(start_t, end_t, current_t,
-                                            start_y + delta_y, end_y)
-            imp_table = update_table(imp_table, [1, start_x, start_y, 
-                                                    start_t, current_x, 
-                                                    current_y, current_t])
-            
-            start_x, start_y, start_t, start_s = current_x, current_y, current_t, 1
+            current_x = calculate_position(
+                start_t, end_t, current_t,
+                start_x + delta_x, end_x
+            )
+            current_y = calculate_position(
+                start_t, end_t, current_t,
+                start_y + delta_y, end_y
+            )
+            imp_table = update_table(
+                imp_table,
+                [
+                    1, start_x, start_y,
+                    start_t, current_x,
+                    current_y, current_t
+                ]
+            )
+
+            start_x, start_y, start_t, start_s = (
+                current_x, current_y, current_t, 1
+            )
             counter += 1
 
         if end_t > start_t and check2 == 0:
             speed = mov1 / delta_t
             t_need = mov2 / speed
             current_t = start_t + t_need
-            imp_table = update_table(imp_table, [1, start_x, start_y, 
-                                                    start_t, end_x, 
-                                                    end_y, current_t])
+            imp_table = update_table(
+                imp_table,
+                [
+                    1, start_x, start_y,
+                    start_t, end_x,
+                    end_y, current_t
+                ]
+            )
             start_x, start_y, start_t, start_s = end_x, end_y, current_t, 1
             counter += 1
         else:
-            weight = calculate_k1(method, start_t, start_x, start_y, 
-                                    pause_table, pars)
+            weight = calculate_k1(
+                method, start_t, start_x, start_y,
+                pause_table, pars
+            )
             normalize_w = (weight + 1e-5) / sum(weight + 1e-5)
             pause_index = np.random.choice(pause_table.shape[0], p=normalize_w)
-            delta_t = (pause_table[pause_index, 6] - pause_table[pause_index, 3]) * \
-                        multiplier(end_t - start_t)
+            delta_t = (
+                pause_table[pause_index, 6] - pause_table[pause_index, 3]
+            ) * multiplier(end_t - start_t)
 
             if start_t + delta_t < end_t:
                 current_t = start_t + delta_t
-                imp_table = update_table(imp_table, [2, start_x, start_y, 
-                                                        start_t, start_x, 
-                                                        start_y, current_t])
+                imp_table = update_table(
+                    imp_table,
+                    [
+                        2, start_x, start_y,
+                        start_t, start_x,
+                        start_y, current_t
+                    ]
+                )
                 start_t, start_s = current_t, 2
                 counter += 1
             else:
-                imp_table = update_table(imp_table, [1, start_x, start_y, 
-                                                        start_t, end_x, 
-                                                        end_y, end_t])
+                imp_table = update_table(
+                    imp_table,
+                    [
+                        1, start_x, start_y,
+                        start_t, end_x,
+                        end_y, end_t
+                    ]
+                )
                 start_t = end_t
-    return imp_table, start_s, start_t, start_x, start_y, counter
+    return imp_table, (start_s, start_t, start_x, start_y), counter
 
 
 def backward_impute(
@@ -753,14 +791,15 @@ def backward_impute(
 
     Returns:
         imp_table: updated imp_table
-        end_s: int, status of the end point
-        end_t: float, end time
-        end_x, end_y: float, end position
+        tuple of 4 elements:
+            end_s: int, status of the end point
+            end_t: float, end time
+            end_x, end_y: float, end position
         counter: updated counter
     """
 
     I1 = indicate_flight(
-        method, end_t, end_x, end_y, start_t, start_x, 
+        method, end_t, end_x, end_y, start_t, start_x,
         start_y, bv_set, switch, num, pars
     )
 
@@ -776,22 +815,28 @@ def backward_impute(
         normalize_w = (weight + 1e-5) / sum(weight + 1e-5)
         flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
 
-        delta_x, delta_y, delta_t = calculate_delta(flight_table, flight_index, backwards=True)
+        delta_x, delta_y, delta_t = calculate_delta(
+            flight_table, flight_index, backwards=True
+        )
 
         delta_x, delta_y, delta_t = adjust_delta_if_needed(
-            start_t, delta_t, 
+            start_t, delta_t,
             delta_x, delta_y, end_t
         )
 
         delta_x, delta_y = adjust_direction(
             linearity, delta_x, delta_y,
-            end_x, end_y, start_x, start_y, 
+            end_x, end_y, start_x, start_y,
             *mis_row[[3, 4, 0, 1]],
         )
 
         try_t = end_t - delta_t
-        try_x = calculate_position(end_t, try_t, 0, start_x, start_t, end_x + delta_x)
-        try_y = calculate_position(end_t, try_t, 0, start_y, start_t, end_y + delta_y)
+        try_x = calculate_position(
+            end_t, try_t, 0, start_x, start_t, end_x + delta_x
+        )
+        try_y = calculate_position(
+            end_t, try_t, 0, start_y, start_t, end_y + delta_y
+        )
 
         mov1 = great_circle_dist(try_x, try_y, end_x, end_y)
         mov2 = great_circle_dist(end_x, end_y, start_x, start_y)
@@ -805,14 +850,22 @@ def backward_impute(
         # conditions and actions
         if end_t > start_t and check1 == 1 and check2 == 1:
             current_t = end_t - delta_t
-            current_x = calculate_position(end_t, current_t, 0, 
-                                            start_x, start_t, end_x + delta_x)
-            current_y = calculate_position(end_t, current_t, 0, 
-                                            start_y, end_y + delta_y)
-            imp_table = update_table(imp_table, [1, current_x, current_y, 
-                                                    current_t, end_x, 
-                                                    end_y, end_t])
-            
+            current_x = calculate_position(
+                end_t, current_t, 0,
+                start_x, start_t, end_x + delta_x
+            )
+            current_y = calculate_position(
+                end_t, current_t, 0,
+                start_y, end_y + delta_y
+            )
+            imp_table = update_table(
+                imp_table,
+                [
+                    1, current_x, current_y,
+                    current_t, end_x, end_y, end_t
+                ]
+            )
+
             end_x, end_y, end_t, end_s = current_x, current_y, current_t, 1
             counter += 1
 
@@ -820,9 +873,13 @@ def backward_impute(
             speed = mov1 / delta_t
             t_need = mov2 / speed
             current_t = end_t - t_need
-            imp_table = update_table(imp_table, [1, start_x, start_y, 
-                                                    current_t, end_x, 
-                                                    end_y, end_t])
+            imp_table = update_table(
+                imp_table,
+                [
+                    1, start_x, start_y,
+                    current_t, end_x, end_y, end_t
+                ]
+            )
             end_x, end_y, end_t, end_s = start_x, start_y, current_t, 1
             counter += 1
         else:
@@ -832,40 +889,51 @@ def backward_impute(
             )
             normalize_w = (weight + 1e-5) / sum(weight + 1e-5)
             pause_index = np.random.choice(pause_table.shape[0], p=normalize_w)
-            delta_t = (pause_table[pause_index, 6] - pause_table[pause_index, 3]) * \
-                        multiplier(end_t - start_t)
+            delta_t = (
+                pause_table[pause_index, 6] - pause_table[pause_index, 3]
+            ) * multiplier(end_t - start_t)
 
             if start_t + delta_t < end_t:
                 current_t = end_t - delta_t
-                imp_table = update_table(imp_table, [2, end_x, end_y, 
-                                                        current_t, end_x, 
-                                                        end_y, end_t])
+                imp_table = update_table(
+                    imp_table,
+                    [
+                        2, end_x, end_y,
+                        current_t, end_x, end_y, end_t
+                    ]
+                )
                 end_t, end_s = current_t, 2
                 counter += 1
             else:
-                imp_table = update_table(imp_table, [1, start_x, start_y, 
-                                                        start_t, end_x, 
-                                                        end_y, end_t])
+                imp_table = update_table(
+                    imp_table,
+                    [
+                        1, start_x, start_y,
+                        start_t, end_x, end_y, end_t
+                    ])
                 end_t = start_t
-    
-    return imp_table, end_s, end_t, end_x, end_y, counter
+
+    return imp_table, (end_s, end_t, end_x, end_y), counter
 
 
 def impute_gps(mob_mat, bv_set, method, switch, num, linearity, tz_str, pars):
     """
     This is the algorithm for the bi-directional imputation in the paper
-    Args: mob_mat, 2d array, output from InferMobMat()
-          bv_set, 2d array, output from BV_select()
-          method, string, should be 'TL', or 'GL' or 'GLC'
-          switch, the number of binary variables we want to
-             generate, this controls the difficulty to change
-             the status from flight to pause or from pause to flight
-          linearity, a scalar that controls the smoothness of a trajectory
-               a large linearity tends to have
-               a more linear traj from starting point toward destination
-               a small one tends to have more random directions
-          tz_str, timezone
-    Return: 2d array simialr to mob_mat, but it
+
+    Args:
+        mob_mat: 2d np.ndarray, output from infer_mobmat()
+        bv_set: np.ndarray, output from BV_select()
+        method: str, the method to be used for calculation,
+            should be either 'TL', 'GL', or 'GLC'
+        switch: int, the number of binary variables to be generated
+        num: int, checks the top k similarities
+        linearity: float, controls the smoothness of a trajectory
+        tz_str: str, time zone
+        pars: list, the parameters that are required
+            for the calculate_k1 function
+
+    Returns:
+        2d array simialr to mob_mat, but it
             is a complete imputed traj (first-step result)
             with headers [imp_s,imp_x0,imp_y0,imp_t0,imp_x1,imp_y1,imp_t1]
     """
@@ -885,13 +953,13 @@ def impute_gps(mob_mat, bv_set, method, switch, num, linearity, tz_str, pars):
         # Extract the start and end times of the missing interval
         mis_t0 = mis_table[i, 2]
         mis_t1 = mis_table[i, 5]
-        
+
         # get the number of flights observed in the nearby 24 hours
         nearby_flight = sum(
             (flight_table[:, 6] > mis_t0 - 12 * 60 * 60)
             * (flight_table[:, 3] < mis_t1 + 12 * 60 * 60)
         )
-        
+
         # get the distance difference between start and end
         # coordinates of the missing interval
         distance_difference = great_circle_dist(
@@ -1012,7 +1080,10 @@ def impute_gps(mob_mat, bv_set, method, switch, num, linearity, tz_str, pars):
             # "switch" is the number of random variables
             start_x, start_y, start_t, end_x, end_y, end_t, start_s, end_s = \
                 mis_table[i, :]
-            if time_difference > 4 * 60 * 60 and min(start_home_distance, end_home_distance) <= 50:
+            if (
+                time_difference > 4 * 60 * 60
+                and min(start_home_distance, end_home_distance) <= 50
+            ):
                 t_need = min(distance_difference / 0.6, time_difference)
                 # if distance from home to start/end is less than 50 km
                 # and the time difference is more than 4 hours
@@ -1070,112 +1141,114 @@ def impute_gps(mob_mat, bv_set, method, switch, num, linearity, tz_str, pars):
                     direction = "forward" if counter % 2 == 0 else "backward"
 
                     if direction == "forward":
-                        imp_table, start_s, start_t, start_x, start_y, counter = \
-                         forward_impute(
-                            start_t, start_x, start_y, end_t, end_x, end_y, 
-                            bv_set, switch, num, pars, flight_table, linearity, 
-                            mis_table[i, :], pause_table, imp_table, 
+                        imp_table, start, counter = forward_impute(
+                            start_t, start_x, start_y, end_t, end_x, end_y,
+                            bv_set, switch, num, pars, flight_table, linearity,
+                            mis_table[i, :], pause_table, imp_table,
                             start_s, method, counter
                         )
+                        start_s, start_t, start_x, start_y = start
                     elif direction == "backward":
-                        imp_table, end_s, end_t, end_x, end_y, counter = \
-                         backward_impute(
-                            end_t, end_x, end_y, start_t, start_x, start_y, 
-                            bv_set, switch, num, pars, flight_table, linearity, 
-                            mis_table[i, :], pause_table, imp_table, 
+                        imp_table, end, counter = backward_impute(
+                            end_t, end_x, end_y, start_t, start_x, start_y,
+                            bv_set, switch, num, pars, flight_table, linearity,
+                            mis_table[i, :], pause_table, imp_table,
                             end_s, method, counter
                         )
+                        end_s, end_t, end_x, end_y = end
     imp_table = imp_table[imp_table[:, 3].argsort()].astype(float)
     return imp_table
 
 
 def imp_to_traj(imp_table, mob_mat, r, w, h):
-    """
-    This function tidies up the first-step imputed trajectory,
-    such as combining pauses, flights shared by
-    both observed and missing intervals, also combine consecutive flight
-    with slightly different directions
-    as one longer flight
-    Args: imp_table, 2d array, output from impute_gps()
-          mob_mat, 2d array, output from InferMobMat()
-              r: the maximum radius of a pause
-              w: a threshold for distance, if the distance to the
-                 great circle is greater than
-                 this threshold, we consider there is a knot
-              h: a threshold of distance, if the movemoent between
-                 two timestamps is less than h,
-                 consider it as a pause and a knot
-    Return: 2d array, the final imputed trajectory,
-    with one more columm compared to imp_table
+    """This function tidies up the first-step imputed trajectory,
+    such as combining pauses, flights shared by both observed
+    and missing intervals, also combine consecutive flight
+    with slightly different directions as one longer flight
+
+    Args:
+        imp_table: 2d array, the first-step imputed trajectory
+        mob_mat: 2d array, output from infer_mobmat()
+        r: float, the radius of the earth
+        w: float, the weight for the distance
+        h: float, the weight for the time
+
+    Returns:
+        2d array, the final imputed trajectory,
+            with one more columm compared to imp_table
             which is an indicator showing if the piece
             of traj is imputed (0) or observed (1)
     """
-    sys.stdout.write("Tidying up the trajectories..." + "\n")
+    sys.stdout.write("Tidying up the trajectories...\n")
+
+    # Create a table for missing values
     mis_table = np.zeros((1, 8))
-    for i in range(np.shape(mob_mat)[0] - 1):
+
+    # Find missing values in mobility matrix and add them to the mis_table
+    for i in range(mob_mat.shape[0] - 1):
         if mob_mat[i + 1, 3] != mob_mat[i, 6]:
-            # also record if it's flight/pause
-            # before and after the missing interval
-            mov = np.array(
+            movement_data = np.array(
                 [
-                    mob_mat[i, 4],
-                    mob_mat[i, 5],
-                    mob_mat[i, 6],
-                    mob_mat[i + 1, 1],
-                    mob_mat[i + 1, 2],
-                    mob_mat[i + 1, 3],
+                    *mob_mat[i, 4:7],
+                    *mob_mat[i + 1, 1:4],
                     mob_mat[i, 0],
                     mob_mat[i + 1, 0],
                 ]
             )
-            mis_table = np.vstack((mis_table, mov))
+            mis_table = np.vstack((mis_table, movement_data))
+
+    # Delete the first row of zeros
     mis_table = np.delete(mis_table, 0, 0)
 
-    traj = []
+    tidy_trajectory = []
     for k in range(mis_table.shape[0]):
+        # Create an index to select values from the imputed_trajectory
         index = (imp_table[:, 3] >= mis_table[k, 2]) * (
             imp_table[:, 6] <= mis_table[k, 5]
         )
         temp = imp_table[index, :]
-        a = 0
-        b = 1
-        while a < temp.shape[0]:
-            if b < temp.shape[0]:
-                if temp[b, 0] == temp[a, 0]:
-                    b = b + 1
+
+        # Iterate through the rows of the temporary trajectory
+        start_idx = 0
+        end_idx = 1
+        while start_idx < temp.shape[0]:
+            if end_idx < temp.shape[0]:
+                if temp[end_idx, 0] == temp[start_idx, 0]:
+                    end_idx += 1
+
+            # Check if we have reached the end or found a different trajectory
             if (
-                b == temp.shape[0]
-                or temp[min(b, temp.shape[0] - 1), 0] != temp[a, 0]
+                end_idx == temp.shape[0]
+                or temp[
+                    min(end_idx, temp.shape[0] - 1), 0
+                ] != temp[start_idx, 0]
             ):
-                start = a
-                end = b - 1
-                a = b
-                b = b + 1
+                start = start_idx
+                end = end_idx - 1
+                start_idx = end_idx
+                end_idx += 1
+
+                # If the trajectory is a flight, add it to the tidy_trajectory
                 if temp[start, 0] == 2:
-                    traj.append(
+                    tidy_trajectory.append(
                         [
                             2,
-                            temp[start, 1],
-                            temp[start, 2],
-                            temp[start, 3],
-                            temp[end, 4],
-                            temp[end, 5],
-                            temp[end, 6],
+                            *temp[start, 1:4],
+                            *temp[end, 4:7],
                         ]
                     )
+                # If the trajectory is a pause, add it to the tidy_trajectory
                 elif end == start:
-                    traj.append(
+                    tidy_trajectory.append(
                         [
                             1,
-                            temp[start, 1],
-                            temp[start, 2],
-                            temp[start, 3],
-                            temp[end, 4],
-                            temp[end, 5],
-                            temp[end, 6],
+                            *temp[start, 1:4],
+                            *temp[end, 4:7],
                         ]
                     )
                 else:
+                    # More complex case
+                    # when multiple pauses/trajectories are combined
                     mat = np.vstack(
                         (
                             temp[start, 1:4],
@@ -1216,23 +1289,22 @@ def imp_to_traj(imp_table, mob_mat, r, w, h):
                                     )
                             knots.sort()
                     for j in range(len(knots) - 1):
-                        traj.append(
+                        tidy_trajectory.append(
                             [
                                 1,
-                                mat[knots[j], 0],
-                                mat[knots[j], 1],
-                                mat[knots[j], 2],
-                                mat[knots[j + 1], 0],
-                                mat[knots[j + 1], 1],
-                                mat[knots[j + 1], 2],
+                                *mat[knots[j], 0:3],
+                                *mat[knots[j + 1], 0:3],
                             ]
                         )
-    traj = np.array(traj)
+
+    traj = np.array(tidy_trajectory)
     if traj.shape[0] != 0:
         traj = np.hstack((traj, np.zeros((traj.shape[0], 1))))
-        full_traj = np.vstack((traj, mob_mat))
+        final_traj = np.vstack((traj, mob_mat))
     else:
-        full_traj = mob_mat
-    float_traj = full_traj[full_traj[:, 3].argsort()].astype(float)
+        final_traj = mob_mat
+
+    float_traj = final_traj[final_traj[:, 3].argsort()].astype(float)
     final_traj = float_traj[float_traj[:, 6] - float_traj[:, 3] > 0, :]
+
     return final_traj
