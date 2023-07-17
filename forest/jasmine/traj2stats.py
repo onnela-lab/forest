@@ -1094,8 +1094,7 @@ def gps_stats_main(
             except RuntimeError as e:
                 sys.stderr.write(f"Error: {e}\n")
                 continue
-            traj = imp_to_traj(imp_table, mobmat2,
-                            params_r, params_w, params_h)
+            traj = imp_to_traj(imp_table, mobmat2, params_w)
             # save all_memory_dict and all_bv_set
             with open(f"{output_folder}/all_memory_dict.pkl", "wb") as f:
                 pickle.dump(all_memory_dict, f)
