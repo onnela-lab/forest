@@ -3,7 +3,7 @@ trajectories. It is part of the Jasmine package.
 """
 import math
 import sys
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import scipy.stats as stat
@@ -161,7 +161,7 @@ def locate_home(mob_mat: np.ndarray, timezone: str) -> Tuple[float, float]:
 
 
 def calculate_k1(method: str, timestamp: float, x_coord: float, y_coord: float,
-                 bv_set: np.ndarray, parameters: list) -> np.ndarray:
+                 bv_set: np.ndarray, parameters: list) -> Optional[np.ndarray]:
     """Calculate the similarity measure between
      a given point and a set of base vectors,
      using one of three specified methods: 'TL', 'GL', or 'GLC'.
@@ -834,10 +834,10 @@ def backward_impute(
 
         try_t = end_t - delta_t
         try_x = calculate_position(
-            end_t, try_t, 0, start_x, start_t, end_x + delta_x
+            start_t, end_t, try_t, start_x, end_x+delta_x
         )
         try_y = calculate_position(
-            end_t, try_t, 0, start_y, start_t, end_y + delta_y
+            start_t, end_t, try_t, start_y, end_y+delta_y
         )
 
         mov1 = great_circle_dist(try_x, try_y, end_x, end_y)
@@ -853,12 +853,10 @@ def backward_impute(
         if end_t > start_t and check1 == 1 and check2 == 1:
             current_t = end_t - delta_t
             current_x = calculate_position(
-                end_t, current_t, 0,
-                start_x, start_t, end_x + delta_x
+                start_t, end_t, current_t, start_x, end_x+delta_x 
             )
             current_y = calculate_position(
-                end_t, current_t, 0,
-                start_y, end_y + delta_y
+                start_t, end_t, current_t, start_y, end_y+delta_y
             )
             imp_table = update_table(
                 imp_table,
