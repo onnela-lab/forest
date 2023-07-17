@@ -1,8 +1,9 @@
 """This module contains functions to convert the mobility matrix into
 trajectories. It is part of the Jasmine package.
 """
-import sys
 import math
+import sys
+from typing import Tuple
 
 import numpy as np
 import scipy.stats as stat
@@ -12,7 +13,10 @@ from .data2mobmat import great_circle_dist, great_circle_dist_vec, exist_knot
 
 
 # the details of the functions are in paper [Liu and Onnela (2020)]
-def update_existing_place(loc_x, loc_y, num_xy, t_xy, data, index):
+def update_existing_place(
+    loc_x: list, loc_y: list, num_xy: list,
+    t_xy: list, data: np.ndarray, index: int
+):
     """Update the existing significant place with the new data point.
 
     Args:
@@ -34,7 +38,9 @@ def update_existing_place(loc_x, loc_y, num_xy, t_xy, data, index):
     t_xy[index] += data[6] - data[3]
 
 
-def add_new_place(loc_x, loc_y, num_xy, t_xy, data):
+def add_new_place(
+    loc_x: list, loc_y: list, num_xy: list, t_xy: list, data: np.ndarray
+):
     """Add a new significant place from the new data point.
 
     Args:
@@ -51,7 +57,9 @@ def add_new_place(loc_x, loc_y, num_xy, t_xy, data):
     t_xy.append(data[6] - data[3])
 
 
-def num_sig_places(data, dist_threshold):
+def num_sig_places(
+    data: np.ndarray, dist_threshold: float
+) -> Tuple[list, list, list, list]:
     """This function is used to find significant places
 
     Args:
@@ -65,10 +73,10 @@ def num_sig_places(data, dist_threshold):
          (appear in the dataset) of significant places
         t_xy: list, a list of duration at those significant places
     """
-    loc_x = []
-    loc_y = []
-    num_xy = []
-    t_xy = []
+    loc_x: list = []
+    loc_y: list = []
+    num_xy: list = []
+    t_xy: list = []
 
     for i in range(data.shape[0]):
         if not loc_x:
@@ -96,7 +104,7 @@ def num_sig_places(data, dist_threshold):
     return loc_x, loc_y, num_xy, t_xy
 
 
-def locate_home(mob_mat, timezone):
+def locate_home(mob_mat: np.ndarray, timezone: str) -> Tuple[float, float]:
     """This function is used to locate the home of a user
 
     Args:
@@ -113,7 +121,7 @@ def locate_home(mob_mat, timezone):
     obs_traj = mob_mat[mob_mat[:, 0] == 2, :]
 
     # Initialize list to hold the hours of each observation
-    hours = []
+    hours: list = []
 
     # Convert timestamp to datetime and store the hour of each observation
     for i in range(obs_traj.shape[0]):
@@ -152,7 +160,8 @@ def locate_home(mob_mat, timezone):
     return home_x, home_y
 
 
-def calculate_k1(method, timestamp, x_coord, y_coord, bv_set, parameters):
+def calculate_k1(method: str, timestamp: float, x_coord: float, y_coord: float,
+                 bv_set: np.ndarray, parameters: list) -> np.ndarray:
     """Calculate the similarity measure between
      a given point and a set of base vectors,
      using one of three specified methods: 'TL', 'GL', or 'GLC'.
@@ -228,18 +237,10 @@ def calculate_k1(method, timestamp, x_coord, y_coord, bv_set, parameters):
 
 
 def indicate_flight(
-    method,
-    current_t,
-    current_x,
-    current_y,
-    dest_t,
-    dest_x,
-    dest_y,
-    bv_set,
-    switch,
-    num,
-    pars,
-):
+    method: str, current_t: float, current_x: float, current_y: float,
+    dest_t: float, dest_x: float, dest_y: float, bv_set: np.ndarray,
+    switch: int, num: int, pars: list
+) -> np.ndarray:
     """
     This function generates a binary variable to indicate
      whether a person is moving or not.
@@ -310,18 +311,10 @@ def indicate_flight(
 
 
 def adjust_direction(
-    linearity,
-    delta_x,
-    delta_y,
-    start_x,
-    start_y,
-    end_x,
-    end_y,
-    origin_x,
-    origin_y,
-    dest_x,
-    dest_y,
-):
+    linearity: float, delta_x: float, delta_y: float,
+    start_x: float, start_y: float, end_x: float, end_y: float,
+    origin_x: float, origin_y: float, dest_x: float, dest_y: float
+) -> Tuple[float, float]:
     """
     This function adjusts the trajectory direction based on
      a given linearity parameter.
@@ -396,7 +389,7 @@ def adjust_direction(
     return normalized_delta_x, normalized_delta_y
 
 
-def multiplier(t_diff):
+def multiplier(t_diff: float) -> float:
     """This function generates a multiplier
      based on the time difference between two points.
 
@@ -418,7 +411,11 @@ def multiplier(t_diff):
     return 50
 
 
-def checkbound(current_x, current_y, start_x, start_y, end_x, end_y):
+def checkbound(
+    current_x: float, current_y: float,
+    start_x: float, start_y: float,
+    end_x: float, end_y: float
+) -> int:
     """This function checks whether a point is out of the boundary
      determined by the starting and ending points.
 
@@ -454,7 +451,9 @@ def checkbound(current_x, current_y, start_x, start_y, end_x, end_y):
     return 0
 
 
-def create_tables(mob_mat, bv_set):
+def create_tables(
+    mob_mat: np.ndarray, bv_set: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """This function creates three tables:
         one for observed flights, one for observed pauses,
         and one for missing intervals.
@@ -511,7 +510,10 @@ def create_tables(mob_mat, bv_set):
     return flight_table, pause_table, mis_table
 
 
-def calculate_delta(flight_table, flight_index, backwards=False):
+def calculate_delta(
+    flight_table: np.ndarray, flight_index: int,
+    backwards: bool = False
+) -> Tuple[float, float, float]:
     """This function calculates the displacement
         and time difference between two points.
 
@@ -534,7 +536,10 @@ def calculate_delta(flight_table, flight_index, backwards=False):
     return delta_x, delta_y, delta_t
 
 
-def adjust_delta_if_needed(start_t, delta_t, delta_x, delta_y, end_t):
+def adjust_delta_if_needed(
+    start_t: float, delta_t: float,
+    delta_x: float, delta_y: float, end_t: float
+) -> Tuple[float, float, float]:
     """This function adjusts the displacement and time difference
         between two points if start_t + delta_t > end_t.
 
@@ -557,7 +562,10 @@ def adjust_delta_if_needed(start_t, delta_t, delta_x, delta_y, end_t):
     return delta_x, delta_y, delta_t
 
 
-def calculate_position(start_t, end_t, try_t, start_delta, end_delta):
+def calculate_position(
+    start_t: float, end_t: float, try_t: float,
+    start_delta: float, end_delta: float
+) -> float:
     """This function calculates the position of a point
         at a given time.
 
@@ -580,16 +588,21 @@ def calculate_position(start_t, end_t, try_t, start_delta, end_delta):
     return res
 
 
-def update_table(imp_table, array):
-    return np.vstack((imp_table, np.array(array)))
+def update_table(
+    imp_table: np.ndarray, list_elem: list
+) -> np.ndarray:
+    return np.vstack((imp_table, np.array(list_elem)))
 
 
 def forward_impute(
-    start_t, start_x, start_y, end_t, end_x, end_y,
-    bv_set, switch, num, pars, flight_table, linearity,
-    mis_row, pause_table, imp_table,
-    start_s, method, counter
-):
+    start_t: float, start_x: float, start_y: float,
+    end_t: float, end_x: float, end_y: float,
+    bv_set: np.ndarray, switch: int, num: int, pars: list,
+    flight_table: np.ndarray, linearity: float,
+    mis_row: np.ndarray, pause_table: np.ndarray,
+    imp_table: np.ndarray, start_s: int, method: str,
+    counter: int
+) -> Tuple[np.ndarray, Tuple[int, float, float, float], int]:
     """
     This function imputes a missing interval
         from the start point to the end point.
@@ -746,25 +759,14 @@ def forward_impute(
 
 
 def backward_impute(
-    end_t,
-    end_x,
-    end_y,
-    start_t,
-    start_x,
-    start_y,
-    bv_set,
-    switch,
-    num,
-    pars,
-    flight_table,
-    linearity,
-    mis_row,
-    pause_table,
-    imp_table,
-    end_s,
-    method,
-    counter,
-):
+    end_t: float, end_x: float, end_y: float,
+    start_t: float, start_x: float, start_y: float,
+    bv_set: np.ndarray, switch: int, num: int, pars: list,
+    flight_table: np.ndarray, linearity: float,
+    mis_row: np.ndarray, pause_table: np.ndarray,
+    imp_table: np.ndarray, end_s: int, method: str,
+    counter: int
+) -> Tuple[np.ndarray, Tuple[int, float, float, float], int]:
     """
     This function imputes a missing interval
         from the end point to the start point.
@@ -916,7 +918,11 @@ def backward_impute(
     return imp_table, (end_s, end_t, end_x, end_y), counter
 
 
-def impute_gps(mob_mat, bv_set, method, switch, num, linearity, tz_str, pars):
+def impute_gps(
+    mob_mat: np.ndarray, bv_set: np.ndarray, method: str,
+    switch: int, num: int, linearity: float, tz_str: str,
+    pars: list
+) -> np.ndarray:
     """
     This is the algorithm for the bi-directional imputation in the paper
 
@@ -1160,7 +1166,9 @@ def impute_gps(mob_mat, bv_set, method, switch, num, linearity, tz_str, pars):
     return imp_table
 
 
-def imp_to_traj(imp_table, mob_mat, r, w, h):
+def imp_to_traj(
+    imp_table: np.ndarray, mob_mat: np.ndarray, w: float
+) -> np.ndarray:
     """This function tidies up the first-step imputed trajectory,
     such as combining pauses, flights shared by both observed
     and missing intervals, also combine consecutive flight
@@ -1169,9 +1177,7 @@ def imp_to_traj(imp_table, mob_mat, r, w, h):
     Args:
         imp_table: 2d array, the first-step imputed trajectory
         mob_mat: 2d array, output from infer_mobmat()
-        r: float, the radius of the earth
         w: float, the weight for the distance
-        h: float, the weight for the time
 
     Returns:
         2d array, the final imputed trajectory,
