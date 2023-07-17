@@ -8,7 +8,7 @@ import numpy as np
 import scipy.stats as stat
 
 from ..poplar.legacy.common_funcs import stamp2datetime
-from .data2mobmat import great_circle_dist, exist_knot
+from .data2mobmat import great_circle_dist, great_circle_dist_vec, exist_knot
 
 
 # the details of the functions are in paper [Liu and Onnela (2020)]
@@ -75,7 +75,7 @@ def num_sig_places(data, dist_threshold):
             add_new_place(loc_x, loc_y, num_xy, t_xy, data[i])
             continue
 
-        distances = great_circle_dist(
+        distances = great_circle_dist_vec(
             np.full(len(loc_x), data[i, 1]),
             np.full(len(loc_x), data[i, 2]),
             np.array(loc_x),
@@ -209,7 +209,7 @@ def calculate_k1(method, timestamp, x_coord, y_coord, bv_set, parameters):
         )
     # 'GL' method
     if method == "GL":
-        distance = great_circle_dist(x_coord, y_coord, mean_x, mean_y)
+        distance = great_circle_dist_vec(x_coord, y_coord, mean_x, mean_y)
         return np.exp(-distance / spatial_scale)
     # 'GLC' method
     if method == "GLC":
@@ -221,7 +221,7 @@ def calculate_k1(method, timestamp, x_coord, y_coord, bv_set, parameters):
             -((np.sin(abs(timestamp - mean_t) / 604800 * math.pi)) ** 2)
             / amplitude_2
         )
-        distance = great_circle_dist(x_coord, y_coord, mean_x, mean_y)
+        distance = great_circle_dist_vec(x_coord, y_coord, mean_x, mean_y)
         k3 = np.exp(-distance / spatial_scale)
         return weight_1 * k1 + weight_2 * k2 + weight_3 * k3
     return None
@@ -511,6 +511,346 @@ def create_tables(mob_mat, bv_set):
     return flight_table, pause_table, mis_table
 
 
+def calculate_delta(flight_table, flight_index, backwards=False):
+    """This function calculates the displacement
+        and time difference between two points.
+
+    Args:
+        flight_table: 2d np.ndarray, output from create_tables()
+        flight_index: int, index of the flight in flight_table
+        backwards: bool, whether the flight is backwards
+
+    Returns:
+        delta_x, delta_y, delta_t: float,
+            displacement and time difference
+            between two points
+    """
+    delta_x = flight_table[flight_index, 4] - flight_table[flight_index, 1]
+    delta_y = flight_table[flight_index, 5] - flight_table[flight_index, 2]
+    delta_t = flight_table[flight_index, 6] - flight_table[flight_index, 3]
+    if backwards:
+        delta_x = -delta_x
+        delta_y = -delta_y
+    return delta_x, delta_y, delta_t
+
+
+def adjust_delta_if_needed(start_t, delta_t, delta_x, delta_y, end_t):
+    """This function adjusts the displacement and time difference
+        between two points if start_t + delta_t > end_t.
+
+    Args:
+        start_t: float, start time
+        delta_t: float, time difference
+        delta_x, delta_y: float, displacement
+        end_t: float, end time
+
+    Returns:
+        delta_x, delta_y, delta_t: float,
+            adjusted displacement and time difference
+            between two points
+    """
+    if start_t + delta_t > end_t:
+        temp = delta_t
+        delta_t = end_t - start_t
+        delta_x = delta_x * delta_t / temp
+        delta_y = delta_y * delta_t / temp
+    return delta_x, delta_y, delta_t
+
+def calculate_position(start_t, end_t, try_t, start_delta, end_delta):
+    """This function calculates the position of a point
+        at a given time.
+
+    Args:
+        start_t: float, start time
+        end_t: float, end time
+        try_t: float, time to be calculated
+        start_delta, end_delta: float, displacement
+
+    Returns:
+        float, position at a given time
+    """
+
+    time_diff = end_t - start_t + 1e-5
+    time_part1 = try_t - start_t
+    time_part2 = end_t - try_t
+    res = time_part2 / time_diff * start_delta + \
+              time_part1 / time_diff * end_delta
+
+    return res
+
+def update_table(imp_table, array):
+    return np.vstack((imp_table, np.array(array)))
+
+
+def forward_impute(start_t, start_x, start_y, end_t, end_x, end_y, 
+                       bv_set, switch, num, pars, flight_table, linearity, 
+                       mis_row, pause_table, imp_table, 
+                       start_s, method, counter):
+    """
+    This function imputes a missing interval
+        from the start point to the end point.
+
+    Args:
+        start_t: float, start time
+        start_x, start_y: float, start position
+        end_t: float, end time
+        end_x, end_y: float, end position
+        bv_set: np.ndarray, output from BV_select()
+        switch: int, the number of binary variables to be generated
+        num: int, checks the top k similarities
+        pars: list, the parameters that are required
+         for the calculate_k1 function
+        flight_table: np.ndarray, output from create_tables()
+        linearity: float, controls the smoothness of a trajectory
+        mis_row: np.ndarray, a row of missing interval table
+        pause_table: np.ndarray, output from create_tables()
+        imp_table: np.ndarray, output from create_tables()
+        start_s: int, status of the start point
+        method: str, the method to be used for calculation,
+         should be either 'TL', 'GL', or 'GLC'
+        counter: int, number of imputed trajectories
+
+    Returns:
+        imp_table: updated imp_table
+        start_s: int, status of the start point
+        start_t: float, start time
+        start_x, start_y: float, start position
+        counter: updated counter
+    """
+
+    I0 = indicate_flight(
+        method, start_t, start_x, start_y, end_t, end_x, 
+        end_y, bv_set, switch, num, pars
+    )
+
+    condition = (sum(I0 == 1) == switch and start_s == 2) or \
+        (sum(I0 == 0) < switch and start_s == 1)
+
+    if condition:
+        weight = calculate_k1(
+            method, start_t, start_x, start_y,
+            flight_table, pars
+        )
+
+        normalize_w = (weight + 1e-5) / sum(weight + 1e-5)
+        flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
+
+        delta_x, delta_y, delta_t = calculate_delta(flight_table, flight_index)
+
+        delta_x, delta_y, delta_t = adjust_delta_if_needed(
+            start_t, delta_t, 
+            delta_x, delta_y, end_t
+        )
+
+        delta_x, delta_y = adjust_direction(
+            linearity, delta_x, delta_y,
+            start_x, start_y, end_x, end_y, 
+            *mis_row[[0, 1, 3, 4]],
+        )
+
+        try_t = start_t + delta_t
+        try_x = calculate_position(start_t, end_t, try_t, start_x + delta_x, end_x)
+        try_y = calculate_position(start_t, end_t, try_t, start_y + start_t, end_y)
+
+        mov1 = great_circle_dist(try_x, try_y, start_x, start_y)
+        mov2 = great_circle_dist(end_x, end_y, start_x, start_y)
+
+        check1 = checkbound(
+            try_x, try_y,
+            *mis_row[[0, 1, 3, 4]],
+        )
+        check2 = int(mov1 < mov2)
+
+        # conditions and actions
+        if end_t > start_t and check1 == 1 and check2 == 1:
+            current_t = start_t + delta_t
+            current_x = calculate_position(start_t, end_t, current_t,
+                                            start_x + delta_x, end_x)
+            current_y = calculate_position(start_t, end_t, current_t,
+                                            start_y + delta_y, end_y)
+            imp_table = update_table(imp_table, [1, start_x, start_y, 
+                                                    start_t, current_x, 
+                                                    current_y, current_t])
+            
+            start_x, start_y, start_t, start_s = current_x, current_y, current_t, 1
+            counter += 1
+
+        if end_t > start_t and check2 == 0:
+            speed = mov1 / delta_t
+            t_need = mov2 / speed
+            current_t = start_t + t_need
+            imp_table = update_table(imp_table, [1, start_x, start_y, 
+                                                    start_t, end_x, 
+                                                    end_y, current_t])
+            start_x, start_y, start_t, start_s = end_x, end_y, current_t, 1
+            counter += 1
+        else:
+            weight = calculate_k1(method, start_t, start_x, start_y, 
+                                    pause_table, pars)
+            normalize_w = (weight + 1e-5) / sum(weight + 1e-5)
+            pause_index = np.random.choice(pause_table.shape[0], p=normalize_w)
+            delta_t = (pause_table[pause_index, 6] - pause_table[pause_index, 3]) * \
+                        multiplier(end_t - start_t)
+
+            if start_t + delta_t < end_t:
+                current_t = start_t + delta_t
+                imp_table = update_table(imp_table, [2, start_x, start_y, 
+                                                        start_t, start_x, 
+                                                        start_y, current_t])
+                start_t, start_s = current_t, 2
+                counter += 1
+            else:
+                imp_table = update_table(imp_table, [1, start_x, start_y, 
+                                                        start_t, end_x, 
+                                                        end_y, end_t])
+                start_t = end_t
+    return imp_table, start_s, start_t, start_x, start_y, counter
+
+
+def backward_impute(
+    end_t,
+    end_x,
+    end_y,
+    start_t,
+    start_x,
+    start_y,
+    bv_set,
+    switch,
+    num,
+    pars,
+    flight_table,
+    linearity,
+    mis_row,
+    pause_table,
+    imp_table,
+    end_s,
+    method,
+    counter,
+):
+    """
+    This function imputes a missing interval
+        from the end point to the start point.
+
+    Args:
+        end_t: float, end time
+        end_x, end_y: float, end position
+        start_t: float, start time
+        start_x, start_y: float, start position
+        bv_set: np.ndarray, output from BV_select()
+        switch: int, the number of binary variables to be generated
+        num: int, checks the top k similarities
+        pars: list, the parameters that are required
+         for the calculate_k1 function
+        flight_table: np.ndarray, output from create_tables()
+        linearity: float, controls the smoothness of a trajectory
+        mis_row: np.ndarray, a row of missing interval table
+        pause_table: np.ndarray, output from create_tables()
+        imp_table: np.ndarray, output from create_tables()
+        end_s: int, status of the end point
+        method: str, the method to be used for calculation,
+         should be either 'TL', 'GL', or 'GLC'
+        counter: int, number of imputed trajectories
+
+    Returns:
+        imp_table: updated imp_table
+        end_s: int, status of the end point
+        end_t: float, end time
+        end_x, end_y: float, end position
+        counter: updated counter
+    """
+
+    I1 = indicate_flight(
+        method, end_t, end_x, end_y, start_t, start_x, 
+        start_y, bv_set, switch, num, pars
+    )
+
+    condition = (sum(I1 == 1) == switch and end_s == 2) or \
+        (sum(I1 == 0) < switch and end_s == 1)
+
+    if condition:
+        weight = calculate_k1(
+            method, end_t, end_x, end_y,
+            flight_table, pars
+        )
+
+        normalize_w = (weight + 1e-5) / sum(weight + 1e-5)
+        flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
+
+        delta_x, delta_y, delta_t = calculate_delta(flight_table, flight_index, backwards=True)
+
+        delta_x, delta_y, delta_t = adjust_delta_if_needed(
+            start_t, delta_t, 
+            delta_x, delta_y, end_t
+        )
+
+        delta_x, delta_y = adjust_direction(
+            linearity, delta_x, delta_y,
+            end_x, end_y, start_x, start_y, 
+            *mis_row[[3, 4, 0, 1]],
+        )
+
+        try_t = end_t - delta_t
+        try_x = calculate_position(end_t, try_t, 0, start_x, start_t, end_x + delta_x)
+        try_y = calculate_position(end_t, try_t, 0, start_y, start_t, end_y + delta_y)
+
+        mov1 = great_circle_dist(try_x, try_y, end_x, end_y)
+        mov2 = great_circle_dist(end_x, end_y, start_x, start_y)
+
+        check1 = checkbound(
+            try_x, try_y,
+            *mis_row[[0, 1, 3, 4]],
+        )
+        check2 = int(mov1 < mov2)
+
+        # conditions and actions
+        if end_t > start_t and check1 == 1 and check2 == 1:
+            current_t = end_t - delta_t
+            current_x = calculate_position(end_t, current_t, 0, 
+                                            start_x, start_t, end_x + delta_x)
+            current_y = calculate_position(end_t, current_t, 0, 
+                                            start_y, end_y + delta_y)
+            imp_table = update_table(imp_table, [1, current_x, current_y, 
+                                                    current_t, end_x, 
+                                                    end_y, end_t])
+            
+            end_x, end_y, end_t, end_s = current_x, current_y, current_t, 1
+            counter += 1
+
+        if end_t > start_t and check2 == 0:
+            speed = mov1 / delta_t
+            t_need = mov2 / speed
+            current_t = end_t - t_need
+            imp_table = update_table(imp_table, [1, start_x, start_y, 
+                                                    current_t, end_x, 
+                                                    end_y, end_t])
+            end_x, end_y, end_t, end_s = start_x, start_y, current_t, 1
+            counter += 1
+        else:
+            weight = calculate_k1(
+                method, end_t, end_x, end_y,
+                pause_table, pars
+            )
+            normalize_w = (weight + 1e-5) / sum(weight + 1e-5)
+            pause_index = np.random.choice(pause_table.shape[0], p=normalize_w)
+            delta_t = (pause_table[pause_index, 6] - pause_table[pause_index, 3]) * \
+                        multiplier(end_t - start_t)
+
+            if start_t + delta_t < end_t:
+                current_t = end_t - delta_t
+                imp_table = update_table(imp_table, [2, end_x, end_y, 
+                                                        current_t, end_x, 
+                                                        end_y, end_t])
+                end_t, end_s = current_t, 2
+                counter += 1
+            else:
+                imp_table = update_table(imp_table, [1, start_x, start_y, 
+                                                        start_t, end_x, 
+                                                        end_y, end_t])
+                end_t = start_t
+    
+    return imp_table, end_s, end_t, end_x, end_y, counter
+
+
 def impute_gps(mob_mat, bv_set, method, switch, num, linearity, tz_str, pars):
     """
     This is the algorithm for the bi-directional imputation in the paper
@@ -529,123 +869,138 @@ def impute_gps(mob_mat, bv_set, method, switch, num, linearity, tz_str, pars):
             is a complete imputed traj (first-step result)
             with headers [imp_s,imp_x0,imp_y0,imp_t0,imp_x1,imp_y1,imp_t1]
     """
-    home_x, home_y = locate_home(mob_mat, tz_str)
+    # identify home location
+    home_coords = locate_home(mob_mat, tz_str)
     sys.stdout.write("Imputing missing trajectories ...\n")
+
+    # create three tables
+    # for observed flights, observed pauses, and missing intervals
     flight_table, pause_table, mis_table = create_tables(mob_mat, bv_set)
-    imp_x0 = np.array([])
-    imp_x1 = np.array([])
-    imp_y0 = np.array([])
-    imp_y1 = np.array([])
-    imp_t0 = np.array([])
-    imp_t1 = np.array([])
-    imp_s = np.array([])
+
+    # initialize the imputed trajectory table
+    imp_table = np.zeros((1, 7))
+
+    # iterate over missing intervals
     for i in range(mis_table.shape[0]):
+        # Extract the start and end times of the missing interval
         mis_t0 = mis_table[i, 2]
         mis_t1 = mis_table[i, 5]
+        
+        # get the number of flights observed in the nearby 24 hours
         nearby_flight = sum(
             (flight_table[:, 6] > mis_t0 - 12 * 60 * 60)
             * (flight_table[:, 3] < mis_t1 + 12 * 60 * 60)
         )
-        d_diff = great_circle_dist(
-            mis_table[i, 0], mis_table[i, 1], mis_table[i, 3], mis_table[i, 4]
+        
+        # get the distance difference between start and end
+        # coordinates of the missing interval
+        distance_difference = great_circle_dist(
+            *mis_table[i, [0, 1]], *mis_table[i, [3, 4]]
         )
-        t_diff = mis_table[i, 5] - mis_table[i, 2]
-        distance1 = great_circle_dist(
-            mis_table[i, 0], mis_table[i, 1], home_x, home_y
+
+        # get the time difference between start and end
+        # times of the missing interval
+        time_difference = mis_t1 - mis_t0
+
+        # get the distance between the start location
+        # of the missing interval and the home location
+        start_home_distance = great_circle_dist(
+           *mis_table[i, [0, 1]], *home_coords
         )
-        distance2 = great_circle_dist(
-            mis_table[i, 3], mis_table[i, 4], home_x, home_y
+        # get the distance between the end location
+        # of the missing interval and the home location
+        end_home_distance = great_circle_dist(
+            *mis_table[i, [3, 4]], *home_coords
         )
+
         # if a person remains at the same place at the begining
         # and end of missing, just assume he satys there all the time
         if (
             mis_table[i, 0] == mis_table[i, 3]
             and mis_table[i, 1] == mis_table[i, 4]
         ):
-            imp_s = np.append(imp_s, 2)
-            imp_x0 = np.append(imp_x0, mis_table[i, 0])
-            imp_x1 = np.append(imp_x1, mis_table[i, 3])
-            imp_y0 = np.append(imp_y0, mis_table[i, 1])
-            imp_y1 = np.append(imp_y1, mis_table[i, 4])
-            imp_t0 = np.append(imp_t0, mis_table[i, 2])
-            imp_t1 = np.append(imp_t1, mis_table[i, 5])
-        elif d_diff > 300000:
-            v_diff = d_diff / t_diff
-            if v_diff > 210:
-                imp_s = np.append(imp_s, 1)
-                imp_x0 = np.append(imp_x0, mis_table[i, 0])
-                imp_x1 = np.append(imp_x1, mis_table[i, 3])
-                imp_y0 = np.append(imp_y0, mis_table[i, 1])
-                imp_y1 = np.append(imp_y1, mis_table[i, 4])
-                imp_t0 = np.append(imp_t0, mis_table[i, 2])
-                imp_t1 = np.append(imp_t1, mis_table[i, 5])
+            imp_table = update_table(
+                imp_table,
+                [2, *mis_table[i, 0:6]],
+            )
+        # if the distance difference is more than 300 km,
+        # we assume the person takes a flight
+        elif distance_difference > 300000:
+            speed = distance_difference / time_difference
+            # if the speed is more than 210 m/s, we assume it is a flight
+            if speed > 210:
+                imp_table = update_table(
+                    imp_table,
+                    [1, *mis_table[i, 0:6]],
+                )
             else:
-                v_random = np.random.uniform(low=244, high=258)
-                t_need = d_diff / v_random
+                # if the speed is less than 210 m/s,
+                # generate a random speed between 244 and 258 m/s
+                random_speed = np.random.uniform(low=244, high=258)
+                # calculate the time needed to travel the distance
+                t_need = distance_difference / random_speed
+                # generate a random start time
+                # from the start time of the missing interval
+                # to the end time of the missing interval minus
+                # the time needed to travel the distance
                 t_s = np.random.uniform(
-                    low=mis_table[i, 2], high=mis_table[i, 5] - t_need
+                    low=mis_t0, high=mis_t1 - t_need
                 )
                 t_e = t_s + t_need
-                imp_s = np.append(imp_s, [2, 1, 2])
-                imp_x0 = np.append(
-                    imp_x0,
-                    [mis_table[i, 0], mis_table[i, 0], mis_table[i, 3]]
+                imp_table = update_table(
+                    imp_table,
+                    [
+                        [2, 1, 2],
+                        [mis_table[i, 0], mis_table[i, 0], mis_table[i, 3]],
+                        [mis_table[i, 1], mis_table[i, 1], mis_table[i, 4]],
+                        [mis_table[i, 2], t_s, t_e],
+                        [mis_table[i, 0], mis_table[i, 3], mis_table[i, 3]],
+                        [mis_table[i, 1], mis_table[i, 4], mis_table[i, 4]],
+                        [t_s, t_e, mis_table[i, 5]],
+                    ]
                 )
-                imp_x1 = np.append(
-                    imp_x1,
-                    [mis_table[i, 0], mis_table[i, 3], mis_table[i, 3]]
-                )
-                imp_y0 = np.append(
-                    imp_y0,
-                    [mis_table[i, 1], mis_table[i, 1], mis_table[i, 4]]
-                )
-                imp_y1 = np.append(
-                    imp_y1,
-                    [mis_table[i, 1], mis_table[i, 4], mis_table[i, 4]]
-                )
-                imp_t0 = np.append(imp_t0, [mis_table[i, 2], t_s, t_e])
-                imp_t1 = np.append(imp_t1, [t_s, t_e, mis_table[i, 5]])
         # add one more check about how many flights observed
         # in the nearby 24 hours
         elif (
             nearby_flight <= 5
-            and t_diff > 6 * 60 * 60
-            and min(distance1, distance2) > 50
+            and time_difference > 6 * 60 * 60
+            and min(start_home_distance, end_home_distance) > 50
         ):
-            if d_diff < 3000:
-                v_random = np.random.uniform(low=1, high=1.8)
-                t_need = min(d_diff / v_random, t_diff)
+            # if the distance difference is less than 3 km,
+            # generate a random speed between 1 and 1.8 m/s
+            if distance_difference < 3000:
+                random_speed = np.random.uniform(low=1, high=1.8)
+            # if the distance difference is more than 3 km,
+            # generate a random speed between 13 and 32 m/s
             else:
-                v_random = np.random.uniform(low=13, high=32)
-                t_need = min(d_diff / v_random, t_diff)
-            if t_need == t_diff:
-                imp_s = np.append(imp_s, 1)
-                imp_x0 = np.append(imp_x0, mis_table[i, 0])
-                imp_x1 = np.append(imp_x1, mis_table[i, 3])
-                imp_y0 = np.append(imp_y0, mis_table[i, 1])
-                imp_y1 = np.append(imp_y1, mis_table[i, 4])
-                imp_t0 = np.append(imp_t0, mis_table[i, 2])
-                imp_t1 = np.append(imp_t1, mis_table[i, 5])
+                random_speed = np.random.uniform(low=13, high=32)
+
+            t_need = min(distance_difference / random_speed, time_difference)
+            # if the time needed to travel the distance
+            # is less than the time difference,
+            if t_need == time_difference:
+                imp_table = update_table(
+                    imp_table,
+                    [1, *mis_table[i, 0:6]],
+                )
             else:
                 t_s = np.random.uniform(
-                    low=mis_table[i, 2], high=mis_table[i, 5] - t_need
+                    low=mis_t0, high=mis_t1 - t_need
                 )
                 t_e = t_s + t_need
-                imp_s = np.append(imp_s, [2, 1, 2])
-                imp_x0 = np.append(
-                    imp_x0, [mis_table[i, 0], mis_table[i, 0], mis_table[i, 3]]
+                imp_table = update_table(
+                    imp_table,
+                    [
+                        [2, 1, 2],
+                        [mis_table[i, 0], mis_table[i, 0], mis_table[i, 3]],
+                        [mis_table[i, 1], mis_table[i, 1], mis_table[i, 4]],
+                        [mis_table[i, 2], t_s, t_e],
+                        [mis_table[i, 0], mis_table[i, 3], mis_table[i, 3]],
+                        [mis_table[i, 1], mis_table[i, 4], mis_table[i, 4]],
+                        [t_s, t_e, mis_table[i, 5]],
+                    ]
                 )
-                imp_x1 = np.append(
-                    imp_x1, [mis_table[i, 0], mis_table[i, 3], mis_table[i, 3]]
-                )
-                imp_y0 = np.append(
-                    imp_y0, [mis_table[i, 1], mis_table[i, 1], mis_table[i, 4]]
-                )
-                imp_y1 = np.append(
-                    imp_y1, [mis_table[i, 1], mis_table[i, 4], mis_table[i, 4]]
-                )
-                imp_t0 = np.append(imp_t0, [mis_table[i, 2], t_s, t_e])
-                imp_t1 = np.append(imp_t1, [t_s, t_e, mis_table[i, 5]])
+
         else:
             # solve the problem that a person has a
             # trajectory like flight/pause/flight/pause/flight...
@@ -655,405 +1010,81 @@ def impute_gps(mob_mat, bv_set, method, switch, num, linearity, tz_str, pars):
             # pause/flight status by drawing multiple random
             # variables form bin(p0) and require them to be all 0/1
             # "switch" is the number of random variables
-            start_t = mis_table[i, 2]
-            end_t = mis_table[i, 5]
-            start_x = mis_table[i, 0]
-            end_x = mis_table[i, 3]
-            start_y = mis_table[i, 1]
-            end_y = mis_table[i, 4]
-            start_s = mis_table[i, 6]
-            end_s = mis_table[i, 7]
-            if t_diff > 4 * 60 * 60 and min(distance1, distance2) <= 50:
-                t_need = min(d_diff / 0.6, t_diff)
-                if distance1 <= 50:
-                    imp_s = np.append(imp_s, 2)
-                    imp_t0 = np.append(imp_t0, start_t)
-                    imp_t1 = np.append(imp_t1, end_t - t_need)
-                    imp_x0 = np.append(imp_x0, start_x)
-                    imp_x1 = np.append(imp_x1, start_x)
-                    imp_y0 = np.append(imp_y0, start_y)
-                    imp_y1 = np.append(imp_y1, start_y)
+            start_x, start_y, start_t, end_x, end_y, end_t, start_s, end_s = \
+                mis_table[i, :]
+            if time_difference > 4 * 60 * 60 and min(start_home_distance, end_home_distance) <= 50:
+                t_need = min(distance_difference / 0.6, time_difference)
+                # if distance from home to start/end is less than 50 km
+                # and the time difference is more than 4 hours
+                # set the start/end time to be the same
+                # and the start/end location to be the same
+                if start_home_distance <= 50:
+                    imp_table = update_table(
+                        imp_table,
+                        [
+                            2, start_x, start_y, start_t,
+                            start_x, start_y, end_t - t_need,
+                        ]
+                    )
                     start_t = end_t - t_need
                 else:
-                    imp_s = np.append(imp_s, 2)
-                    imp_t0 = np.append(imp_t0, start_t + t_need)
-                    imp_t1 = np.append(imp_t1, end_t)
-                    imp_x0 = np.append(imp_x0, end_x)
-                    imp_x1 = np.append(imp_x1, end_x)
-                    imp_y0 = np.append(imp_y0, end_y)
-                    imp_y1 = np.append(imp_y1, end_y)
+                    imp_table = update_table(
+                        imp_table,
+                        [
+                            2, end_x, end_y, start_t + t_need,
+                            end_x, end_y, end_t,
+                        ]
+                    )
                     end_t = start_t + t_need
+
             counter = 0
+
             while start_t < end_t:
+                # if start and end location are different
+                # and the time difference is less than 30 seconds
                 if (
                     abs(start_x - end_x) + abs(start_y - end_y) > 0
                     and end_t - start_t < 30
                 ):  # avoid extreme high speed
-                    imp_s = np.append(imp_s, 1)
-                    imp_t0 = np.append(imp_t0, start_t)
-                    imp_t1 = np.append(imp_t1, end_t)
-                    imp_x0 = np.append(imp_x0, start_x)
-                    imp_x1 = np.append(imp_x1, end_x)
-                    imp_y0 = np.append(imp_y0, start_y)
-                    imp_y1 = np.append(imp_y1, end_y)
+                    imp_table = update_table(
+                        imp_table,
+                        [
+                            1, start_x, start_y, start_t,
+                            end_x, end_y, end_t,
+                        ]
+                    )
                     start_t = end_t
-                    # should check the missing legnth first, if it's less than
-                    # 12 hours, do the following, otherewise,
-                    # insert home location at night most visited
-                    # places in the interval as known
+                # if start and end location are the same
                 elif start_x == end_x and start_y == end_y:
-                    imp_s = np.append(imp_s, 2)
-                    imp_t0 = np.append(imp_t0, start_t)
-                    imp_t1 = np.append(imp_t1, end_t)
-                    imp_x0 = np.append(imp_x0, start_x)
-                    imp_x1 = np.append(imp_x1, end_x)
-                    imp_y0 = np.append(imp_y0, start_y)
-                    imp_y1 = np.append(imp_y1, end_y)
+                    imp_table = update_table(
+                        imp_table,
+                        [
+                            2, start_x, start_y, start_t,
+                            end_x, end_y, end_t,
+                        ]
+                    )
                     start_t = end_t
+                # if start and end location are different
+                # and the time difference is more than 30 seconds
                 else:
-                    if counter % 2 == 0:
-                        direction = "forward"
-                    else:
-                        direction = "backward"
+                    direction = "forward" if counter % 2 == 0 else "backward"
 
                     if direction == "forward":
-                        direction = ""
-                        I0 = indicate_flight(
-                            method,
-                            start_t,
-                            start_x,
-                            start_y,
-                            end_t,
-                            end_x,
-                            end_y,
-                            bv_set,
-                            switch,
-                            num,
-                            pars,
+                        imp_table, start_s, start_t, start_x, start_y, counter = \
+                         forward_impute(
+                            start_t, start_x, start_y, end_t, end_x, end_y, 
+                            bv_set, switch, num, pars, flight_table, linearity, 
+                            mis_table[i, :], pause_table, imp_table, 
+                            start_s, method, counter
                         )
-                        if (sum(I0 == 1) == switch and start_s == 2) or (
-                            sum(I0 == 0) < switch and start_s == 1
-                        ):
-                            weight = calculate_k1(
-                                method, start_t, start_x, start_y,
-                                flight_table, pars
-                            )
-                            normalize_w = (weight + 1e-5) / sum(weight + 1e-5)
-                            flight_index = np.random.choice(
-                                flight_table.shape[0], p=normalize_w
-                            )
-                            delta_x = (
-                                flight_table[flight_index, 4]
-                                - flight_table[flight_index, 1]
-                            )
-                            delta_y = (
-                                flight_table[flight_index, 5]
-                                - flight_table[flight_index, 2]
-                            )
-                            delta_t = (
-                                flight_table[flight_index, 6]
-                                - flight_table[flight_index, 3]
-                            )
-                            if start_t + delta_t > end_t:
-                                temp = delta_t
-                                delta_t = end_t - start_t
-                                delta_x = delta_x * delta_t / temp
-                                delta_y = delta_y * delta_t / temp
-                            delta_x, delta_y = adjust_direction(
-                                linearity,
-                                delta_x,
-                                delta_y,
-                                start_x,
-                                start_y,
-                                end_x,
-                                end_y,
-                                mis_table[i, 0],
-                                mis_table[i, 1],
-                                mis_table[i, 3],
-                                mis_table[i, 4],
-                            )
-                            try_t = start_t + delta_t
-                            try_x = (end_t - try_t) / (
-                                end_t - start_t + 1e-5
-                            ) * (
-                                start_x + delta_x
-                            ) + (try_t - start_t + 1e-5) / (
-                                end_t - start_t
-                            ) * end_x
-                            try_y = (end_t - try_t) / (
-                                end_t - start_t + 1e-5
-                            ) * (
-                                start_y + delta_y
-                            ) + (try_t - start_t + 1e-5) / (
-                                end_t - start_t
-                            ) * end_y
-                            mov1 = great_circle_dist(
-                                try_x, try_y, start_x, start_y
-                            )
-                            mov2 = great_circle_dist(
-                                end_x, end_y, start_x, start_y
-                            )
-                            check1 = checkbound(
-                                try_x,
-                                try_y,
-                                mis_table[i, 0],
-                                mis_table[i, 1],
-                                mis_table[i, 3],
-                                mis_table[i, 4],
-                            )
-                            check2 = (mov1 < mov2) * 1
-                            if end_t > start_t and check1 == 1 and check2 == 1:
-                                imp_s = np.append(imp_s, 1)
-                                imp_t0 = np.append(imp_t0, start_t)
-                                current_t = start_t + delta_t
-                                imp_t1 = np.append(imp_t1, current_t)
-                                imp_x0 = np.append(imp_x0, start_x)
-                                current_x = (end_t - current_t) / (
-                                    end_t - start_t
-                                ) * (
-                                    start_x + delta_x
-                                ) + (current_t - start_t) / (
-                                    end_t - start_t
-                                ) * end_x
-                                imp_x1 = np.append(imp_x1, current_x)
-                                imp_y0 = np.append(imp_y0, start_y)
-                                current_y = (end_t - current_t) / (
-                                    end_t - start_t
-                                ) * (
-                                    start_y + delta_y
-                                ) + (current_t - start_t) / (
-                                    end_t - start_t
-                                ) * end_y
-                                imp_y1 = np.append(imp_y1, current_y)
-                                start_x = current_x
-                                start_y = current_y
-                                start_t = current_t
-                                start_s = 1
-                                counter = counter + 1
-                            if end_t > start_t and check2 == 0:
-                                speed = mov1 / delta_t
-                                t_need = mov2 / speed
-                                imp_s = np.append(imp_s, 1)
-                                imp_t0 = np.append(imp_t0, start_t)
-                                current_t = start_t + t_need
-                                imp_t1 = np.append(imp_t1, current_t)
-                                imp_x0 = np.append(imp_x0, start_x)
-                                imp_x1 = np.append(imp_x1, end_x)
-                                imp_y0 = np.append(imp_y0, start_y)
-                                imp_y1 = np.append(imp_y1, end_y)
-                                start_x = end_x
-                                start_y = end_y
-                                start_t = current_t
-                                start_s = 1
-                                counter = counter + 1
-                            else:
-                                weight = calculate_k1(
-                                    method, start_t, start_x, start_y,
-                                    pause_table, pars
-                                )
-                                normalize_w = (weight + 1e-5) / sum(
-                                    weight + 1e-5
-                                )
-                                pause_index = np.random.choice(
-                                    pause_table.shape[0], p=normalize_w
-                                )
-                                delta_t = (
-                                    pause_table[pause_index, 6]
-                                    - pause_table[pause_index, 3]
-                                ) * multiplier(end_t - start_t)
-                                if start_t + delta_t < end_t:
-                                    imp_s = np.append(imp_s, 2)
-                                    imp_t0 = np.append(imp_t0, start_t)
-                                    current_t = start_t + delta_t
-                                    imp_t1 = np.append(imp_t1, current_t)
-                                    imp_x0 = np.append(imp_x0, start_x)
-                                    imp_x1 = np.append(imp_x1, start_x)
-                                    imp_y0 = np.append(imp_y0, start_y)
-                                    imp_y1 = np.append(imp_y1, start_y)
-                                    start_t = current_t
-                                    start_s = 2
-                                    counter = counter + 1
-                                else:
-                                    imp_s = np.append(imp_s, 1)
-                                    imp_t0 = np.append(imp_t0, start_t)
-                                    imp_t1 = np.append(imp_t1, end_t)
-                                    imp_x0 = np.append(imp_x0, start_x)
-                                    imp_x1 = np.append(imp_x1, end_x)
-                                    imp_y0 = np.append(imp_y0, start_y)
-                                    imp_y1 = np.append(imp_y1, end_y)
-                                    start_t = end_t
-
-                    if direction == "backward":
-                        direction = ""
-                        I1 = indicate_flight(
-                            method,
-                            end_t,
-                            end_x,
-                            end_y,
-                            start_t,
-                            start_x,
-                            start_y,
-                            bv_set,
-                            switch,
-                            num,
-                            pars,
+                    elif direction == "backward":
+                        imp_table, end_s, end_t, end_x, end_y, counter = \
+                         backward_impute(
+                            end_t, end_x, end_y, start_t, start_x, start_y, 
+                            bv_set, switch, num, pars, flight_table, linearity, 
+                            mis_table[i, :], pause_table, imp_table, 
+                            end_s, method, counter
                         )
-                        if (sum(I1 == 1) == switch and end_s == 2) or (
-                            sum(I1 == 0) < switch and end_s == 1
-                        ):
-                            weight = calculate_k1(
-                                method, end_t, end_x, end_y,
-                                flight_table, pars
-                            )
-                            normalize_w = (weight + 1e-5) / sum(
-                                weight + 1e-5
-                            )
-                            flight_index = np.random.choice(
-                                flight_table.shape[0], p=normalize_w
-                            )
-                            delta_x = -(
-                                flight_table[flight_index, 4]
-                                - flight_table[flight_index, 1]
-                            )
-                            delta_y = -(
-                                flight_table[flight_index, 5]
-                                - flight_table[flight_index, 2]
-                            )
-                            delta_t = (
-                                flight_table[flight_index, 6]
-                                - flight_table[flight_index, 3]
-                            )
-                            if start_t + delta_t > end_t:
-                                temp = delta_t
-                                delta_t = end_t - start_t
-                                delta_x = delta_x * delta_t / temp
-                                delta_y = delta_y * delta_t / temp
-                            delta_x, delta_y = adjust_direction(
-                                linearity,
-                                delta_x,
-                                delta_y,
-                                end_x,
-                                end_y,
-                                start_x,
-                                start_y,
-                                mis_table[i, 3],
-                                mis_table[i, 4],
-                                mis_table[i, 0],
-                                mis_table[i, 1],
-                            )
-                            try_t = end_t - delta_t
-                            try_x = (end_t - try_t) / (
-                                end_t - start_t + 1e-5
-                            ) * start_x + (try_t - start_t) / (
-                                end_t - start_t + 1e-5
-                            ) * (
-                                end_x + delta_x
-                            )
-                            try_y = (end_t - try_t) / (
-                                end_t - start_t + 1e-5
-                            ) * start_y + (try_t - start_t) / (
-                                end_t - start_t + 1e-5
-                            ) * (
-                                end_y + delta_y
-                            )
-                            mov1 = great_circle_dist(
-                                try_x, try_y, end_x, end_y
-                            )
-                            mov2 = great_circle_dist(
-                                end_x, end_y, start_x, start_y
-                            )
-                            check1 = checkbound(
-                                try_x,
-                                try_y,
-                                mis_table[i, 0],
-                                mis_table[i, 1],
-                                mis_table[i, 3],
-                                mis_table[i, 4],
-                            )
-                            check2 = (mov1 < mov2) * 1
-                            if end_t > start_t and check1 == 1 and check2 == 1:
-                                imp_s = np.append(imp_s, 1)
-                                imp_t1 = np.append(imp_t1, end_t)
-                                current_t = end_t - delta_t
-                                imp_t0 = np.append(imp_t0, current_t)
-                                imp_x1 = np.append(imp_x1, end_x)
-                                current_x = (end_t - current_t) / (
-                                    end_t - start_t
-                                ) * start_x + (current_t - start_t) / (
-                                    end_t - start_t
-                                ) * (
-                                    end_x + delta_x
-                                )
-                                imp_x0 = np.append(imp_x0, current_x)
-                                imp_y1 = np.append(imp_y1, end_y)
-                                current_y = (end_t - current_t) / (
-                                    end_t - start_t
-                                ) * start_y + (current_t - start_t) / (
-                                    end_t - start_t
-                                ) * (
-                                    end_y + delta_y
-                                )
-                                imp_y0 = np.append(imp_y0, current_y)
-                                end_x = current_x
-                                end_y = current_y
-                                end_t = current_t
-                                end_s = 1
-                                counter = counter + 1
-                            if end_t > start_t and check2 == 0:
-                                speed = mov1 / delta_t
-                                t_need = mov2 / speed
-                                imp_s = np.append(imp_s, 1)
-                                imp_t1 = np.append(imp_t1, end_t)
-                                current_t = end_t - t_need
-                                imp_t0 = np.append(imp_t0, current_t)
-                                imp_x1 = np.append(imp_x1, end_x)
-                                imp_x0 = np.append(imp_x0, start_x)
-                                imp_y1 = np.append(imp_y1, end_y)
-                                imp_y0 = np.append(imp_y0, start_y)
-                                end_x = start_x
-                                end_y = start_y
-                                end_t = current_t
-                                end_s = 1
-                                counter = counter + 1
-                            else:
-                                weight = calculate_k1(
-                                    method, end_t, end_x, end_y,
-                                    pause_table, pars
-                                )
-                                normalize_w = (weight + 1e-5) / sum(
-                                    weight + 1e-5
-                                )
-                                pause_index = np.random.choice(
-                                    pause_table.shape[0], p=normalize_w
-                                )
-                                delta_t = (
-                                    pause_table[pause_index, 6]
-                                    - pause_table[pause_index, 3]
-                                ) * multiplier(end_t - start_t)
-                                if start_t + delta_t < end_t:
-                                    imp_s = np.append(imp_s, 2)
-                                    imp_t1 = np.append(imp_t1, end_t)
-                                    current_t = end_t - delta_t
-                                    imp_t0 = np.append(imp_t0, current_t)
-                                    imp_x0 = np.append(imp_x0, end_x)
-                                    imp_x1 = np.append(imp_x1, end_x)
-                                    imp_y0 = np.append(imp_y0, end_y)
-                                    imp_y1 = np.append(imp_y1, end_y)
-                                    end_t = current_t
-                                    end_s = 2
-                                    counter = counter + 1
-                                else:
-                                    imp_s = np.append(imp_s, 1)
-                                    imp_t1 = np.append(imp_t1, end_t)
-                                    imp_t0 = np.append(imp_t0, start_t)
-                                    imp_x0 = np.append(imp_x0, start_x)
-                                    imp_x1 = np.append(imp_x1, end_x)
-                                    imp_y0 = np.append(imp_y0, start_y)
-                                    imp_y1 = np.append(imp_y1, end_y)
-                                    end_t = start_t
-    imp_table = np.stack(
-        [imp_s, imp_x0, imp_y0, imp_t0, imp_x1, imp_y1, imp_t1], axis=1
-    )
     imp_table = imp_table[imp_table[:, 3].argsort()].astype(float)
     return imp_table
 
