@@ -57,7 +57,6 @@ def great_circle_dist(
     Returns:
         the great circle distance between location1 and location2
     """
-    
     lat1 = lat1 / 180 * math.pi
     lon1 = lon1 / 180 * math.pi
     lat2 = lat2 / 180 * math.pi
@@ -106,9 +105,7 @@ def great_circle_dist_vec(
 
     # due to measurement errors, temp may be out of the domain of "arccos"
     temp[temp > 1] = 1
-    
     temp[temp < -1] = -1
-
     theta = np.arccos(temp)
     distance = theta * R
     return distance
