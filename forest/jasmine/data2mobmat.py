@@ -67,8 +67,8 @@ def great_circle_dist(
     )
 
     # due to measurement errors, temp may be out of the domain of "arccos"
-    temp = min(temp, 1)
-    temp = max(temp, -1)
+    temp = min([temp, 1])
+    temp = max([temp, -1])
 
     theta = np.arccos(temp)
     distance = theta * R
