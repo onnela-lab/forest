@@ -1008,7 +1008,7 @@ def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
     new_pauses_array, mobmat = correct_missing_intervals(mobmat)
 
     # connect flights and pauses
-    for j in np.arange(1, n_rows):
+    for j in np.arange(1, n_rows-1):
         # If the current and previous states form a flight-pause pair
         # and their times are contiguous
         # (their end and start times are the same),
