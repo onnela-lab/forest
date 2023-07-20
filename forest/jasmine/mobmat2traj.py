@@ -90,7 +90,7 @@ def num_sig_places(
             np.array(loc_y),
         )
 
-        min_distance_index = np.argmin(distances)
+        min_distance_index = int(np.argmin(distances))
         if distances[min_distance_index] > dist_threshold:
             # add a new significant place
             # if the distance is larger than dist_threshold
@@ -270,6 +270,8 @@ def indicate_flight(
     """
     # Calculate k1 using the specified method
     k1 = calculate_k1(method, current_t, current_x, current_y, bv_set, pars)
+    if k1 is None:
+        sys.exit("Invalid method for calculate_k1.")
 
     # Select flight and pause indicators from the bv_subset
     flight_k = k1[bv_set[:, 0] == 1]
@@ -649,8 +651,10 @@ def forward_impute(
             method, start_t, start_x, start_y,
             flight_table, pars
         )
+        if weight is None:
+            sys.exit("Invalid method for calculate_k1.")
 
-        normalize_w = (weight + 1e-5) / sum(weight + 1e-5)
+        normalize_w = (weight + 1e-5) / float(sum(weight + 1e-5))
         flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
 
         delta_x, delta_y, delta_t = calculate_delta(flight_table, flight_index)
@@ -727,7 +731,10 @@ def forward_impute(
                 method, start_t, start_x, start_y,
                 pause_table, pars
             )
-            normalize_w = (weight + 1e-5) / sum(weight + 1e-5)
+            if weight is None:
+                sys.exit("Invalid method for calculate_k1.")
+
+            normalize_w = (weight + 1e-5) / float(sum(weight + 1e-5))
             pause_index = np.random.choice(pause_table.shape[0], p=normalize_w)
             delta_t = (
                 pause_table[pause_index, 6] - pause_table[pause_index, 3]
@@ -813,8 +820,10 @@ def backward_impute(
             method, end_t, end_x, end_y,
             flight_table, pars
         )
+        if weight is None:
+            sys.exit("Invalid method for calculate_k1.")
 
-        normalize_w = (weight + 1e-5) / sum(weight + 1e-5)
+        normalize_w = (weight + 1e-5) / float(sum(weight + 1e-5))
         flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
 
         delta_x, delta_y, delta_t = calculate_delta(
@@ -853,7 +862,7 @@ def backward_impute(
         if end_t > start_t and check1 == 1 and check2 == 1:
             current_t = end_t - delta_t
             current_x = calculate_position(
-                start_t, end_t, current_t, start_x, end_x+delta_x 
+                start_t, end_t, current_t, start_x, end_x+delta_x
             )
             current_y = calculate_position(
                 start_t, end_t, current_t, start_y, end_y+delta_y
@@ -887,7 +896,10 @@ def backward_impute(
                 method, end_t, end_x, end_y,
                 pause_table, pars
             )
-            normalize_w = (weight + 1e-5) / sum(weight + 1e-5)
+            if weight is None:
+                sys.exit("Invalid method for calculate_k1.")
+
+            normalize_w = (weight + 1e-5) / float(sum(weight + 1e-5))
             pause_index = np.random.choice(pause_table.shape[0], p=normalize_w)
             delta_t = (
                 pause_table[pause_index, 6] - pause_table[pause_index, 3]
@@ -977,12 +989,12 @@ def impute_gps(
         # get the distance between the start location
         # of the missing interval and the home location
         start_home_distance = great_circle_dist(
-           *mis_table[i, [0, 1]], *home_coords
+           mis_table[i, 0], mis_table[i, 1], *home_coords
         )
         # get the distance between the end location
         # of the missing interval and the home location
         end_home_distance = great_circle_dist(
-            *mis_table[i, [3, 4]], *home_coords
+            mis_table[i, 3], mis_table[i, 4], *home_coords
         )
 
         # if a person remains at the same place at the begining
