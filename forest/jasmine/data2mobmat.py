@@ -957,8 +957,6 @@ def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
     """
     sys.stdout.write("Infer unclassified windows ...\n")
 
-    n_rows = mobmat.shape[0]
-
     # Infer unknown status
     # The 'unknown' status (code 3)
     # is inferred based on neighbouring data points
@@ -973,6 +971,8 @@ def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
 
     # check for missing intervals and correct them
     new_pauses_array, mobmat = correct_missing_intervals(mobmat)
+
+    n_rows = mobmat.shape[0]
 
     # connect flights and pauses
     for j in np.arange(1, n_rows):

@@ -10,6 +10,7 @@ For instructions on how to install forest, please visit [here](https://github.co
 ## Usage:
 ```
 from forest.oak.base import run
+from forest.constants import Frequency
 
 
 # Determine study folder and output_folder
@@ -21,12 +22,13 @@ tz_str = "America/New_York"
 time_start = "2018-01-01 00_00_00"
 time_end = "2022-01-01 00_00_00"
 
-# Determine window for analysis. Available opts: "Hourly", "Daily", "both".
-option = "both"
+# Determine window for analysis. Frequency of the summary stats (resolution for summary statistics) e.g. Frequency.HOURLY, Frequency.DAILY, etc. see forest.constants.Frequency here: https://github.com/onnela-lab/forest/blob/develop/forest/constants.py
+
+frequency = Frequency.HOURLY_AND_DAILY
 beiwe_id = None
 
 # Call the main function
-run(study_folder, output_folder, tz_str, option,
+run(study_folder, output_folder, tz_str, frequency,
               time_start, time_end, beiwe_id)
 ```
 ### Default tuning parameters for walking recognition and step counting:
