@@ -3,7 +3,7 @@ import math
 import numpy as np
 import scipy.stats as stat
 from ..poplar.legacy.common_funcs import stamp2datetime
-from .data2mobmat import great_circle_dist, great_circle_dist_vec, exist_knot
+from .data2mobmat import great_circle_dist, exist_knot
 
 ## the details of the functions are in paper [Liu and Onnela (2020)]
 def num_sig_places(data,dist):
@@ -81,12 +81,12 @@ def K1(method,current_t,current_x,current_y,BV_set,pars):
         k2 = np.exp(-abs(current_t-mean_t)/l2)*np.exp(-(np.sin(abs(current_t-mean_t)/604800*math.pi))**2/a2)
         return b1/(b1+b2)*k1+b2/(b1+b2)*k2
     if method=="GL":
-        d = great_circle_dist_vec(current_x,current_y,mean_x,mean_y)
+        d = great_circle_dist(current_x,current_y,mean_x,mean_y)
         return np.exp(-d/g)
     if method=="GLC":
         k1 = np.exp(-abs(current_t-mean_t)/l1)*np.exp(-(np.sin(abs(current_t-mean_t)/86400*math.pi))**2/a1)
         k2 = np.exp(-abs(current_t-mean_t)/l2)*np.exp(-(np.sin(abs(current_t-mean_t)/604800*math.pi))**2/a2)
-        d = great_circle_dist_vec(current_x,current_y,mean_x,mean_y)
+        d = great_circle_dist(current_x,current_y,mean_x,mean_y)
         k3 = np.exp(-d/g)
         return b1*k1+b2*k2+b3*k3
 

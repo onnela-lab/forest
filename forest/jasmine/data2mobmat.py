@@ -39,46 +39,9 @@ def cartesian(
 
 
 def great_circle_dist(
-    lat1: float, lon1: float,
-    lat2: float, lon2: float
-) -> float:
-    """This function calculates the great circle distance
-     between two locations.
-
-    Args:
-        lat1: float, latitude of location1,
-            range[-180, 180]
-        lon1: float, longitude of location1,
-            range[-180, 180]
-        lat2: float, latitude of location2,
-            range[-180, 180]
-        lon2: float, longitude of location2,
-            range[-180, 180]
-    Returns:
-        the great circle distance between location1 and location2
-    """
-    lat1 = lat1 / 180 * math.pi
-    lon1 = lon1 / 180 * math.pi
-    lat2 = lat2 / 180 * math.pi
-    lon2 = lon2 / 180 * math.pi
-    temp = (
-        np.cos(lat1) * np.cos(lat2) * np.cos(lon1 - lon2)
-        + np.sin(lat1) * np.sin(lat2)
-    )
-
-    # due to measurement errors, temp may be out of the domain of "arccos"
-    temp = min(temp, 1)
-    temp = max(temp, -1)
-
-    theta = np.arccos(temp)
-    distance = theta * R
-    return distance
-
-
-def great_circle_dist_vec(
     lat1: Union[float, np.ndarray], lon1: Union[float, np.ndarray],
     lat2: Union[float, np.ndarray], lon2: Union[float, np.ndarray]
-) -> np.ndarray:
+) -> Union[float, np.ndarray]:
     """This function calculates the great circle distance
      between various pairs of locations.
 
@@ -104,8 +67,12 @@ def great_circle_dist_vec(
     )
 
     # due to measurement errors, temp may be out of the domain of "arccos"
-    temp[temp > 1] = 1
-    temp[temp < -1] = -1
+    if isinstance(temp, np.ndarray):
+        temp[temp > 1] = 1
+        temp[temp < -1] = -1
+    else:
+        temp = min(temp, 1)
+        temp = max(temp, -1)
 
     theta = np.arccos(temp)
     distance = theta * R
@@ -178,14 +145,14 @@ def pairwise_great_circle_dist(latlon_array: np.ndarray) -> List[float]:
     k = np.shape(latlon_array)[0]
     for i in range(k - 1):
         for j in np.arange(i + 1, k):
-            dist.append(
-                great_circle_dist(
-                    latlon_array[i, 0],
-                    latlon_array[i, 1],
-                    latlon_array[j, 0],
-                    latlon_array[j, 1],
-                )
+            distance_float = great_circle_dist(
+                latlon_array[i, 0],
+                latlon_array[i, 1],
+                latlon_array[j, 0],
+                latlon_array[j, 1],
             )
+            if isinstance(distance_float, float):
+                dist.append(distance_float)
     return dist
 
 
