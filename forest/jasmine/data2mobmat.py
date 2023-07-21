@@ -41,7 +41,7 @@ def cartesian(
 def great_circle_dist(
     lat1: Union[float, np.ndarray], lon1: Union[float, np.ndarray],
     lat2: Union[float, np.ndarray], lon2: Union[float, np.ndarray]
-) -> Union[float, np.ndarray]:
+) -> np.ndarray:
     """This function calculates the great circle distance
      between various pairs of locations.
 
@@ -67,12 +67,11 @@ def great_circle_dist(
     )
 
     # due to measurement errors, temp may be out of the domain of "arccos"
-    if isinstance(temp, np.ndarray):
-        temp[temp > 1] = 1
-        temp[temp < -1] = -1
-    else:
-        temp = min(temp, 1)
-        temp = max(temp, -1)
+    if not isinstance(temp, np.ndarray):
+        temp = np.array([temp])
+
+    temp[temp > 1] = 1
+    temp[temp < -1] = -1
 
     theta = np.arccos(temp)
     return theta * R
@@ -149,9 +148,8 @@ def pairwise_great_circle_dist(latlon_array: np.ndarray) -> List[float]:
                 latlon_array[i, 1],
                 latlon_array[j, 0],
                 latlon_array[j, 1],
-            )
-            if isinstance(distance_float, float):
-                dist.append(distance_float)
+            )[0]
+            dist.append(distance_float)
     return dist
 
 
@@ -381,7 +379,7 @@ def detect_knots(
             great_circle_dist(
                 input_matrix[i, 2], input_matrix[i, 3],
                 input_matrix[i + 1, 2], input_matrix[i + 1, 3]
-            )
+            )[0]
             for i in range(nrows - 1)
         ]
     )
@@ -743,7 +741,7 @@ def infer_status_and_positions(
         distance = great_circle_dist(
             mobmat[index, 1], mobmat[index, 2],
             mobmat[index - 1, 4], mobmat[index - 1, 5]
-        )
+        )[0]
         # if the time difference to the previous point is
         # less than or equal to 3 times the time interval
         if mobmat[index, 3] - mobmat[index - 1, 6] <= interval * 3:
@@ -766,7 +764,7 @@ def infer_status_and_positions(
                 future_distance = great_circle_dist(
                     mobmat[index, 1], mobmat[index, 2],
                     mobmat[index + 1, 1], mobmat[index + 1, 2]
-                )
+                )[0]
                 # if the time difference to the next point is
                 # less than or equal to 3 times the time interval
                 if mobmat[index + 1, 3] - mobmat[index, 6] <= interval * 3:
@@ -883,7 +881,7 @@ def correct_missing_intervals(
             # Compute the distance between current and previous positions
             distance = great_circle_dist(
                 mobmat[j, 1], mobmat[j, 2], mobmat[j - 1, 4], mobmat[j - 1, 5]
-            )
+            )[0]
 
             # If the distance is less than 10 units, start correcting positions
             if distance < 10:

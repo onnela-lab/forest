@@ -126,7 +126,7 @@ def get_nearby_locations(
     longitudes: List[float] = [pause_vec[0, 2]]
     for row in pause_vec:
         minimum_distance = np.min([
-            great_circle_dist(row[1], row[2], lat, lon)
+            great_circle_dist(row[1], row[2], lat, lon)[0]
             for lat, lon in zip(latitudes, longitudes)
             ])
         # only add coordinates to the list if they are not too close
@@ -479,7 +479,7 @@ def gps_summaries(
             pause_array: np.ndarray = np.array([])
             for row in pause_vec:
                 if (
-                    great_circle_dist(row[1], row[2], home_lat, home_lon)
+                    great_circle_dist(row[1], row[2], home_lat, home_lon)[0]
                     > 2*place_point_radius
                 ):
                     if len(pause_array) == 0:
@@ -594,7 +594,7 @@ def gps_summaries(
                                         pause[0], pause[1],
                                         place_coordinates[0][0],
                                         place_coordinates[0][1],
-                                    )
+                                    )[0]
                                     < place_point_radius
                                 ):
                                     log_tags_temp.append(tags[place_id])
