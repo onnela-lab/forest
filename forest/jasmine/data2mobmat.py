@@ -39,43 +39,6 @@ def cartesian(
 
 
 def great_circle_dist(
-    lat1: float, lon1: float,
-    lat2: float, lon2: float
-) -> float:
-    """This function calculates the great circle distance
-     between two locations.
-
-    Args:
-        lat1: float, latitude of location1,
-            range[-180, 180]
-        lon1: float, longitude of location1,
-            range[-180, 180]
-        lat2: float, latitude of location2,
-            range[-180, 180]
-        lon2: float, longitude of location2,
-            range[-180, 180]
-    Returns:
-        the great circle distance between location1 and location2
-    """
-    lat1 = lat1 / 180 * math.pi
-    lon1 = lon1 / 180 * math.pi
-    lat2 = lat2 / 180 * math.pi
-    lon2 = lon2 / 180 * math.pi
-    temp = (
-        np.cos(lat1) * np.cos(lat2) * np.cos(lon1 - lon2)
-        + np.sin(lat1) * np.sin(lat2)
-    )
-
-    # due to measurement errors, temp may be out of the domain of "arccos"
-    temp = min(temp, 1)
-    temp = max(temp, -1)
-
-    theta = np.arccos(temp)
-    distance = theta * R
-    return distance
-
-
-def great_circle_dist_vec(
     lat1: Union[float, np.ndarray], lon1: Union[float, np.ndarray],
     lat2: Union[float, np.ndarray], lon2: Union[float, np.ndarray]
 ) -> np.ndarray:
@@ -104,12 +67,14 @@ def great_circle_dist_vec(
     )
 
     # due to measurement errors, temp may be out of the domain of "arccos"
+    if not isinstance(temp, np.ndarray):
+        temp = np.array([temp])
+
     temp[temp > 1] = 1
     temp[temp < -1] = -1
 
     theta = np.arccos(temp)
-    distance = theta * R
-    return distance
+    return theta * R
 
 
 def shortest_dist_to_great_circle(
@@ -178,14 +143,13 @@ def pairwise_great_circle_dist(latlon_array: np.ndarray) -> List[float]:
     k = np.shape(latlon_array)[0]
     for i in range(k - 1):
         for j in np.arange(i + 1, k):
-            dist.append(
-                great_circle_dist(
-                    latlon_array[i, 0],
-                    latlon_array[i, 1],
-                    latlon_array[j, 0],
-                    latlon_array[j, 1],
-                )
-            )
+            distance_float = great_circle_dist(
+                latlon_array[i, 0],
+                latlon_array[i, 1],
+                latlon_array[j, 0],
+                latlon_array[j, 1],
+            )[0]
+            dist.append(distance_float)
     return dist
 
 
@@ -415,7 +379,7 @@ def detect_knots(
             great_circle_dist(
                 input_matrix[i, 2], input_matrix[i, 3],
                 input_matrix[i + 1, 2], input_matrix[i + 1, 3]
-            )
+            )[0]
             for i in range(nrows - 1)
         ]
     )
@@ -777,7 +741,7 @@ def infer_status_and_positions(
         distance = great_circle_dist(
             mobmat[index, 1], mobmat[index, 2],
             mobmat[index - 1, 4], mobmat[index - 1, 5]
-        )
+        )[0]
         # if the time difference to the previous point is
         # less than or equal to 3 times the time interval
         if mobmat[index, 3] - mobmat[index - 1, 6] <= interval * 3:
@@ -800,7 +764,7 @@ def infer_status_and_positions(
                 future_distance = great_circle_dist(
                     mobmat[index, 1], mobmat[index, 2],
                     mobmat[index + 1, 1], mobmat[index + 1, 2]
-                )
+                )[0]
                 # if the time difference to the next point is
                 # less than or equal to 3 times the time interval
                 if mobmat[index + 1, 3] - mobmat[index, 6] <= interval * 3:
@@ -917,7 +881,7 @@ def correct_missing_intervals(
             # Compute the distance between current and previous positions
             distance = great_circle_dist(
                 mobmat[j, 1], mobmat[j, 2], mobmat[j - 1, 4], mobmat[j - 1, 5]
-            )
+            )[0]
 
             # If the distance is less than 10 units, start correcting positions
             if distance < 10:

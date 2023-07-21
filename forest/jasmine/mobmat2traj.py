@@ -25,7 +25,7 @@ def num_sig_places(data,dist):
         else:
             d = []
             for j in range(len(loc_x)):
-                d.append(great_circle_dist(data[i,1],data[i,2],loc_x[j],loc_y[j]))
+                d.append(great_circle_dist(data[i,1],data[i,2],loc_x[j],loc_y[j])[0])
             index = d.index(min(d))
             if min(d)>dist:
                 loc_x.append(data[i,1])
@@ -218,10 +218,10 @@ def ImputeGPS(MobMat,BV_set,method,switch,num,linearity,tz_str,pars):
     for i in range(mis_table.shape[0]):
         mis_t0 = mis_table[i,2]; mis_t1 = mis_table[i,5]
         nearby_flight = sum((flight_table[:,6]>mis_t0-12*60*60)*(flight_table[:,3]<mis_t1+12*60*60))
-        d_diff = great_circle_dist(mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])
+        d_diff = great_circle_dist(mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])[0]
         t_diff = mis_table[i,5] - mis_table[i,2]
-        D1 = great_circle_dist(mis_table[i,0],mis_table[i,1],home_x,home_y)
-        D2 = great_circle_dist(mis_table[i,3],mis_table[i,4],home_x,home_y)
+        D1 = great_circle_dist(mis_table[i,0],mis_table[i,1],home_x,home_y)[0]
+        D2 = great_circle_dist(mis_table[i,3],mis_table[i,4],home_x,home_y)[0]
         ## if a person remains at the same place at the begining and end of missing, just assume he satys there all the time
         if mis_table[i,0]==mis_table[i,3] and mis_table[i,1]==mis_table[i,4]:
             imp_s = np.append(imp_s,2)
@@ -356,8 +356,8 @@ def ImputeGPS(MobMat,BV_set,method,switch,num,linearity,tz_str,pars):
                             try_t = start_t + delta_t
                             try_x = (end_t-try_t)/(end_t-start_t+1e-5)*(start_x+delta_x)+(try_t-start_t+1e-5)/(end_t-start_t)*end_x
                             try_y = (end_t-try_t)/(end_t-start_t+1e-5)*(start_y+delta_y)+(try_t-start_t+1e-5)/(end_t-start_t)*end_y
-                            mov1 = great_circle_dist(try_x,try_y,start_x,start_y)
-                            mov2 =  great_circle_dist(end_x,end_y,start_x,start_y)
+                            mov1 = great_circle_dist(try_x,try_y,start_x,start_y)[0]
+                            mov2 =  great_circle_dist(end_x,end_y,start_x,start_y)[0]
                             check1 = checkbound(try_x,try_y,mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])
                             check2 = (mov1<mov2)*1
                             if end_t>start_t and check1==1 and check2==1:
@@ -432,8 +432,8 @@ def ImputeGPS(MobMat,BV_set,method,switch,num,linearity,tz_str,pars):
                             try_t = end_t - delta_t
                             try_x = (end_t-try_t)/(end_t-start_t+1e-5)*start_x+(try_t-start_t)/(end_t-start_t+1e-5)*(end_x+delta_x)
                             try_y = (end_t-try_t)/(end_t-start_t+1e-5)*start_y+(try_t-start_t)/(end_t-start_t+1e-5)*(end_y+delta_y)
-                            mov1 = great_circle_dist(try_x,try_y,end_x,end_y)
-                            mov2 =  great_circle_dist(end_x,end_y,start_x,start_y)
+                            mov1 = great_circle_dist(try_x,try_y,end_x,end_y)[0]
+                            mov2 =  great_circle_dist(end_x,end_y,start_x,start_y)[0]
                             check1 = checkbound(try_x,try_y,mis_table[i,0],mis_table[i,1],mis_table[i,3],mis_table[i,4])
                             check2 = (mov1<mov2)*1
                             if end_t>start_t and check1==1 and check2==1:

@@ -88,7 +88,7 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
 
     lat1, lon1 = start
     lat2, lon2 = end
-    distance = great_circle_dist(lat1, lon1, lat2, lon2)
+    distance = great_circle_dist(lat1, lon1, lat2, lon2)[0]
 
     if distance < 250:
         return (np.array([[lat1, lon1], [lat2, lon2]]),
@@ -142,7 +142,7 @@ def get_basic_path(path: np.ndarray, transport: Vehicle) -> np.ndarray:
         subset of original path that represents the flight
     """
 
-    distance = great_circle_dist(*path[0], *path[-1])
+    distance = great_circle_dist(*path[0], *path[-1])[0]
 
     if transport in [Vehicle.FOOT, Vehicle.BICYCLE]:
         # slower speed thus capturing more locations
@@ -379,10 +379,11 @@ class Person:
                 )
             # calculate distances of selected places from home
             # create a list of the locations ordered by distance
-            distances = [
-                great_circle_dist(*home_coordinates, *place)
-                for place in getattr(self, possible_exit.value + "_places")
-            ]
+            distances = []
+            for place in getattr(self, possible_exit.value + "_places"):
+                dist = great_circle_dist(*home_coordinates, *place)[0]
+                distances.append(dist)
+
             order = np.argsort(distances)
             setattr(
                 self,
@@ -596,7 +597,7 @@ class Person:
                 return coordinates of route as expected after 3 tries
         """
 
-        distance = great_circle_dist(*origin, *destination)
+        distance = great_circle_dist(*origin, *destination)[0]
         # if very short distance do not take any vehicle (less than 1km)
         if distance <= 1000:
             transport = Vehicle.FOOT
@@ -721,7 +722,7 @@ def gen_basic_traj(location_start: Tuple[float, float],
         speed_range = [7, 11]
     else:
         speed_range = [10, 14]
-    distance = great_circle_dist(*location_start, *location_end)
+    distance = great_circle_dist(*location_start, *location_end)[0]
     traveled = 0
     time_end = time_start
     while traveled < distance:
