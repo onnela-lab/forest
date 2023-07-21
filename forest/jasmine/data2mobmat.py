@@ -75,8 +75,7 @@ def great_circle_dist(
         temp = max(temp, -1)
 
     theta = np.arccos(temp)
-    distance = theta * R
-    return distance
+    return theta * R
 
 
 def shortest_dist_to_great_circle(
