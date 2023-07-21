@@ -89,8 +89,6 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
     lat1, lon1 = start
     lat2, lon2 = end
     distance = great_circle_dist(lat1, lon1, lat2, lon2)[0]
-    if not isinstance(distance, float):
-        raise TypeError("distance must be float")
 
     if distance < 250:
         return (np.array([[lat1, lon1], [lat2, lon2]]),
@@ -128,9 +126,6 @@ def get_path(start: Tuple[float, float], end: Tuple[float, float],
         path_coordinates[0] = [lat1, lon1]
     if path_coordinates[-1] != [lat2, lon2]:
         path_coordinates[-1] = [lat2, lon2]
-
-    if not isinstance(distance, float):
-        raise TypeError("distance must be float")
 
     return np.array(path_coordinates), distance
 
