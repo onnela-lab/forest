@@ -24,7 +24,7 @@ from forest.jasmine.data2mobmat import (gps_to_mobmat, infer_mobmat,
                                         pairwise_great_circle_dist)
 from forest.jasmine.mobmat2traj import (Imp2traj, ImputeGPS, locate_home,
                                         num_sig_places)
-from forest.jasmine.sogp_gps import BV_select
+from forest.jasmine.sogp_gps import bv_select
 from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
                                                stamp2datetime,
                                                write_all_summaries)
