@@ -9,7 +9,7 @@ import numpy as np
 import scipy.stats as stat
 
 from ..poplar.legacy.common_funcs import stamp2datetime
-from .data2mobmat import great_circle_dist, great_circle_dist_vec, exist_knot
+from .data2mobmat import great_circle_dist, exist_knot
 
 
 # the details of the functions are in paper [Liu and Onnela (2020)]
@@ -83,7 +83,7 @@ def num_sig_places(
             add_new_place(loc_x, loc_y, num_xy, t_xy, data[i])
             continue
 
-        distances = great_circle_dist_vec(
+        distances = great_circle_dist(
             np.full(len(loc_x), data[i, 1]),
             np.full(len(loc_x), data[i, 2]),
             np.array(loc_x),
@@ -218,7 +218,7 @@ def calculate_k1(method: str, timestamp: float, x_coord: float, y_coord: float,
         )
     # 'GL' method
     if method == "GL":
-        distance = great_circle_dist_vec(x_coord, y_coord, mean_x, mean_y)
+        distance = great_circle_dist(x_coord, y_coord, mean_x, mean_y)
         return np.exp(-distance / spatial_scale)
     # 'GLC' method
     if method == "GLC":
@@ -230,7 +230,7 @@ def calculate_k1(method: str, timestamp: float, x_coord: float, y_coord: float,
             -((np.sin(abs(timestamp - mean_t) / 604800 * math.pi)) ** 2)
             / amplitude_2
         )
-        distance = great_circle_dist_vec(x_coord, y_coord, mean_x, mean_y)
+        distance = great_circle_dist(x_coord, y_coord, mean_x, mean_y)
         k3 = np.exp(-distance / spatial_scale)
         return weight_1 * k1 + weight_2 * k2 + weight_3 * k3
     return None
@@ -291,7 +291,7 @@ def indicate_flight(
     distance_to_destination = great_circle_dist(
         current_x, current_y,
         dest_x, dest_y
-    )
+    )[0]
     speed_to_destination = distance_to_destination / (
         dest_t - current_t + 0.0001
     )
@@ -678,8 +678,8 @@ def forward_impute(
             start_t, end_t, try_t, start_y + start_t, end_y
         )
 
-        mov1 = great_circle_dist(try_x, try_y, start_x, start_y)
-        mov2 = great_circle_dist(end_x, end_y, start_x, start_y)
+        mov1 = great_circle_dist(try_x, try_y, start_x, start_y)[0]
+        mov2 = great_circle_dist(end_x, end_y, start_x, start_y)[0]
 
         check1 = checkbound(
             try_x, try_y,
@@ -849,8 +849,8 @@ def backward_impute(
             start_t, end_t, try_t, start_y, end_y+delta_y
         )
 
-        mov1 = great_circle_dist(try_x, try_y, end_x, end_y)
-        mov2 = great_circle_dist(end_x, end_y, start_x, start_y)
+        mov1 = great_circle_dist(try_x, try_y, end_x, end_y)[0]
+        mov2 = great_circle_dist(end_x, end_y, start_x, start_y)[0]
 
         check1 = checkbound(
             try_x, try_y,
@@ -980,7 +980,7 @@ def impute_gps(
         # coordinates of the missing interval
         distance_difference = great_circle_dist(
             *mis_table[i, [0, 1]], *mis_table[i, [3, 4]]
-        )
+        )[0]
 
         # get the time difference between start and end
         # times of the missing interval
@@ -990,12 +990,12 @@ def impute_gps(
         # of the missing interval and the home location
         start_home_distance = great_circle_dist(
            mis_table[i, 0], mis_table[i, 1], *home_coords
-        )
+        )[0]
         # get the distance between the end location
         # of the missing interval and the home location
         end_home_distance = great_circle_dist(
             mis_table[i, 3], mis_table[i, 4], *home_coords
-        )
+        )[0]
 
         # if a person remains at the same place at the begining
         # and end of missing, just assume he satys there all the time
