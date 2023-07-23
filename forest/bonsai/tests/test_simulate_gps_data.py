@@ -344,7 +344,7 @@ def test_bounding_box_simple_case(sample_coordinates):
     distance = np.round(
         great_circle_dist(
             sample_coordinates[0], sample_coordinates[1], bbox[0], bbox[1]
-        )
+        )[0]
     )
     # 707 comes from Pythagorean theorem
     assert distance == 707
@@ -670,7 +670,7 @@ def test_gen_basic_traj_distance(random_path):
     _, dist = gen_basic_traj(
         random_path[0], random_path[-1], Vehicle.FOOT, 100
         )
-    assert dist == great_circle_dist(*random_path[0], *random_path[-1])
+    assert dist == great_circle_dist(*random_path[0], *random_path[-1])[0]
 
 
 def test_gen_basic_traj_time(random_path):
@@ -711,7 +711,7 @@ def test_gen_route_traj_shape(random_path):
 def test_gen_route_traj_distance(random_path):
     """Test route generation distance is correct"""
     _, dist = gen_route_traj(random_path, Vehicle.CAR, 0)
-    assert dist >= great_circle_dist(*random_path[0], *random_path[-1])
+    assert dist >= great_circle_dist(*random_path[0], *random_path[-1])[0]
 
 
 def test_gen_route_traj_time(random_path):
@@ -722,7 +722,7 @@ def test_gen_route_traj_time(random_path):
 
 def mock_get_path(start, end, transport, api_key):
     """Mock get_path function"""
-    return np.array([start, end]), great_circle_dist(*start, *end)
+    return np.array([start, end]), great_circle_dist(*start, *end)[0]
 
 
 def test_gen_all_traj_len(sample_person, mocker):
@@ -770,7 +770,7 @@ def test_gen_all_traj_consistent_values(sample_person, mocker):
     for i in range(len(traj) - 1):
         distances.append(
             great_circle_dist(traj[i, 1], traj[i, 2],
-                              traj[i + 1, 1], traj[i + 1, 2])
+                              traj[i + 1, 1], traj[i + 1, 2])[0]
         )
     assert np.max(distances) <= 100
 

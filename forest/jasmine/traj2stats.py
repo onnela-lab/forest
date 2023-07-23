@@ -21,7 +21,6 @@ from forest.bonsai.simulate_gps_data import bounding_box
 from forest.constants import Frequency, OSM_OVERPASS_URL, OSMTags
 from forest.jasmine.data2mobmat import (gps_to_mobmat, infer_mobmat,
                                         great_circle_dist,
-                                        great_circle_dist_vec,
                                         pairwise_great_circle_dist)
 from forest.jasmine.mobmat2traj import (imp_to_traj, impute_gps, locate_home,
                                         num_sig_places)
@@ -127,7 +126,7 @@ def get_nearby_locations(
     longitudes: List[float] = [pause_vec[0, 2]]
     for row in pause_vec:
         minimum_distance = np.min([
-            great_circle_dist(row[1], row[2], lat, lon)
+            great_circle_dist(row[1], row[2], lat, lon)[0]
             for lat, lon in zip(latitudes, longitudes)
             ])
         # only add coordinates to the list if they are not too close
@@ -450,17 +449,17 @@ def gps_summaries(
                 temp[-1, 6] = t1_temp
 
         obs_dur = sum((temp[:, 6] - temp[:, 3])[temp[:, 7] == 1])
-        d_home_1 = great_circle_dist_vec(
+        d_home_1 = great_circle_dist(
             home_lat, home_lon, temp[:, 1], temp[:, 2]
             )
-        d_home_2 = great_circle_dist_vec(
+        d_home_2 = great_circle_dist(
             home_lat, home_lon, temp[:, 4], temp[:, 5]
             )
         d_home = (d_home_1 + d_home_2) / 2
         max_dist_home = max(np.concatenate((d_home_1, d_home_2)))
         time_at_home = sum((temp[:, 6] - temp[:, 3])[d_home <= 50])
         mov_vec = np.round(
-            great_circle_dist_vec(
+            great_circle_dist(
                 temp[:, 4], temp[:, 5], temp[:, 1], temp[:, 2]
             ),
             0,
@@ -480,7 +479,7 @@ def gps_summaries(
             pause_array: np.ndarray = np.array([])
             for row in pause_vec:
                 if (
-                    great_circle_dist(row[1], row[2], home_lat, home_lon)
+                    great_circle_dist(row[1], row[2], home_lat, home_lon)[0]
                     > 2*place_point_radius
                 ):
                     if len(pause_array) == 0:
@@ -489,7 +488,7 @@ def gps_summaries(
                         )
                     elif (
                         np.min(
-                            great_circle_dist_vec(
+                            great_circle_dist(
                                 row[1], row[2],
                                 pause_array[:, 0], pause_array[:, 1],
                             )
@@ -504,7 +503,7 @@ def gps_summaries(
                     else:
                         pause_array[
                             np.argmin(
-                                great_circle_dist_vec(
+                                great_circle_dist(
                                     row[1], row[2],
                                     pause_array[:, 0], pause_array[:, 1],
                                 )
@@ -595,7 +594,7 @@ def gps_summaries(
                                         pause[0], pause[1],
                                         place_coordinates[0][0],
                                         place_coordinates[0][1],
-                                    )
+                                    )[0]
                                     < place_point_radius
                                 ):
                                     log_tags_temp.append(tags[place_id])
@@ -699,7 +698,7 @@ def gps_summaries(
                 (temp_pause[:, 6] - temp_pause[:, 3]) / total_pause_time,
                 temp_pause[:, 2],
             )
-            r_vec = great_circle_dist_vec(
+            r_vec = great_circle_dist(
                 centroid_x, centroid_y, temp_pause[:, 1], temp_pause[:, 2]
             )
             radius = np.dot(

@@ -47,7 +47,7 @@ def test_transform_point_to_circle_radius(coords1):
         circle1.exterior.coords.xy[1][2],
     ]
 
-    distance = great_circle_dist(*coords1, *point_in_edge)
+    distance = great_circle_dist(*coords1, *point_in_edge)[0]
     assert distance >= 4 and distance <= 5
 
 
