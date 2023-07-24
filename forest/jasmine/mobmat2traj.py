@@ -374,7 +374,7 @@ def ImputeGPS(MobMat,BV_set,method,switch,num,linearity,tz_str,pars):
                                 start_x = current_x; start_y = current_y; start_t = current_t; start_s=1
                                 counter = counter+1
                             if end_t>start_t and check2==0:
-                                sp_log = np.log(mov1) - np.log(delta_t) ## this number can be very close to zero, so numpy can error out 
+                                sp_log = np.log(mov1) - np.log(delta_t) ## this number can be very close to zero, so numpy can error out
                                 ## if this is run as just normal division
                                 t_need = np.exp(np.log(mov2) - sp_log)
                                 imp_s = np.append(imp_s,1)
@@ -451,7 +451,7 @@ def ImputeGPS(MobMat,BV_set,method,switch,num,linearity,tz_str,pars):
                                 end_x = current_x; end_y = current_y; end_t = current_t; end_s = 1
                                 counter = counter+1
                             if end_t>start_t and check2==0:
-                                sp_log = np.log(mov1) - np.log(delta_t) ## this number can be very close to zero, so numpy can error out 
+                                sp_log = np.log(mov1) - np.log(delta_t) ## this number can be very close to zero, so numpy can error out
                                 ## if this is run as just normal division
                                 t_need = np.exp(np.log(mov2) - sp_log)
                                 imp_s = np.append(imp_s,1)
