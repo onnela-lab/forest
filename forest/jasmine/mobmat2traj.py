@@ -160,8 +160,10 @@ def locate_home(mob_mat: np.ndarray, timezone: str) -> Tuple[float, float]:
     return home_x, home_y
 
 
-def calculate_k1(method: str, timestamp: float, x_coord: float, y_coord: float,
-                 bv_set: np.ndarray, parameters: list) -> Optional[np.ndarray]:
+def calculate_k1(
+    method: str, timestamp: float, x_coord: float, y_coord: float,
+    bv_subset: np.ndarray, parameters: list
+) -> Optional[np.ndarray]:
     """Calculate the similarity measure between
      a given point and a set of base vectors,
      using one of three specified methods: 'TL', 'GL', or 'GLC'.
@@ -175,7 +177,7 @@ def calculate_k1(method: str, timestamp: float, x_coord: float, y_coord: float,
             The x-coordinate (e.g. longitude) of the point to compare.
         y_coord: float,
             The y-coordinate (e.g. lattitude) of the point to compare.
-        bv_set: np.ndarray,
+        bv_subset: np.ndarray,
             A set of base vectors to compare with, typically
             a subset of output from BV_select().
         parameters: list,
@@ -194,9 +196,9 @@ def calculate_k1(method: str, timestamp: float, x_coord: float, y_coord: float,
         weight_1, weight_2, weight_3, spatial_scale
     ] = parameters
 
-    mean_x = ((bv_set[:, 1] + bv_set[:, 4]) / 2).astype(float)
-    mean_y = ((bv_set[:, 2] + bv_set[:, 5]) / 2).astype(float)
-    mean_t = ((bv_set[:, 3] + bv_set[:, 6]) / 2).astype(float)
+    mean_x = ((bv_subset[:, 1] + bv_subset[:, 4]) / 2).astype(float)
+    mean_y = ((bv_subset[:, 2] + bv_subset[:, 5]) / 2).astype(float)
+    mean_t = ((bv_subset[:, 3] + bv_subset[:, 6]) / 2).astype(float)
 
     if method not in ["TL", "GL", "GLC"]:
         raise ValueError(
@@ -238,7 +240,7 @@ def calculate_k1(method: str, timestamp: float, x_coord: float, y_coord: float,
 
 def indicate_flight(
     method: str, current_t: float, current_x: float, current_y: float,
-    dest_t: float, dest_x: float, dest_y: float, bv_set: np.ndarray,
+    dest_t: float, dest_x: float, dest_y: float, bv_subset: np.ndarray,
     switch: int, num: int, pars: list
 ) -> np.ndarray:
     """
@@ -269,13 +271,13 @@ def indicate_flight(
          indicating the status of an incoming flight.
     """
     # Calculate k1 using the specified method
-    k1 = calculate_k1(method, current_t, current_x, current_y, bv_set, pars)
+    k1 = calculate_k1(method, current_t, current_x, current_y, bv_subset, pars)
     if k1 is None:
         sys.exit("Invalid method for calculate_k1.")
 
     # Select flight and pause indicators from the bv_subset
-    flight_k = k1[bv_set[:, 0] == 1]
-    pause_k = k1[bv_set[:, 0] == 2]
+    flight_k = k1[bv_subset[:, 0] == 1]
+    pause_k = k1[bv_subset[:, 0] == 2]
 
     # Sort the flight and pause indicators
     sorted_flight = np.sort(flight_k)[::-1]
@@ -444,17 +446,15 @@ def checkbound(
     # If the current point is inside of the boundary box,
     # return 1, otherwise return 0
     if (
-        current_x < max_x + 0.01
-        and current_x > min_x - 0.01
-        and current_y < max_y + 0.01
-        and current_y > min_y - 0.01
+        max_x + 0.01 > current_x > min_x - 0.01
+        and max_y + 0.01 > current_y > min_y - 0.01
     ):
         return 1
     return 0
 
 
 def create_tables(
-    mob_mat: np.ndarray, bv_set: np.ndarray
+    mob_mat: np.ndarray, bv_subset: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """This function creates three tables:
         one for observed flights, one for observed pauses,
@@ -462,7 +462,7 @@ def create_tables(
 
     Args:
         mob_mat: 2d np.ndarray, output from infer_mobmat()
-        bv_set: np.ndarray, output from BV_select()
+        bv_subset: np.ndarray, output from BV_select()
 
     Returns:
         3 2d np.ndarray, one for observed flights,
@@ -470,15 +470,21 @@ def create_tables(
          (where the last two cols are the status
          of previous obs traj and next obs traj)
     """
-    # Number of rows in the mobility matrix and bv_set
+    # Number of rows in the mobility matrix and bv_subset
     mob_mat_rows = np.shape(mob_mat)[0]
-    bv_set_rows = np.shape(bv_set)[0]
+    bv_set_rows = np.shape(bv_subset)[0]
 
-    # Create flight table: select rows from bv_set where first column equals 1
-    flight_table = bv_set[[bv_set[i, 0] == 1 for i in range(bv_set_rows)], :]
+    # Create flight table: select rows from bv_subset
+    # where first column equals 1
+    flight_table = bv_subset[
+        [bv_subset[i, 0] == 1 for i in range(bv_set_rows)], :
+    ]
 
-    # Create pause table: select rows from bv_set where first column equals 2
-    pause_table = bv_set[[bv_set[i, 0] == 2 for i in range(bv_set_rows)], :]
+    # Create pause table: select rows from bv_subset
+    # where first column equals 2
+    pause_table = bv_subset[
+        [bv_subset[i, 0] == 2 for i in range(bv_set_rows)], :
+    ]
 
     # Initialize missing intervals table
     mis_table = np.zeros((1, 8))
@@ -599,7 +605,7 @@ def update_table(
 def forward_impute(
     start_t: float, start_x: float, start_y: float,
     end_t: float, end_x: float, end_y: float,
-    bv_set: np.ndarray, switch: int, num: int, pars: list,
+    bv_subset: np.ndarray, switch: int, num: int, pars: list,
     flight_table: np.ndarray, linearity: float,
     mis_row: np.ndarray, pause_table: np.ndarray,
     imp_table: np.ndarray, start_s: int, method: str,
@@ -614,7 +620,7 @@ def forward_impute(
         start_x, start_y: float, start position
         end_t: float, end time
         end_x, end_y: float, end position
-        bv_set: np.ndarray, output from BV_select()
+        bv_subset: np.ndarray, output from BV_select()
         switch: int, the number of binary variables to be generated
         num: int, checks the top k similarities
         pars: list, the parameters that are required
@@ -638,13 +644,13 @@ def forward_impute(
         counter: updated counter
     """
 
-    I0 = indicate_flight(
+    flight_indication = indicate_flight(
         method, start_t, start_x, start_y, end_t, end_x,
-        end_y, bv_set, switch, num, pars
+        end_y, bv_subset, switch, num, pars
     )
 
-    condition = (sum(I0 == 1) == switch and start_s == 2) or \
-        (sum(I0 == 0) < switch and start_s == 1)
+    condition = (sum(flight_indication == 1) == switch and start_s == 2) or \
+        (sum(flight_indication == 0) < switch and start_s == 1)
 
     if condition:
         weight = calculate_k1(
@@ -768,7 +774,7 @@ def forward_impute(
 def backward_impute(
     end_t: float, end_x: float, end_y: float,
     start_t: float, start_x: float, start_y: float,
-    bv_set: np.ndarray, switch: int, num: int, pars: list,
+    bv_subset: np.ndarray, switch: int, num: int, pars: list,
     flight_table: np.ndarray, linearity: float,
     mis_row: np.ndarray, pause_table: np.ndarray,
     imp_table: np.ndarray, end_s: int, method: str,
@@ -783,7 +789,7 @@ def backward_impute(
         end_x, end_y: float, end position
         start_t: float, start time
         start_x, start_y: float, start position
-        bv_set: np.ndarray, output from BV_select()
+        bv_subset: np.ndarray, output from BV_select()
         switch: int, the number of binary variables to be generated
         num: int, checks the top k similarities
         pars: list, the parameters that are required
@@ -807,13 +813,13 @@ def backward_impute(
         counter: updated counter
     """
 
-    I1 = indicate_flight(
+    flight_indication = indicate_flight(
         method, end_t, end_x, end_y, start_t, start_x,
-        start_y, bv_set, switch, num, pars
+        start_y, bv_subset, switch, num, pars
     )
 
-    condition = (sum(I1 == 1) == switch and end_s == 2) or \
-        (sum(I1 == 0) < switch and end_s == 1)
+    condition = (sum(flight_indication == 1) == switch and end_s == 2) or \
+        (sum(flight_indication == 0) < switch and end_s == 1)
 
     if condition:
         weight = calculate_k1(
@@ -929,7 +935,7 @@ def backward_impute(
 
 
 def impute_gps(
-    mob_mat: np.ndarray, bv_set: np.ndarray, method: str,
+    mob_mat: np.ndarray, bv_subset: np.ndarray, method: str,
     switch: int, num: int, linearity: float, tz_str: str,
     pars: list
 ) -> np.ndarray:
@@ -938,7 +944,7 @@ def impute_gps(
 
     Args:
         mob_mat: 2d np.ndarray, output from infer_mobmat()
-        bv_set: np.ndarray, output from BV_select()
+        bv_subset: np.ndarray, output from BV_select()
         method: str, the method to be used for calculation,
             should be either 'TL', 'GL', or 'GLC'
         switch: int, the number of binary variables to be generated
@@ -959,7 +965,7 @@ def impute_gps(
 
     # create three tables
     # for observed flights, observed pauses, and missing intervals
-    flight_table, pause_table, mis_table = create_tables(mob_mat, bv_set)
+    flight_table, pause_table, mis_table = create_tables(mob_mat, bv_subset)
 
     # initialize the imputed trajectory table
     imp_table = np.zeros((1, 7))
@@ -1003,20 +1009,14 @@ def impute_gps(
             mis_table[i, 0] == mis_table[i, 3]
             and mis_table[i, 1] == mis_table[i, 4]
         ):
-            imp_table = update_table(
-                imp_table,
-                [2, *mis_table[i, 0:6]],
-            )
+            imp_table = update_table(imp_table, [2, *mis_table[i, 0:6]])
         # if the distance difference is more than 300 km,
         # we assume the person takes a flight
         elif distance_difference > 300000:
             speed = distance_difference / time_difference
             # if the speed is more than 210 m/s, we assume it is a flight
             if speed > 210:
-                imp_table = update_table(
-                    imp_table,
-                    [1, *mis_table[i, 0:6]],
-                )
+                imp_table = update_table(imp_table, [1, *mis_table[i, 0:6]])
             else:
                 # if the speed is less than 210 m/s,
                 # generate a random speed between 244 and 258 m/s
@@ -1027,9 +1027,7 @@ def impute_gps(
                 # from the start time of the missing interval
                 # to the end time of the missing interval minus
                 # the time needed to travel the distance
-                t_s = np.random.uniform(
-                    low=mis_t0, high=mis_t1 - t_need
-                )
+                t_s = np.random.uniform(low=mis_t0, high=mis_t1 - t_need)
                 t_e = t_s + t_need
                 imp_table = update_table(
                     imp_table,
@@ -1063,14 +1061,9 @@ def impute_gps(
             # if the time needed to travel the distance
             # is less than the time difference,
             if t_need == time_difference:
-                imp_table = update_table(
-                    imp_table,
-                    [1, *mis_table[i, 0:6]],
-                )
+                imp_table = update_table(imp_table, [1, *mis_table[i, 0:6]])
             else:
-                t_s = np.random.uniform(
-                    low=mis_t0, high=mis_t1 - t_need
-                )
+                t_s = np.random.uniform(low=mis_t0, high=mis_t1 - t_need)
                 t_e = t_s + t_need
                 imp_table = update_table(
                     imp_table,
@@ -1159,7 +1152,8 @@ def impute_gps(
                     if direction == "forward":
                         imp_table, start, counter = forward_impute(
                             start_t, start_x, start_y, end_t, end_x, end_y,
-                            bv_set, switch, num, pars, flight_table, linearity,
+                            bv_subset, switch, num, pars,
+                            flight_table, linearity,
                             mis_table[i, :], pause_table, imp_table,
                             start_s, method, counter
                         )
@@ -1167,7 +1161,8 @@ def impute_gps(
                     elif direction == "backward":
                         imp_table, end, counter = backward_impute(
                             end_t, end_x, end_y, start_t, start_x, start_y,
-                            bv_set, switch, num, pars, flight_table, linearity,
+                            bv_subset, switch, num, pars,
+                            flight_table, linearity,
                             mis_table[i, :], pause_table, imp_table,
                             end_s, method, counter
                         )
