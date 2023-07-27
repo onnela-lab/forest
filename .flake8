@@ -1,5 +1,4 @@
 [flake8]
 exclude =
-    forest/jasmine/mobmat2traj.py,
     forest/jasmine/sogp_gps.py,
     forest/willow/log_stats.py

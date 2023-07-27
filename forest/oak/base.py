@@ -465,14 +465,13 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
         # get file list
         source_folder = os.path.join(study_folder, user, "accelerometer")
         file_list = os.listdir(source_folder)
+        file_list.sort()
 
         # transform all files in folder to datelike format
         if "+00_00.csv" in file_list[0]:
             file_dates = [file.replace("+00_00.csv", "") for file in file_list]
         else:
             file_dates = [file.replace(".csv", "") for file in file_list]
-
-        file_dates.sort()
 
         # process dates
         dates = [datetime.strptime(file, fmt) for file in file_dates]
