@@ -85,6 +85,8 @@ class OSMHandler(osmium.SimpleHandler):
         self.locations: List[List[List[float]]] = []
         self.bbox: Polygon = bbox
         self.osm_tags: List[str] = [t.value for t in osm_tags]
+        self.rough_bbox = box(*bbox.bounds) ## it's faster to evaluate whether
+        #a point is within a large rectangle containing our whole bbox
 
     def node(self, n):
         """Adds a node to the list of nodes if it is in the bounding box.
@@ -92,7 +94,7 @@ class OSMHandler(osmium.SimpleHandler):
         Args:
             n: osmium.osm.mutable.Node, node
         """
-        if self.bbox.contains(Point(n.location.lat, n.location.lon)):
+        if self.rough_bbox.contains(Point(n.location.lat, n.location.lon)) and self.bbox.contains(Point(n.location.lat, n.location.lon)):
             tags = {tag.k: tag.v for tag in n.tags}
             if self.check_tags(tags):
                 self.ids.append(n.id)
@@ -322,21 +324,14 @@ def get_nearby_locations_local(
     latitudes: List[float] = [pause_vec[0, 1]]
     longitudes: List[float] = [pause_vec[0, 2]]
     # initialize bounding box
-    bbox_tuple = bounding_box((latitudes[0], longitudes[0]), 1000)
+    bounding_box_size = 50
+    bbox_tuple = bounding_box((latitudes[0], longitudes[0]), bounding_box_size)
     bbox = box(*bbox_tuple)
     for row in pause_vec:
-        minimum_distance = np.min([
-            great_circle_dist(row[1], row[2], lat, lon)
-            for lat, lon in zip(latitudes, longitudes)
-            ])
-        # only add coordinates to the list if they are not too close
-        # with the other coordinates in the list
-        if minimum_distance > 1000:
-            latitudes.append(row[1])
-            longitudes.append(row[2])
-            # update bounding box with union of current and new bounding box
-            bbox_tuple = bounding_box((row[1], row[2]), 1000)
+        if not bbox.contains(Point(row[1], row[2])):
+            bbox_tuple = bounding_box((row[1], row[2]), bounding_box_size)
             bbox = bbox.union(box(*bbox_tuple))
+            
 
     sys.stdout.write("Loading osm file...\n")
     local_osm_handler = OSMHandler(bbox, osm_tags)
