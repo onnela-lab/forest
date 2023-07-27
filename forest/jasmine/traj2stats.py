@@ -322,20 +322,12 @@ def get_nearby_locations_local(
     latitudes: List[float] = [pause_vec[0, 1]]
     longitudes: List[float] = [pause_vec[0, 2]]
     # initialize bounding box
-    bbox_tuple = bounding_box((latitudes[0], longitudes[0]), 1000)
+    size_of_bounding_boxes = 100
+    bbox_tuple = bounding_box((latitudes[0], longitudes[0]), size_of_bounding_boxes)
     bbox = box(*bbox_tuple)
     for row in pause_vec:
-        minimum_distance = np.min([
-            great_circle_dist(row[1], row[2], lat, lon)
-            for lat, lon in zip(latitudes, longitudes)
-            ])
-        # only add coordinates to the list if they are not too close
-        # with the other coordinates in the list
-        if minimum_distance > 1000:
-            latitudes.append(row[1])
-            longitudes.append(row[2])
-            # update bounding box with union of current and new bounding box
-            bbox_tuple = bounding_box((row[1], row[2]), 1000)
+        if not bbox.contains(Point(row[1], row[2])):
+            bbox_tuple = bounding_box((row[1], row[2]), size_of_bounding_boxes)
             bbox = bbox.union(box(*bbox_tuple))
 
     sys.stdout.write("Loading osm file...\n")
