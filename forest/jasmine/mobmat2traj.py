@@ -599,7 +599,11 @@ def calculate_position(
 def update_table(
     imp_table: np.ndarray, list_elem: list
 ) -> np.ndarray:
-    return np.vstack((imp_table, np.array(list_elem)))
+    list_elem_array = np.array(list_elem)
+    if len(list_elem_array.shape) == 2 and list_elem_array.shape[1] != 7: ## The array is shaped backwards and can't be vertically concatenated
+        list_elem_array = np.transpose(list_elem_array)
+        
+    return np.vstack((imp_table, list_elem_array))
 
 
 def forward_impute(
