@@ -9,7 +9,7 @@ import numpy as np
 import scipy.stats as stat
 
 from ..poplar.legacy.common_funcs import stamp2datetime
-from .data2mobmat import great_circle_dist, great_circle_dist_vec, exist_knot
+from .data2mobmat import great_circle_dist, exist_knot
 
 
 # the details of the functions are in paper [Liu and Onnela (2020)]
