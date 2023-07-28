@@ -17,6 +17,7 @@ import requests
 from shapely.geometry import Point, box
 from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
+from shapely.wkb import loads as load_wkb
 
 from forest.bonsai.simulate_gps_data import bounding_box
 from forest.constants import Frequency, OSM_OVERPASS_URL, OSMTags
@@ -108,7 +109,7 @@ class OSMHandler(osmium.SimpleHandler):
             w: osmium.osm.mutable.Way, way
         """
         n = w.nodes[0]
-        if self.bbox.contains(Point(n.location.lat, n.location.lon)):
+        if self.rough_bbox.contains(Point(n.location.lat, n.location.lon)) and self.bbox.contains(Point(n.location.lat, n.location.lon)):
             tags = {tag.k: tag.v for tag in w.tags}
             if self.check_tags(tags):
                 self.ids.append(w.id)
@@ -295,6 +296,24 @@ def get_nearby_locations(
 
     return ids, locations, tags
 
+def get_states_dict(osm_local_file: str) -> Dict:
+    """Reads all .wkb files in the directory to get a dictionary with 
+    states as keys and values shapely geoms
+    Args: 
+        osm_local_file: A folder containing .wkb files with information for each state
+        
+    Returns:
+        A dict with a key for each state and values with shapely boundaries
+    
+    """
+    states_dict = {}
+    all_files = [file for file in os.listdir(osm_local_file) if file.endswith(".wkb")]
+    for file in all_files:
+        state = file.split("_")[-1].split(".")[0]
+        full_path = os.path.join(osm_local_file,  file)
+        with open(full_path, "rb") as file:
+            states_dict[state] = load_wkb(file.read())
+    return states_dict
 
 def get_nearby_locations_local(
     traj: np.ndarray, osm_local_file: str,
@@ -306,7 +325,7 @@ def get_nearby_locations_local(
 
     Args:
         traj: numpy array, trajectory
-        osm_local_file: str, path to local osm file
+        osm_local_folder: str, path to folder containing state osm files and state wkb files
         osm_tags: list of OSMTags (in constants),
             types of nearby locations supported by Overpass API
             defaults to [OSMTags.AMENITY, OSMTags.LEISURE]
@@ -324,27 +343,46 @@ def get_nearby_locations_local(
     latitudes: List[float] = [pause_vec[0, 1]]
     longitudes: List[float] = [pause_vec[0, 2]]
     # initialize bounding box
-    bounding_box_size = 50
-    bbox_tuple = bounding_box((latitudes[0], longitudes[0]), bounding_box_size)
-    bbox = box(*bbox_tuple)
-    for row in pause_vec:
-        if not bbox.contains(Point(row[1], row[2])):
-            bbox_tuple = bounding_box((row[1], row[2]), bounding_box_size)
-            bbox = bbox.union(box(*bbox_tuple))
-            
 
-    sys.stdout.write("Loading osm file...\n")
-    local_osm_handler = OSMHandler(bbox, osm_tags)
-    local_osm_handler.apply_file(osm_local_file)
+    all_states_ids = []
+    all_states_tags = []
+    all_states_locations = []   
+    
+    bounding_box_size = 500
+    state_shapes_dict = get_states_dict(osm_local_file)
+    for state in state_shapes_dict.keys():
+        state_points = []
+        for row in pause_vec:
+            if state_shapes_dict[state].contains(Point(row[2], row[1])):
+                ## Note: I'm putting the longitude here first because it expects things in x, y format. 
+                ## This is kind of o
+                state_points.append((row[1], row[2]))
+                ## Put these in lattitude, longitude format because bounding_box takes things in lattitude, longitude format
+        if len(state_points) > 0:
+            sys.stdout.write("Loading osm file for " + state + "...\n")
+            bbox_tuple = bounding_box((state_points[0][0], state_points[0][1]), bounding_box_size)
+            bbox = box(*bbox_tuple)
+            for idx, state_pause in enumerate(state_points):
+                if idx == 0: ## We already created the bounding box with the first one
+                    continue
+                if not bbox.contains(Point(state_pause[0], state_pause[1])):
+                    bbox_tuple = bounding_box((state_pause[0], state_pause[1]), bounding_box_size)
+                    bbox = bbox.union(box(*bbox_tuple))
+                    
+            state_osm_handler = OSMHandler(bbox, osm_tags)
+            state_osm_handler.apply_file(os.path.join(osm_local_file,  state + "-latest.osm.pbf"))
+            all_states_ids += state_osm_handler.ids
+            all_states_tags += state_osm_handler.tags
+            all_states_locations += state_osm_handler.locations
 
     ids: Dict[str, List[int]] = {}
     locations: Dict[int, List[List[float]]] = {}
     tags: Dict[int, Dict[str, str]] = {}
 
-    for idx, element_id in enumerate(local_osm_handler.ids):
+    for idx, element_id in enumerate(all_states_ids):
 
-        element_tags = local_osm_handler.tags[idx]
-        element_location = local_osm_handler.locations[idx]
+        element_tags = all_states_tags[idx]
+        element_location = all_states_locations[idx]
 
         for tag in osm_tags:
             if tag.value in element_tags:
@@ -399,7 +437,7 @@ def gps_summaries(
             visited and their tags
         osm_tags: list of tags to search for in openstreetmaps
             avoid using a lot of them if large area is covered
-        osm_local_file: str, path to local osm file
+        osm_local_file: str, path to folder containing state osm files and .wkb files
         threshold: int, time spent in a pause needs to exceed the threshold
             to be placed in the log
             only if save_osm_log True, in minutes
@@ -1116,7 +1154,7 @@ def gps_stats_main(
             visited and their tags
         osm_tags: list of tags to search for in openstreetmaps
             avoid using a lot of them if large area is covered
-        osm_local_file: str, path to a local osm file
+        osm_local_file: str, path to a folder containing state osm files and .wkb files
             if None, then uses API
         threshold: int, time spent in a pause needs to exceed the
             threshold to be placed in the log
@@ -1265,9 +1303,13 @@ def gps_stats_main(
                         osm_local_file
                     )
                 # check if the file is a valid osm file
-                if not osm_local_file.endswith(".pbf"):
+                if np.sum([1 for file in os.listdir(osm_local_file) if file.endswith(".pbf")]) == 0:
                     raise ValueError(
-                        "The file is not a valid osm file. (must be .pbf)"
+                        "The file is not a valid osm folder. (state osm files should end with .pbf)"
+                    )
+                if np.sum([1 for file in os.listdir(osm_local_file) if file.endswith(".wkb")]) == 0:
+                    raise ValueError(
+                        "The file is not a valid osm folder. (.wkb files need to be included)"
                     )
 
             if frequency == Frequency.HOURLY_AND_DAILY:
@@ -1336,3 +1378,4 @@ def gps_stats_main(
         else:
             sys.stdout.write("GPS data are not collected"
                              " or the data quality is too low\n")
+                             
