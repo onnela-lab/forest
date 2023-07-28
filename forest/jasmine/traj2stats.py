@@ -4,9 +4,9 @@ modules and calculate summary statistics of imputed trajectories.
 
 from dataclasses import dataclass
 import json
+import logging
 import os
 import pickle
-import sys
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -30,6 +30,8 @@ from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
                                                write_all_summaries)
 from forest.utils import get_ids
 
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class Hyperparameters:
@@ -182,11 +184,11 @@ def get_nearby_locations(
         requests.exceptions.HTTPError,
         requests.exceptions.ReadTimeout
     ) as err:
-        sys.stdout.write(f"Timeout error: {err}\n")
-        sys.stdout.write(
+        logger.error(f"Timeout error: {err}")
+        logger.error(
             "OpenStreetMap query is too large. "
             "Do not use save_osm_log or places_of_interest "
-            "unless you need them.\n"
+            "unless you need them."
         )
         raise RuntimeError(
             "Query to Overpass API failed to return data in alloted time"
@@ -298,7 +300,7 @@ def gps_summaries(
     saved_polygons: Dict[str, Polygon] = {}
     if frequency != Frequency.DAILY:
         # find starting and ending time
-        sys.stdout.write("Calculating the hourly summary stats...\n")
+        logger.info("Calculating the hourly summary stats...")
         time_list = stamp2datetime(traj[0, 3], tz_str)
         time_list[4:6] = [0, 0]
         start_stamp = datetime2stamp(time_list, tz_str)
@@ -311,7 +313,7 @@ def gps_summaries(
         no_windows = (end_stamp - start_stamp) // window
     else:
         # find starting and ending time
-        sys.stdout.write("Calculating the daily summary stats...\n")
+        logger.info("Calculating the daily summary stats...")
         time_list = stamp2datetime(traj[0, 3], tz_str)
         time_list[3:6] = [0, 0, 0]
         start_stamp = datetime2stamp(time_list, tz_str)
@@ -581,10 +583,9 @@ def gps_summaries(
                 if save_osm_log:
                     if threshold is None:
                         threshold = 60
-                        sys.stdout.write(
+                        logger.info(
                             "threshold parameter set to None,"
-                            + " automatically converted to 60min."
-                            + "\n"
+                            " automatically converted to 60min."
                         )
                     if pause[2] >= threshold:
                         for place_id, place_coordinates in locations.items():
@@ -1042,18 +1043,18 @@ def gps_stats_main(
         os.makedirs(f"{output_folder}/trajectory", exist_ok=True)
 
     for participant_id in participant_ids:
-        sys.stdout.write(f"User: {participant_id}\n")
+        logger.info(f"User: {participant_id}")
         # data quality check
         quality = gps_quality_check(study_folder, participant_id)
         if quality > quality_threshold:
             # read data
-            sys.stdout.write("Read in the csv files ...\n")
+            logger.info("Read in the csv files ...")
             data, _, _ = read_data(
                 participant_id, study_folder, "gps",
                 tz_str, time_start, time_end,
             )
             if data.shape == (0, 0):
-                sys.stdout.write("No data available.\n")
+                logger.info("No data available.")
                 continue
             if parameters.r is None:
                 params_r = float(parameters.itrvl)
@@ -1091,7 +1092,7 @@ def gps_stats_main(
                     parameters.linearity, tz_str, pars1
                 )
             except RuntimeError as e:
-                sys.stderr.write(f"Error: {e}\n")
+                logger.error(f"Error: {e}")
                 continue
             traj = imp_to_traj(imp_table, mobmat2, params_w)
             # save all_memory_dict and all_bv_set
@@ -1168,5 +1169,7 @@ def gps_stats_main(
                     ) as loc:
                         json.dump(logs, loc, indent=4)
         else:
-            sys.stdout.write("GPS data are not collected"
-                             " or the data quality is too low\n")
+            logger.info(
+                "GPS data are not collected"
+                " or the data quality is too low"
+            )

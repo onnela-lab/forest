@@ -1,7 +1,7 @@
 """This module contains functions to convert raw GPS data to mobility matrix
 """
 
-import sys
+import logging
 import math
 from typing import Tuple, Union, Optional, List
 from itertools import groupby
@@ -14,6 +14,8 @@ R = 6.371 * 10 ** 6
 # a threshold
 TOLERANCE = 1e-6
 
+
+logger = logging.getLogger(__name__)
 
 def cartesian(
     lat: Union[float, np.ndarray], lon: Union[float, np.ndarray]
@@ -183,8 +185,8 @@ def collapse_data(
     # Initialize an empty 2D numpy array for the collapsed data
     avgmat = np.empty([int(np.ceil((t_end - t_start) / interval)) + 2, 4])
 
-    sys.stdout.write(
-        f"Collapse data within {interval} second intervals ...\n"
+    logger.info(
+        f"Collapse data within {interval} second intervals ..."
     )
 
     idx_avgmat: int = 0
@@ -584,7 +586,7 @@ def gps_to_mobmat(
     avgmat = collapse_data(raw_gps_data, interval, accuracy_limit)
     trajectory_matrix = np.zeros(7)
     current_index = 0
-    sys.stdout.write("Extract flights and pauses ...\n")
+    logger.info("Extract flights and pauses ...")
 
     for i in range(avgmat.shape[0]):
         # if the status of the data is 4 (missing data)
@@ -952,7 +954,7 @@ def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
     Returns:
         a 2d numpy array as a final trajectory matrix
     """
-    sys.stdout.write("Infer unclassified windows ...\n")
+    logger.info("Infer unclassified windows ...")
 
     # Infer unknown status
     # The 'unknown' status (code 3)
@@ -963,7 +965,7 @@ def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
             mobmat = infer_status_and_positions(i, mobmat, interval, r)
 
     # merge consecutive pauses
-    sys.stdout.write("Merge consecutive pauses and bridge gaps ...\n")
+    logger.info("Merge consecutive pauses and bridge gaps ...")
     mobmat = merge_pauses_and_bridge_gaps(mobmat)
 
     # check for missing intervals and correct them
