@@ -31,7 +31,9 @@ from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
 from forest.utils import get_ids
 
 
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
+
 
 @dataclass
 class Hyperparameters:

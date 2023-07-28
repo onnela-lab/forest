@@ -3,7 +3,8 @@ import math
 import numpy as np
 
 
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 ## the radius of the earth
 R = 6.371*10**6

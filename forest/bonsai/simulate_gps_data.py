@@ -28,7 +28,9 @@ ACTIVE_STATUS_LIST = range(11)
 TRAVELLING_STATUS_LIST = range(11)
 
 
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
+
 
 class PossibleExits(Enum):
     """This class enumerates possible exits for attributes"""

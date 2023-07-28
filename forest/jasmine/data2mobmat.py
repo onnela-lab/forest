@@ -15,7 +15,9 @@ R = 6.371 * 10 ** 6
 TOLERANCE = 1e-6
 
 
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
+
 
 def cartesian(
     lat: Union[float, np.ndarray], lon: Union[float, np.ndarray]
