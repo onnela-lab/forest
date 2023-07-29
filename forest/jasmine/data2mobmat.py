@@ -188,7 +188,7 @@ def collapse_data(
     avgmat = np.empty([int(np.ceil((t_end - t_start) / interval)) + 2, 4])
 
     logger.info(
-        f"Collapse data within {interval} second intervals ..."
+        "Collapse data within %s second intervals ...", interval
     )
 
     idx_avgmat: int = 0

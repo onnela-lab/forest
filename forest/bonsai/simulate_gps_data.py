@@ -1332,8 +1332,7 @@ def sim_gps_data(
     try:
         location_ctr, location_city = location.split("/")
     except ValueError:
-        logger.error("Location provided did not have the correct format.")
-        raise
+        raise ValueError("Location provided did not have the correct format.")
 
     nodes = generate_addresses(location_ctr, location_city)
 
@@ -1343,8 +1342,7 @@ def sim_gps_data(
     obj = TimezoneFinder()
     tz_str = obj.timezone_at(lng=location_coords[1], lat=location_coords[0])
     if tz_str is None:
-        logger.error("Could not find timezone of city.")
-        raise ValueError
+        raise ValueError("Could not find timezone of city.")
 
     no_of_days = (end_date - start_date).days
 
@@ -1390,9 +1388,10 @@ def sim_gps_data(
         all_distances_array = np.array(all_distances) / 1000
         all_times_array = np.array(all_times) / 3600
 
-        logger.info(f"User_{user + 1}")
-        logger.info(f"	distance(km): {all_distances_array.tolist()}")
-        logger.info(f"	hometime(hr): {all_times_array.tolist()}")
+        logger.info(
+            "User_%s  distance(km): %s  hometime(hr): %s",
+            user + 1, all_distances_array.tolist(), all_times_array.tolist()
+        )
         obs = remove_data(all_traj, cycle, percentage, no_of_days)
         obs_pd = prepare_data(obs, int(timestamp_s / 1000), tz_str)
         obs_pd['user'] = user + 1
@@ -1423,8 +1422,7 @@ def gps_to_csv(data: pd.DataFrame, path: str, start_date: datetime.date,
     obj = TimezoneFinder()
     tz_str = obj.timezone_at(lng=location_coords[1], lat=location_coords[0])
     if tz_str is None:
-        logger.error("Could not find timezone of city.")
-        raise ValueError
+        raise ValueError("Could not find timezone of city.")
 
     s = datetime2stamp(
         [start_date.year, start_date.month, start_date.day, 0, 0, 0],

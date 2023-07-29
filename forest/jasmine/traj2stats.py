@@ -186,13 +186,11 @@ def get_nearby_locations(
         requests.exceptions.HTTPError,
         requests.exceptions.ReadTimeout
     ) as err:
-        logger.error(f"Timeout error: {err}")
-        logger.error(
+        raise RuntimeError(
+            f"Timeout error: {err} \n"
             "OpenStreetMap query is too large. "
             "Do not use save_osm_log or places_of_interest "
-            "unless you need them."
-        )
-        raise RuntimeError(
+            "unless you need them. \n"
             "Query to Overpass API failed to return data in alloted time"
         )
 
