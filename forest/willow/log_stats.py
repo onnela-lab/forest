@@ -3,6 +3,7 @@ communication logs.
 """
 import logging
 import os
+from typing import List, Optional
 
 import pandas as pd
 import numpy as np
@@ -20,7 +21,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
 
-def text_analysis(df_text, stamp, step_size, frequency):
+def text_analysis(
+    df_text: pd.DataFrame, stamp: int, step_size: int, frequency: Frequency
+) -> tuple:
     """Calculate the summary statistics for the text data
     in the given time interval.
 
@@ -136,7 +139,7 @@ def text_analysis(df_text, stamp, step_size, frequency):
     )
 
 
-def call_analysis(df_call, stamp, step_size):
+def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
     """Calculate the summary statistics for the call data
     in the given time interval.
 
@@ -223,8 +226,9 @@ def call_analysis(df_call, stamp, step_size):
 
 
 def comm_logs_summaries(
-    df_text, df_call, stamp_start, stamp_end, tz_str, frequency
-):
+    df_text: pd.DataFrame, df_call: pd.DataFrame, stamp_start: int,
+    stamp_end: int, tz_str: str, frequency: Frequency
+) -> pd.DataFrame:
     """Calculate the summary statistics for the communication logs.
 
     Args:
@@ -298,7 +302,7 @@ def comm_logs_summaries(
             newline = (
                 [year, month, day]
                 + newline
-                + text_stats[8:10]
+                + [*text_stats[8:10]]
             )
         else:
             newline = [year, month, day, hour] + newline
@@ -346,9 +350,9 @@ def log_stats_main(
     output_folder: str,
     tz_str: str,
     frequency: Frequency,
-    time_start=None,
-    time_end=None,
-    beiwe_id=None,
+    time_start: Optional[List] = None,
+    time_end: Optional[List] = None,
+    beiwe_id: Optional[List[str]] = None,
 ) -> None:
     """Main function for calculating the summary statistics for the
     communication logs.
