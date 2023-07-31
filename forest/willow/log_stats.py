@@ -294,14 +294,16 @@ def comm_logs_summaries(
         if df_call.shape[0] > 0:
             call_stats = call_analysis(df_call, stamp, step_size)
             newline += list(call_stats)
+        else:
+            newline += [pd.NA] * 8
 
         if df_text.shape[0] > 0:
             text_stats = text_analysis(
                 df_text, stamp, step_size, frequency
             )
-            newline += list(text_stats[0:8])
-            if frequency == Frequency.DAILY:
-                newline += list(text_stats[8:10])
+            newline += list(text_stats)
+        else:
+            newline += [pd.NA] * 10
 
         if frequency == Frequency.DAILY:
             newline = (
@@ -309,7 +311,7 @@ def comm_logs_summaries(
                 + newline
             )
         else:
-            newline = [year, month, day, hour] + newline
+            newline = [year, month, day, hour] + newline[:16]
 
         summary_stats.append(newline)
 
