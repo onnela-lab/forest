@@ -1043,7 +1043,7 @@ def gps_stats_main(
         os.makedirs(f"{output_folder}/trajectory", exist_ok=True)
 
     for participant_id in participant_ids:
-        logger.info(f"User: {participant_id}")
+        logger.info("User: %s", participant_id)
         # data quality check
         quality = gps_quality_check(study_folder, participant_id)
         if quality > quality_threshold:
@@ -1092,7 +1092,7 @@ def gps_stats_main(
                     parameters.linearity, tz_str, pars1
                 )
             except RuntimeError as e:
-                logger.error(f"Error: {e}")
+                logger.error("Error: %s", e)
                 continue
             traj = imp_to_traj(imp_table, mobmat2, params_w)
             # save all_memory_dict and all_bv_set
