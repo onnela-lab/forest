@@ -474,11 +474,12 @@ def pruning_bv(
         )
     loc = np.where(eps == np.min(eps))[0][0]
     del bv[loc]
+    index: np.ndarray
     if loc == 0:
-        index = np.concatenate((np.arange(1, d + 1), [0]))
+        index = np.concatenate((np.arange(1, d + 1), np.array([0])))
     else:
         index = np.concatenate(
-            (np.arange(0, loc), np.arange(loc + 1, d + 1), [loc])
+            (np.arange(0, loc), np.arange(loc + 1, d + 1), np.array([loc]))
         )
     alpha = update_alpha_vec(
         alpha[index], (Q[index, :])[:, index], (C[index, :])[:, index]
