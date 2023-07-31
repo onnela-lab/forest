@@ -6,7 +6,10 @@ import numpy as np
 
 from forest.constants import Frequency
 from forest.poplar.legacy.common_funcs import (
-    read_data, write_all_summaries, datetime2stamp, stamp2datetime
+    read_data,
+    write_all_summaries,
+    datetime2stamp,
+    stamp2datetime,
 )
 
 
@@ -99,9 +102,9 @@ def comm_logs_summaries(
             num_s_tel = len(send_to_number)
             num_r_tel = len(receive_from_number)
             index_mms_s = np.array(temp_text["sent vs received"]) == "sent MMS"
-            index_mms_r = (
-                np.array(temp_text["sent vs received"]) == "received MMS"
-            )
+            index_mms_r = np.array(
+                temp_text["sent vs received"]
+            ) == "received MMS"
             num_s = sum(index_s.astype(int))
             num_r = sum(index_r.astype(int))
             num_mms_s = sum(index_mms_s.astype(int))
@@ -122,13 +125,13 @@ def comm_logs_summaries(
                 text_reciprocity_outgoing = 0
                 for tel in received_no_response:
                     text_reciprocity_incoming += sum(
-                        index_r *
-                        (np.array(temp_text["hashed phone number"]) == tel)
+                        index_r
+                        * (np.array(temp_text["hashed phone number"]) == tel)
                     )
                 for tel in sent_no_response:
                     text_reciprocity_outgoing += sum(
-                        index_s *
-                        (np.array(temp_text["hashed phone number"]) == tel)
+                        index_s
+                        * (np.array(temp_text["hashed phone number"]) == tel)
                     )
 
         if df_call.shape[0] > 0:
@@ -139,11 +142,15 @@ def comm_logs_summaries(
             dur_in_sec = np.array(temp_call["duration in seconds"])
             dur_in_sec[np.isnan(dur_in_sec)] = 0
             dur_in_min = dur_in_sec / 60
-            index_in_call = np.array(temp_call["call type"]) == "Incoming Call"
-            index_out_call = (
-                np.array(temp_call["call type"]) == "Outgoing Call"
-            )
-            index_mis_call = np.array(temp_call["call type"]) == "Missed Call"
+            index_in_call = np.array(
+                temp_call["call type"]
+            ) == "Incoming Call"
+            index_out_call = np.array(
+                temp_call["call type"]
+            ) == "Outgoing Call"
+            index_mis_call = np.array(
+                temp_call["call type"]
+            ) == "Missed Call"
             num_in_call = sum(index_in_call)
             num_out_call = sum(index_out_call)
             num_mis_call = sum(index_mis_call)
@@ -183,10 +190,14 @@ def comm_logs_summaries(
             total_char_r,
         ]
         if frequency == Frequency.DAILY:
-            newline = [year, month, day] + newline + [
-                text_reciprocity_incoming,
-                text_reciprocity_outgoing,
-            ]
+            newline = (
+                [year, month, day]
+                + newline
+                + [
+                    text_reciprocity_incoming,
+                    text_reciprocity_outgoing,
+                ]
+            )
         else:
             newline = [year, month, day, hour] + newline
         summary_stats.append(newline)
@@ -211,10 +222,12 @@ def comm_logs_summaries(
     if frequency == Frequency.DAILY:
         return pd.DataFrame(
             summary_stats,
-            columns=["year", "month", "day"] + columns + [
+            columns=["year", "month", "day"]
+            + columns
+            + [
                 "text_reciprocity_incoming",
                 "text_reciprocity_outgoing",
-                ],
+            ],
         )
     else:
         return pd.DataFrame(
@@ -302,8 +315,8 @@ def log_stats_main(
                     sys.stdout.write(
                         "Summary statistics obtained. Finished.\n"
                     )
-            except:
+            except Exception as e:
                 sys.stdout.write(
-                    "An error occured when processing the data.\n"
+                    f"An error occured when processing the data.: {e}\n"
                 )
                 pass
