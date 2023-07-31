@@ -1,5 +1,5 @@
+import logging
 import os
-import sys
 
 import pandas as pd
 import numpy as np
@@ -11,6 +11,10 @@ from forest.poplar.legacy.common_funcs import (
     datetime2stamp,
     stamp2datetime,
 )
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 
 def comm_logs_summaries(
@@ -264,7 +268,7 @@ def log_stats_main(
 
     if len(beiwe_id) > 0:
         for ID in beiwe_id:
-            sys.stdout.write("User: " + ID + "\n")
+            logger.info("User: %s", ID)
             try:
                 # read data
                 text_data, text_stamp_start, text_stamp_end = read_data(
@@ -275,7 +279,7 @@ def log_stats_main(
                 )
                 if text_data.shape[0] > 0 or call_data.shape[0] > 0:
                     # stamps from call and text should be the stamp_end
-                    sys.stdout.write("Data imported ..." + "\n")
+                    logger.info("Data imported ...")
                     stamp_start = min(text_stamp_start, call_stamp_start)
                     stamp_end = max(text_stamp_end, call_stamp_end)
                     # process data
@@ -312,11 +316,11 @@ def log_stats_main(
                             frequency,
                         )
                         write_all_summaries(ID, stats_pdframe, output_folder)
-                    sys.stdout.write(
-                        "Summary statistics obtained. Finished.\n"
+                    logger.info(
+                        "Summary statistics obtained. Finished."
                     )
             except Exception as e:
-                sys.stdout.write(
-                    f"An error occured when processing the data.: {e}\n"
+                logger.error(
+                    f"An error occured when processing the data.: {e}"
                 )
                 pass
