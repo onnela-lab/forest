@@ -22,7 +22,7 @@ from forest.constants import Frequency, OSM_OVERPASS_URL, OSMTags
 from forest.jasmine.data2mobmat import (gps_to_mobmat, infer_mobmat,
                                         great_circle_dist,
                                         pairwise_great_circle_dist)
-from forest.jasmine.mobmat2traj import (Imp2traj, ImputeGPS, locate_home,
+from forest.jasmine.mobmat2traj import (imp_to_traj, impute_gps, locate_home,
                                         num_sig_places)
 from forest.jasmine.sogp_gps import bv_select
 from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
@@ -42,8 +42,8 @@ class Hyperparameters:
         l1, l2, l3, a1, a2, b1, b2, b3, sigma2, tol, d: hyperparameters
             for the bv_select function.
         l1, l2, a1, a2, b1, b2, b3, g, method, switch, num, linearity:
-            hyperparameters for the ImputeGPS function.
-        itrvl, r, w, h: hyperparameters for the Imp2traj function.
+            hyperparameters for the impute_gps function.
+        itrvl, r, w, h: hyperparameters for the imp_to_traj function.
     """
     l1: int = 60 * 60 * 24 * 10
     l2: int = 60 * 60 * 24 * 30
@@ -243,7 +243,7 @@ def gps_summaries(
     ["obs_day","obs_night","radius","diameter","num_sig_places","entropy"]
 
     Args:
-        traj: 2d array, output from Imp2traj(), which is a n by 8 mat,
+        traj: 2d array, output from imp_to_traj(), which is a n by 8 mat,
             with headers as [s,x0,y0,t0,x1,y1,t1,obs]
             where s means status (1 as flight and 0 as pause),
             x0,y0,t0: starting lat,lon,timestamp,
@@ -1085,7 +1085,7 @@ def gps_stats_main(
             all_bv_set[str(participant_id)] = bv_set = out_dict["BV_set"]
             all_memory_dict[str(participant_id)] = out_dict["memory_dict"]
             try:
-                imp_table = ImputeGPS(
+                imp_table = impute_gps(
                     mobmat2, bv_set, parameters.method,
                     parameters.switch, parameters.num,
                     parameters.linearity, tz_str, pars1
@@ -1093,8 +1093,7 @@ def gps_stats_main(
             except RuntimeError as e:
                 sys.stderr.write(f"Error: {e}\n")
                 continue
-            traj = Imp2traj(imp_table, mobmat2, parameters.itrvl,
-                            params_r, params_w, params_h)
+            traj = imp_to_traj(imp_table, mobmat2, params_w)
             # save all_memory_dict and all_bv_set
             with open(f"{output_folder}/all_memory_dict.pkl", "wb") as f:
                 pickle.dump(all_memory_dict, f)
