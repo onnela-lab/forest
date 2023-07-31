@@ -40,7 +40,7 @@ class Hyperparameters:
             gps_to_mobmat function.
         itrvl, r: hyperparameters for the infer_mobmat function.
         l1, l2, l3, a1, a2, b1, b2, b3, sigma2, tol, d: hyperparameters
-            for the BV_select function.
+            for the bv_select function.
         l1, l2, a1, a2, b1, b2, b3, g, method, switch, num, linearity:
             hyperparameters for the ImputeGPS function.
         itrvl, r, w, h: hyperparameters for the Imp2traj function.
@@ -1073,7 +1073,7 @@ def gps_stats_main(
                 params_r, params_w, params_h
             )
             mobmat2 = infer_mobmat(mobmat1, parameters.itrvl, params_r)
-            out_dict = BV_select(
+            out_dict = bv_select(
                 mobmat2,
                 parameters.sigma2,
                 parameters.tol,
