@@ -102,6 +102,9 @@ def text_analysis(
     total_char_s = sum(message_lenths[index_s])
     total_char_r = sum(message_lenths[index_r])
 
+    text_reciprocity_incoming = None
+    text_reciprocity_outgoing = None
+
     if frequency == Frequency.DAILY:
         # find the phone number in sent_from, but not in send_to
         received_no_response = [
@@ -286,23 +289,24 @@ def comm_logs_summaries(
     for stamp in np.arange(table_start, table_end + 1, step=step_size):
         year, month, day, hour, _, _ = stamp2datetime(stamp, tz_str)
         # initialize the summary statistics
-        newline = [pd.NA] * 18
+        newline = []
+
+        if df_call.shape[0] > 0:
+            call_stats = call_analysis(df_call, stamp, step_size)
+            newline += list(call_stats)
 
         if df_text.shape[0] > 0:
             text_stats = text_analysis(
                 df_text, stamp, step_size, frequency
             )
-            newline[8:16] = text_stats[0:8]
-
-        if df_call.shape[0] > 0:
-            call_stats = call_analysis(df_call, stamp, step_size)
-            newline[0:8] = call_stats
+            newline += list(text_stats[0:8])
+            if frequency == Frequency.DAILY:
+                newline += list(text_stats[8:10])
 
         if frequency == Frequency.DAILY:
             newline = (
                 [year, month, day]
                 + newline
-                + [*text_stats[8:10]]
             )
         else:
             newline = [year, month, day, hour] + newline
