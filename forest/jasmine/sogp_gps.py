@@ -7,13 +7,14 @@
     The algorithm is used to select basis vectors from GPS data,
     and the selected basis vectors are used to construct the mobility matrix.
 """
-import sys
 import math
+import sys
+from typing import Dict, Tuple
 
 import numpy as np
 
 
-def calculate_K0(x1, x2, pars):
+def calculate_K0(x1: np.ndarray, x2: np.ndarray, pars: list) -> float:
     """This function calculates the similarity between two points
 
     Args:
@@ -34,7 +35,7 @@ def calculate_K0(x1, x2, pars):
     return b1 * k1 + b2 * k2 + b3 * k3
 
 
-def update_K(bv, K, pars):
+def update_K(bv: list, K: np.ndarray, pars: list) -> np.ndarray:
     """Update the similarity matrix between basis vectors.
 
     Args:
@@ -59,7 +60,7 @@ def update_K(bv, K, pars):
     return np.hstack([np.vstack([K, row]), column])
 
 
-def update_k(bv, x1, pars):
+def update_k(bv: list, x1: np.ndarray, pars: list) -> np.ndarray:
     """
     Compute the similarity vector between
         the current input and all basis vectors.
@@ -86,7 +87,7 @@ def update_k(bv, x1, pars):
     return out
 
 
-def update_e_hat(Q, k):
+def update_e_hat(Q: np.ndarray, k: np.ndarray) -> np.ndarray:
     """
     Update the estimated vector e_hat.
 
@@ -103,7 +104,7 @@ def update_e_hat(Q, k):
     return np.dot(Q, k)
 
 
-def update_gamma(k, e_hat):
+def update_gamma(k: np.ndarray, e_hat: np.ndarray) -> float:
     """
     Update the scalar gamma.
 
@@ -117,7 +118,9 @@ def update_gamma(k, e_hat):
     return 1 - np.dot(k, e_hat)
 
 
-def update_q(k, alpha, sigmax, y_current):
+def update_q(
+    k: np.ndarray, alpha: np.ndarray, sigmax: float, y_current: float
+) -> float:
     """
     Update the scalar q.
 
@@ -136,7 +139,9 @@ def update_q(k, alpha, sigmax, y_current):
     return (y_current - np.dot(k, alpha)) / sigmax
 
 
-def update_s_hat(C, k, e_hat):
+def update_s_hat(
+    C: np.ndarray, k: np.ndarray, e_hat: np.ndarray
+) -> np.ndarray:
     """
     Update the s_hat vector.
 
@@ -151,7 +156,7 @@ def update_s_hat(C, k, e_hat):
     return np.dot(C, k) + e_hat
 
 
-def update_eta(gamma, sigmax):
+def update_eta(gamma: float, sigmax: float) -> float:
     """
     Update the scalar eta.
 
@@ -166,14 +171,16 @@ def update_eta(gamma, sigmax):
     return 1 / (1 + gamma * r)
 
 
-def update_alpha_hat(alpha, q, eta, s_hat):
+def update_alpha_hat(
+    alpha: np.ndarray, q: float, eta: float, s_hat: np.ndarray
+) -> np.ndarray:
     """
     Update the alpha_hat vector.
 
     Args:
+        alpha: np.ndarray, a 1D array.
         q: float, a scalar.
         eta: float, a scalar.
-        alpha: np.ndarray, a 1D array.
         s_hat: np.ndarray, a 1D array.
 
     Returns:
@@ -182,14 +189,16 @@ def update_alpha_hat(alpha, q, eta, s_hat):
     return alpha + q * eta * s_hat
 
 
-def update_c_hat(C, sigmax, eta, s_hat):
+def update_c_hat(
+    C: np.ndarray, sigmax: float, eta: float, s_hat: np.ndarray
+) -> np.ndarray:
     """
     Update the c_hat matrix.
 
     Args:
+        C: np.ndarray, a 2D array.
         sigmax: float, a scalar.
         eta: float, a scalar.
-        C: np.ndarray, a 2D array.
         s_hat: np.ndarray, a 1D array.
 
     Returns:
@@ -199,7 +208,7 @@ def update_c_hat(C, sigmax, eta, s_hat):
     return C + r * eta * np.outer(s_hat, s_hat)
 
 
-def update_s(C, k):
+def update_s(C: np.ndarray, k: np.ndarray) -> np.ndarray:
     """
     Update the s vector.
 
@@ -217,7 +226,7 @@ def update_s(C, k):
     return np.append(temp, 1)
 
 
-def update_alpha(alpha, q, s):
+def update_alpha(alpha: np.ndarray, q: float, s: np.ndarray) -> np.ndarray:
     """
     Update the alpha vector.
 
@@ -234,7 +243,7 @@ def update_alpha(alpha, q, s):
     return new_alpha
 
 
-def update_c(C, sigmax, s):
+def update_c(C: np.ndarray, sigmax: float, s: np.ndarray) -> np.ndarray:
     """
     Update the C matrix.
 
@@ -256,7 +265,7 @@ def update_c(C, sigmax, s):
     return new_c
 
 
-def update_Q(Q, gamma, e_hat):
+def update_Q(Q: np.ndarray, gamma: float, e_hat: np.ndarray) -> np.ndarray:
     """
     Update the Q matrix.
 
@@ -277,7 +286,9 @@ def update_Q(Q, gamma, e_hat):
     return new_Q + 1 / gamma * np.outer(temp, temp)
 
 
-def update_alpha_vec(alpha, Q, C):
+def update_alpha_vec(
+    alpha: np.ndarray, Q: np.ndarray, C: np.ndarray
+) -> np.ndarray:
     """
     Update the alpha vector.
 
@@ -293,13 +304,13 @@ def update_alpha_vec(alpha, Q, C):
     return alpha[:t] - alpha[t] / (C[t, t] + Q[t, t]) * (Q[t, :t] + C[t, :t])
 
 
-def update_c_mat(C, Q):
+def update_c_mat(C: np.ndarray, Q: np.ndarray) -> np.ndarray:
     """
     Update the C matrix.
 
     Args:
-        Q: np.ndarray, a 2D array.
         C: np.ndarray, a 2D array.
+        Q: np.ndarray, a 2D array.
 
     Returns:
         np.ndarray, updated 2D array C.
@@ -314,7 +325,7 @@ def update_c_mat(C, Q):
     )
 
 
-def update_q_mat(Q):
+def update_q_mat(Q: np.ndarray) -> np.ndarray:
     """
     Update the Q matrix.
 
@@ -328,7 +339,9 @@ def update_q_mat(Q):
     return Q[:t, :t] - np.outer(Q[t, :t], Q[t, :t]) / Q[t, t]
 
 
-def update_s_mat(k_mat, s_mat, index, Q):
+def update_s_mat(
+    k_mat: np.ndarray, s_mat: np.ndarray, index: np.ndarray, Q: np.ndarray
+) -> np.ndarray:
     """
     Update the s matrix.
 
@@ -349,7 +362,7 @@ def update_s_mat(k_mat, s_mat, index, Q):
     return step3
 
 
-def calculate_sigma_max(C, k, sigma2):
+def calculate_sigma_max(C: np.ndarray, k: np.ndarray, sigma2: float) -> float:
     """Calculate sigma max.
 
     Args:
@@ -366,7 +379,10 @@ def calculate_sigma_max(C, k, sigma2):
         return 1 + sigma2 + k.dot(C).dot(k)
 
 
-def update_system_given_gamma_tol(C, Q, alpha, k, q, gamma, sigmax):
+def update_system_given_gamma_tol(
+    C: np.ndarray, Q: np.ndarray, alpha: np.ndarray,
+    k: np.ndarray, q: float, gamma: float, sigmax: float
+) -> Tuple[np.ndarray, np.ndarray]:
     """Update system when gamma is less than tolerance.
 
     Args:
@@ -390,7 +406,10 @@ def update_system_given_gamma_tol(C, Q, alpha, k, q, gamma, sigmax):
     return alpha, C
 
 
-def update_system_otherwise(C, Q, alpha, k, q, sigmax, gamma, e_hat):
+def update_system_otherwise(
+    C: np.ndarray, Q: np.ndarray, alpha: np.ndarray, k: np.ndarray,
+    q: float, sigmax: float, gamma: float, e_hat: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Update system when gamma is greater or equal to tolerance.
 
     Args:
@@ -415,7 +434,10 @@ def update_system_otherwise(C, Q, alpha, k, q, sigmax, gamma, e_hat):
     return alpha, C, Q
 
 
-def pruning_bv(bv, alpha, Q, C, S, K, sigma2, d, pars):
+def pruning_bv(
+    bv: list, alpha: np.ndarray, Q: np.ndarray, C: np.ndarray,
+    S: np.ndarray, K: np.ndarray, sigma2: float, d: int, pars: list
+) -> Tuple[list, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Prune the basis vectors.
 
     Args:
@@ -470,7 +492,18 @@ def pruning_bv(bv, alpha, Q, C, S, K, sigma2, d, pars):
     return bv, alpha, Q, C, S, K
 
 
-def SOGP(X, Y, sigma2, tol, d, pars, Q, C, alpha, bv):
+def SOGP(
+    X: np.ndarray,
+    Y: np.ndarray,
+    sigma2: float,
+    tol: float,
+    d: int,
+    pars: list,
+    Q: np.ndarray,
+    C: np.ndarray,
+    alpha: np.ndarray,
+    bv: list,
+) -> Dict:
     """This is the key function of sparse online gaussian process
     (1) If it is the first time to process the data,
          Q,C,alpha,bv should be empty,
@@ -557,7 +590,15 @@ def SOGP(X, Y, sigma2, tol, d, pars, Q, C, alpha, bv):
     return {"bv": bv, "alpha": alpha, "Q": Q, "C": C}
 
 
-def bv_select(MobMat, sigma2, tol, d, pars, memory_dict, bv_set):
+def bv_select(
+    MobMat: np.ndarray,
+    sigma2: float,
+    tol: float,
+    d: int,
+    pars: list,
+    memory_dict: dict,
+    bv_set: np.ndarray,
+) -> Dict:
     """This function is an application of SOGP() on GPS data.
      We first treat latitude as Y,
      [longitude,timestamp] as X, then we treat longitude as Y
@@ -678,9 +719,9 @@ def bv_select(MobMat, sigma2, tol, d, pars, memory_dict, bv_set):
     for j, time in enumerate(all_t):
         if np.any(unique_t == time):
             index.append(j)
-    index = np.array(index)
+    index_arr = np.array(index)
 
-    bv_set = all_candidates[index, :]
+    bv_set = all_candidates[index_arr, :]
     memory_dict["1"] = result1
     memory_dict["2"] = result2
     memory_dict["3"] = result3
