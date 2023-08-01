@@ -52,7 +52,10 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
         Tuple of ndarrays with interpolated acceleration in x, y, and z axes,
         as well as their vector magnitude
     """
-    t_bout_interp = np.arange(t_bout[0], t_bout[-1], (1/fs))
+    t1 = t_bout[0]
+    t_bout_interp = t_bout - t1
+    t_bout_interp = np.arange(t_bout_interp[0], t_bout_interp[-1], (1/fs))
+    t_bout_interp = t_bout_interp + t1
 
     f = interpolate.interp1d(t_bout, x_bout)
     x_bout_interp = f(t_bout_interp)
