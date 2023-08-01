@@ -9,7 +9,6 @@
 """
 import logging
 import math
-import sys
 from typing import Dict, Tuple
 
 import numpy as np
@@ -18,8 +17,9 @@ import numpy as np
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
-## the radius of the earth
+# the radius of the earth
 R = 6.371*10**6
+
 
 def calculate_K0(x1: np.ndarray, x2: np.ndarray, pars: list) -> float:
     """This function calculates the similarity between two points
