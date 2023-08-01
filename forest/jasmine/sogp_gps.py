@@ -7,12 +7,19 @@
     The algorithm is used to select basis vectors from GPS data,
     and the selected basis vectors are used to construct the mobility matrix.
 """
+import logging
 import math
 import sys
 from typing import Dict, Tuple
 
 import numpy as np
 
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
+
+## the radius of the earth
+R = 6.371*10**6
 
 def calculate_K0(x1: np.ndarray, x2: np.ndarray, pars: list) -> float:
     """This function calculates the similarity between two points
@@ -621,7 +628,7 @@ def bv_select(
         a dictionary with bv [trajectory],
         bv_index, and an updated memory_dict
     """
-    sys.stdout.write("Selecting basis vectors ...\n")
+    logger.info("Selecting basis vectors ...")
     flight_index = MobMat[:, 0] == 1
     pause_index = MobMat[:, 0] == 2
 
