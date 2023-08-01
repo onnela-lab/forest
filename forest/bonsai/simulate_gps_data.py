@@ -6,9 +6,9 @@ of a number of people anywhere in the world.
 import datetime
 from dataclasses import dataclass
 from enum import Enum
+import logging
 import os
 import re
-import sys
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -26,6 +26,10 @@ from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 R = 6.371*10**6
 ACTIVE_STATUS_LIST = range(11)
 TRAVELLING_STATUS_LIST = range(11)
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 
 class PossibleExits(Enum):
@@ -1177,7 +1181,7 @@ def generate_addresses(country: str, city: str) -> np.ndarray:
             range(len(res["elements"])), 100, replace=False
         )
     except ValueError:
-        sys.stderr.write(
+        logger.error(
             "Overpass query came back empty. Check the location argument, ISO "
             "code, and city name, for any misspellings."
         )
@@ -1308,7 +1312,7 @@ def sim_gps_data(
         ValueError: if Overpass query fails
     """
 
-    sys.stdout.write("Loading Attributes...\n")
+    logger.info("Loading Attributes...")
 
     if attributes_dict is None:
         attributes_dictionary: Dict[int, Attributes] = {}
@@ -1324,12 +1328,11 @@ def sim_gps_data(
         if user not in switches_dictionary.keys():
             switches_dictionary[user] = {}
 
-    sys.stdout.write("Gathering Addresses...\n")
+    logger.info("Gathering Addresses...")
     try:
         location_ctr, location_city = location.split("/")
     except ValueError:
-        sys.stderr.write("Location provided did not have the correct format.")
-        raise
+        raise ValueError("Location provided did not have the correct format.")
 
     nodes = generate_addresses(location_ctr, location_city)
 
@@ -1339,8 +1342,7 @@ def sim_gps_data(
     obj = TimezoneFinder()
     tz_str = obj.timezone_at(lng=location_coords[1], lat=location_coords[0])
     if tz_str is None:
-        sys.stderr.write("Could not find timezone of city.")
-        raise ValueError
+        raise ValueError("Could not find timezone of city.")
 
     no_of_days = (end_date - start_date).days
 
@@ -1364,7 +1366,7 @@ def sim_gps_data(
         "accuracy",
         ]
     )
-    sys.stdout.write("Starting to generate trajectories...\n")
+    logger.info("Starting to generate trajectories...")
     while user < n_persons:
 
         house_address = (float(nodes[ind]['lat']), float(nodes[ind]['lon']))
@@ -1386,9 +1388,10 @@ def sim_gps_data(
         all_distances_array = np.array(all_distances) / 1000
         all_times_array = np.array(all_times) / 3600
 
-        sys.stdout.write(f"User_{user + 1}\n")
-        sys.stdout.write(f"	distance(km): {all_distances_array.tolist()}\n")
-        sys.stdout.write(f"	hometime(hr): {all_times_array.tolist()}\n")
+        logger.info(
+            "User_%s  distance(km): %s  hometime(hr): %s",
+            user + 1, all_distances_array.tolist(), all_times_array.tolist()
+        )
         obs = remove_data(all_traj, cycle, percentage, no_of_days)
         obs_pd = prepare_data(obs, int(timestamp_s / 1000), tz_str)
         obs_pd['user'] = user + 1
@@ -1419,8 +1422,7 @@ def gps_to_csv(data: pd.DataFrame, path: str, start_date: datetime.date,
     obj = TimezoneFinder()
     tz_str = obj.timezone_at(lng=location_coords[1], lat=location_coords[0])
     if tz_str is None:
-        sys.stderr.write("Could not find timezone of city.")
-        raise ValueError
+        raise ValueError("Could not find timezone of city.")
 
     s = datetime2stamp(
         [start_date.year, start_date.month, start_date.day, 0, 0, 0],

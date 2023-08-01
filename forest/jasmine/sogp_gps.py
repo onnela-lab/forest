@@ -1,6 +1,10 @@
-import sys
+import logging
 import math
 import numpy as np
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 ## the radius of the earth
 R = 6.371*10**6
@@ -310,7 +314,7 @@ def BV_select(MobMat,sigma2,tol,d,pars,memory_dict,BV_set):
           memory_dict: a dictionary of dictionary from SOGP()
     Return: a dictionary with bv [trajectory], bv_index, and an updated memory_dict
     """
-    sys.stdout.write("Selecting basis vectors ..." + '\n')
+    logger.info("Selecting basis vectors ...")
     flight_index = MobMat[:,0]==1
     pause_index = MobMat[:,0]==2
     mean_x = (MobMat[:,1]+MobMat[:,4])/2
