@@ -39,12 +39,12 @@ def calculate_K0(x1: np.ndarray, x2: np.ndarray, pars: list) -> float:
     return b1 * k1 + b2 * k2 + b3 * k3
 
 
-def update_K(bv: list, K: np.ndarray, pars: list) -> np.ndarray:
+def update_similarity(bv: list, k_mat: np.ndarray, pars: list) -> np.ndarray:
     """Update the similarity matrix between basis vectors.
 
     Args:
         bv: list, a list of basis vectors.
-        K: np.ndarray, a 2D array.
+        k_mat: np.ndarray, a 2D array.
         pars: list, a list of parameters used in the similarity function.
 
     Returns:
@@ -53,7 +53,7 @@ def update_K(bv: list, K: np.ndarray, pars: list) -> np.ndarray:
     if len(bv) == 0:
         return np.array([1])
 
-    d = np.shape(K)[0]
+    d = np.shape(k_mat)[0]
     row = np.ones(d)
     column = np.ones([d + 1, 1])
 
@@ -61,10 +61,10 @@ def update_K(bv: list, K: np.ndarray, pars: list) -> np.ndarray:
         x1, x2 = bv[-1][:-1], bv[i][:-1]
         row[i] = column[i, 0] = calculate_K0(x1, x2, pars)
 
-    return np.hstack([np.vstack([K, row]), column])
+    return np.hstack([np.vstack([k_mat, row]), column])
 
 
-def update_k(bv: list, x1: np.ndarray, pars: list) -> np.ndarray:
+def update_similarity_all(bv: list, x1: np.ndarray, pars: list) -> np.ndarray:
     """
     Compute the similarity vector between
         the current input and all basis vectors.
@@ -91,21 +91,21 @@ def update_k(bv: list, x1: np.ndarray, pars: list) -> np.ndarray:
     return out
 
 
-def update_e_hat(Q: np.ndarray, k: np.ndarray) -> np.ndarray:
+def update_e_hat(q: np.ndarray, k: np.ndarray) -> np.ndarray:
     """
     Update the estimated vector e_hat.
 
     Args:
-        Q: np.ndarray, a 2D array.
+        q: np.ndarray, a 2D array.
         k: np.ndarray, a 1D array.
 
     Returns:
         np.ndarray, updated 1D array.
     """
-    if np.shape(Q)[0] == 0:
+    if np.shape(q)[0] == 0:
         return np.array([0])
 
-    return np.dot(Q, k)
+    return np.dot(q, k)
 
 
 def update_gamma(k: np.ndarray, e_hat: np.ndarray) -> float:
@@ -144,20 +144,20 @@ def update_q(
 
 
 def update_s_hat(
-    C: np.ndarray, k: np.ndarray, e_hat: np.ndarray
+    c: np.ndarray, k: np.ndarray, e_hat: np.ndarray
 ) -> np.ndarray:
     """
     Update the s_hat vector.
 
     Args:
-        C: np.ndarray, a 2D array.
+        c: np.ndarray, a 2D array.
         k: np.ndarray, a 1D array.
         e_hat: np.ndarray, a 1D array.
 
     Returns:
         np.ndarray, updated 1D array s_hat.
     """
-    return np.dot(C, k) + e_hat
+    return np.dot(c, k) + e_hat
 
 
 def update_eta(gamma: float, sigmax: float) -> float:
@@ -194,13 +194,13 @@ def update_alpha_hat(
 
 
 def update_c_hat(
-    C: np.ndarray, sigmax: float, eta: float, s_hat: np.ndarray
+    c: np.ndarray, sigmax: float, eta: float, s_hat: np.ndarray
 ) -> np.ndarray:
     """
     Update the c_hat matrix.
 
     Args:
-        C: np.ndarray, a 2D array.
+        c: np.ndarray, a 2D array.
         sigmax: float, a scalar.
         eta: float, a scalar.
         s_hat: np.ndarray, a 1D array.
@@ -209,24 +209,24 @@ def update_c_hat(
         np.ndarray, updated 2D array c_hat.
     """
     r = -1 / sigmax
-    return C + r * eta * np.outer(s_hat, s_hat)
+    return c + r * eta * np.outer(s_hat, s_hat)
 
 
-def update_s(C: np.ndarray, k: np.ndarray) -> np.ndarray:
+def update_s(c: np.ndarray, k: np.ndarray) -> np.ndarray:
     """
     Update the s vector.
 
     Args:
-        C: np.ndarray, a 2D array.
+        c: np.ndarray, a 2D array.
         k: np.ndarray, a 1D array.
 
     Returns:
         np.ndarray, updated 1D array s.
     """
-    if np.shape(C)[0] == 0:
+    if np.shape(c)[0] == 0:
         return np.array([1])
 
-    temp = np.dot(C, k)
+    temp = np.dot(c, k)
     return np.append(temp, 1)
 
 
@@ -242,109 +242,111 @@ def update_alpha(alpha: np.ndarray, q: float, s: np.ndarray) -> np.ndarray:
     Returns:
         np.ndarray, updated 1D array alpha.
     """
-    T_alpha = np.append(alpha, 0)
-    new_alpha = T_alpha + q * s
+    t_alpha = np.append(alpha, 0)
+    new_alpha = t_alpha + q * s
     return new_alpha
 
 
-def update_c(C: np.ndarray, sigmax: float, s: np.ndarray) -> np.ndarray:
+def update_c(c: np.ndarray, sigmax: float, s: np.ndarray) -> np.ndarray:
     """
-    Update the C matrix.
+    Update the c matrix.
 
     Args:
-        C: np.ndarray, a 2D array.
+        c: np.ndarray, a 2D array.
         sigmax: float, a scalar.
         s: np.ndarray, a 1D array.
 
     Returns:
-        np.ndarray, updated 2D array C.
+        np.ndarray, updated 2D array c.
     """
-    d = np.shape(C)[0]
+    d = np.shape(c)[0]
     if d == 0:
-        U_c = np.array([0])
+        u_c = np.array([0])
     else:
-        U_c = np.hstack([np.vstack([C, np.zeros(d)]), np.zeros([d + 1, 1])])
+        u_c = np.hstack([np.vstack([c, np.zeros(d)]), np.zeros([d + 1, 1])])
     r = -1 / sigmax
-    new_c = U_c + r * np.outer(s, s)
+    new_c = u_c + r * np.outer(s, s)
     return new_c
 
 
-def update_Q(Q: np.ndarray, gamma: float, e_hat: np.ndarray) -> np.ndarray:
+def update_q_mat2(
+    q: np.ndarray, gamma: float, e_hat: np.ndarray
+) -> np.ndarray:
     """
-    Update the Q matrix.
+    Update the q matrix.
 
     Args:
-        Q: np.ndarray, a 2D array.
+        q: np.ndarray, a 2D array.
         gamma: float, a scalar.
         e_hat: np.ndarray, a 1D array.
 
     Returns:
-        np.ndarray, updated 2D array Q.
+        np.ndarray, updated 2D array q.
     """
-    d = np.shape(Q)[0]
+    d = np.shape(q)[0]
     if d == 0:
         return np.array([1])
 
     temp = np.append(e_hat, -1)
-    new_Q = np.hstack([np.vstack([Q, np.zeros(d)]), np.zeros([d + 1, 1])])
-    return new_Q + 1 / gamma * np.outer(temp, temp)
+    new_q = np.hstack([np.vstack([q, np.zeros(d)]), np.zeros([d + 1, 1])])
+    return new_q + 1 / gamma * np.outer(temp, temp)
 
 
 def update_alpha_vec(
-    alpha: np.ndarray, Q: np.ndarray, C: np.ndarray
+    alpha: np.ndarray, q: np.ndarray, c: np.ndarray
 ) -> np.ndarray:
     """
     Update the alpha vector.
 
     Args:
         alpha: np.ndarray, a 1D array.
-        Q: np.ndarray, a 2D array.
-        C: np.ndarray, a 2D array.
+        q: np.ndarray, a 2D array.
+        c: np.ndarray, a 2D array.
 
     Returns:
         np.ndarray, updated 1D array alpha.
     """
     t = len(alpha) - 1
-    return alpha[:t] - alpha[t] / (C[t, t] + Q[t, t]) * (Q[t, :t] + C[t, :t])
+    return alpha[:t] - alpha[t] / (c[t, t] + q[t, t]) * (q[t, :t] + c[t, :t])
 
 
-def update_c_mat(C: np.ndarray, Q: np.ndarray) -> np.ndarray:
+def update_c_mat(c: np.ndarray, q: np.ndarray) -> np.ndarray:
     """
-    Update the C matrix.
+    Update the c matrix.
 
     Args:
-        C: np.ndarray, a 2D array.
-        Q: np.ndarray, a 2D array.
+        c: np.ndarray, a 2D array.
+        q: np.ndarray, a 2D array.
 
     Returns:
-        np.ndarray, updated 2D array C.
+        np.ndarray, updated 2D array c.
     """
-    t = np.shape(C)[0] - 1
+    t = np.shape(c)[0] - 1
     return (
-        C[:t, :t]
-        + np.outer(Q[t, :t], Q[t, :t]) / Q[t, t]
+        c[:t, :t]
+        + np.outer(q[t, :t], q[t, :t]) / q[t, t]
         - np.outer(
-            Q[t, :t] + C[t, :t], Q[t, :t] + C[t, :t]
-        ) / (Q[t, t] + C[t, t])
+            q[t, :t] + c[t, :t], q[t, :t] + c[t, :t]
+        ) / (q[t, t] + c[t, t])
     )
 
 
-def update_q_mat(Q: np.ndarray) -> np.ndarray:
+def update_q_mat(q: np.ndarray) -> np.ndarray:
     """
-    Update the Q matrix.
+    Update the q matrix.
 
     Args:
-        Q: np.ndarray, a 2D array.
+        q: np.ndarray, a 2D array.
 
     Returns:
-        np.ndarray, updated 2D array Q.
+        np.ndarray, updated 2D array q.
     """
-    t = np.shape(Q)[0] - 1
-    return Q[:t, :t] - np.outer(Q[t, :t], Q[t, :t]) / Q[t, t]
+    t = np.shape(q)[0] - 1
+    return q[:t, :t] - np.outer(q[t, :t], q[t, :t]) / q[t, t]
 
 
 def update_s_mat(
-    k_mat: np.ndarray, s_mat: np.ndarray, index: np.ndarray, Q: np.ndarray
+    k_mat: np.ndarray, s_mat: np.ndarray, index: np.ndarray, q: np.ndarray
 ) -> np.ndarray:
     """
     Update the s matrix.
@@ -353,7 +355,7 @@ def update_s_mat(
         k_mat: np.ndarray, a 2D array.
         s_mat: np.ndarray, a 2D array.
         index: np.ndarray, a 1D array of integers.
-        Q: np.ndarray, a 2D array.
+        q: np.ndarray, a 2D array.
 
     Returns:
         np.ndarray, updated 2D array s_mat.
@@ -362,36 +364,38 @@ def update_s_mat(
     s_mat = (s_mat[index, :])[:, index]
     step1 = k_mat - k_mat.dot(s_mat).dot(k_mat)
     step2 = (step1[:-1, :])[:, :-1]
-    step3 = Q - Q.dot(step2).dot(Q)
+    step3 = q - q.dot(step2).dot(q)
     return step3
 
 
-def calculate_sigma_max(C: np.ndarray, k: np.ndarray, sigma2: float) -> float:
+def calculate_sigma_max(
+    c_mat: np.ndarray, k: np.ndarray, sigma2: float
+) -> float:
     """Calculate sigma max.
 
     Args:
-        C: np.ndarray, a 2D array.
+        c_mat: np.ndarray, a 2D array.
         k: np.ndarray, a 1D array.
         sigma2: float, a scalar.
 
     Returns:
         float, sigma max.
     """
-    if np.shape(C)[0] == 0:
+    if np.shape(c_mat)[0] == 0:
         return 1 + sigma2
     else:
-        return 1 + sigma2 + k.dot(C).dot(k)
+        return 1 + sigma2 + k.dot(c_mat).dot(k)
 
 
 def update_system_given_gamma_tol(
-    C: np.ndarray, Q: np.ndarray, alpha: np.ndarray,
+    c_mat: np.ndarray, q_mat: np.ndarray, alpha: np.ndarray,
     k: np.ndarray, q: float, gamma: float, sigmax: float
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Update system when gamma is less than tolerance.
 
     Args:
-        C: np.ndarray, a 2D array.
-        Q: np.ndarray, a 2D array.
+        c_mat: np.ndarray, a 2D array.
+        q_mat: np.ndarray, a 2D array.
         alpha: np.ndarray, a 1D array.
         k: np.ndarray, a 1D array.
         q: float, a scalar.
@@ -400,25 +404,25 @@ def update_system_given_gamma_tol(
 
     Returns:
         alpha: np.ndarray, a 1D array.
-        C: np.ndarray, a 2D array.
+        c_mat: np.ndarray, a 2D array.
     """
-    e_hat = update_e_hat(Q, k)
-    s = update_s_hat(C, k, e_hat)
+    e_hat = update_e_hat(q_mat, k)
+    s = update_s_hat(c_mat, k, e_hat)
     eta = update_eta(gamma, sigmax)
     alpha = update_alpha_hat(alpha, q, eta, s)
-    C = update_c_hat(C, sigmax, eta, s)
-    return alpha, C
+    c_mat = update_c_hat(c_mat, sigmax, eta, s)
+    return alpha, c_mat
 
 
 def update_system_otherwise(
-    C: np.ndarray, Q: np.ndarray, alpha: np.ndarray, k: np.ndarray,
+    c_mat: np.ndarray, q_mat: np.ndarray, alpha: np.ndarray, k: np.ndarray,
     q: float, sigmax: float, gamma: float, e_hat: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Update system when gamma is greater or equal to tolerance.
 
     Args:
-        C: np.ndarray, a 2D array.
-        Q: np.ndarray, a 2D array.
+        c_mat: np.ndarray, a 2D array.
+        q_mat: np.ndarray, a 2D array.
         alpha: np.ndarray, a 1D array.
         k: np.ndarray, a 1D array.
         q: float, a scalar.
@@ -428,29 +432,29 @@ def update_system_otherwise(
 
     Returns:
         alpha: np.ndarray, a 1D array.
-        C: np.ndarray, a 2D array.
-        Q: np.ndarray, a 2D array.
+        c_mat: np.ndarray, a 2D array.
+        q_mat: np.ndarray, a 2D array.
     """
-    s = update_s(C, k)
+    s = update_s(c_mat, k)
     alpha = update_alpha(alpha, q, s)
-    C = update_c(C, sigmax, s)
-    Q = update_Q(Q, gamma, e_hat)
-    return alpha, C, Q
+    c_mat = update_c(c_mat, sigmax, s)
+    q_mat = update_q_mat2(q_mat, gamma, e_hat)
+    return alpha, c_mat, q_mat
 
 
 def pruning_bv(
-    bv: list, alpha: np.ndarray, Q: np.ndarray, C: np.ndarray,
-    S: np.ndarray, K: np.ndarray, sigma2: float, d: int, pars: list
+    bv: list, alpha: np.ndarray, q: np.ndarray, c: np.ndarray,
+    s: np.ndarray, k: np.ndarray, sigma2: float, d: int, pars: list
 ) -> Tuple[list, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Prune the basis vectors.
 
     Args:
         bv: list, a list of basis vectors.
         alpha: np.ndarray, a 1D array.
-        Q: np.ndarray, a 2D array.
-        C: np.ndarray, a 2D array.
-        S: np.ndarray, a 2D array.
-        K: np.ndarray, a 2D array.
+        q: np.ndarray, a 2D array.
+        c: np.ndarray, a 2D array.
+        s: np.ndarray, a 2D array.
+        k: np.ndarray, a 2D array.
         sigma2: float, a scalar.
         d: int, a scalar.
         pars: list, a list of parameters used in the similarity function.
@@ -458,17 +462,17 @@ def pruning_bv(
     Returns:
         bv: list, a list of basis vectors.
         alpha: np.ndarray, a 1D array.
-        Q: np.ndarray, a 2D array.
-        C: np.ndarray, a 2D array.
-        S: np.ndarray, a 2D array.
-        K: np.ndarray, a 2D array.
+        q: np.ndarray, a 2D array.
+        c: np.ndarray, a 2D array.
+        s: np.ndarray, a 2D array.
+        k: np.ndarray, a 2D array.
     """
-    alpha_vec = update_alpha_vec(alpha, Q, C)
-    c_mat = update_c_mat(C, Q)
-    q_mat = update_q_mat(Q)
-    s_mat = np.hstack([np.vstack([S, np.zeros(d)]), np.zeros([d + 1, 1])])
+    alpha_vec = update_alpha_vec(alpha, q, c)
+    c_mat = update_c_mat(c, q)
+    q_mat = update_q_mat(q)
+    s_mat = np.hstack([np.vstack([s, np.zeros(d)]), np.zeros([d + 1, 1])])
     s_mat[d, d] = 1 / sigma2
-    k_mat = update_K(bv, K, pars)
+    k_mat = update_similarity(bv, k, pars)
     eps = np.zeros(d)
     for j in range(d):
         eps[j] = (
@@ -486,89 +490,89 @@ def pruning_bv(
             (np.arange(0, loc), np.arange(loc + 1, d + 1), np.array([loc]))
         )
     alpha = update_alpha_vec(
-        alpha[index], (Q[index, :])[:, index], (C[index, :])[:, index]
+        alpha[index], (q[index, :])[:, index], (c[index, :])[:, index]
     )
 
-    C = update_c_mat((C[index, :])[:, index], (Q[index, :])[:, index])
-    Q = update_q_mat((Q[index, :])[:, index])
-    S = update_s_mat(k_mat, s_mat, index, Q)
-    K = (k_mat[index[:d], :])[:, index[:d]]
+    c = update_c_mat((c[index, :])[:, index], (q[index, :])[:, index])
+    q = update_q_mat((q[index, :])[:, index])
+    s = update_s_mat(k_mat, s_mat, index, q)
+    k = (k_mat[index[:d], :])[:, index[:d]]
 
-    return bv, alpha, Q, C, S, K
+    return bv, alpha, q, c, s, k
 
 
-def SOGP(
-    X: np.ndarray,
-    Y: np.ndarray,
+def sogp(
+    x_mat: np.ndarray,
+    y_mat: np.ndarray,
     sigma2: float,
     tol: float,
     d: int,
     pars: list,
-    Q: np.ndarray,
-    C: np.ndarray,
+    q_mat: np.ndarray,
+    c_mat: np.ndarray,
     alpha: np.ndarray,
     bv: list,
 ) -> Dict:
     """This is the key function of sparse online gaussian process
     (1) If it is the first time to process the data,
-         Q,C,alpha,bv should be empty,
-         this function takes X, Y, (sigma2, tol, d)
+         q_mat,c_mat,alpha,bv should be empty,
+         this function takes x_mat, y_mat, (sigma2, tol, d)
          [parameters] as input and returns
          a list of basis vectors [bv] of length d
          and other summarized knownledge of
-         processed (X,Y) as Q, C, alpha in order
+         processed (x_mat,y_mat) as q_mat, c_mat, alpha in order
          to use next time in a online manner
-    (2) If we already have (Q,C,alpha,bv)
-         from previous update, then (X,Y) should be
+    (2) If we already have (q_mat,c_mat,alpha,bv)
+         from previous update, then (x_mat,y_mat) should be
          new data, and this function will
-         update Q, C, alpha and bv. In this scenario,
+         update q_mat, c_mat, alpha and bv. In this scenario,
          d should be greater or equal to len(bv)
 
     Args:
-        X: 2d array (n*d),
-         n is the number of samples, d is the dimension of X
-        Y: 1d array (n), n is the number of samples
+        x_mat: 2d array (n*d),
+         n is the number of samples, d is the dimension of x_mat
+        y_mat: 1d array (n), n is the number of samples
         sigma2: scalar, hyperparameter
         tol: scalar, hyperparameter
         d: scalar, hyperparameter
         pars: list, a list of parameters used in the similarity function
-        Q: 2d array (d*d), a summary of previous processed data
-        C: 2d array (d*d), a summary of previous processed data
+        q_mat: 2d array (d*d), a summary of previous processed data
+        c_mat: 2d array (d*d), a summary of previous processed data
         alpha: 1d array (d), a summary of previous processed data
         bv: list, a list of basis vectors
 
     Returns:
         a dictionary with:
             bv, alpha: 1d array (d)
-            Q, C: 2d array (d*d)
+            q_mat, c_mat: 2d array (d*d)
     """
-    n = len(Y)
+    n = len(y_mat)
     # an indicator shows if it is the first time that the number of bvs hits d
     indicator = 0
 
     for i in range(n):
-        if X.ndim == 1:
-            x_current = X[i]
+        if x_mat.ndim == 1:
+            x_current = x_mat[i]
         else:
-            x_current = X[i, :]
-        y_current = Y[i]
+            x_current = x_mat[i, :]
+        y_current = y_mat[i]
 
-        k = update_k(bv, x_current, pars)
-        sigmax = calculate_sigma_max(C, k, sigma2)
+        k = update_similarity_all(bv, x_current, pars)
+        sigmax = calculate_sigma_max(c_mat, k, sigma2)
         q = update_q(k, alpha, sigmax, y_current)
-        e_hat = update_e_hat(Q, k)
+        e_hat = update_e_hat(q_mat, k)
         gamma = update_gamma(k, e_hat)
 
         if gamma < tol:
-            alpha, C = update_system_given_gamma_tol(
-                C, Q, alpha, k, q, gamma, sigmax
+            alpha, c_mat = update_system_given_gamma_tol(
+                c_mat, q_mat, alpha, k, q, gamma, sigmax
             )
         else:
-            alpha, C, Q = update_system_otherwise(
-                C, Q, alpha, k, q, sigmax, gamma, e_hat
+            alpha, c_mat, q_mat = update_system_otherwise(
+                c_mat, q_mat, alpha, k, q, sigmax, gamma, e_hat
             )
 
-            if X.ndim == 1:
+            if x_mat.ndim == 1:
                 new_point = np.array([x_current, y_current])
             else:
                 new_point = np.concatenate((x_current, [y_current]))
@@ -585,18 +589,18 @@ def SOGP(
                     for j in range(d):
                         x1, x2 = bv[i][:-1], bv[j][:-1]
                         K[i, j] = calculate_K0(x1, x2, pars)
-                S = np.linalg.inv(np.linalg.inv(C) + K)
+                S = np.linalg.inv(np.linalg.inv(c_mat) + K)
 
             if len(bv) > d:
-                bv, alpha, Q, C, S, K = pruning_bv(
-                    bv, alpha, Q, C, S, K, sigma2, d, pars
+                bv, alpha, q_mat, c_mat, S, K = pruning_bv(
+                    bv, alpha, q_mat, c_mat, S, K, sigma2, d, pars
                 )
 
-    return {"bv": bv, "alpha": alpha, "Q": Q, "C": C}
+    return {"bv": bv, "alpha": alpha, "Q": q_mat, "C": c_mat}
 
 
 def bv_select(
-    MobMat: np.ndarray,
+    mob_mat: np.ndarray,
     sigma2: float,
     tol: float,
     d: int,
@@ -604,21 +608,21 @@ def bv_select(
     memory_dict: dict,
     bv_set: np.ndarray,
 ) -> Dict:
-    """This function is an application of SOGP() on GPS data.
-     We first treat latitude as Y,
-     [longitude,timestamp] as X, then we treat longitude as Y
-     and [latitude, timestamp] as X.
-     Furthurmore, we select basis vectors from flights and pauses separately.
+    """This function is an application of sogp() on GPS data.
+     We first treat latitude as y_mat,
+     [longitude,timestamp] as x_mat, then we treat longitude as y_mat
+     and [latitude, timestamp] as x_mat.
+     Furthermore, we select basis vectors from flights and pauses separately.
      This means there are 4 scenarios, and we combine the basis vectors
      from all scenarios as the final bv set.
 
     Args:
-        MobMat: 2d array, output from InferMobMat() in data2mobmat.py
+        mob_mat: 2d array, output from InferMobMat() in data2mobmat.py
         sigma2: scalar, hyperparameter
         tol: scalar, hyperparameter
         d: scalar, hyperparameter
         pars: list, a list of parameters used in the similarity function
-        memory_dict: dict, a dictionary of dictionaries from SOGP()
+        memory_dict: dict, a dictionary of dictionaries from sogp()
         bv_set: 2d array, a set of basis vectors from previous processed data
 
     Returns:
@@ -626,26 +630,25 @@ def bv_select(
         bv_index, and an updated memory_dict
     """
     logger.info("Selecting basis vectors ...")
-    flight_index = MobMat[:, 0] == 1
-    pause_index = MobMat[:, 0] == 2
+    flight_index = mob_mat[:, 0] == 1
+    pause_index = mob_mat[:, 0] == 2
 
-    mean_x = (MobMat[:, 1] + MobMat[:, 4]) / 2
-    mean_y = (MobMat[:, 2] + MobMat[:, 5]) / 2
-    mean_t = (MobMat[:, 3] + MobMat[:, 6]) / 2
+    mean_x = (mob_mat[:, 1] + mob_mat[:, 4]) / 2
+    mean_y = (mob_mat[:, 2] + mob_mat[:, 5]) / 2
+    mean_t = (mob_mat[:, 3] + mob_mat[:, 6]) / 2
     # use t as the unique key to match bv and mobmat
 
     if memory_dict is None:
-        memory_dict = {}
-        memory_dict["1"] = {"bv": [], "alpha": [], "Q": [], "C": []}
-        memory_dict["2"] = {"bv": [], "alpha": [], "Q": [], "C": []}
-        memory_dict["3"] = {"bv": [], "alpha": [], "Q": [], "C": []}
-        memory_dict["4"] = {"bv": [], "alpha": [], "Q": [], "C": []}
+        memory_dict = {
+            str(i): {"bv": [], "alpha": [], "Q": [], "C": []}
+            for i in range(1, 5)
+        }
 
-    X = np.transpose(np.vstack((mean_t, mean_x)))[flight_index]
-    Y = mean_y[flight_index]
-    result1 = SOGP(
-        X,
-        Y,
+    x_mat = np.transpose(np.vstack((mean_t, mean_x)))[flight_index]
+    y_mat = mean_y[flight_index]
+    result1 = sogp(
+        x_mat,
+        y_mat,
         sigma2,
         tol,
         d,
@@ -658,11 +661,11 @@ def bv_select(
     bv1 = result1["bv"]
     t1 = np.array([bv1[j][0] for j in range(len(bv1))])
 
-    X = np.transpose(np.vstack((mean_t, mean_x)))[pause_index]
-    Y = mean_y[pause_index]
-    result2 = SOGP(
-        X,
-        Y,
+    x_mat = np.transpose(np.vstack((mean_t, mean_x)))[pause_index]
+    y_mat = mean_y[pause_index]
+    result2 = sogp(
+        x_mat,
+        y_mat,
         sigma2,
         tol,
         d,
@@ -675,11 +678,11 @@ def bv_select(
     bv2 = result2["bv"]
     t2 = np.array([bv2[j][0] for j in range(len(bv2))])
 
-    X = np.transpose(np.vstack((mean_t, mean_y)))[flight_index]
-    Y = mean_x[flight_index]
-    result3 = SOGP(
-        X,
-        Y,
+    x_mat = np.transpose(np.vstack((mean_t, mean_y)))[flight_index]
+    y_mat = mean_x[flight_index]
+    result3 = sogp(
+        x_mat,
+        y_mat,
         sigma2,
         tol,
         d,
@@ -692,11 +695,11 @@ def bv_select(
     bv3 = result3["bv"]
     t3 = np.array([bv3[j][0] for j in range(len(bv3))])
 
-    X = np.transpose(np.vstack((mean_t, mean_y)))[pause_index]
-    Y = mean_x[pause_index]
-    result4 = SOGP(
-        X,
-        Y,
+    x_mat = np.transpose(np.vstack((mean_t, mean_y)))[pause_index]
+    y_mat = mean_x[pause_index]
+    result4 = sogp(
+        x_mat,
+        y_mat,
         sigma2,
         tol,
         d,
@@ -714,10 +717,10 @@ def bv_select(
     )
 
     if bv_set is not None:
-        all_candidates = np.vstack((bv_set, MobMat))
+        all_candidates = np.vstack((bv_set, mob_mat))
         all_t = (all_candidates[:, 3] + all_candidates[:, 6]) / 2
     else:
-        all_candidates = MobMat
+        all_candidates = mob_mat
         all_t = mean_t
 
     index = []
