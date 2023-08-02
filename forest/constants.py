@@ -3,6 +3,9 @@
 from enum import Enum
 import os
 
+# Earth radius in meters
+EARTH_RADIUS_METERS = 6.371*10**6
+
 # Openrouteservice API is limited to 40 requests per minute for free accounts
 # https://openrouteservice.org/plans/
 ORS_API_CALLS_PER_MINUTE = int(os.getenv("FOREST_ORS_API_CALLS_PER_MINUTE",
