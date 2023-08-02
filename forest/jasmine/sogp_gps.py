@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
 
-def calculate_K0(x1: np.ndarray, x2: np.ndarray, pars: list) -> float:
+def calculate_k0(x1: np.ndarray, x2: np.ndarray, pars: list) -> float:
     """This function calculates the similarity between two points
 
     Args:
@@ -59,7 +59,7 @@ def update_similarity(bv: list, k_mat: np.ndarray, pars: list) -> np.ndarray:
 
     for i in range(d):
         x1, x2 = bv[-1][:-1], bv[i][:-1]
-        row[i] = column[i, 0] = calculate_K0(x1, x2, pars)
+        row[i] = column[i, 0] = calculate_k0(x1, x2, pars)
 
     return np.hstack([np.vstack([k_mat, row]), column])
 
@@ -86,7 +86,7 @@ def update_similarity_all(bv: list, x1: np.ndarray, pars: list) -> np.ndarray:
 
     for i in range(d):
         x2 = bv[i][:-1]
-        out[i] = calculate_K0(x1, x2, pars)
+        out[i] = calculate_k0(x1, x2, pars)
 
     return out
 
@@ -588,7 +588,7 @@ def sogp(
                 for i in range(d):
                     for j in range(d):
                         x1, x2 = bv[i][:-1], bv[j][:-1]
-                        K[i, j] = calculate_K0(x1, x2, pars)
+                        K[i, j] = calculate_k0(x1, x2, pars)
                 S = np.linalg.inv(np.linalg.inv(c_mat) + K)
 
             if len(bv) > d:
