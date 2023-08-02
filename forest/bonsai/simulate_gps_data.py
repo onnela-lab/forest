@@ -23,7 +23,6 @@ from forest.constants import (ORS_API_BASE_URL, ORS_API_CALLS_PER_MINUTE,
 from forest.jasmine.data2mobmat import great_circle_dist
 from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
-R = 6.371*10**6
 ACTIVE_STATUS_LIST = range(11)
 TRAVELLING_STATUS_LIST = range(11)
 
