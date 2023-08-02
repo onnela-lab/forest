@@ -24,7 +24,7 @@ from forest.jasmine.data2mobmat import (gps_to_mobmat, infer_mobmat,
                                         pairwise_great_circle_dist)
 from forest.jasmine.mobmat2traj import (imp_to_traj, impute_gps, locate_home,
                                         num_sig_places)
-from forest.jasmine.sogp_gps import BV_select
+from forest.jasmine.sogp_gps import bv_select
 from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
                                                stamp2datetime,
                                                write_all_summaries)
@@ -44,7 +44,7 @@ class Hyperparameters:
             gps_to_mobmat function.
         itrvl, r: hyperparameters for the infer_mobmat function.
         l1, l2, l3, a1, a2, b1, b2, b3, sigma2, tol, d: hyperparameters
-            for the BV_select function.
+            for the bv_select function.
         l1, l2, a1, a2, b1, b2, b3, g, method, switch, num, linearity:
             hyperparameters for the impute_gps function.
         itrvl, r, w, h: hyperparameters for the imp_to_traj function.
@@ -1074,7 +1074,7 @@ def gps_stats_main(
                 params_r, params_w, params_h
             )
             mobmat2 = infer_mobmat(mobmat1, parameters.itrvl, params_r)
-            out_dict = BV_select(
+            out_dict = bv_select(
                 mobmat2,
                 parameters.sigma2,
                 parameters.tol,
