@@ -9,8 +9,8 @@ from itertools import groupby
 import numpy as np
 import pandas as pd
 
-# the radius of the earth
-R = 6.371 * 10 ** 6
+from forest.constants import EARTH_RADIUS_METERS
+
 # a threshold
 TOLERANCE = 1e-6
 
@@ -35,8 +35,8 @@ def cartesian(
     """
     lat = lat / 180 * math.pi
     lon = lon / 180 * math.pi
-    z_coord = R * np.sin(lat)
-    u_var = R * np.cos(lat)
+    z_coord = EARTH_RADIUS_METERS * np.sin(lat)
+    u_var = EARTH_RADIUS_METERS * np.cos(lat)
     x_coord = u_var * np.cos(lon)
     y_coord = u_var * np.sin(lon)
     return x_coord, y_coord, z_coord
@@ -78,7 +78,7 @@ def great_circle_dist(
     temp[temp < -1] = -1
 
     theta = np.arccos(temp)
-    return theta * R
+    return theta * EARTH_RADIUS_METERS
 
 
 def shortest_dist_to_great_circle(
@@ -117,7 +117,7 @@ def shortest_dist_to_great_circle(
         np.array([x_end, y_end, z_end])
     )
     N = cross_product / (np.linalg.norm(cross_product) + TOLERANCE)
-    C = np.array([x_coord, y_coord, z_coord]) / R
+    C = np.array([x_coord, y_coord, z_coord]) / EARTH_RADIUS_METERS
     temp = np.dot(N, C)
     # make temp fall into the domain of "arccos"
     if isinstance(temp, np.ndarray):
@@ -127,7 +127,7 @@ def shortest_dist_to_great_circle(
         temp = min(temp, 1)
         temp = max(temp, -1)
     noc = np.arccos(temp)
-    d = abs(math.pi / 2 - noc) * R
+    d = abs(math.pi / 2 - noc) * EARTH_RADIUS_METERS
     return d
 
 
