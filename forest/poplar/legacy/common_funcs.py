@@ -118,13 +118,15 @@ def read_data(
     tz_str: str,
     time_start: Optional[List[Any]],
     time_end: Optional[List[Any]],
-) -> pd.DataFrame:
+) -> Tuple[Any, float, float]:
     """Read data from a user's datastream folder
 
     Args:
         beiwe_id: str,
             beiwe ID; study_folder: the path of the folder which
             contains all the users' data
+        study_folder: str,
+            the path of the folder which contains all the users' data
         datastream: str,
             'gps','accelerometer','texts' or 'calls'
         tz_str: str,
@@ -159,7 +161,7 @@ def read_data(
     res = pd.DataFrame()
 
     stamp_start: float = 1e12
-    stamp_end: int = 0
+    stamp_end: float = 0.
 
     folder_path = os.path.join(study_folder, beiwe_id, datastream)
     files_in_range: List[str] = []
@@ -206,9 +208,9 @@ def read_data(
         # Last hour: look at all the subject's directories (except survey) and
         # find the latest date for each directory
         directories = [
-            dir
-            for dir in os.listdir(os.path.join(study_folder, beiwe_id))
-            if os.path.isdir(os.path.join(study_folder, beiwe_id, dir))
+            directory
+            for directory in os.listdir(os.path.join(study_folder, beiwe_id))
+            if os.path.isdir(os.path.join(study_folder, beiwe_id, directory))
         ]
 
         directories = list(
@@ -258,7 +260,7 @@ def read_data(
 
 
 def write_all_summaries(
-    beiwe_id: str, stats_pdframe: pd.DataFrame, output_folder: str
+    beiwe_id: str, stats_pdframe: pd.DataFrame, output_path: str
 ):
     """Write out all the summary stats for a user
 
@@ -273,7 +275,7 @@ def write_all_summaries(
     Returns:
         write out as csv files named by user ID
     """
-    os.makedirs(output_folder, exist_ok=True)
+    os.makedirs(output_path, exist_ok=True)
     stats_pdframe.to_csv(
-        os.path.join(output_folder, str(beiwe_id) + ".csv"), index=False
+        os.path.join(output_path, f"{beiwe_id}.csv"), index=False
     )
