@@ -67,15 +67,15 @@ def text_analysis(
     ]
 
     # calculate the number of texts
-    message_lenths = np.array(temp_text["message length"])
-    for k, mlength in enumerate(message_lenths):
+    message_lengths = np.array(temp_text["message length"])
+    for k, mlength in enumerate(message_lengths):
         if mlength == "MMS":
-            message_lenths[k] = 0
+            message_lengths[k] = 0
         if not isinstance(mlength, str):
             if np.isnan(mlength):
-                message_lenths[k] = 0
+                message_lengths[k] = 0
 
-    message_lenths = message_lenths.astype(int)
+    message_lengths = message_lengths.astype(int)
 
     index_s = np.array(temp_text["sent vs received"]) == "sent SMS"
     index_r = np.array(temp_text["sent vs received"]) == "received SMS"
@@ -91,16 +91,14 @@ def text_analysis(
     num_r_tel = len(receive_from_number)
 
     index_mms_s = np.array(temp_text["sent vs received"]) == "sent MMS"
-    index_mms_r = np.array(
-        temp_text["sent vs received"]
-    ) == "received MMS"
+    index_mms_r = np.array(temp_text["sent vs received"]) == "received MMS"
 
     num_s = sum(index_s.astype(int))
     num_r = sum(index_r.astype(int))
     num_mms_s = sum(index_mms_s.astype(int))
     num_mms_r = sum(index_mms_r.astype(int))
-    total_char_s = sum(message_lenths[index_s])
-    total_char_r = sum(message_lenths[index_r])
+    total_char_s = sum(message_lengths[index_s])
+    total_char_r = sum(message_lengths[index_r])
 
     text_reciprocity_incoming = None
     text_reciprocity_outgoing = None
@@ -183,15 +181,9 @@ def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
     dur_in_sec[np.isnan(dur_in_sec)] = 0
     dur_in_min = dur_in_sec / 60
 
-    index_in_call = np.array(
-        temp_call["call type"]
-    ) == "Incoming Call"
-    index_out_call = np.array(
-        temp_call["call type"]
-    ) == "Outgoing Call"
-    index_mis_call = np.array(
-        temp_call["call type"]
-    ) == "Missed Call"
+    index_in_call = np.array(temp_call["call type"]) == "Incoming Call"
+    index_out_call = np.array(temp_call["call type"]) == "Outgoing Call"
+    index_mis_call = np.array(temp_call["call type"]) == "Missed Call"
 
     num_in_call = sum(index_in_call)
     num_out_call = sum(index_out_call)
@@ -298,18 +290,13 @@ def comm_logs_summaries(
             newline += [pd.NA] * 8
 
         if df_text.shape[0] > 0:
-            text_stats = text_analysis(
-                df_text, stamp, step_size, frequency
-            )
+            text_stats = text_analysis(df_text, stamp, step_size, frequency)
             newline += list(text_stats)
         else:
             newline += [pd.NA] * 10
 
         if frequency == Frequency.DAILY:
-            newline = (
-                [year, month, day]
-                + newline
-            )
+            newline = [year, month, day] + newline
         else:
             newline = [year, month, day, hour] + newline[:16]
 
@@ -447,5 +434,5 @@ def log_stats_main(
 
             except Exception as err:
                 logger.error(
-                    "An error occured when processing the data.: %s", err
+                    "An error occurred when processing the data: %s", err
                 )
