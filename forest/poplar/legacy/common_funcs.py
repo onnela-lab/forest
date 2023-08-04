@@ -116,8 +116,8 @@ def read_data(
     study_folder: str,
     datastream: str,
     tz_str: str,
-    time_start: Optional[List[Any]],
-    time_end: Optional[List[Any]],
+    time_start: Optional[List[int]],
+    time_end: Optional[List[int]],
 ) -> Tuple[Any, float, float]:
     """Read data from a user's datastream folder
 
@@ -131,7 +131,7 @@ def read_data(
             'gps','accelerometer','texts' or 'calls'
         tz_str: str,
             where the study is/was conducted
-        time_start, time_end: list of integers,
+        time_start, time_end: list of integers or None,
             starting time and ending time of the window of interest
             time should be a list of integers with format [year, month, day,
             hour, minute, second]
@@ -271,9 +271,6 @@ def write_all_summaries(
             the summary stats for a user
         output_path: str,
             the path to write out the summary stats
-
-    Returns:
-        write out as csv files named by user ID
     """
     os.makedirs(output_path, exist_ok=True)
     stats_pdframe.to_csv(
