@@ -221,8 +221,8 @@ def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
 
 
 def comm_logs_summaries(
-    df_text: pd.DataFrame, df_call: pd.DataFrame, stamp_start: int,
-    stamp_end: int, tz_str: str, frequency: Frequency
+    df_text: pd.DataFrame, df_call: pd.DataFrame, stamp_start: float,
+    stamp_end: float, tz_str: str, frequency: Frequency
 ) -> pd.DataFrame:
     """Calculate the summary statistics for the communication logs.
 
