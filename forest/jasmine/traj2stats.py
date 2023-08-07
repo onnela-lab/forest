@@ -365,9 +365,8 @@ def get_nearby_locations_local(
             for idx, state_pause in enumerate(state_points):
                 if idx == 0: ## We already created the bounding box with the first one
                     continue
-                if not bbox.contains(Point(state_pause[0], state_pause[1])):
-                    bbox_tuple = bounding_box((state_pause[0], state_pause[1]), bounding_box_size)
-                    bbox = bbox.union(box(*bbox_tuple))
+                bbox_tuple = bounding_box((state_pause[0], state_pause[1]), bounding_box_size)
+                bbox = bbox.union(box(*bbox_tuple))
                     
             state_osm_handler = OSMHandler(bbox, osm_tags)
             state_osm_handler.apply_file(os.path.join(osm_local_file,  state + "-latest.osm.pbf"))
