@@ -398,6 +398,25 @@ def get_nearby_locations_local(
 
     return ids, locations, tags
 
+def get_intersection_area(shape1, shape2) -> float:
+    """Get the intersection area between two shapes, but don't return a runtime
+    error if the shapes do not intersect (as would happen if we just used the
+    shapely intersection function)
+
+    (Type hints are not currently available for Shapely, per
+    https://github.com/shapely/shapely/issues/721)
+
+    Args:
+        shape1: a Shapely Geometry
+        shape2: a Shapely Geometry
+    Returns:
+        The area of the intersection, if there is an intersection. If there is
+        no intersection, it returns 0
+        """
+    if shape1.intersects(shape2):
+        return shape1.intersection(shape2).area
+    else:
+        return 0.0
 
 def gps_summaries(
     traj: np.ndarray,
@@ -732,19 +751,16 @@ def gps_summaries(
                                     )
                                     saved_polygons[loc_str] = loc_circle
 
-                                intersection_area = pause_circle.intersection(
-                                    loc_circle
-                                ).area
+                                intersection_area = get_intersection_area(
+                                    pause_circle, loc_circle)
                                 if intersection_area > 0:
                                     all_place_probs[j] += intersection_area
                                     add_to_other = False
 
                             elif len(locations[element_id]) >= 3:
                                 polygon = Polygon(locations[element_id])
-
-                                intersection_area = pause_circle.intersection(
-                                    polygon
-                                ).area
+                                intersection_area = get_intersection_area(
+                                    pause_circle, polygon)
                                 if intersection_area > 0:
                                     all_place_probs[j] += intersection_area
                                     add_to_other = False
