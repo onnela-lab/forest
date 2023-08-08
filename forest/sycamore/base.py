@@ -1,3 +1,4 @@
+"""Base functions for computing survey statistics"""
 import logging
 import os
 from typing import Optional, List
@@ -192,9 +193,9 @@ def compute_survey_stats(
 
     surveys_dict = format_responses_by_submission(agg_data)
 
-    for survey_id in surveys_dict.keys():
+    for survey_id in surveys_dict:
         surveys_dict[survey_id].to_csv(
-            os.path.join(output_folder, "by_survey", survey_id + ".csv"),
+            os.path.join(output_folder, "by_survey", f"{survey_id}.csv"),
             index=False
         )
 
