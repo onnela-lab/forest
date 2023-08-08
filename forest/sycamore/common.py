@@ -1,3 +1,4 @@
+"""Common functions for sycamore module"""
 import datetime
 import logging
 import os
@@ -41,11 +42,11 @@ def safe_read_csv(filepath: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
+def q_types_standardize(question: str, lkp: Optional[dict] = None) -> str:
     """Standardizes question types using a lookup function
 
     Args:
-        q (str):
+        question (str):
             a single value for a question type
         lkp (dict):
             a lookup dictionary of question types and what they should map too.
@@ -57,10 +58,10 @@ def q_types_standardize(q: str, lkp: Optional[dict] = None) -> str:
     if lkp is None:
         lkp = QUESTION_TYPES_LOOKUP
     # If it's an Android string, flip it from the key to the value
-    if q in lkp["Android"].keys():
-        return lkp["Android"][q]
-    else:
-        return q
+    if question in lkp["Android"].keys():
+        return lkp["Android"][question]
+
+    return question
 
 
 def read_and_aggregate(
@@ -123,9 +124,9 @@ def read_and_aggregate(
         )
         survey_data["DOW"] = survey_data["UTC time"].dt.dayofweek
         return survey_data
-    else:
-        logger.info("No survey_timings for user %s.", user)
-        return pd.DataFrame(columns=["UTC time"], dtype="datetime64[ns]")
+
+    logger.info("No survey_timings for user %s.", user)
+    return pd.DataFrame(columns=["UTC time"], dtype="datetime64[ns]")
 
 
 def aggregate_surveys(
@@ -290,26 +291,26 @@ def parse_surveys(config_path: str, answers_l: bool = False) -> pd.DataFrame:
     # Create an array for surveys and one for timings
     output = []
 
-    for i, s in enumerate(surveys):
+    for i, survey in enumerate(surveys):
         # Pull out timings
-        if s["content"] is None:
+        if survey["content"] is None:
             continue
-        for q in s["content"]:
-            if "question_id" in q.keys():
+        for question in survey["content"]:
+            if "question_id" in question.keys():
                 surv = {
                         "config_id": i,
-                        "question_id":  q["question_id"],
-                        "question_text": q["question_text"],
-                        "question_type":  q["question_type"]
+                        "question_id":  question["question_id"],
+                        "question_text": question["question_text"],
+                        "question_type":  question["question_type"]
                 }
-                if "text_field_type" in q.keys():
-                    surv["text_field_type"] = q["text_field_type"]
+                if "text_field_type" in question.keys():
+                    surv["text_field_type"] = question["text_field_type"]
                 # Convert surv to data frame
 
                 if answers_l:
-                    if "answers" in q.keys():
-                        for j, a in enumerate(q["answers"]):
-                            surv["answer_" + str(j)] = a["text"]
+                    if "answers" in question.keys():
+                        for j, answer in enumerate(question["answers"]):
+                            surv[f"answer_{j}"] = answer["text"]
                 output.append(pd.DataFrame([surv]))
     if len(output) == 0:
         logger.warning("No Data Found in config file")
@@ -585,11 +586,14 @@ def append_from_answers(
                                              answers_data)
             if missing_data.shape[0] == 0:
                 continue
-            missing_data["question index"] += \
-                np.max(agg_data["question index"]) + 1
+            missing_data["question index"] += np.max(
+                agg_data["question index"]
+            ) + 1
             missing_submission_data.append(missing_data)
-    return pd.concat([agg_data] + missing_submission_data
-                     ).sort_values("UTC time")
+
+    return pd.concat(
+        [agg_data] + missing_submission_data
+    ).sort_values("UTC time")
 
 
 def find_missing_data(user: str, survey_id: str, agg_data: pd.DataFrame,
@@ -661,8 +665,8 @@ def find_missing_data(user: str, survey_id: str, agg_data: pd.DataFrame,
 
         missing_data.drop(["time_prev"], axis=1, inplace=True)
         return missing_data
-    else:
-        return pd.DataFrame()
+    # If there is no missing data, return an empty dataframe
+    return pd.DataFrame()
 
 
 def read_user_answers_stream(
@@ -765,9 +769,9 @@ def read_user_answers_stream(
         if len(all_surveys) == 0:
             return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
         return pd.concat(all_surveys, axis=0, ignore_index=True)
-    else:
-        logger.info("No survey_answers for user %s.", user)
-        return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
+
+    logger.info("No survey_answers for user %s.", user)
+    return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
 
 
 def read_aggregate_answers_stream(
@@ -861,10 +865,8 @@ def read_aggregate_answers_stream(
         ][int(aggregated_data.loc[i, "answer"])]
     # convert to the iOS question types text
     aggregated_data["question type"] = aggregated_data["question type"].apply(
-        lambda x:
-        QUESTION_TYPES_LOOKUP["Android"][x]
-        if x in QUESTION_TYPES_LOOKUP["Android"].keys()
-        else x
+        lambda x: QUESTION_TYPES_LOOKUP["Android"][x]
+        if x in QUESTION_TYPES_LOOKUP["Android"] else x
     )
 
     aggregated_data["data_stream"] = "survey_answers"
@@ -940,7 +942,7 @@ def fix_radio_answer_choices(
     if config_path is not None:
         sep_dict = get_choices_with_sep_values(config_path, history_path)
     else:
-        sep_dict = dict()
+        sep_dict = {}
 
     for answer_choices in radio_answer_choices_list:
         fixed_answer_choices = answer_choices
@@ -999,15 +1001,14 @@ def update_qs_with_seps(qs_with_seps: dict, survey_content: dict) -> dict:
         survey_content: Dictionary with survey content information, from either
             the study config file or survey history file
     """
-    for question in range(len(survey_content)):
-        if "question_type" not in survey_content[question].keys():
+    for _, question in enumerate(survey_content):
+        if "question_type" not in question.keys():
             continue
-        if survey_content[question]["question_type"] == "radio_button":
-            question_dict = survey_content[question]
-            answer_choices = question_dict["answers"]
+        if question["question_type"] == "radio_button":
+            answer_choices = question["answers"]
             q_sep_choices = set()
-            for choice in range(len(answer_choices)):
-                answer_text = answer_choices[choice]["text"]
+            for _, choice in enumerate(answer_choices):
+                answer_text = choice["text"]
                 if len(re.findall(",|;", answer_text)) != 0:
                     # At least one separation value occurs in the
                     # response
@@ -1015,7 +1016,7 @@ def update_qs_with_seps(qs_with_seps: dict, survey_content: dict) -> dict:
                         answer_text.replace(",", ";").replace("; ", ";")
                     )
             if len(q_sep_choices) != 0:
-                question_id = survey_content[question]["question_id"]
+                question_id = question["question_id"]
                 if question_id in qs_with_seps.keys():
                     qs_with_seps[question_id] = qs_with_seps[
                         question_id
@@ -1049,21 +1050,27 @@ def get_choices_with_sep_values(config_path: str = None,
 
     """
     qs_with_seps: Dict[str, set] = {}
+
     if config_path is not None:
+
         study_config = read_json(config_path)
+
         if "surveys" in study_config.keys():
             surveys_list = study_config["surveys"]
         else:
             logger.warning("No survey information found in config file")
             return qs_with_seps
-        for survey_num in range(len(surveys_list)):
-            survey = surveys_list[survey_num]["content"]
+
+        for _, survey_num in enumerate(surveys_list):
+            survey = survey_num["content"]
             qs_with_seps = update_qs_with_seps(qs_with_seps, survey)
+
     if survey_history_path is not None:
         survey_history_dict = read_json(survey_history_path)
+
         for survey_id in survey_history_dict.keys():
-            for version in range(len(survey_history_dict[survey_id])):
-                survey = survey_history_dict[survey_id][version]["survey_json"]
+            for _, version in enumerate(survey_history_dict[survey_id]):
+                survey = version["survey_json"]
                 qs_with_seps = update_qs_with_seps(qs_with_seps, survey)
     else:
         logger.warning(
@@ -1098,5 +1105,5 @@ def write_data_by_user(df_to_write: pd.DataFrame, output_folder: str,
         if current_df.shape[0] == 0:
             continue
         current_df.drop("beiwe_id", axis=1, inplace=True)
-        path_to_write = os.path.join(output_folder, user + ".csv")
+        path_to_write = os.path.join(output_folder, f"{user}.csv")
         current_df.to_csv(path_to_write, index=False)
