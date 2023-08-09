@@ -235,10 +235,10 @@ def format_responses_by_submission(agg_data: pd.DataFrame) -> dict:
                         survey_df.loc[i, "question type"],
                         survey_df.loc[i, "question answer options"]
                     ]
-                    num_found = num_found + 1
+                    num_found += 1
                 if num_found == len(id_text_dict):
                     keys_not_found = False
-                i = i + 1
+                i += 1
                 if i == survey_df.shape[0]:
                     # should find all keys before we get to the end but let's
                     # be safe...
