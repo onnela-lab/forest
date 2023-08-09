@@ -36,7 +36,7 @@ def get_audio_survey_id_dict(history_path: str = None) -> Dict[str, str]:
         most_recent_update = history_dict[key][-1]['survey_json']
         if most_recent_update is None:
             continue
-        if isinstance(most_recent_update, list):
+        if not isinstance(most_recent_update, list):
             continue
         if len(most_recent_update) == 0:
             continue
