@@ -65,7 +65,7 @@ def get_config_id_dict(config_path: str = None) -> Dict[str, int]:
     for index, survey in enumerate(surveys):
         if "content" not in survey.keys():
             continue
-        if isinstance(survey["content"], list):
+        if not isinstance(survey["content"], list):
             continue
         if len(survey["content"]) < 1:
             continue
