@@ -19,12 +19,15 @@ logger = logging.getLogger(__name__)
 def get_audio_survey_id_dict(history_path: str = None) -> Dict[str, str]:
     """Create a dict that has most recent prompt corresponding to an audio
     survey as keys and the survey ID as the corresponding value.
+
     Args:
         history_path: Path to survey history file, downloaded from the Beiwe
             website.
+
     Returns:
         dictionary with keys for each prompt (for example a prompt could be
-            "Describe your day today", and values with survey IDs"""
+            "Describe your day today", and values with survey IDs
+    """
     output_dict: Dict[str, str] = dict()
     if history_path is None:
         return output_dict
@@ -44,13 +47,16 @@ def get_audio_survey_id_dict(history_path: str = None) -> Dict[str, str]:
     return output_dict
 
 
-def get_config_id_dict(config_path: str = None) -> dict:
+def get_config_id_dict(config_path: str = None) -> Dict[str, int]:
     """Get a dict with question prompts as keys and the config IDs as values
+
     Args:
         config_path: Path to survey config JSON file
+
     Returns:
         dict with a key for each question prompt, and the config ID (the order
         of the question in the config file) as values
+
     """
     output_dict: Dict[str, int] = dict()
     if config_path is None:
