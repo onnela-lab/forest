@@ -1,4 +1,5 @@
 """Utility functions in Sycamore.
+
 This file exists to avoid a circular imports from common.py.
 In the future, it would be good to refactor code and put more things in here,
 but for now, I'll just include the three necessary functions so this pull
@@ -16,11 +17,12 @@ def read_json(json_filepath: str) -> dict:
 
     Args:
         json_filepath (str):  filepath to json file.
+
     Returns:
         A dict representation of the json file
     """
-    with open(json_filepath, "r") as f:
-        return json.load(f)
+    with open(json_filepath, "r") as file:
+        return json.load(file)
 
 
 def get_month_from_today():
