@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def convert_time_to_date(submit_time: datetime.datetime,
                          day: int,
-                         time: list) -> list:
+                         time_list: list) -> list:
     """Convert an array of times to date
 
     Takes a single array of timings and a single day
@@ -26,28 +26,34 @@ def convert_time_to_date(submit_time: datetime.datetime,
             date in week for which we want to extract another date and time
         day(int):
             desired day of week
-        time(list):
+        time_list(list):
             List of timings times from the configuration surveys information
 
     Returns:
         List of dates corresponding to the times
     """
     # Convert inputted desired day into an integer between 0 and 6
-    day = day % 7
+    day %= 7
     # Get the days of the given week using the dow of the given submit day
     dow = submit_time.weekday()
     days = [submit_time + datetime.timedelta(days=i)
             for i in range(0 - dow, 7 - dow)]
 
-    time = [str(datetime.timedelta(seconds=t)) for t in time]
-    time = [t.split(":") for t in time]
-    time = [[int(p) for p in t] for t in time]
+    time_list = [str(datetime.timedelta(seconds=time)) for time in time_list]
+    time_list = [time.split(":") for time in time_list]
+    time_list = [[int(p) for p in time] for time in time_list]
 
     # Get rid of timing
     #     https://stackoverflow.com/questions/26882499/reset-time-part-of-a-pandas-timestamp
     days = [d - pd.offsets.Micro(0) for d in days]
-    list_of_days = [[d.replace(hour=t[0], minute=t[1], second=t[2],
-                               microsecond=0) for t in time] for d in days]
+    list_of_days = [
+        [
+            d.replace(
+                hour=time[0], minute=time[1], second=time[2], microsecond=0
+            )
+            for time in time_list
+        ] for d in days
+    ]
 
     return list_of_days[day]
 
@@ -106,10 +112,12 @@ def generate_survey_times(
             t_start + datetime.timedelta(days=7 * i) for i in range(weeks)
         ]
 
-        for s in start_dates:
-            for i, t in enumerate(t_lag):
-                if len(t) > 0:
-                    surveys.extend(convert_time_to_date(s, day=i, time=t))
+        for start in start_dates:
+            for i, time in enumerate(t_lag):
+                if len(time) > 0:
+                    surveys.extend(
+                        convert_time_to_date(start, day=i, time_list=time)
+                    )
     if survey_type == "absolute":
         times_df = pd.DataFrame(timings)
         times_df.columns = ["year", "month", "day", "second"]
@@ -119,15 +127,18 @@ def generate_survey_times(
         if intervention_dict is None:
             logger.error("Error: No dictionary of interventions provided.")
             return []
-        for t in timings:
+        for time in timings:
             # This could probably be vectorized
-            if intervention_dict[t[0]] is not None:  # time exists for the user
+            # time exists for the user
+            if intervention_dict[time[0]] is not None:
                 # first, get the intervention time.
                 # Then, add the days and time of day for the survey to the time
                 current_time = (
-                    datetime.datetime.fromisoformat(intervention_dict[t[0]])
-                    + pd.Timedelta(t[1], unit="days")
-                    + pd.Timedelta(t[2], unit="seconds")
+                    datetime.datetime.fromisoformat(
+                        intervention_dict[time[0]]
+                    )
+                    + pd.Timedelta(time[1], unit="days")
+                    + pd.Timedelta(time[2], unit="seconds")
                 )  # seconds after time
                 surveys.append(current_time)
     return surveys
@@ -154,8 +165,10 @@ def get_question_ids(survey_dict: dict, audio_survey_id_dict: dict) -> list:
         elif "prompt" in question.keys():
             audio_prompt = question["prompt"]
             if audio_prompt not in audio_survey_id_dict.keys():
-                logger.warning("Unable to find survey ID for audio prompt " +
-                               audio_prompt)
+                logger.warning(
+                    "Unable to find survey ID for audio prompt %s",
+                    audio_prompt
+                )
                 continue
             question_ids.append(audio_survey_id_dict[audio_prompt])
     return question_ids
@@ -198,23 +211,24 @@ def gen_survey_schedule(
     # For each survey create a list of survey times
     times_sur = []
     for user in users:
-        for i, s in enumerate(surveys):
+        for i, survey in enumerate(surveys):
             s_times: list = []
-            if s["timings"]:
+            if survey["timings"]:
                 s_times = s_times + generate_survey_times(
-                    time_start, time_end, timings=s["timings"],
+                    time_start, time_end, timings=survey["timings"],
                     survey_type="weekly"
                 )
-            if s["absolute_timings"]:
+            if survey["absolute_timings"]:
                 s_times = s_times + generate_survey_times(
-                    time_start, time_end, timings=s["absolute_timings"],
+                    time_start, time_end, timings=survey["absolute_timings"],
                     survey_type="absolute"
                 )
-            if s["relative_timings"]:
+            if survey["relative_timings"]:
                 # We can only get relative timings if we have an index time
                 if user in all_interventions_dict.keys():
                     s_times = s_times + generate_survey_times(
-                        time_start, time_end, timings=s["relative_timings"],
+                        time_start, time_end,
+                        timings=survey["relative_timings"],
                         survey_type="relative",
                         intervention_dict=all_interventions_dict[user]
                     )
@@ -248,9 +262,9 @@ def gen_survey_schedule(
             tbl["id"] = i
             tbl["beiwe_id"] = user
             # Get all question IDs for the survey
-            qs = get_question_ids(s, audio_survey_id_dict)
-            if len(qs) > 0:
-                q_ids = pd.DataFrame({"question_id": qs})
+            question_ids = get_question_ids(survey, audio_survey_id_dict)
+            if len(question_ids) > 0:
+                q_ids = pd.DataFrame({"question_id": question_ids})
                 tbl = pd.merge(tbl, q_ids, how="cross")
             times_sur.append(tbl)
     if len(times_sur) > 0:
@@ -592,7 +606,10 @@ def survey_submits_no_config(input_agg: pd.DataFrame) -> pd.DataFrame:
                     columns="level_3",
                     values="Local time").reset_index()
     agg["time_to_complete"] = agg["max_time"] - agg["min_time"]
-    agg["time_to_complete"] = [t.seconds for t in agg["time_to_complete"]]
+    agg["time_to_complete"] = [
+        time.seconds for time in agg["time_to_complete"]
+    ]
+
     return agg.sort_values(["beiwe_id", "survey id"])
 
 
