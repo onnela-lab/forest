@@ -1,3 +1,4 @@
+"""Module for survey submits and survey schedule generation"""
 import datetime
 import logging
 import math
@@ -19,6 +20,7 @@ def convert_time_to_date(submit_time: datetime.datetime,
     """Convert an array of times to date
 
     Takes a single array of timings and a single day
+
     Args:
         submit_time(datetime):
             date in week for which we want to extract another date and time
@@ -58,6 +60,7 @@ def generate_survey_times(
 
     Takes a start time and end time and generates a schedule of all sent
     surveys in time frame for the given survey type
+
     Args:
         time_start(str):
             The first date for which we want to generate survey times
@@ -72,6 +75,7 @@ def generate_survey_times(
             A dictionary with keys for each intervention time, each containing
             a timestamp object
             (only needed for relative surveys)
+
     Returns:
         A list of all survey times that occur between the time_start and
         time_end per the given survey timings schedule
@@ -137,6 +141,7 @@ def get_question_ids(survey_dict: dict, audio_survey_id_dict: dict) -> list:
             example, this would come from read_json(config_path)["surveys"][0]
         audio_survey_id_dict: Output from get_audio_survey_id_dict. Dict with
             survey prompts as keys and survey IDs as values
+
     Returns:
         List of all question IDs for an individual. For audio surveys, it will
         create a "question ID" that is identical to the survey ID
@@ -565,9 +570,11 @@ def survey_submits_no_config(input_agg: pd.DataFrame) -> pd.DataFrame:
 
     Alternative function for getting the survey completions (doesn't have
     expected times of surveys)
+
     Args:
         input_agg(DataFrame):
             Dataframe of Aggregated Data
+
     Returns:
         Dataframe with one line per survey submission.
 
@@ -593,6 +600,7 @@ def get_all_interventions_dict(filepath: Optional[str]) -> dict:
     """Read json file into interventions dict
 
     Extracts user intervention information for use in survey_timings.
+
     Args:
         filepath: the path to a json file containing patient interventions
             information (downloaded from the beiwe website)
@@ -612,4 +620,5 @@ def get_all_interventions_dict(filepath: Optional[str]) -> dict:
         for survey in full_dict[user].keys():
             for time in full_dict[user][survey].keys():
                 output_dict[user][time] = full_dict[user][survey][time]
+
     return output_dict
