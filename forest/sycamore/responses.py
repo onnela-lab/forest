@@ -1,3 +1,4 @@
+"""Module for processing survey responses"""
 import logging
 from typing import Tuple, Any
 
@@ -15,6 +16,7 @@ def subset_answer_choices(answer: list) -> list:
 
     If a user changes their answers multiple times, an iOS device will have
     redundant answers at the beginning and end of the list, so we remove them.
+
     Args:
         answer(list):
             List of changed answers
