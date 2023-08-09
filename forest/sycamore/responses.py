@@ -43,7 +43,6 @@ def agg_changed_answers(agg: pd.DataFrame) -> pd.DataFrame:
         agg(DataFrame):
             Aggregated Data
 
-
     Returns:
         Dataframe with aggregated data, one line per question answered, with
         changed answers aggregated into a list. The Final answer is in the
@@ -96,7 +95,6 @@ def agg_changed_answers_summary(
         agg(DataFrame):
             Dataframe with aggregated data (output from
             aggregate_surveys_config)
-
 
     Returns:
         Dataframe with aggregated data, one line per question answered, with
