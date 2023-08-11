@@ -1,3 +1,4 @@
+"""Module for processing survey responses"""
 import logging
 from typing import Tuple, Any
 
@@ -15,6 +16,7 @@ def subset_answer_choices(answer: list) -> list:
 
     If a user changes their answers multiple times, an iOS device will have
     redundant answers at the beginning and end of the list, so we remove them.
+
     Args:
         answer(list):
             List of changed answers
@@ -40,7 +42,6 @@ def agg_changed_answers(agg: pd.DataFrame) -> pd.DataFrame:
     Args:
         agg(DataFrame):
             Aggregated Data
-
 
     Returns:
         Dataframe with aggregated data, one line per question answered, with
@@ -94,7 +95,6 @@ def agg_changed_answers_summary(
         agg(DataFrame):
             Dataframe with aggregated data (output from
             aggregate_surveys_config)
-
 
     Returns:
         Dataframe with aggregated data, one line per question answered, with
@@ -235,10 +235,10 @@ def format_responses_by_submission(agg_data: pd.DataFrame) -> dict:
                         survey_df.loc[i, "question type"],
                         survey_df.loc[i, "question answer options"]
                     ]
-                    num_found = num_found + 1
+                    num_found += 1
                 if num_found == len(id_text_dict):
                     keys_not_found = False
-                i = i + 1
+                i += 1
                 if i == survey_df.shape[0]:
                     # should find all keys before we get to the end but let's
                     # be safe...
