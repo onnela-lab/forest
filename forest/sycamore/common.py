@@ -1071,7 +1071,7 @@ def get_choices_with_sep_values(config_path: str = None,
         survey_history_dict = read_json(survey_history_path)
 
         for survey_id in survey_history_dict.keys():
-            for version in survey_history_dict[survey_id].values():
+            for version in survey_history_dict[survey_id]:
                 survey = version["survey_json"]
                 qs_with_seps = update_qs_with_seps(qs_with_seps, survey)
     else:
