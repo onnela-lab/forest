@@ -992,7 +992,7 @@ def fix_radio_answer_choices(
     return aggregated_data
 
 
-def update_qs_with_seps(qs_with_seps: dict, survey_content: dict) -> dict:
+def update_qs_with_seps(qs_with_seps: dict, survey_content: list) -> dict:
     """
     Iterates through answers in question_dict and adds any choices with , or ;
         to the correct entry in the sep_choices dict.
@@ -1000,10 +1000,10 @@ def update_qs_with_seps(qs_with_seps: dict, survey_content: dict) -> dict:
     Args:
         qs_with_seps: Dictionary with a key for each question ID. For each
             question ID, there is a set of all response choices with a , or ;
-        survey_content: Dictionary with survey content information, from either
+        survey_content: list with survey content information, from either
             the study config file or survey history file
     """
-    for question in survey_content.values():
+    for question in survey_content:
         if "question_type" not in question.keys():
             continue
         if question["question_type"] == "radio_button":
