@@ -1009,7 +1009,7 @@ def update_qs_with_seps(qs_with_seps: dict, survey_content: list) -> dict:
         if question["question_type"] == "radio_button":
             answer_choices = question["answers"]
             q_sep_choices = set()
-            for choice in answer_choices.values():
+            for choice in answer_choices:
                 answer_text = choice["text"]
                 if len(re.findall(",|;", answer_text)) != 0:
                     # At least one separation value occurs in the
