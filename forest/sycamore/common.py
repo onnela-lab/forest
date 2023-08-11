@@ -42,7 +42,9 @@ def safe_read_csv(filepath: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def q_types_standardize(question: str, lkp: Optional[dict] = None) -> str:
+def standardize_question_type(
+    question: str, lkp: Optional[dict] = None
+) -> str:
     """Standardizes question types using a lookup function
 
     Args:
@@ -218,7 +220,7 @@ def aggregate_surveys(
 
     # Fix question types
     all_data["question type"] = all_data.apply(
-        lambda row: q_types_standardize(
+        lambda row: standardize_question_type(
             row["question type"], QUESTION_TYPES_LOOKUP
         ), axis=1
     )
@@ -1001,13 +1003,13 @@ def update_qs_with_seps(qs_with_seps: dict, survey_content: dict) -> dict:
         survey_content: Dictionary with survey content information, from either
             the study config file or survey history file
     """
-    for _, question in enumerate(survey_content):
+    for question in survey_content.values():
         if "question_type" not in question.keys():
             continue
         if question["question_type"] == "radio_button":
             answer_choices = question["answers"]
             q_sep_choices = set()
-            for _, choice in enumerate(answer_choices):
+            for choice in answer_choices.values():
                 answer_text = choice["text"]
                 if len(re.findall(",|;", answer_text)) != 0:
                     # At least one separation value occurs in the
@@ -1061,7 +1063,7 @@ def get_choices_with_sep_values(config_path: str = None,
             logger.warning("No survey information found in config file")
             return qs_with_seps
 
-        for _, survey_num in enumerate(surveys_list):
+        for survey_num in surveys_list.values():
             survey = survey_num["content"]
             qs_with_seps = update_qs_with_seps(qs_with_seps, survey)
 
@@ -1069,7 +1071,7 @@ def get_choices_with_sep_values(config_path: str = None,
         survey_history_dict = read_json(survey_history_path)
 
         for survey_id in survey_history_dict.keys():
-            for _, version in enumerate(survey_history_dict[survey_id]):
+            for version in survey_history_dict[survey_id].values():
                 survey = version["survey_json"]
                 qs_with_seps = update_qs_with_seps(qs_with_seps, survey)
     else:
