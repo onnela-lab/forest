@@ -1037,13 +1037,9 @@ def impute_gps(
                 imp_table = update_table(
                     imp_table,
                     [
-                        [2, 1, 2],
-                        [mis_table[i, 0], mis_table[i, 0], mis_table[i, 3]],
-                        [mis_table[i, 1], mis_table[i, 1], mis_table[i, 4]],
-                        [mis_table[i, 2], t_s, t_e],
-                        [mis_table[i, 0], mis_table[i, 3], mis_table[i, 3]],
-                        [mis_table[i, 1], mis_table[i, 4], mis_table[i, 4]],
-                        [t_s, t_e, mis_table[i, 5]],
+                        [2, *mis_table[i, [0, 1, 2, 0, 1]], t_s],
+                        [1, *mis_table[i, [0, 1]], t_s, *mis_table[i, [3, 4]], t_e],
+                        [2, *mis_table[i, [3, 4]], t_e, *mis_table[i, [3, 4, 5]]],
                     ]
                 )
         # add one more check about how many flights observed
@@ -1073,13 +1069,9 @@ def impute_gps(
                 imp_table = update_table(
                     imp_table,
                     [
-                        [2, 1, 2],
-                        [mis_table[i, 0], mis_table[i, 0], mis_table[i, 3]],
-                        [mis_table[i, 1], mis_table[i, 1], mis_table[i, 4]],
-                        [mis_table[i, 2], t_s, t_e],
-                        [mis_table[i, 0], mis_table[i, 3], mis_table[i, 3]],
-                        [mis_table[i, 1], mis_table[i, 4], mis_table[i, 4]],
-                        [t_s, t_e, mis_table[i, 5]],
+                        [2, *mis_table[i, [0, 1, 2, 0, 1]], t_s],
+                        [1, *mis_table[i, [0, 1]], t_s, *mis_table[i, [3, 4]], t_e],
+                        [2, *mis_table[i, [3, 4]], t_e, *mis_table[i, [3, 4, 5]]],
                     ]
                 )
 
