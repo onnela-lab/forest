@@ -1063,7 +1063,7 @@ def get_choices_with_sep_values(config_path: str = None,
             logger.warning("No survey information found in config file")
             return qs_with_seps
 
-        for survey_num in surveys_list.values():
+        for survey_num in surveys_list:
             survey = survey_num["content"]
             qs_with_seps = update_qs_with_seps(qs_with_seps, survey)
 
