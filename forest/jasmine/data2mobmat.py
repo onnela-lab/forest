@@ -995,8 +995,10 @@ def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
     mobmat = np.hstack(
         (mobmat, np.ones(n_rows).reshape(n_rows, 1))
     )
-    # Append new pauses to the trajectory matrix
-    mobmat = np.vstack((mobmat, new_pauses_array))
+    
+    if new_pauses_array.shape[0] > 0: # At least one new pause was imputed
+        # Append imputed pauses to the trajectory matrix
+        mobmat = np.vstack((mobmat, new_pauses_array))
     # Sort the matrix by start time
     mobmat = mobmat[mobmat[:, 3].argsort()].astype(float)
 
