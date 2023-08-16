@@ -53,7 +53,9 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
             - t_bout_interp: resampled timestamp (in Unix)
             - vm_bout_interp: vector magnitude of acceleration
     """
-    t_bout_interp = np.arange(t_bout[0], t_bout[-1], (1/fs))
+    t_bout_interp = t_bout - t_bout[0]
+    t_bout_interp = np.arange(t_bout_interp[0], t_bout_interp[-1], (1/fs))
+    t_bout_interp = t_bout_interp + t_bout[0]
 
     f = interpolate.interp1d(t_bout, x_bout)
     x_bout_interp = f(t_bout_interp)
