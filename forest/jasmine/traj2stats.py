@@ -4,9 +4,9 @@ modules and calculate summary statistics of imputed trajectories.
 
 from dataclasses import dataclass
 import json
+import logging
 import os
 import pickle
-import sys
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -26,11 +26,15 @@ from forest.jasmine.data2mobmat import (gps_to_mobmat, infer_mobmat,
                                         pairwise_great_circle_dist)
 from forest.jasmine.mobmat2traj import (imp_to_traj, impute_gps, locate_home,
                                         num_sig_places)
-from forest.jasmine.sogp_gps import BV_select
+from forest.jasmine.sogp_gps import bv_select
 from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
                                                stamp2datetime,
                                                write_all_summaries)
 from forest.utils import get_ids
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 
 @dataclass
@@ -42,7 +46,7 @@ class Hyperparameters:
             gps_to_mobmat function.
         itrvl, r: hyperparameters for the infer_mobmat function.
         l1, l2, l3, a1, a2, b1, b2, b3, sigma2, tol, d: hyperparameters
-            for the BV_select function.
+            for the bv_select function.
         l1, l2, a1, a2, b1, b2, b3, g, method, switch, num, linearity:
             hyperparameters for the impute_gps function.
         itrvl, r, w, h: hyperparameters for the imp_to_traj function.
@@ -258,13 +262,11 @@ def get_nearby_locations(
         requests.exceptions.HTTPError,
         requests.exceptions.ReadTimeout
     ) as err:
-        sys.stdout.write(f"Timeout error: {err}\n")
-        sys.stdout.write(
+        raise RuntimeError(
+            f"Timeout error: {err} \n"
             "OpenStreetMap query is too large. "
             "Do not use save_osm_log or places_of_interest "
-            "unless you need them.\n"
-        )
-        raise RuntimeError(
+            "unless you need them. \n"
             "Query to Overpass API failed to return data in alloted time"
         )
 
@@ -501,7 +503,7 @@ def gps_summaries(
     saved_polygons: Dict[str, Polygon] = {}
     if frequency != Frequency.DAILY:
         # find starting and ending time
-        sys.stdout.write("Calculating the hourly summary stats...\n")
+        logger.info("Calculating the hourly summary stats...")
         time_list = stamp2datetime(traj[0, 3], tz_str)
         time_list[4:6] = [0, 0]
         start_stamp = datetime2stamp(time_list, tz_str)
@@ -514,7 +516,7 @@ def gps_summaries(
         no_windows = (end_stamp - start_stamp) // window
     else:
         # find starting and ending time
-        sys.stdout.write("Calculating the daily summary stats...\n")
+        logger.info("Calculating the daily summary stats...")
         time_list = stamp2datetime(traj[0, 3], tz_str)
         time_list[3:6] = [0, 0, 0]
         start_stamp = datetime2stamp(time_list, tz_str)
@@ -781,10 +783,9 @@ def gps_summaries(
                 if save_osm_log:
                     if threshold is None:
                         threshold = 60
-                        sys.stdout.write(
+                        logger.info(
                             "threshold parameter set to None,"
-                            + " automatically converted to 60min."
-                            + "\n"
+                            " automatically converted to 60min."
                         )
                     if pause[2] >= threshold:
                         for place_id, place_coordinates in locations.items():
@@ -1245,18 +1246,18 @@ def gps_stats_main(
         os.makedirs(f"{output_folder}/trajectory", exist_ok=True)
 
     for participant_id in participant_ids:
-        sys.stdout.write(f"User: {participant_id}\n")
+        logger.info("User: %s", participant_id)
         # data quality check
         quality = gps_quality_check(study_folder, participant_id)
         if quality > quality_threshold:
             # read data
-            sys.stdout.write("Read in the csv files ...\n")
+            logger.info("Read in the csv files ...")
             data, _, _ = read_data(
                 participant_id, study_folder, "gps",
                 tz_str, time_start, time_end,
             )
             if data.shape == (0, 0):
-                sys.stdout.write("No data available.\n")
+                logger.info("No data available.")
                 continue
             if parameters.r is None:
                 params_r = float(parameters.itrvl)
@@ -1276,7 +1277,7 @@ def gps_stats_main(
                 params_r, params_w, params_h
             )
             mobmat2 = infer_mobmat(mobmat1, parameters.itrvl, params_r)
-            out_dict = BV_select(
+            out_dict = bv_select(
                 mobmat2,
                 parameters.sigma2,
                 parameters.tol,
@@ -1294,7 +1295,7 @@ def gps_stats_main(
                     parameters.linearity, tz_str, pars1
                 )
             except RuntimeError as e:
-                sys.stderr.write(f"Error: {e}\n")
+                logger.error("Error: %s", e)
                 continue
             traj = imp_to_traj(imp_table, mobmat2, params_w)
             # save all_memory_dict and all_bv_set
@@ -1391,6 +1392,7 @@ def gps_stats_main(
                     ) as loc:
                         json.dump(logs, loc, indent=4)
         else:
-            sys.stdout.write("GPS data are not collected"
-                             " or the data quality is too low\n")
-                             
+            logger.info(
+                "GPS data are not collected"
+                " or the data quality is too low"
+            )

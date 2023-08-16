@@ -1,6 +1,7 @@
 """This module contains functions to convert the mobility matrix into
 trajectories. It is part of the Jasmine package.
 """
+import logging
 import math
 import sys
 from typing import Optional, Tuple
@@ -10,6 +11,10 @@ import scipy.stats as stat
 
 from ..poplar.legacy.common_funcs import stamp2datetime
 from .data2mobmat import great_circle_dist, exist_knot
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 
 # the details of the functions are in paper [Liu and Onnela (2020)]
@@ -965,7 +970,7 @@ def impute_gps(
     """
     # identify home location
     home_coords = locate_home(mob_mat, tz_str)
-    sys.stdout.write("Imputing missing trajectories ...\n")
+    logger.info("Imputing missing trajectories ...")
 
     # create three tables
     # for observed flights, observed pauses, and missing intervals
@@ -1036,13 +1041,15 @@ def impute_gps(
                 imp_table = update_table(
                     imp_table,
                     [
-                        [2, 1, 2],
-                        [mis_table[i, 0], mis_table[i, 0], mis_table[i, 3]],
-                        [mis_table[i, 1], mis_table[i, 1], mis_table[i, 4]],
-                        [mis_table[i, 2], t_s, t_e],
-                        [mis_table[i, 0], mis_table[i, 3], mis_table[i, 3]],
-                        [mis_table[i, 1], mis_table[i, 4], mis_table[i, 4]],
-                        [t_s, t_e, mis_table[i, 5]],
+                        [2, *mis_table[i, [0, 1, 2, 0, 1]], t_s],
+                        [
+                            1, *mis_table[i, [0, 1]], t_s,
+                            *mis_table[i, [3, 4]], t_e
+                        ],
+                        [
+                            2, *mis_table[i, [3, 4]],
+                            t_e, *mis_table[i, [3, 4, 5]]
+                        ],
                     ]
                 )
         # add one more check about how many flights observed
@@ -1072,13 +1079,15 @@ def impute_gps(
                 imp_table = update_table(
                     imp_table,
                     [
-                        [2, 1, 2],
-                        [mis_table[i, 0], mis_table[i, 0], mis_table[i, 3]],
-                        [mis_table[i, 1], mis_table[i, 1], mis_table[i, 4]],
-                        [mis_table[i, 2], t_s, t_e],
-                        [mis_table[i, 0], mis_table[i, 3], mis_table[i, 3]],
-                        [mis_table[i, 1], mis_table[i, 4], mis_table[i, 4]],
-                        [t_s, t_e, mis_table[i, 5]],
+                        [2, *mis_table[i, [0, 1, 2, 0, 1]], t_s],
+                        [
+                            1, *mis_table[i, [0, 1]], t_s,
+                            *mis_table[i, [3, 4]], t_e
+                        ],
+                        [
+                            2, *mis_table[i, [3, 4]],
+                            t_e, *mis_table[i, [3, 4, 5]]
+                        ],
                     ]
                 )
 
@@ -1195,7 +1204,7 @@ def imp_to_traj(
             which is an indicator showing if the piece
             of traj is imputed (0) or observed (1)
     """
-    sys.stdout.write("Tidying up the trajectories...\n")
+    logger.info("Tidying up the trajectories...")
 
     # Create a table for missing values
     mis_table = np.zeros((1, 8))
