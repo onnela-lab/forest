@@ -1,7 +1,7 @@
 """This module contains functions to convert raw GPS data to mobility matrix
 """
 
-import sys
+import logging
 import math
 from typing import Tuple, Union, Optional, List
 from itertools import groupby
@@ -9,10 +9,14 @@ from itertools import groupby
 import numpy as np
 import pandas as pd
 
-# the radius of the earth
-R = 6.371 * 10 ** 6
+from forest.constants import EARTH_RADIUS_METERS
+
 # a threshold
 TOLERANCE = 1e-6
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 
 def cartesian(
@@ -31,8 +35,8 @@ def cartesian(
     """
     lat = lat / 180 * math.pi
     lon = lon / 180 * math.pi
-    z_coord = R * np.sin(lat)
-    u_var = R * np.cos(lat)
+    z_coord = EARTH_RADIUS_METERS * np.sin(lat)
+    u_var = EARTH_RADIUS_METERS * np.cos(lat)
     x_coord = u_var * np.cos(lon)
     y_coord = u_var * np.sin(lon)
     return x_coord, y_coord, z_coord
@@ -74,7 +78,7 @@ def great_circle_dist(
     temp[temp < -1] = -1
 
     theta = np.arccos(temp)
-    return theta * R
+    return theta * EARTH_RADIUS_METERS
 
 
 def shortest_dist_to_great_circle(
@@ -113,7 +117,7 @@ def shortest_dist_to_great_circle(
         np.array([x_end, y_end, z_end])
     )
     N = cross_product / (np.linalg.norm(cross_product) + TOLERANCE)
-    C = np.array([x_coord, y_coord, z_coord]) / R
+    C = np.array([x_coord, y_coord, z_coord]) / EARTH_RADIUS_METERS
     temp = np.dot(N, C)
     # make temp fall into the domain of "arccos"
     if isinstance(temp, np.ndarray):
@@ -123,7 +127,7 @@ def shortest_dist_to_great_circle(
         temp = min(temp, 1)
         temp = max(temp, -1)
     noc = np.arccos(temp)
-    d = abs(math.pi / 2 - noc) * R
+    d = abs(math.pi / 2 - noc) * EARTH_RADIUS_METERS
     return d
 
 
@@ -183,8 +187,8 @@ def collapse_data(
     # Initialize an empty 2D numpy array for the collapsed data
     avgmat = np.empty([int(np.ceil((t_end - t_start) / interval)) + 2, 4])
 
-    sys.stdout.write(
-        f"Collapse data within {interval} second intervals ...\n"
+    logger.info(
+        "Collapse data within %s second intervals ...", interval
     )
 
     idx_avgmat: int = 0
@@ -584,7 +588,7 @@ def gps_to_mobmat(
     avgmat = collapse_data(raw_gps_data, interval, accuracy_limit)
     trajectory_matrix = np.zeros(7)
     current_index = 0
-    sys.stdout.write("Extract flights and pauses ...\n")
+    logger.info("Extract flights and pauses ...")
 
     for i in range(avgmat.shape[0]):
         # if the status of the data is 4 (missing data)
@@ -952,7 +956,7 @@ def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
     Returns:
         a 2d numpy array as a final trajectory matrix
     """
-    sys.stdout.write("Infer unclassified windows ...\n")
+    logger.info("Infer unclassified windows ...")
 
     # Infer unknown status
     # The 'unknown' status (code 3)
@@ -963,7 +967,7 @@ def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
             mobmat = infer_status_and_positions(i, mobmat, interval, r)
 
     # merge consecutive pauses
-    sys.stdout.write("Merge consecutive pauses and bridge gaps ...\n")
+    logger.info("Merge consecutive pauses and bridge gaps ...")
     mobmat = merge_pauses_and_bridge_gaps(mobmat)
 
     # check for missing intervals and correct them

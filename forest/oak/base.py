@@ -49,8 +49,9 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
             sampling frequency
 
     Returns:
-        Tuple of ndarrays with interpolated acceleration in x, y, and z axes,
-        as well as their vector magnitude
+        Tuple of ndarrays:
+            - t_bout_interp: resampled timestamp (in Unix)
+            - vm_bout_interp: vector magnitude of acceleration
     """
     t_bout_interp = np.arange(t_bout[0], t_bout[-1], (1/fs))
 

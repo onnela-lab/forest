@@ -1,4 +1,0 @@
-[flake8]
-exclude =
-    forest/jasmine/sogp_gps.py,
-    forest/willow/log_stats.py

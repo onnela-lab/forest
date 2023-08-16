@@ -19,13 +19,16 @@ logger = logging.getLogger(__name__)
 def get_audio_survey_id_dict(history_path: str = None) -> Dict[str, str]:
     """Create a dict that has most recent prompt corresponding to an audio
     survey as keys and the survey ID as the corresponding value.
+
     Args:
         history_path: Path to survey history file, downloaded from the Beiwe
             website.
+
     Returns:
         dictionary with keys for each prompt (for example a prompt could be
-            "Describe your day today", and values with survey IDs"""
-    output_dict: Dict[str, str] = dict()
+            "Describe your day today", and values with survey IDs
+    """
+    output_dict: Dict[str, str] = {}
     if history_path is None:
         return output_dict
     history_dict = read_json(history_path)
@@ -33,7 +36,7 @@ def get_audio_survey_id_dict(history_path: str = None) -> Dict[str, str]:
         most_recent_update = history_dict[key][-1]['survey_json']
         if most_recent_update is None:
             continue
-        if type(most_recent_update) != list:
+        if not isinstance(most_recent_update, list):
             continue
         if len(most_recent_update) == 0:
             continue
@@ -44,22 +47,25 @@ def get_audio_survey_id_dict(history_path: str = None) -> Dict[str, str]:
     return output_dict
 
 
-def get_config_id_dict(config_path: str = None) -> dict:
+def get_config_id_dict(config_path: str = None) -> Dict[str, int]:
     """Get a dict with question prompts as keys and the config IDs as values
+
     Args:
         config_path: Path to survey config JSON file
+
     Returns:
         dict with a key for each question prompt, and the config ID (the order
         of the question in the config file) as values
+
     """
-    output_dict: Dict[str, int] = dict()
+    output_dict: Dict[str, int] = {}
     if config_path is None:
         return output_dict
     surveys = read_json(config_path)["surveys"]
     for index, survey in enumerate(surveys):
         if "content" not in survey.keys():
             continue
-        if type(survey["content"]) is not list:
+        if not isinstance(survey["content"], list):
             continue
         if len(survey["content"]) < 1:
             continue
@@ -142,8 +148,8 @@ def read_user_audio_recordings_stream(
         # include the survey history file, but if they did include the
         # survey history file, we want to have the prompt for readability
         survey_prompt = "UNKNOWN"
-        for prompt in audio_survey_id_dict.keys():
-            if audio_survey_id_dict[prompt] == survey:
+        for prompt, prompt_value in audio_survey_id_dict.items():
+            if prompt_value == survey:
                 survey_prompt = prompt
 
         # We need to enumerate to tell different survey occasions apart
@@ -257,7 +263,7 @@ def read_aggregate_audio_recordings_stream(
     aggregated_data["config_id"] = aggregated_data[
         "question text"
     ].apply(
-        lambda x: audio_config_id_dict[x] if x in audio_config_id_dict.keys()
+        lambda x: audio_config_id_dict[x] if x in audio_config_id_dict
         else np.nan
     )
 
