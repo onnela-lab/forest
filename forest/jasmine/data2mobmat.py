@@ -696,10 +696,10 @@ def compute_future_flight_positions(
     adjustment_end = interval / 2 * rate_of_change_y
 
     # Adjust the start and end x and y positions using the adjustment factors
-    start_x = mobmat[index, 2] - adjustment_start
-    start_y = mobmat[index, 3] - adjustment_end
-    end_x = mobmat[index, 2] + adjustment_start
-    end_y = mobmat[index, 3] + adjustment_end
+    start_x = mobmat[index, 1] - adjustment_start
+    start_y = mobmat[index, 2] - adjustment_end
+    end_x = mobmat[index, 1] + adjustment_start
+    end_y = mobmat[index, 2] + adjustment_end
 
     # Update the mobility matrix with the new start and end positions
     mobmat[index, 1] = start_x
