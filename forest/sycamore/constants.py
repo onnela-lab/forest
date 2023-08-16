@@ -1,3 +1,4 @@
+"""Constants used throughout the Sycamore tree."""
 import pandas as pd
 
 # We want our default date to be farther in the past than any Beiwe data could
