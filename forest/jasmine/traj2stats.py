@@ -361,7 +361,7 @@ def get_nearby_locations_local(
                 state_points.append((row[1], row[2]))
                 ## Put these in lattitude, longitude format because bounding_box takes things in lattitude, longitude format
         if len(state_points) > 0:
-            sys.stdout.write("Loading osm file for " + state + "...\n")
+            logger.info("Loading osm file for %s ...", state)
             bbox_tuple = bounding_box((state_points[0][0], state_points[0][1]), bounding_box_size)
             bbox = box(*bbox_tuple)
             for idx, state_pause in enumerate(state_points):
