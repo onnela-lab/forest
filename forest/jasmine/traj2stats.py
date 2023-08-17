@@ -10,6 +10,7 @@ import sys
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
+import osmium
 import pandas as pd
 from pyproj import Transformer
 import requests
@@ -67,6 +68,180 @@ class Hyperparameters:
     w: Union[float, None] = None
     h: Union[int, None] = None
 
+class OSMHandler(osmium.SimpleHandler):
+    """Class used to extract data from an osm file.
+
+    Args:
+        bbox: shapely.geometry.Polygon, bounding box
+    """
+
+    def __init__(self, bbox, osm_tags):
+        """Initializes the OSMHandler class."""
+        super(OSMHandler, self).__init__()
+
+        self.ids: List[int] = []
+        self.tags: List[Dict[str, str]] = []
+        self.locations: List[List[List[float]]] = []
+        self.bbox: Polygon = bbox
+        self.osm_tags: List[str] = [t.value for t in osm_tags]
+        self.rough_bbox = box(*bbox.bounds) ## it's faster to evaluate whether
+        #a point is within a large rectangle containing our whole bbox
+
+    def node(self, n):
+        """Adds a node to the list of nodes if it is in the bounding box.
+
+        Args:
+            n: osmium.osm.mutable.Node, node
+        """
+        if self.rough_bbox.contains(Point(n.location.lat, n.location.lon)) and self.bbox.contains(Point(n.location.lat, n.location.lon)):
+            tags = {tag.k: tag.v for tag in n.tags}
+            if self.check_tags(tags):
+                self.ids.append(n.id)
+                self.locations.append([[n.location.lat, n.location.lon]])
+                self.tags.append(tags)
+
+    def way(self, w):
+        """Adds a way to the list of ways if it is in the bounding box.
+
+        Args:
+            w: osmium.osm.mutable.Way, way
+        """
+        n = w.nodes[0]
+        if self.rough_bbox.contains(Point(n.location.lat, n.location.lon)) and self.bbox.contains(Point(n.location.lat, n.location.lon)):
+            tags = {tag.k: tag.v for tag in w.tags}
+            if self.check_tags(tags):
+                self.ids.append(w.id)
+                self.locations.append([
+                    [n2.location.lat, n2.location.lon] for n2 in w.nodes
+                ])
+                self.tags.append(tags)
+
+    def relation(self, r):
+        pass
+
+    def check_tags(self, tags):
+        """Checks whether the tags are in the list of tags.
+
+        Args:
+            tags: dict, tags of a node or way
+        Returns:
+            bool, True if the tags are in the list of tags
+        """
+        for tag in self.osm_tags:
+            if tag in tags.keys():
+                return True
+        return False
+
+    def apply_file(self, filename, locations=True):
+        """Applies the OSMHandler class to a file.
+
+        Args:
+            filename: str, name of the file
+            locations: bool, whether to save locations
+        """
+        super(OSMHandler, self).apply_file(filename, locations)
+
+def get_nearby_locations_local(
+    traj: np.ndarray, osm_local_file: str,
+    osm_tags: Optional[List[OSMTags]] = None
+) -> Tuple[dict, dict, dict]:
+    """This function returns a dictionary of nearby locations,
+    a dictionary of nearby locations' names, and a dictionary of
+    nearby locations' coordinates. Uses local osm file.
+
+    Args:
+        traj: numpy array, trajectory
+        osm_local_folder: str, path to folder containing state osm files and state wkb files
+        osm_tags: list of OSMTags (in constants),
+            types of nearby locations supported by Overpass API
+            defaults to [OSMTags.AMENITY, OSMTags.LEISURE]
+    Returns:
+        ids: dictionary, contains nearby locations' ids
+        locations: dictionary, contains nearby locations' coordinates
+        tags: dictionary, contains nearby locations' tags
+    Raises:
+        RuntimeError: if the query to Overpass API fails
+    """
+
+    if osm_tags is None:
+        osm_tags = [OSMTags.AMENITY, OSMTags.LEISURE]
+    pause_vec = traj[traj[:, 0] == 2]
+    latitudes: List[float] = [pause_vec[0, 1]]
+    longitudes: List[float] = [pause_vec[0, 2]]
+    # initialize bounding box
+
+    all_states_ids = []
+    all_states_tags = []
+    all_states_locations = []   
+    
+    bounding_box_size = 500
+    state_shapes_dict = get_states_dict(osm_local_file)
+    for state in state_shapes_dict.keys():
+        state_points = []
+        for row in pause_vec:
+            if state_shapes_dict[state].contains(Point(row[2], row[1])):
+                ## Note: I'm putting the longitude here first because it expects things in x, y format. 
+                ## This is kind of o
+                state_points.append((row[1], row[2]))
+                ## Put these in lattitude, longitude format because bounding_box takes things in lattitude, longitude format
+        if len(state_points) > 0:
+            logger.info("Loading osm file for %s ...", state)
+            bbox_tuple = bounding_box((state_points[0][0], state_points[0][1]), bounding_box_size)
+            bbox = box(*bbox_tuple)
+            for idx, state_pause in enumerate(state_points):
+                if idx == 0: ## We already created the bounding box with the first one
+                    continue
+                bbox_tuple = bounding_box((state_pause[0], state_pause[1]), bounding_box_size)
+                bbox = bbox.union(box(*bbox_tuple))
+                    
+            state_osm_handler = OSMHandler(bbox, osm_tags)
+            state_osm_handler.apply_file(os.path.join(osm_local_file,  state + "-latest.osm.pbf"))
+            all_states_ids += state_osm_handler.ids
+            all_states_tags += state_osm_handler.tags
+            all_states_locations += state_osm_handler.locations
+
+    ids: Dict[str, List[int]] = {}
+    locations: Dict[int, List[List[float]]] = {}
+    tags: Dict[int, Dict[str, str]] = {}
+
+    for idx, element_id in enumerate(all_states_ids):
+
+        element_tags = all_states_tags[idx]
+        element_location = all_states_locations[idx]
+
+        for tag in osm_tags:
+            if tag.value in element_tags:
+                node_descr = element_tags[tag.value]
+                if node_descr not in ids.keys():
+                    ids[node_descr] = [element_id]
+                else:
+                    ids[node_descr].append(element_id)
+
+        locations[element_id] = element_location
+
+        tags[element_id] = element_tags
+
+    return ids, locations, tags
+
+def get_intersection_area(shape1, shape2) -> float:
+    """Get the intersection area between two shapes, but don't return a runtime
+    error if the shapes do not intersect (as would happen if we just used the
+    shapely intersection function)
+
+    (Type hints are not currently available for Shapely, per
+    https://github.com/shapely/shapely/issues/721)
+
+    Args:
+        shape1: a Shapely Geometry
+        shape2: a Shapely Geometry
+    Returns:
+        The area of the intersection, if there is an intersection. If there is
+        no intersection, it returns 0
+        """
+    if shape1.intersects(shape2):
+        return shape1.intersection(shape2).area
+    else:
+        return 0.0
 
 def transform_point_to_circle(lat: float, lon: float, radius: float
                               ) -> Polygon:
@@ -226,6 +401,7 @@ def gps_summaries(
     places_of_interest: Optional[List[str]] = None,
     save_osm_log: bool = False,
     osm_tags: Optional[List[OSMTags]] = None,
+    osm_local_file: Optional[str] = None,
     threshold: Optional[int] = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
@@ -256,6 +432,8 @@ def gps_summaries(
             visited and their tags
         osm_tags: list of tags to search for in openstreetmaps
             avoid using a lot of them if large area is covered
+        osm_local_file: str, path to folder containing state osm files and 
+            .wkb files
         threshold: int, time spent in a pause needs to exceed the threshold
             to be placed in the log
             only if save_osm_log True, in minutes
@@ -286,7 +464,12 @@ def gps_summaries(
     locations: Dict[int, List[List[float]]] = {}
     tags: Dict[int, Dict[str, str]] = {}
     if places_of_interest is not None or save_osm_log:
-        ids, locations, tags = get_nearby_locations(traj, osm_tags)
+        if osm_local_file is None:
+            ids, locations, tags = get_nearby_locations(traj, osm_tags)
+        else:
+            ids, locations, tags = get_nearby_locations_local(
+                traj, osm_local_file, osm_tags
+            )
         ids_keys_list = list(ids.keys())
 
     obs_traj = traj[traj[:, 7] == 1, :]
@@ -937,6 +1120,7 @@ def gps_stats_main(
     places_of_interest: list = None,
     save_osm_log: bool = False,
     osm_tags: Optional[List[OSMTags]] = None,
+    osm_local_file: Optional[str] = None,
     threshold: int = None,
     split_day_night: bool = False,
     person_point_radius: float = 2,
@@ -966,6 +1150,8 @@ def gps_stats_main(
             visited and their tags
         osm_tags: list of tags to search for in openstreetmaps
             avoid using a lot of them if large area is covered
+        osm_local_file: str, path to a folder containing state osm files and .wkb files
+            if None, then uses API
         threshold: int, time spent in a pause needs to exceed the
             threshold to be placed in the log
             only if save_osm_log True, in minutes
