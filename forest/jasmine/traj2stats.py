@@ -1095,6 +1095,23 @@ def gps_stats_main(
                 logger.error("Error: %s", e)
                 continue
             traj = imp_to_traj(imp_table, mobmat2, params_w)
+            # raise error if traj coordinates are not in the range of
+            # [-90, 90] and [-180, 180]
+            if traj.shape[0] > 0:
+                if (
+                    np.max(traj[:, 1]) > 90
+                    or np.min(traj[:, 1]) < -90
+                    or np.max(traj[:, 2]) > 180
+                    or np.min(traj[:, 2]) < -180
+                    or np.max(traj[:, 4]) > 90
+                    or np.min(traj[:, 4]) < -90
+                    or np.max(traj[:, 5]) > 180
+                    or np.min(traj[:, 5]) < -180
+                ):
+                    raise ValueError(
+                        "Trajectory coordinates are not in the range of "
+                        "[-90, 90] and [-180, 180]."
+                    )
             # save all_memory_dict and all_bv_set
             with open(f"{output_folder}/all_memory_dict.pkl", "wb") as f:
                 pickle.dump(all_memory_dict, f)
