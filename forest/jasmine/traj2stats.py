@@ -4,6 +4,7 @@ modules and calculate summary statistics of imputed trajectories.
 
 from dataclasses import dataclass
 import json
+import logging
 import os
 import pickle
 import sys
@@ -14,9 +15,10 @@ import osmium
 import pandas as pd
 from pyproj import Transformer
 import requests
-from shapely.geometry import Point
+from shapely.geometry import Point, box
 from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
+from shapely.wkb import loads as load_wkb
 
 from forest.bonsai.simulate_gps_data import bounding_box
 from forest.constants import Frequency, OSM_OVERPASS_URL, OSMTags
@@ -30,6 +32,10 @@ from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
                                                stamp2datetime,
                                                write_all_summaries)
 from forest.utils import get_ids
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 
 @dataclass
@@ -140,6 +146,25 @@ class OSMHandler(osmium.SimpleHandler):
             locations: bool, whether to save locations
         """
         super(OSMHandler, self).apply_file(filename, locations)
+        
+def get_states_dict(osm_local_file: str) -> Dict:
+    """Reads all .wkb files in the directory to get a dictionary with 
+    states as keys and values shapely geoms
+    Args: 
+        osm_local_file: A folder containing .wkb files with information for each state
+        
+    Returns:
+        A dict with a key for each state and values with shapely boundaries
+    
+    """
+    states_dict = {}
+    all_files = [file for file in os.listdir(osm_local_file) if file.endswith(".wkb")]
+    for file in all_files:
+        state = file.split("_")[-1].split(".")[0]
+        full_path = os.path.join(osm_local_file,  file)
+        with open(full_path, "rb") as file:
+            states_dict[state] = load_wkb(file.read())
+    return states_dict
 
 def get_nearby_locations_local(
     traj: np.ndarray, osm_local_file: str,
@@ -1298,6 +1323,7 @@ def gps_stats_main(
                     places_of_interest,
                     save_osm_log,
                     osm_tags,
+                    osm_local_file,
                     threshold,
                     split_day_night,
                 )
@@ -1310,6 +1336,7 @@ def gps_stats_main(
                     places_of_interest,
                     save_osm_log,
                     osm_tags,
+                    osm_local_file,
                     threshold,
                     split_day_night,
                     person_point_radius,
@@ -1337,6 +1364,7 @@ def gps_stats_main(
                     places_of_interest,
                     save_osm_log,
                     osm_tags,
+                    osm_local_file,
                     threshold,
                     split_day_night,
                 )
