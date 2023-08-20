@@ -146,16 +146,16 @@ class OSMHandler(osmium.SimpleHandler):
             locations: bool, whether to save locations
         """
         super(OSMHandler, self).apply_file(filename, locations)
-        
+
 def get_states_dict(osm_local_file: str) -> Dict:
     """Reads all .wkb files in the directory to get a dictionary with 
     states as keys and values shapely geoms
-    Args: 
+    Args:
         osm_local_file: A folder containing .wkb files with information for each state
-        
+
     Returns:
         A dict with a key for each state and values with shapely boundaries
-    
+
     """
     states_dict = {}
     all_files = [file for file in os.listdir(osm_local_file) if file.endswith(".wkb")]
@@ -753,9 +753,9 @@ def gps_summaries(
                                     )
                                     saved_polygons[loc_str] = loc_circle
 
-                                intersection_area = pause_circle.intersection(
-                                    loc_circle
-                                ).area
+                                intersection_area = get_intersection_area(
+                                    pause_circle, loc_circle
+                                )
                                 if intersection_area > 0:
                                     all_place_probs[j] += intersection_area
                                     add_to_other = False
@@ -763,9 +763,9 @@ def gps_summaries(
                             elif len(locations[element_id]) >= 3:
                                 polygon = Polygon(locations[element_id])
 
-                                intersection_area = pause_circle.intersection(
-                                    polygon
-                                ).area
+                                intersection_area = get_intersection_area(
+                                    pause_circle, polygon
+                                )
                                 if intersection_area > 0:
                                     all_place_probs[j] += intersection_area
                                     add_to_other = False
