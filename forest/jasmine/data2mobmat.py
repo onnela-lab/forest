@@ -410,6 +410,7 @@ def InferMobMat(mobmat,itrvl,r):
                 mobmat[j-1,5] = mobmat[j,2]
 
     mobmat = np.hstack((mobmat,np.ones(mobmat.shape[0]).reshape(mobmat.shape[0],1)))
-    mobmat = np.vstack((mobmat,new_pauses))
+    if new_pauses.shape[0] > 0:
+        mobmat = np.vstack((mobmat,new_pauses))
     mobmat = mobmat[mobmat[:,3].argsort()].astype(float)
     return mobmat
