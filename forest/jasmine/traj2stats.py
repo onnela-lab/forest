@@ -1279,6 +1279,9 @@ def gps_stats_main(
                 data, parameters.itrvl, parameters.accuracylim,
                 parameters.r, parameters.w, parameters.h
             )
+            if len(mobmat1.shape) == 1:
+                sys.stdout.write("Not enough data available.\n")
+                continue
             mobmat2 = InferMobMat(mobmat1, parameters.itrvl, parameters.r)
             out_dict = BV_select(
                 mobmat2,
