@@ -686,7 +686,7 @@ def forward_impute(
             start_t, end_t, try_t, start_x + delta_x, end_x
         )
         try_y = calculate_position(
-            start_t, end_t, try_t, start_y + start_t, end_y
+            start_t, end_t, try_t, start_y + delta_y, end_y
         )
 
         mov1 = great_circle_dist(try_x, try_y, start_x, start_y)[0]
