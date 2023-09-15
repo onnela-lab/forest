@@ -216,6 +216,12 @@ The summary statistics that are generated are listed below:
 * - total_mins_out_call
   - float
   - The duration (minute) of all outgoing calls.
+  * - num_uniq_in_call_or_text
+  - int
+  - The total number of unique individuals who called or texted the subject.
+* - num_uniq_out_call_or_text
+  - int
+  - The total number of unique individuals called or texted by the subject.
 * - num_s
   - int
   - The total number of sent SMS.

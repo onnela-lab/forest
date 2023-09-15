@@ -41,6 +41,8 @@ ___
 |     num_uniq_mis_call      	|        float      	|     Total number of unique callers missed                                   	|
 |     total_time_in_call                   	|      int        	|     Total amount of minutes spent on incoming calls                                              	|
 |     total_time_out_call          	|       int       	|     Total amount of minutes spent on outgoing calls                                                      	|
+|     num_uniq_in_call_or_text            	|       float       	|     Total number of unique individuals who called or texted the Beiwe user                                         	|
+|     num_uniq_out_call_or_text	         	|        int      	|     Total number of unique individuals who the Beiwe user called or texted                                          	|
 |     num_s     	|        float      	|     Total number of sent SMS texts                                   	|
 |     num_r                    	|      int        	|     Total number of received SMS texts                                                	|
 |     num_mms_s                   	|      int        	|     Total number of sent MMS texts     	|
@@ -51,6 +53,7 @@ ___
 |     total_char_r|      int        	|     Total number of characters received     	|
 |     text_reciprocity_incoming |      int        	|    The total number of times a text is sent to a unique person without response    	|
 |     text_reciprocity_outgoing |      int        	|    The total number of times a text is received by a unique person without response       	|
+
 
 ## References  
 
