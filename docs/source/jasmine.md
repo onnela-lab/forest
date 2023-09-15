@@ -79,45 +79,48 @@ You can also tweak the parameters that change the assumptions of the imputation 
 (6) locations_log (.json)\
     - json file created if `save_osm_log` is set to True. It contains information on the places visited by the user, their tags and the time of visit.
 
-##  Description of functions in package: 
+## Description of functions in package:
+
 `data2mobmat.py`
 This file contains the functions to convert the raw GPS data to a mobility matrix (2d numpy array), where each column represents movement status(flight/pause/undecided), starting latitude, starting longitude, starting timestamp, ending latitude, ending longitude, ending timestamp. This module focuses on summarizing observed data to trajectories but not unobserved period.
 
-- Its main function is `GPS2MobMat` which calls the required functions in the right order (see [[Link to paper | doi....]] for details on the algorithm
+- Its main function is `gps_to_mobmat` which calls the required functions in the right order (see [[Link to paper | doi....]] for details on the algorithm
 - It contains various functions to calculate distance on the globe: `cartesian`, `shortest_dist_to_great_circle`, `great_circle_dist` and `pairwise_great_circle_dist`
 - In addition, it has a few helper functions:
-- `unique`: return a list of unique items in a list
 - `collapse_data`: the GPS data is usually sampled at 1 Hz. We collapse the data every 10 seconds and calculate the average to reduce the noise in the raw data.
-- `ExistKnot`: given a matrix with columns [timestamp, latitude, longitude], return if the trajectories depicted by those coordinates can be approximated as a straight line. The parameter $w$ represents the tolerance of deviation. It return 1 if there exists at least one knot in the trajectory and it returns 0 otherwise.  
-- `ExtractFlights`: given a matrix with columns [timestamp, latitude, longitude] in a burst period (when the GPS is on), return a summary of trajectories (2d array) with columns as [movement status, start_timestamp, start_latitude, start_longitude, end_timestamp, end_latitude, end_longitude].
-- `InferMobMat`: tidy up the trajectory matrix (infer undecided pieces, combine flights/pauses.)
+- `exist_knot`: given a matrix with columns [timestamp, latitude, longitude], return if the trajectories depicted by those coordinates can be approximated as a straight line. The parameter $w$ represents the tolerance of deviation. It return 1 if there exists at least one knot in the trajectory and it returns 0 otherwise.
+- `extract_flights`: given a matrix with columns [timestamp, latitude, longitude] in a burst period (when the GPS is on), return a summary of trajectories (2d array) with columns as [movement status, start_timestamp, start_latitude, start_longitude, end_timestamp, end_latitude, end_longitude]. It uses the helper funtions `mark_single_measure`, `mark_complete_pause`, `detect_knots` and `prepare_output_data`.
+- `infer_mobmat`: tidy up the trajectory matrix (infer undecided pieces, combine flights/pauses.). It uses the helper functions `compute_flight_positions`, `compute_future_flight_positions`, `infer_status_and_positions`, `merge_pauses_and_bridge_gaps` and `correct_missing_intervals`.
 
 `sogp_gps.py`
 This file is the core of sparse online Gaussian Process. It covers the algorithm described in [Csato and Opper (2001)](https://eprints.soton.ac.uk/259182/1/gp2.pdf).
-- `K0`: a kernel function to measure the similarity between x1 and x2.
-- `update_K`, `update_k`, `update_e_hat`, `update_gamma`, `update_q`, `update_s_hat`, `update_eta`, `update_alpha_hat`, `update_c_hat`, `update_s`, `update_alpha`, `update_c`, `update_Q`, `update_alpha_vec`, `update_c_mat`, `update_q_mat`, `update_s_mat`: are the updating rules for each parameters in the algorithm.
-- `SOGP`: A key function of this model. Given an 2d array of latitude and longitude, return a basis vector set of fixed size and relevant parameters for the updates in the future.
-- `BV_select`: The master function. Given the observed trajectory matrix, return representative trajectories of a fixed size and relevant parameters for the updates in the future.
+
+- `calculate_k0`: a kernel function to measure the similarity between x1 and x2.
+- `update_similarity`, `update_similarity_all`, `update_e_hat`, `update_gamma`, `update_q`, `update_s_hat`, `update_eta`, `update_alpha_hat`, `update_c_hat`, `update_s`, `update_alpha`, `update_c`, `update_q_mat`, `update_alpha_vec`, `update_c_mat`, `update_q_mat2`, `update_s_mat`: are the updating rules for each parameters in the algorithm.
+- `sogp`: A key function of this model. Given an 2d array of latitude and longitude, return a basis vector set of fixed size and relevant parameters for the updates in the future. It uses the helper functions `calculate_sigma_max`, `update_system_given_gamma_tol`, `update_system_otherwise` and `pruning_bv`.
+- `bv_select`: The master function. Given the observed trajectory matrix, return representative trajectories of a fixed size and relevant parameters for the updates in the future.
 
 `mobmat2traj.py`
 This file imputes the missing trajectories based on the observed trajectory matrix.
-- Its main functions are `ImputeGPS` (for ...) and `Imp2traj` (for ...)
-- It contains two functions that are also used for generating summary statistics: `num_sig_places` (identify number of locations where participant spends x consecutive minutes, and is at least y m away from other locations) and `locate_home` (identify location that a participant spends most time between 9pm and 9 am)
+
+- Its main functions are `impute_gps` (for bi-directional imputation) and `imp_to_traj` (for combining pauses, flights shared by both observed and missing intervals, also combining consecutive flight with slightly different directions as one longer flight). It uses the helper functions `calculate_delta`, `adjust_delta_if_needed`, `calculate_position`, `update_table`, `forward_impute` and `backward_impute`.
+- It contains two functions that are also used for generating summary statistics: `num_sig_places` (identify number of locations where participant spends x consecutive minutes, and is at least y m away from other locations) and `locate_home` (identify location that a participant spends most time between 9pm and 9 am). They use helper functions `update_existing_place` and `add_new_place`.
 - It contains various helper functions:
-- `K1`: the kernel function returns the similarity between the given triplet and every triplet in the basis vector set.
-- `I_flight`: determine if a flight occurs at the current time and location
-- `adjust_direction`: adjust the direction of the sampled flight if it is not likely to happen in the real world.
-- `multiplier`: return a coefficient to accelerate the imputation process based on the duration of the missing interval.
-- `checkbound`: check if the destination will be out of a reasonable range given the sampled flight
-- `create_tables`: initialize three 2d numpy arrays, one to store observed flights, one to store pauses, and one to store missing intervals.
+  - `calculate_k1`: the kernel function returns the similarity between the given triplet and every triplet in the basis vector set.
+  - `indicate_flight`: determine if a flight occurs at the current time and location
+  - `adjust_direction`: adjust the direction of the sampled flight if it is not likely to happen in the real world.
+  - `multiplier`: return a coefficient to accelerate the imputation process based on the duration of the missing interval.
+  - `checkbound`: check if the destination will be out of a reasonable range given the sampled flight
+  - `create_tables`: initialize three 2d numpy arrays, one to store observed flights, one to store pauses, and one to store missing intervals.
 
 `traj2stats.py`
 This file converts the imputed trajectory matrix to summary statistics.
+
 - `Hyperparameters`: @dataclass to store the hyperparameters for the imputation process.
 - `transform_point_to_circle`: transform a transforms a set of cooordinates to a shapely circle with a provided radius.
 - `get_nearby_locations`: return a dictionary of nearby locations, a dictionary of nearby locations' names, and a dictionary of nearby locations' coordinates.
 - `gps_summaries`: converts the imputed trajectory matrix to summary statistics.
-- `gps_quality_check`: checks the data quality of GPS data. If the quality is poor, the imputation will not be executed. 
+- `gps_quality_check`: checks the data quality of GPS data. If the quality is poor, the imputation will not be executed.
 - `gps_stats_main`: this is the main function of the jasmine module and it calls every function defined before. It is the function you should use as an end user. 
 
 ## List of summary statistics
