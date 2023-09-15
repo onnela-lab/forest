@@ -156,12 +156,10 @@ def text_and_call_analysis(df_call: pd.DataFrame, df_text: pd.DataFrame, stamp: 
 
     Returns:
         tuple of summary statistics containing:
-            num_uniq_in_call_or_text: int
+            num_uniq_individuals_call_or_text: int
                 number of people making incoming calls or texts to the Beiwe
-                user
-            num_uniq_out_call_or_text: int
-                number of people receiving outgoing calls or texts from the 
-                Beiwe user
+                user or who the Beiwe user made outgoing calls or texts to
+
 
     """
     # filter the data based on the timestamp
@@ -192,12 +190,13 @@ def text_and_call_analysis(df_call: pd.DataFrame, df_text: pd.DataFrame, stamp: 
         texts_in = np.array([])
         texts_out = np.array([])
 
-    num_uniq_in_call_or_text = len(np.unique(np.hstack(calls_in, texts_in)))
-    num_uniq_out_call_or_text = len(np.unique(np.hstack(texts_out, calls_out)))
+    num_uniq_individuals_call_or_text = len(np.unique(np.hstack(
+        calls_in, texts_in, texts_out, calls_out
+    )))
+
 
     return (
-        num_uniq_in_call_or_text,
-        num_uniq_out_call_or_text
+        num_uniq_individuals_call_or_text,
     )
 
 
@@ -353,7 +352,7 @@ def comm_logs_summaries(
             text_and_call_stats = text_and_call_analysis(df_text, df_call, stamp, step_size, frequency)
             newline += list(text_and_call_stats)
         else:
-            newline += [pd.NA] * 2
+            newline += [pd.NA]
 
         if df_text.shape[0] > 0:
             text_stats = text_analysis(df_text, stamp, step_size, frequency)
@@ -378,8 +377,7 @@ def comm_logs_summaries(
         "num_mis_caller",
         "total_mins_in_call",
         "total_mins_out_call",
-        "num_uniq_in_call_or_text",
-        "num_uniq_out_call_or_text",
+        "num_uniq_individuals_call_or_text",
         "num_s",
         "num_r",
         "num_mms_s",

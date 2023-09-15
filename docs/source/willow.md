@@ -36,13 +36,12 @@ ___
 |     num_in_call                      	|        int      	|     Total number of incoming calls                                       	|
 |     num_out_call                 	|        int      	|     Total number of outgoing calls                                               	|
 |     num_mis_call               	|      int        	|     Total number of missed calls 
-|     num_uniq_in_call            	|       float       	|     Total number of unique incoming callers                                         	|
-|     num_uniq_out_call          	|        int      	|     Total number of unique outgoing calls                                          	|
-|     num_uniq_mis_call      	|        float      	|     Total number of unique callers missed                                   	|
+|     num_in_caller            	|       float       	|     Total number of unique incoming callers                                         	|
+|     num_out_caller          	|        int      	|     Total number of unique outgoing calls                                          	|
+|     num_mis_caller      	|        float      	|     Total number of unique callers missed                                   	|
 |     total_time_in_call                   	|      int        	|     Total amount of minutes spent on incoming calls                                              	|
 |     total_time_out_call          	|       int       	|     Total amount of minutes spent on outgoing calls                                                      	|
-|     num_uniq_in_call_or_text            	|       float       	|     Total number of unique individuals who called or texted the Beiwe user                                         	|
-|     num_uniq_out_call_or_text	         	|        int      	|     Total number of unique individuals who the Beiwe user called or texted                                          	|
+|     num_uniq_individuals_call_or_text            	|       float       	|     Total number of unique individuals who called or texted the Beiwe user, or who the Beiwe user called or texted. The total number of individuals with any communication contact with the Beiwe user                                         	|
 |     num_s     	|        float      	|     Total number of sent SMS texts                                   	|
 |     num_r                    	|      int        	|     Total number of received SMS texts                                                	|
 |     num_mms_s                   	|      int        	|     Total number of sent MMS texts     	|
