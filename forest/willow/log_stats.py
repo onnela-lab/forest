@@ -140,6 +140,67 @@ def text_analysis(
     )
 
 
+def text_and_call_analysis(df_call: pd.DataFrame, df_text: pd.DataFrame, stamp: int, step_size: int) -> tuple:
+    """Calculate the summary statistics for the call data
+    in the given time interval.
+
+    Args:
+        df_call: pd.DataFrame
+            dataframe of the call data
+        df_text: pd.DataFrame
+            dataframe of the text data
+        stamp: int
+            starting timestamp of the study
+        step_size: int
+            ending timestamp of the study
+
+    Returns:
+        tuple of summary statistics containing:
+            num_uniq_in_call_or_text: int
+                number of people making incoming calls or texts to the Beiwe
+                user
+            num_uniq_out_call_or_text: int
+                number of people receiving outgoing calls or texts from the 
+                Beiwe user
+
+    """
+    # filter the data based on the timestamp
+    if df_call.shape > 0
+        temp_call = df_call[
+            (df_call["timestamp"] / 1000 >= stamp)
+            & (df_call["timestamp"] / 1000 < stamp + step_size)
+        ]
+        index_in_call = np.array(temp_call["call type"]) == "Incoming Call"
+        index_out_call = np.array(temp_call["call type"]) == "Outgoing Call"
+        calls_in = np.array(temp_call["hashed phone number"])[index_in_call]
+        calls_out = np.array(temp_call["hashed phone number"])[index_out_call]
+    else: ## no calls were received, so no unique numbers will be used
+        calls_in = np.array([])
+        calls_out = np.array([])
+
+    if df_text.shape > 0:
+        temp_text = df_text[
+            (df_text["timestamp"] / 1000 >= stamp)
+            & (df_text["timestamp"] / 1000 < stamp + step_size)
+        ]
+
+        index_s = np.array(temp_text["sent vs received"]) == "sent SMS"
+        index_r = np.array(temp_text["sent vs received"]) == "received SMS"
+        texts_in = np.array(temp_text["hashed phone number"])[index_r]
+        texts_out = np.array(temp_text["hashed phone number"])[index_s]
+    else: ## no texts were received, so no unique numbers will be used
+        texts_in = np.array([])
+        texts_out = np.array([])
+
+    num_uniq_in_call_or_text = len(np.unique(np.hstack(calls_in, texts_in)))
+    num_uniq_out_call_or_text = len(np.unique(np.hstack(texts_out, calls_out)))
+
+    return (
+        num_uniq_in_call_or_text,
+        num_uniq_out_call_or_text
+    )
+
+
 def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
     """Calculate the summary statistics for the call data
     in the given time interval.
@@ -288,12 +349,18 @@ def comm_logs_summaries(
             newline += list(call_stats)
         else:
             newline += [pd.NA] * 8
+        if df_text.shape[0] > 0 or df_call.shape[0] > 0:
+            text_and_call_stats = text_and_call_analysis(df_text, df_call, stamp, step_size, frequency)
+            newline += list(text_and_call_stats)
+        else:
+            newline += [pd.NA] * 2
 
         if df_text.shape[0] > 0:
             text_stats = text_analysis(df_text, stamp, step_size, frequency)
             newline += list(text_stats)
         else:
             newline += [pd.NA] * 10
+
 
         if frequency == Frequency.DAILY:
             newline = [year, month, day] + newline
@@ -311,6 +378,8 @@ def comm_logs_summaries(
         "num_mis_caller",
         "total_mins_in_call",
         "total_mins_out_call",
+        "num_uniq_in_call_or_text",
+        "num_uniq_out_call_or_text",
         "num_s",
         "num_r",
         "num_mms_s",
