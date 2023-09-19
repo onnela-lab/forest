@@ -143,7 +143,7 @@ def text_analysis(
 def text_and_call_analysis(
     df_call: pd.DataFrame, df_text: pd.DataFrame, stamp: int, step_size: int
 ) -> tuple:
-    """Calculate the summary statistics for the call data
+    """Calculate the summary statistics for the call and text data
     in the given time interval.
 
     Args:

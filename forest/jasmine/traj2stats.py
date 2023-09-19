@@ -388,6 +388,16 @@ def gps_summaries(
                 res += [0] * (2 * len(places_of_interest) + 1)
             summary_stats.append(res)
             continue
+        elif sum(index_rows) == 0 and not split_day_night:
+            ## There is no data and it is daily data, so we need to add empty rows
+            res = [year, month, day] + [0] * 3 + [pd.NA] * 15
+
+            if places_of_interest is not None:
+                # add empty data for places of interest
+                # for daytime/nighttime + other
+                res += [0] * (2 * len(places_of_interest) + 1)
+            summary_stats.append(res)
+            continue
 
         temp = traj[index_rows, :]
         # take a subset which is exactly one hour/day,
