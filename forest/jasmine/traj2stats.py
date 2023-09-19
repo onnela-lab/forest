@@ -389,7 +389,8 @@ def gps_summaries(
             summary_stats.append(res)
             continue
         elif sum(index_rows) == 0 and not split_day_night:
-            ## There is no data and it is daily data, so we need to add empty rows
+            # There is no data and it is daily data, so we need to add empty
+            # rows
             res = [year, month, day] + [0] * 3 + [pd.NA] * 15
 
             if places_of_interest is not None:
