@@ -143,7 +143,7 @@ def text_analysis(
 def text_and_call_analysis(
     df_call: pd.DataFrame, df_text: pd.DataFrame, stamp: int, step_size: int
 ) -> tuple:
-    """Calculate the summary statistics for the call and text data
+    """Calculate the summary statistics for anything requiring both call and text data
     in the given time interval.
 
     Args:
@@ -152,9 +152,9 @@ def text_and_call_analysis(
         df_text: pd.DataFrame
             dataframe of the text data
         stamp: int
-            starting timestamp of the study
+            starting timestamp of the interval
         step_size: int
-            ending timestamp of the study
+            ending timestamp of the interval
 
     Returns:
         tuple of summary statistics containing:
@@ -211,9 +211,9 @@ def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
         df_call: pd.DataFrame
             dataframe of the call data
         stamp: int
-            starting timestamp of the study
+            starting timestamp of the interval
         step_size: int
-            ending timestamp of the study
+            ending timestamp of the interval
 
     Returns:
         tuple of summary statistics containing:
@@ -295,9 +295,9 @@ def comm_logs_summaries(
         df_call: pd.DataFrame
             dataframe of the call data
         stamp_start: int
-            starting timestamp of the study
+            starting timestamp of the interval
         stamp_end: int
-            ending timestamp of the study
+            ending timestamp of the interval
         tz_str: str
             timezone where the study was/is conducted
         frequency: Frequency class,
