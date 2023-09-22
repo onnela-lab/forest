@@ -9,6 +9,7 @@ import os
 import pickle
 from typing import Dict, List, Optional, Tuple
 
+from datetime import datetime
 import numpy as np
 import pandas as pd
 from pyproj import Transformer
@@ -223,6 +224,156 @@ def get_nearby_locations(
     return ids, locations, tags
 
 
+def avg_mobility_trace_difference(
+    time_range: Tuple[int, int], mobility_trace1: np.ndarray, mobility_trace2: np.ndarray
+) -> float:
+    """This function calculates the average mobility trace difference
+
+    Args:
+        time_range: tuple of two ints, time range of mobility_trace
+        mobility_trace1: numpy array, mobility trace 1
+            contains 3 columns: [x, y, t]
+        mobility_trace2: numpy array, mobility trace 2
+            contains 3 columns: [x, y, t]
+    Returns:
+        float, average mobility trace difference
+    """
+
+    # Create masks for timestamps that lie within the specified time range
+    mask1 = (mobility_trace1[:, 2] >= time_range[0]) & (mobility_trace1[:, 2] <= time_range[1])
+    mask2 = (mobility_trace2[:, 2] >= time_range[0]) & (mobility_trace2[:, 2] <= time_range[1])
+
+    # Create a set of common timestamps for efficient lookup
+    common_times = set(mobility_trace1[mask1, 2]) & set(mobility_trace2[mask2, 2])
+
+    # Create masks for the common timestamps
+    mask1_common = np.isin(mobility_trace1[:, 2], list(common_times))
+    mask2_common = np.isin(mobility_trace2[:, 2], list(common_times))
+
+    if not any(mask1_common) or not any(mask2_common):
+        return 0
+
+    # Calculate distances using the common timestamp masks
+    dists = great_circle_dist(
+        mobility_trace1[mask1_common, 0], mobility_trace1[mask1_common, 1], 
+        mobility_trace2[mask2_common, 0], mobility_trace2[mask2_common, 1]
+    )
+
+    dist_flag = dists <= 10
+    return np.mean(dist_flag)
+
+
+def routine_index(
+    time_range: Tuple[int, int], mobility_trace: np.ndarray,
+    stratified: bool = False, timezone: str = "US/Eastern",
+) -> float:
+    """This function calculates the routine index of a trajectory
+
+    Description of routine index can be found in the paper:
+    Canzian and Musolesi's 2015 paper in the Proceedings of the 2015
+    ACM International Joint Conference on Pervasive and Ubiquitous Computing,
+    titled “Trajectories of depression: unobtrusive monitoring of depressive
+    states by means of smartphone mobility traces analysis.”
+
+    Args:
+        time_range: tuple of two ints, time range of mobility_trace
+        mobility_trace: numpy array, trajectory
+            contains 3 columns: [x, y, t]
+        stratified: bool, True if you want to calculate the routine index
+            for weekdays and weekends separately
+        timezone: str, timezone of the mobility trace
+    Returns:
+        float, routine index
+    """
+
+    t_1, t_2 = time_range
+
+    t_init = mobility_trace[:, 2].min()
+    t_fin = mobility_trace[:, 2].max()
+
+    t_1 = max(t_1, t_init)
+    t_2 = min(t_2, t_fin)
+
+    # n1, n2 are the number of days before and after the time range
+    n1 = int(round((t_1 - t_init) / (24 * 60 * 60)))
+    n2 = int(round((t_fin - t_2) / (24 * 60 * 60)))
+
+    # to avoid long computational times
+    # only look at the last 30 days and next 30 days
+    n1 = min(n1, 30)
+    n2 = min(n2, 30)
+
+    if max(n1, n2) == 0:
+        return 0
+
+    shifts = list(range(1, n1 + 1)) + list(range(-n2, 0))
+    if stratified:
+        time_mid = int((t_1 + t_2) / 2)
+        weekend_today = datetime(*stamp2datetime(time_mid, timezone)).weekday() >= 5
+        if weekend_today:
+            shifts = [
+                s for s in shifts
+                if datetime(
+                    *stamp2datetime(
+                        time_mid - s * 24 * 60 * 60, timezone
+                    )
+                ).weekday() >= 5
+            ]
+        else:
+            shifts = [
+                s for s in shifts
+                if datetime(
+                    *stamp2datetime(
+                        time_mid - s * 24 * 60 * 60, timezone
+                    )
+                ).weekday() < 5
+            ]
+
+
+    res = sum(
+        avg_mobility_trace_difference(
+            time_range, mobility_trace,
+            np.column_stack([mobility_trace[:, :2], mobility_trace[:, 2] + i * 24 * 60 * 60])
+        )
+        for i in shifts
+    )
+
+    return res / (n1 + n2)
+
+
+def create_mobility_trace(traj: np.ndarray) -> np.ndarray:
+    """This function creates a mobility trace from a trajectory
+
+    Args:
+        traj: numpy array, trajectory
+            contains 8 columns: [s,x0,y0,t0,x1,y1,t1,obs]
+    Returns:
+        numpy array, mobility trace
+            contains 3 columns: [x, y, t]
+    """
+
+    pause_vec = traj[traj[:, 0] == 2]
+
+    # Calculate the time ranges for all pauses
+    start_times = pause_vec[:, 3].astype(int)
+    end_times = pause_vec[:, 6].astype(int)
+    time_ranges = [np.arange(s, e) for s, e in zip(start_times, end_times)]
+
+    # Flatten time_ranges and get the corresponding locations
+    flat_time_ranges = np.concatenate(time_ranges)
+    repeats = [len(r) for r in time_ranges]
+    locs = np.repeat(pause_vec[:, 1:3], repeats, axis=0)
+
+    # Stack locations and time_ranges to get the mobility trace
+    mobility_trace = np.column_stack([locs, flat_time_ranges])
+
+    # check if duplicate timestamps exist
+    _, unique_indices = np.unique(mobility_trace[:, 2], return_index=True)
+    mobility_trace = mobility_trace[unique_indices]
+
+    return mobility_trace
+
+
 def gps_summaries(
     traj: np.ndarray,
     tz_str: str,
@@ -242,7 +393,8 @@ def gps_summaries(
     "max_dist_home", "dist_traveled","av_flight_length","sd_flight_length",
     "av_flight_duration","sd_flight_duration"]
     if the frequency is daily, it additionally returns
-    ["obs_day","obs_night","radius","diameter","num_sig_places","entropy"]
+    ["obs_day","obs_night","radius","diameter""num_sig_places","entropy",
+    "physical_cyrcadian_rhythm","physical_cyrcadian_rhythm_stratified"]
 
     Args:
         traj: 2d array, output from imp_to_traj(), which is a n by 8 mat,
@@ -326,6 +478,8 @@ def gps_summaries(
         no_windows = (end_stamp - start_stamp) // window
         if split_day_night:
             no_windows *= 2
+        # mobility trace
+        mobility_trace = create_mobility_trace(traj)
 
     if no_windows <= 0:
         raise ValueError("start time and end time are not correct")
@@ -710,6 +864,12 @@ def gps_summaries(
             t_sig = np.array(t_xy)[np.array(t_xy) / 60 > 15]
             p = t_sig / sum(t_sig)
             entropy = -sum(p * np.log(p + 0.00001))
+            # physical cyrcadian rhythm
+            if obs_dur != 0:
+                pcr = routine_index((start_time, end_time), mobility_trace)
+                pcr_stratified = routine_index(
+                    (start_time, end_time), mobility_trace, True, tz_str
+                )
             # if there is only one significant place, the entropy is zero
             # but here it is -log(1.00001) < 0
             # but the small value is added to avoid log(0)
@@ -729,6 +889,8 @@ def gps_summaries(
                     0,
                     0,
                     0,
+                    pd.NA,
+                    pd.NA,
                     pd.NA,
                     pd.NA,
                     pd.NA,
@@ -773,6 +935,8 @@ def gps_summaries(
                     total_pause_time / 3600,
                     av_p_dur / 3600,
                     sd_p_dur / 3600,
+                    pcr,
+                    pcr_stratified,
                 ]
                 if places_of_interest is not None:
                     res += all_place_times
@@ -845,6 +1009,8 @@ def gps_summaries(
                     "total_pause_time",
                     "av_pause_duration",
                     "sd_pause_duration",
+                    "physical_cyrcadian_rhythm",
+                    "physical_cyrcadian_rhythm_stratified",
                 ]
                 + places_of_interest2
                 + places_of_interest3
