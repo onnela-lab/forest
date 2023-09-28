@@ -50,4 +50,4 @@ jobs:
       - name: Install documentation build dependencies
         run: pip install -r requirements.txt
       - name: Build the docs
-        run: make html
+        run: make html SPHINXOPTS="-W"
