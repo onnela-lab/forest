@@ -38,7 +38,8 @@ logger = logging.getLogger()
 
 @dataclass
 class Hyperparameters:
-    """Class containing hyperparemeters for imputation of trajectories.
+    """Class containing hyperparemeters for gps imputation and trajectory
+     summary statistics calculation.
 
     Args:
         itrvl, accuracylim, r, w, h: hyperparameters for the
@@ -49,7 +50,22 @@ class Hyperparameters:
         l1, l2, a1, a2, b1, b2, b3, g, method, switch, num, linearity:
             hyperparameters for the impute_gps function.
         itrvl, r, w, h: hyperparameters for the imp_to_traj function.
+        log_threshold: int, time spent in a pause needs to exceed the
+            log_threshold to be placed in the log
+            only if save_osm_log True, in minutes
+        split_day_night: bool, True if you want to split all metrics to
+            datetime and nighttime patterns
+            only for daily frequency
+        person_point_radius: float, radius of the person's circle when
+            discovering places near him in pauses
+        place_point_radius: float, radius of place's circle
+            when place is returned as centre coordinates from osm
+        save_osm_log: bool, True if you want to output a log of locations
+            visited and their tags
+        quality_threshold: float, a percentage value of the fraction of data
+            required for a summary to be created
     """
+    # imputation hyperparameters
     l1: int = 60 * 60 * 24 * 10
     l2: int = 60 * 60 * 24 * 30
     l3: float = 0.002
@@ -71,6 +87,14 @@ class Hyperparameters:
     r: Optional[float] = None
     w: Optional[float] = None
     h: Optional[float] = None
+
+    # summary statistics hyperparameters
+    save_osm_log: bool = False,
+    log_threshold: int = 60,
+    split_day_night: bool = False,
+    person_point_radius: float = 2,
+    place_point_radius: float = 7.5,
+    quality_threshold: float = 0.05,
 
 
 def transform_point_to_circle(lat: float, lon: float, radius: float
@@ -378,13 +402,9 @@ def gps_summaries(
     traj: np.ndarray,
     tz_str: str,
     frequency: Frequency,
+    parameters: Hyperparameters,
     places_of_interest: Optional[List[str]] = None,
-    save_osm_log: bool = False,
     osm_tags: Optional[List[OSMTags]] = None,
-    threshold: Optional[int] = None,
-    split_day_night: bool = False,
-    person_point_radius: float = 2,
-    place_point_radius: float = 7.5,
 ) -> Tuple[pd.DataFrame, dict]:
     """This function derives summary statistics from the imputed trajectories
 
@@ -405,23 +425,13 @@ def gps_summaries(
             obs (1 as observed and 0 as imputed)
         tz_str: timezone
         frequency: Frequency, the time windows of the summary statistics
+        parameters: Hyperparameters, hyperparameters in functions
+            recommend to set it to default
         places_of_interest: list of "osm_tags" places to watch,
             keywords as used in openstreetmaps
             e.g. ["cafe", "hospital", "restaurant"]
-        save_osm_log: bool, True if you want to output a log of locations
-            visited and their tags
         osm_tags: list of tags to search for in openstreetmaps
             avoid using a lot of them if large area is covered
-        threshold: int, time spent in a pause needs to exceed the threshold
-            to be placed in the log
-            only if save_osm_log True, in minutes
-        split_day_night: bool, True if you want to split all metrics to
-            daytime and nighttime patterns
-            only for daily frequency
-        person_point_radius: float, radius of the person's circle when
-            discovering places near him in pauses
-        place_point_radius: float, radius of place's circle
-            when place is returned as centre coordinates from osm
     Returns:
         a pd dataframe, with each row as an hour/day,
             and each col as a feature/stat
@@ -431,6 +441,12 @@ def gps_summaries(
         RuntimeError: if the query to Overpass API fails
         ValueError: Frequency is not valid
     """
+
+    save_osm_log = parameters.save_osm_log
+    log_threshold = parameters.log_threshold
+    split_day_night = parameters.split_day_night
+    person_point_radius = parameters.person_point_radius
+    place_point_radius = parameters.place_point_radius
 
     if frequency == Frequency.HOURLY_AND_DAILY:
         raise ValueError("Frequency must be 'hourly' or 'daily'")
@@ -735,13 +751,7 @@ def gps_summaries(
                             )
 
                 if save_osm_log:
-                    if threshold is None:
-                        threshold = 60
-                        logger.info(
-                            "threshold parameter set to None,"
-                            " automatically converted to 60min."
-                        )
-                    if pause[2] >= threshold:
+                    if pause[2] >= log_threshold:
                         for place_id, place_coordinates in locations.items():
                             if len(place_coordinates) == 1:
                                 if (
@@ -1102,20 +1112,14 @@ def gps_stats_main(
     tz_str: str,
     frequency: Frequency,
     save_traj: bool,
-    parameters: Optional[Hyperparameters] = None,
     places_of_interest: Optional[list] = None,
-    save_osm_log: bool = False,
     osm_tags: Optional[List[OSMTags]] = None,
-    threshold: Optional[int] = None,
-    split_day_night: bool = False,
-    person_point_radius: float = 2,
-    place_point_radius: float = 7.5,
     time_start: Optional[list] = None,
     time_end: Optional[list] = None,
     participant_ids: Optional[list] = None,
+    parameters: Optional[Hyperparameters] = None,
     all_memory_dict: Optional[dict] = None,
     all_bv_set: Optional[dict] = None,
-    quality_threshold: float = 0.05,
 ):
     """This the main function to do the GPS imputation.
     It calls every function defined before.
@@ -1131,20 +1135,8 @@ def gps_stats_main(
             csv file, False if you don't
         places_of_interest: list of places to watch,
             keywords as used in openstreetmaps
-        save_osm_log: bool, True if you want to output a log of locations
-            visited and their tags
         osm_tags: list of tags to search for in openstreetmaps
             avoid using a lot of them if large area is covered
-        threshold: int, time spent in a pause needs to exceed the
-            threshold to be placed in the log
-            only if save_osm_log True, in minutes
-        split_day_night: bool, True if you want to split all metrics to
-            datetime and nighttime patterns
-            only for daily frequency
-        person_point_radius: float, radius of the person's circle when
-            discovering places near him in pauses
-        place_point_radius: float, radius of place's circle
-            when place is returned as centre coordinates from osm
         time_start: list, starting time of window of interest
         time_end: list ending time of the window of interest
             time should be a list of integers with format
@@ -1160,8 +1152,6 @@ def gps_stats_main(
             recommend to set it to default
         all_memory_dict: dict, from previous run (none if it's the first time)
         all_bv_set: dict, from previous run (none if it's the first time)
-        quality_threshold: float, a percentage value of the fraction of data
-            required for a summary to be created.
     Returns:
         write summary stats as csv for each user during the specified
             period
@@ -1212,7 +1202,7 @@ def gps_stats_main(
         logger.info("User: %s", participant_id)
         # data quality check
         quality = gps_quality_check(study_folder, participant_id)
-        if quality > quality_threshold:
+        if quality > parameters.quality_threshold:
             # read data
             logger.info("Read in the csv files ...")
             data, _, _ = read_data(
@@ -1296,11 +1286,9 @@ def gps_stats_main(
                     traj,
                     tz_str,
                     Frequency.HOURLY,
+                    parameters,
                     places_of_interest,
-                    save_osm_log,
                     osm_tags,
-                    threshold,
-                    split_day_night,
                 )
                 write_all_summaries(participant_id, summary_stats1,
                                     f"{output_folder}/hourly")
@@ -1308,13 +1296,9 @@ def gps_stats_main(
                     traj,
                     tz_str,
                     Frequency.DAILY,
+                    parameters,
                     places_of_interest,
-                    save_osm_log,
                     osm_tags,
-                    threshold,
-                    split_day_night,
-                    person_point_radius,
-                    place_point_radius,
                 )
                 write_all_summaries(participant_id, summary_stats2,
                                     f"{output_folder}/daily")
@@ -1335,11 +1319,9 @@ def gps_stats_main(
                     traj,
                     tz_str,
                     frequency,
+                    parameters,
                     places_of_interest,
-                    save_osm_log,
                     osm_tags,
-                    threshold,
-                    split_day_night,
                 )
                 write_all_summaries(
                     participant_id, summary_stats, output_folder
