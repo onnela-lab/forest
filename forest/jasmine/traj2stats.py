@@ -64,6 +64,8 @@ class Hyperparameters:
             visited and their tags
         quality_threshold: float, a percentage value of the fraction of data
             required for a summary to be created
+        pcr_window: int, number of days to look back and forward
+            for calculating the physical cyrcadian rhythm
     """
     # imputation hyperparameters
     l1: int = 60 * 60 * 24 * 10
@@ -89,12 +91,13 @@ class Hyperparameters:
     h: Optional[float] = None
 
     # summary statistics hyperparameters
-    save_osm_log: bool = False,
-    log_threshold: int = 60,
-    split_day_night: bool = False,
-    person_point_radius: float = 2,
-    place_point_radius: float = 7.5,
-    quality_threshold: float = 0.05,
+    save_osm_log: bool = False
+    log_threshold: int = 60
+    split_day_night: bool = False
+    person_point_radius: float = 2
+    place_point_radius: float = 7.5
+    quality_threshold: float = 0.05
+    pcr_window: int = 14
 
 
 def transform_point_to_circle(lat: float, lon: float, radius: float
@@ -289,7 +292,8 @@ def avg_mobility_trace_difference(
 
 def routine_index(
     time_range: Tuple[int, int], mobility_trace: np.ndarray,
-    stratified: bool = False, timezone: str = "US/Eastern",
+    pcr_window: int = 14, stratified: bool = False,
+    timezone: str = "US/Eastern",
 ) -> float:
     """This function calculates the routine index of a trajectory
 
@@ -303,6 +307,7 @@ def routine_index(
         time_range: tuple of two ints, time range of mobility_trace
         mobility_trace: numpy array, trajectory
             contains 3 columns: [x, y, t]
+        pcr_window: int, number of days to look back and forward
         stratified: bool, True if you want to calculate the routine index
             for weekdays and weekends separately
         timezone: str, timezone of the mobility trace
@@ -323,9 +328,9 @@ def routine_index(
     n2 = int(round((t_fin - t_2) / (24 * 60 * 60)))
 
     # to avoid long computational times
-    # only look at the last 30 days and next 30 days
-    n1 = min(n1, 30)
-    n2 = min(n2, 30)
+    # only look at the last window days and next window days
+    n1 = min(n1, window)
+    n2 = min(n2, window)
 
     if max(n1, n2) == 0:
         return 0
@@ -447,6 +452,7 @@ def gps_summaries(
     split_day_night = parameters.split_day_night
     person_point_radius = parameters.person_point_radius
     place_point_radius = parameters.place_point_radius
+    pcr_window = parameters.pcr_window
 
     if frequency == Frequency.HOURLY_AND_DAILY:
         raise ValueError("Frequency must be 'hourly' or 'daily'")
@@ -876,9 +882,13 @@ def gps_summaries(
             entropy = -sum(p * np.log(p + 0.00001))
             # physical cyrcadian rhythm
             if obs_dur != 0:
-                pcr = routine_index((start_time, end_time), mobility_trace)
+                pcr = routine_index(
+                    (start_time, end_time), mobility_trace,
+                    pcr_window
+                )
                 pcr_stratified = routine_index(
-                    (start_time, end_time), mobility_trace, True, tz_str
+                    (start_time, end_time), mobility_trace,
+                    pcr_window, True, tz_str
                 )
             # if there is only one significant place, the entropy is zero
             # but here it is -log(1.00001) < 0
@@ -1326,7 +1336,7 @@ def gps_stats_main(
                 write_all_summaries(
                     participant_id, summary_stats, output_folder
                 )
-                if save_osm_log:
+                if parameters.save_osm_log:
                     os.makedirs(f"{output_folder}/logs", exist_ok=True)
                     with open(
                         f"{output_folder}/logs/locations_logs.json",
