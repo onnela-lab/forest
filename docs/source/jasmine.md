@@ -11,7 +11,7 @@ For instructions on how to install forest, please visit [here](https://github.co
 
 ### Input
 
-When using jasmine, you should call function `gps_stats_main(study_folder, output_folder, tz_str, frequency, save_traj, parameters = None, save_osm_log = None, osm_tags = None, threshold, split_day_night, person_point_radius = 2, place_point_radius = 7.5, time_start = None, time_end = None, participant_ids = None, all_memory_dict = None, all_BV_set = None, quality_threshold = 0.05)` in the `traj2stats` module and specify:
+When using jasmine, you should call function `gps_stats_main(study_folder, output_folder, tz_str, frequency, save_traj, places_of_interest = None, osm_tags = None, time_start = None, time_end = None, participant_ids = None, parameters = None, all_memory_dict = None, all_BV_set = None)` in the `traj2stats` module and specify:
    - `study_folder`, string, the path of the study folder. The study folder should contain individual participant folder with a subfolder `gps` inside
    - `output_folder`, string, the path of the folder where you want to save results
 
@@ -27,17 +27,13 @@ In addition, the main function takes four arguments that provide further flexibi
    - `tz_str`, string, the timezone where the study is/was conducted. Please use "`pytz.all_timezones`" to check all options. For example, "America/New_York".
    - `frequency`, Frequency class, the frequency of the summary stats (resolution for summary statistics) e.g. Frequency.HOURLY, Frequency.DAILY, etc.
    - `save_traj`, bool, True if you want to save the trajectories as a csv file, False if you don't (default: False).
-   - `parameters`, a list of parameters, by default it is set to None. The details are as below.
    - `places_of_interest`, a list of places of interest, by default it is set to None. The details are as used in openstreetmaps
-   - `save_osm_log`, bool, True if you want to output a log of locations visited and their tags(default: False).
    - `osm_tags`, list of OSMTags class, a list of tags to filter the places of interest, by default it is set to None. The details are as used in openstreetmaps. Avoid using a lot of them if large area is covered.
-   - `threshold`, int, time spent in a pause needs to exceed the threshold to be placed in the log
-   - `split_day_night`, bool, True if you want to split all metrics to datetime and nighttime patterns (only for Frequency.DAILY)
-   - person_point_radius, float, radius of the person's circle when discovering places near him in pauses (default: 2)
-   - `place_point_radius`, float, radius of place's circle when place is returned as centre coordinates from osm (default: 7.5)
+   - `parameters`, a list of parameters, by default it is set to None. The details are as below.
    - `all_memory_dict` and `all_BV_set` are dictionaries from previous run (none if it's the first time).
 
-You can also tweak the parameters that change the assumptions of the imputation and summary statistics. The parameters are  
+You can also tweak the parameters that change the assumptions of the imputation and summary statistics. The parameters are 
+
 (1) `l1`: the scale parameter in the abs function in the daily kernel;   
 (2) `l2`: the scale parameter in the abs function in the weekly kernel;    
 (3) `l3`: the scale parameter in the geographical kernel if only latitude or longitude is used;   
@@ -58,7 +54,15 @@ You can also tweak the parameters that change the assumptions of the imputation 
 (18) `accuracylim`: we filter out GPS record with accuracy higher than this threshold.    
 (19) `r`: the maximum radius of a pause;   
 (20) `w`: a threshold for distance, if the distance to the great circle is greater than this threshold, we consider there is a knot;   
-(21) `h`: a threshold of distance, if the movement between two timestamps is less than h, consider it as a pause and a knot                                                                
+(21) `h`: a threshold of distance, if the movement between two timestamps is less than h, consider it as a pause and a knot   
+(22) `save_osm_log`: bool, True if you want to output a log of locations visited and their tags(default: False).   
+(23) `log_threshold`: int, time spent in a pause needs to exceed the threshold to be placed in the log   
+(24) `split_day_night`: bool, True if you want to split all metrics to datetime and nighttime patterns (only for Frequency.DAILY)   
+(25) `person_point_radius`: float, radius of the person's circle when discovering places near him in pauses (default: 2)   
+(26) `place_point_radius`: float, radius of place's circle when place is returned as centre coordinates from osm (default: 7.5)   
+(27) `pcr_window`: int, number of days to look back and forward for calculating the physical cyrcadian rhythm (default: 14)
+
+
 ### Output
 
 (1) summary statistics for all specified participants (.csv)  
@@ -113,7 +117,7 @@ This file imputes the missing trajectories based on the observed trajectory matr
 
 `traj2stats.py`
 This file converts the imputed trajectory matrix to summary statistics.
-- `Hyperparameters`: @dataclass to store the hyperparameters for the imputation process.
+- `Hyperparameters`: @dataclass to store the hyperparameters for the imputation and summary statistics.
 - `transform_point_to_circle`: transform a transforms a set of cooordinates to a shapely circle with a provided radius.
 - `get_nearby_locations`: return a dictionary of nearby locations, a dictionary of nearby locations' names, and a dictionary of nearby locations' coordinates.
 - `gps_summaries`: converts the imputed trajectory matrix to summary statistics.
@@ -144,9 +148,9 @@ The summary statistics that are generated are listed below:
 |     Average pause duration                   |       Float       |     Average of the duration of all pauses that took place over the course of a day (in hour)   | We consider that a participant has a pause if the distance that he has moved during a 30-s period is less than `r` m. By default, `r`=10.|                                                                                                                                                                                                                                                     
 |     Standard deviation of flight duration     |    Float          |     Standard deviation of the duration of all pauses that took place over the course of a day (in hour) |     GPS is converted into a sequence of flights (straight line movement) and pauses (time spent stationary). The standard deviation of duration of pauses over the course of a day is reported. |                                                                                                                                                                                                            
 |     Significant location entropy              |      Float        |     Entropy measure based on the proportion of time spent at significant locations over the course of a day |     Letting p_i be the proportion of the day spent at significant location I, significant location entropy is calculated as   -\sum_{i} p_i*log(p_i), where the sum occurs over all non-zero p_i for that day. | 
-|     Minutes of GPS data missing               |      Float        |     Number of minutes of GPS data missing over the course of a day | |                                                                                                                                                                                                                                                                                                                                                                                                                                 
-|     Physical circadian rhythm                 |         Not Available     |     A continuous measurement of routine in the interval [0,1] that scores a day with 0 if there was a complete break from routine and 1 if the person followed the exact same routine as have in every other day of follow up |     For a detailed description of how this measure is calculated, see Canzian and Musolesi's 2015 paper in the Proceedings of the 2015 ACM International Joint Conference on Pervasive and Ubiquitous Computing, titled "Trajectories of depression: unobtrusive monitoring of   depressive states by means of smartphone mobility traces analysis."   Their procedure was followed using 30-min increments as a bin size.|
-|     Physical circadian rhythm stratified      |     Not Available         |     A continuous measurement of routine in the interval [0,1] that scores a day with 0 if there was a complete break from routine and 1 if the person followed the exact same routine as have in every other day of follow up    |  Calculated in the same way as Physical circadian rhythm, except the procedure is repeated separately for weekends and weekdays. |
+|     Minutes of GPS data missing               |      Not Available        |     Number of minutes of GPS data missing over the course of a day | |                                                                                                                                                                                                                                                                                                                                                                                                                                 
+|     Physical circadian rhythm                 |         Float     |     A continuous measurement of routine in the interval [0,1] that scores a day with 0 if there was a complete break from routine and 1 if the person followed the exact same routine as have in every other day of follow up |     For a detailed description of how this measure is calculated, see Canzian and Musolesi's 2015 paper in the Proceedings of the 2015 ACM International Joint Conference on Pervasive and Ubiquitous Computing, titled "Trajectories of depression: unobtrusive monitoring of   depressive states by means of smartphone mobility traces analysis."   Their procedure was followed using 30-min increments as a bin size.|
+|     Physical circadian rhythm stratified      |     Float         |     A continuous measurement of routine in the interval [0,1] that scores a day with 0 if there was a complete break from routine and 1 if the person followed the exact same routine as have in every other day of follow up    |  Calculated in the same way as Physical circadian rhythm, except the procedure is repeated separately for weekends and weekdays. |
 
 
 ### Other technical details

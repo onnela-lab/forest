@@ -170,15 +170,15 @@ The summary statistics that are generated are listed below:
   - Entropy measure based on the proportion of time spent at significant locations over the course of a day
   - Letting p_i be the proportion of the day spent at significant location I, significant location entropy is calculated as   -\sum_{i} p_i*log(p_i), where the sum occurs over all non-zero p_i for that day.
 * - mis_duration
-  - Float
+  - Not Available
   - Number of hours of GPS data missing over the course of a day
   - 
 * - Physical circadian rhythm
-  - Not Available
+  - Float
   - A continuous measurement of routine in the interval [0,1] that scores a day with 0 if there was a complete break from routine and 1 if the person followed the exact same routine as have in every other day of follow up
   - For a detailed description of how this measure is calculated, see Canzian and Musolesi's 2015 paper in the Proceedings of the 2015 ACM International Joint Conference on Pervasive and Ubiquitous Computing, titled "Trajectories of depression: unobtrusive monitoring of   depressive states by means of smartphone mobility traces analysis."   Their procedure was followed using 30-min increments as a bin size.
 * - Physical circadian rhythm stratified
-  - Not Available
+  - Float
   - A continuous measurement of routine in the interval [0,1] that scores a day with 0 if there was a complete break from routine and 1 if the person followed the exact same routine as have in every other day of follow up
   - Calculated in the same way as Physical circadian rhythm, except the procedure is repeated separately for weekends and weekdays.
 ```
