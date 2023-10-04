@@ -64,7 +64,11 @@ class Hyperparameters:
             visited and their tags
         quality_threshold: float, a percentage value of the fraction of data
             required for a summary to be created
+        pcr_bool: bool, True if you want to calculate the physical
+            cyrcadian rhythm
         pcr_window: int, number of days to look back and forward
+            for calculating the physical cyrcadian rhythm
+        pcr_sample_rate: int, number of seconds between each sample
             for calculating the physical cyrcadian rhythm
     """
     # imputation hyperparameters
@@ -97,7 +101,9 @@ class Hyperparameters:
     person_point_radius: float = 2
     place_point_radius: float = 7.5
     quality_threshold: float = 0.05
+    pcr_bool: bool = False
     pcr_window: int = 14
+    pcr_sample_rate: int = 30
 
 
 def transform_point_to_circle(lat: float, lon: float, radius: float
@@ -292,8 +298,8 @@ def avg_mobility_trace_difference(
 
 def routine_index(
     time_range: Tuple[int, int], mobility_trace: np.ndarray,
-    pcr_window: int = 14, stratified: bool = False,
-    timezone: str = "US/Eastern",
+    pcr_window: int = 14, pcr_sample_rate: int = 30,
+    stratified: bool = False, timezone: str = "US/Eastern",
 ) -> float:
     """This function calculates the routine index of a trajectory
 
@@ -308,6 +314,9 @@ def routine_index(
         mobility_trace: numpy array, trajectory
             contains 3 columns: [x, y, t]
         pcr_window: int, number of days to look back and forward
+            for calculating the physical cyrcadian rhythm
+        pcr_sample_rate: int, number of seconds between each sample
+            for calculating the physical cyrcadian rhythm
         stratified: bool, True if you want to calculate the routine index
             for weekdays and weekends separately
         timezone: str, timezone of the mobility trace
@@ -329,8 +338,8 @@ def routine_index(
 
     # to avoid long computational times
     # only look at the last window days and next window days
-    n1 = min(n1, window)
-    n2 = min(n2, window)
+    n1 = min(n1, pcr_window)
+    n2 = min(n2, pcr_window)
 
     if max(n1, n2) == 0:
         return 0
@@ -361,7 +370,7 @@ def routine_index(
 
     res = sum(
         avg_mobility_trace_difference(
-            time_range, mobility_trace,
+            time_range, mobility_trace[::pcr_sample_rate],
             np.column_stack([mobility_trace[:, :2], mobility_trace[:, 2] + i * 24 * 60 * 60])
         )
         for i in shifts
@@ -452,7 +461,9 @@ def gps_summaries(
     split_day_night = parameters.split_day_night
     person_point_radius = parameters.person_point_radius
     place_point_radius = parameters.place_point_radius
+    pcr_bool = parameters.pcr_bool
     pcr_window = parameters.pcr_window
+    pcr_sample_rate = parameters.pcr_sample_rate
 
     if frequency == Frequency.HOURLY_AND_DAILY:
         raise ValueError("Frequency must be 'hourly' or 'daily'")
@@ -881,15 +892,19 @@ def gps_summaries(
             p = t_sig / sum(t_sig)
             entropy = -sum(p * np.log(p + 0.00001))
             # physical cyrcadian rhythm
-            if obs_dur != 0:
+            if obs_dur != 0 and pcr_bool:
                 pcr = routine_index(
                     (start_time, end_time), mobility_trace,
-                    pcr_window
+                    pcr_window, pcr_sample_rate
                 )
                 pcr_stratified = routine_index(
                     (start_time, end_time), mobility_trace,
-                    pcr_window, True, tz_str
+                    pcr_window, pcr_sample_rate, True, tz_str
                 )
+            else:
+                pcr = pd.NA
+                pcr_stratified = pd.NA
+
             # if there is only one significant place, the entropy is zero
             # but here it is -log(1.00001) < 0
             # but the small value is added to avoid log(0)

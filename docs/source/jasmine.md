@@ -60,7 +60,9 @@ You can also tweak the parameters that change the assumptions of the imputation 
 (24) `split_day_night`: bool, True if you want to split all metrics to datetime and nighttime patterns (only for Frequency.DAILY)   
 (25) `person_point_radius`: float, radius of the person's circle when discovering places near him in pauses (default: 2)   
 (26) `place_point_radius`: float, radius of place's circle when place is returned as centre coordinates from osm (default: 7.5)   
-(27) `pcr_window`: int, number of days to look back and forward for calculating the physical cyrcadian rhythm (default: 14)
+(27) `pcr_bool`: bool, True if you want to calculate the physical cyrcadian rhythm (default: False)   
+(28) `pcr_window`: int, number of days to look back and forward for calculating the physical cyrcadian rhythm (default: 14)   
+(29) `pcr_sample_rate`: int, number of seconds between each sample for calculating the physical cyrcadian rhythm (default: 30)
 
 
 ### Output
