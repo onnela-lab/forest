@@ -201,3 +201,91 @@ If surveys are sent on a weekly schedule, Sycamore assumes that there is a surve
 **What does `surv_inst_flg` mean in the outputs?**   
 
 `surv_inst_flg` is a unique identifying number to distinguish different times when the same individual took the same survey. This column is useful for joining outputs together.  
+
+
+## List of summary statistics
+
+The following variables are created in the “submits_summary.csv” file. This file will only be generated if the config file and intervention timings file are provided. The `submits_summary_daily.csv` and `submits_summary_hourly.csv` files contain the same columns, but with additional granularity at the day or hourly levels rather than at the user level.
+
+
+|     Variable                          	|     Type     	|     Description of Variable                                                                                 	|
+|---------------------------------------	|--------------	|-------------------------------------------------------------------------------------------------------------	|
+|     survey id                      	|       str       	|     ID of the survey for which this row applies to. Note: If `submits_by_survey_id` is False, surveys will not be aggregated at the survey level (they will only be aggregated by user) so this column will not appear.                                                  	|
+|     year                	|        int      	|     Year of the time period at which submits/deliveries are being aggregated. This is only included in `submits_summary_daily.csv` and `submits_summary_hourly.csv`                       	|
+|     month                           	|       int       	|     Month of the time period at which submits/deliveries are being aggregated. This is only included in `submits_summary_daily.csv` and `submits_summary_hourly.csv`                        	|
+|     day |        int      	|     Day over which submits/deliveries are being aggregated. This is only included in `submits_summary_daily.csv` and `submits_summary_hourly.csv`  |
+|     hour                      	|        int      	|     Hour over which submits/deliveries are being aggregated. This is only included in `submits_summary_hourly.csv`                           	|
+|     num_surveys                 	|        int      	|    Number of surveys scheduled for delivery to the individual during the period          	|
+|     num_submitted_surveys              	|      int        	|     Number of surveys submitted during the period (i.e. the user hit submit on all surveys)
+|     num_opened_surveys           	|       int       	|     Number of surveys opened by the individual during the time period (i.e. the user answered at least one question)                                      	|
+|     avg_time_to_submit          	|        float      	|     Average time between survey delivery and survey submission, in seconds, for complete surveys                                        	|
+|     avg_time_to_open      	|        float      	|     Average time between survey delivery and survey opening, in seconds. This is averaged over survey responses where a survey_timings file was available because we do not have information about survey opening in responses where a survey_timings file is missing.                                   	|
+|     avg_duration                   	|      float        	|     Average time between survey opening and survey submission, in seconds.This is averaged over survey responses where a survey_timings file was available because we do not have information about survey opening in responses where a survey_timings file is missing.                                            	|
+
+<br>
+The following variables are created in the “submits_and_deliveries.csv” file. This file will only be generated if the config file and intervention timings file are provided.
+
+|     Variable                          	|     Type     	|     Description of Variable                                                                                 	|
+|---------------------------------------	|--------------	|-------------------------------------------------------------------------------------------------------------	|
+|     survey id          	|       str      	|     ID of the survey                           	|
+|     delivery_time            	|       str       	|    A scheduled delivery time. If surveys are weekly, delivery times will be generated for each week between start_date and end_date                	|
+|     submit_flg    	|        str      	|     Either the time when the user hit submit or the time when the individual stopped interacting with the survey for that session      |
+|     time_to_submit                   	|      float        	|     Time between survey delivery and survey submission, in seconds. If a survey was incomplete, this will be blank.            	|
+|     time_to_open                   	|      float        	|     Time between survey delivery time and the first recorded survey answer, in seconds (for responses where a survey_timings file was available; if only a survey_answers file was available, this will be 0)     	|
+|     survey_duration               	|        float      	|     Time between the first recorded survey answer and the survey submission, in seconds (for responses where a survey_timings file was available; if only a survey_answers file was available, this will be NA)|                                   	
+
+<br>
+The following variables are created in the “answers_data.csv” file. This file will be generated if a survey config file is available.
+
+|     Variable                          	|     Type     	|     Description of Variable                                                                                 	|
+|---------------------------------------	|--------------	|-------------------------------------------------------------------------------------------------------------	|
+|     survey id |      str        	|     ID of the survey  |
+|     beiwe_id |      str        	|     The participant’s Beiwe ID   	|
+|     question id                  	|      str        	|     The ID of the question for this line    	|
+|     question text |      str        	|     The question text corresponding to the answer    	|
+|     question type  |      str        	|    The type of question (radio button, free response, etc.) corresponding to the answer    	|
+|     question answer options |      str        	|    The answer options presented to the user (applicable for check box or radio button surveys)       	|
+|     timestamp |      str        	|     The Unix timestamp corresponding to the latest time the user was on the question  |
+|     Local time |      str        	|     The local time corresponding to the latest time the user was on the question   	|
+|     last_answer    	|      str        	|     The last answer the user had selected before moving on to the next question or submitting    	|
+|     all_answers |      str        	|     A list of all answers the user selected    	|
+|     num_answers |      int        	|    The number of different answers selected by the user (the length of the list in all_answers)   	|
+|     first_time |      str        	|    The local time corresponding to the earliest time the user was on the question       	|
+|     last_time |      str        	|     The local time corresponding to the latest time the user was on the question   	|
+|     time_to_answer       	|      float       	|     The time that the user spent on the question    	|
+
+<br>
+The following variables are created in the “answers_summary.csv” file. This file will only be generated if the config file and intervention timings file are provided.
+
+|     Variable                          	|     Type     	|     Description of Variable                                                                                 	|
+|---------------------------------------	|--------------	|-------------------------------------------------------------------------------------------------------------	|
+|     survey id |      str        	|     ID of the survey  |
+|     beiwe_id |      str        	|     The participant’s Beiwe ID   	|
+|     question id                  	|      str        	|     The ID of the question for this line    	|
+|     num_answers |      int        	|    The number of times in the given data the answer is answered   	|
+|     average_time_to_answer  |      float        	|    The average number of seconds the user takes to answer the question       	|
+|     average_number_of_answers |      float       	|     Average number of answers selected for a question. This indicated if a user changed an answer before submitting it.   	|
+|     most_common_answer       	|      str       	|     A user’s most common answer to a question   	|
+
+<br>
+The following variables are created in the “submits_only.csv” file. This file will always be generated.
+
+|     Variable                          	|     Type     	|     Description of Variable                                                                                 	|
+|---------------------------------------	|--------------	|-------------------------------------------------------------------------------------------------------------	|
+|     survey id |      str        	|     ID of the survey  |
+|     beiwe_id |      str        	|     The participant’s Beiwe ID   	|
+|     surv_inst_flg            	|      int        	|     A “submission flag” which distinguishes submissions that are done by the same individual on the same survey    	|
+|     max_time |      str        	|    Either the time when the user hit submit or the time when the individual stopped interacting with the survey for that session   	|
+|     min_time  |      str        	|    The earliest time the individual was interacting with the survey that session       	|
+|     time_to_complete |      float       	|     Time between min_time and max_time, in seconds (for responses where a survey_timings file was available)   	|
+
+<br>
+The following variables are created in a csv file for each survey.
+
+|     Variable                          	|     Type     	|     Description of Variable                                                                                 	|
+|---------------------------------------	|--------------	|-------------------------------------------------------------------------------------------------------------	|
+|     start_time |      str        	|     Time this survey submission was started  |
+|     end_time |      str        	|     Time this survey submission was ended   	|
+|     survey_duration     	|      float   	|     Difference between start and end time, in seconds (for surveys where a survey_timings file was available)    	|
+|     question_1, question_2, … |      str        	|    Responses to each question in the survey   	|
+<br>
