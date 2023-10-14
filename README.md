@@ -116,7 +116,7 @@ sample_gps_data = sim_gps_data(n_persons, location, start_date, end_date, cycle,
 gps_to_csv(sample_gps_data, path_to_synthetic_gps_data, start_date, end_date)
 
 # 2. Specify parameters for imputation 
-# See https://github.com/onnela-lab/forest/wiki/Jasmine-documentation#input for details
+# See https://forest.beiwe.org/en/latest/jasmine.html for details
 # time zone where the study took place (assumes that all participants were always in this time zone)
 tz_str = "Etc/GMT-1"
 # Generate summary metrics e.g. Frequency.HOURLY, Frequency.DAILY or Frequency.HOURLY_AND_DAILY (see Frequency class in constants.py)
