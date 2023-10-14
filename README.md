@@ -127,12 +127,8 @@ save_traj = False
 parameters = None
 # list of locations to track if visited, leave None if don't want these summary statistics
 places_of_interest = ['cafe', 'bar', 'hospital']
-# True if want to save a log of all locations and attributes of those locations visited
-save_osm_log = True
 # list of OpenStreetMap tags to use for identifying locations, leave None to default to amenity and leisure tagged locations or if you don't want to use OSM (see OSMTags class in constants.py)
 osm_tags = None
-# threshold of time spent in a location to count as being in that location, in minutes
-threshold = 15
 
 # 3. Impute location data and generate mobility summary metrics using the simulated data above
 gps_stats_main(
@@ -143,9 +139,7 @@ gps_stats_main(
     save_traj = save_traj,
     parameters = parameters,
     places_of_interest = places_of_interest,
-    save_osm_log = save_osm_log,
-    osm_tags = None,
-    threshold = threshold,
+    osm_tags = osm_tags,
 )
 
 # 4. Generate daily summary metrics for call/text logs
