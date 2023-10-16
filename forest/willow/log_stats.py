@@ -140,6 +140,68 @@ def text_analysis(
     )
 
 
+def text_and_call_analysis(
+    df_call: pd.DataFrame, df_text: pd.DataFrame, stamp: int, step_size: int
+) -> tuple:
+    """Calculate the summary statistics for anything requiring both call and
+    text data in the given time interval.
+    Args:
+        df_call: pd.DataFrame
+            dataframe of the call data
+        df_text: pd.DataFrame
+            dataframe of the text data
+        stamp: int
+            starting timestamp of the interval
+        step_size: int
+            ending timestamp of the interval
+
+    Returns:
+        tuple of summary statistics containing:
+            num_uniq_individuals_call_or_text: int
+                number of people making incoming calls or texts to the Beiwe
+                user or who the Beiwe user made outgoing calls or texts to
+
+
+    """
+    # filter the data based on the timestamp
+    if df_call.shape[0] > 0:
+        temp_call = df_call[
+            (df_call["timestamp"] / 1000 >= stamp)
+            & (df_call["timestamp"] / 1000 < stamp + step_size)
+        ]
+        index_in_call = np.array(temp_call["call type"]) == "Incoming Call"
+        index_out_call = np.array(temp_call["call type"]) == "Outgoing Call"
+        index_mis_call = np.array(temp_call["call type"]) == "Missed Call"
+        calls_in = np.array(temp_call["hashed phone number"])[index_in_call]
+        calls_out = np.array(temp_call["hashed phone number"])[index_out_call]
+        calls_mis = np.array(temp_call["hashed phone number"])[index_mis_call]
+
+    else:  # no calls were received, so no unique numbers will be used
+        calls_in = np.array([])
+        calls_out = np.array([])
+
+    if df_text.shape[0] > 0:
+        temp_text = df_text[
+            (df_text["timestamp"] / 1000 >= stamp)
+            & (df_text["timestamp"] / 1000 < stamp + step_size)
+        ]
+
+        index_s = np.array(temp_text["sent vs received"]) == "sent SMS"
+        index_r = np.array(temp_text["sent vs received"]) == "received SMS"
+        texts_in = np.array(temp_text["hashed phone number"])[index_r]
+        texts_out = np.array(temp_text["hashed phone number"])[index_s]
+    else:  # no texts were received, so no unique numbers will be used
+        texts_in = np.array([])
+        texts_out = np.array([])
+
+    num_uniq_individuals_call_or_text = len(np.unique(np.hstack(
+        [calls_in, texts_in, texts_out, calls_out, calls_mis]
+    )))
+    return (
+        num_uniq_individuals_call_or_text,
+    )
+
+
 def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
     """Calculate the summary statistics for the call data
     in the given time interval.
@@ -148,9 +210,9 @@ def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
         df_call: pd.DataFrame
             dataframe of the call data
         stamp: int
-            starting timestamp of the study
+            starting timestamp of the interval
         step_size: int
-            ending timestamp of the study
+            ending timestamp of the interval
 
     Returns:
         tuple of summary statistics containing:
@@ -232,9 +294,9 @@ def comm_logs_summaries(
         df_call: pd.DataFrame
             dataframe of the call data
         stamp_start: int
-            starting timestamp of the study
+            starting timestamp of the interval
         stamp_end: int
-            ending timestamp of the study
+            ending timestamp of the interval
         tz_str: str
             timezone where the study was/is conducted
         frequency: Frequency class,
@@ -288,13 +350,19 @@ def comm_logs_summaries(
             newline += list(call_stats)
         else:
             newline += [pd.NA] * 8
+        if df_text.shape[0] > 0 or df_call.shape[0] > 0:
+            text_and_call_stats = text_and_call_analysis(
+                df_call, df_text, stamp, step_size
+            )
+            newline += list(text_and_call_stats)
+        else:
+            newline += [pd.NA]
 
         if df_text.shape[0] > 0:
             text_stats = text_analysis(df_text, stamp, step_size, frequency)
             newline += list(text_stats)
         else:
             newline += [pd.NA] * 10
-
         if frequency == Frequency.DAILY:
             newline = [year, month, day] + newline
         else:
@@ -311,6 +379,7 @@ def comm_logs_summaries(
         "num_mis_caller",
         "total_mins_in_call",
         "total_mins_out_call",
+        "num_uniq_individuals_call_or_text",
         "num_s",
         "num_r",
         "num_mms_s",
@@ -425,6 +494,48 @@ def log_stats_main(
                             tz_str,
                             frequency,
                         )
+                        # num_uniq_individuals_call_or_text is the cardinality
+                        # of the union of several sets. It should should always
+                        # be at least as large as the cardinality of any one of
+                        # the sets, and it should never be larger than the sum
+                        # of the cardinalities of all of the sets
+                        # (it may be equal if all the sets are disjoint)
+                        sum_all_set_cols = pd.Series(
+                            [0]*stats_pdframe.shape[0]
+                        )
+                        for col in [
+                            "num_s_tel", "num_r_tel", "num_in_caller",
+                            "num_out_caller", "num_mis_caller"
+                        ]:
+                            sum_all_set_cols += stats_pdframe[col]
+                            if (
+                                stats_pdframe[
+                                    "num_uniq_individuals_call_or_text"
+                                ] < stats_pdframe[col]
+                            ).any():
+                                logger.error(
+                                    "Error: "
+                                    "num_uniq_individuals_call_or_text "
+                                    "was found to be less than %s for at "
+                                    "least one time interval. This error "
+                                    "comes from an issue with the code,"
+                                    " not an issue with the input data",
+                                    col
+                                    )
+                        if (
+                            stats_pdframe[
+                                "num_uniq_individuals_call_or_text"
+                            ] > sum_all_set_cols
+                        ).any():
+                            logger.error(
+                                    "Error: "
+                                    "num_uniq_individuals_call_or_text "
+                                    "was found to be larger than the sum "
+                                    "of individual cardinalities for at "
+                                    "least one time interval. This error "
+                                    "comes from an issue with the code,"
+                                    " not an issue with the input data"
+                                    )
 
                         write_all_summaries(bid, stats_pdframe, output_folder)
 
