@@ -258,7 +258,8 @@ def get_nearby_locations(
 
 
 def avg_mobility_trace_difference(
-    time_range: Tuple[int, int], mobility_trace1: np.ndarray, mobility_trace2: np.ndarray
+    time_range: Tuple[int, int], mobility_trace1: np.ndarray,
+    mobility_trace2: np.ndarray
 ) -> float:
     """This function calculates the average mobility trace difference
 
@@ -273,11 +274,19 @@ def avg_mobility_trace_difference(
     """
 
     # Create masks for timestamps that lie within the specified time range
-    mask1 = (mobility_trace1[:, 2] >= time_range[0]) & (mobility_trace1[:, 2] <= time_range[1])
-    mask2 = (mobility_trace2[:, 2] >= time_range[0]) & (mobility_trace2[:, 2] <= time_range[1])
+    mask1 = (
+        (mobility_trace1[:, 2] >= time_range[0])
+        & (mobility_trace1[:, 2] <= time_range[1])
+    )
+    mask2 = (
+        (mobility_trace2[:, 2] >= time_range[0])
+        & (mobility_trace2[:, 2] <= time_range[1])
+    )
 
     # Create a set of common timestamps for efficient lookup
-    common_times = set(mobility_trace1[mask1, 2]) & set(mobility_trace2[mask2, 2])
+    common_times = (
+        set(mobility_trace1[mask1, 2]) & set(mobility_trace2[mask2, 2])
+    )
 
     # Create masks for the common timestamps
     mask1_common = np.isin(mobility_trace1[:, 2], list(common_times))
@@ -288,7 +297,7 @@ def avg_mobility_trace_difference(
 
     # Calculate distances using the common timestamp masks
     dists = great_circle_dist(
-        mobility_trace1[mask1_common, 0], mobility_trace1[mask1_common, 1], 
+        mobility_trace1[mask1_common, 0], mobility_trace1[mask1_common, 1],
         mobility_trace2[mask2_common, 0], mobility_trace2[mask2_common, 1]
     )
 
@@ -347,7 +356,9 @@ def routine_index(
     shifts = list(range(1, n1 + 1)) + list(range(-n2, 0))
     if stratified:
         time_mid = int((t_1 + t_2) / 2)
-        weekend_today = datetime(*stamp2datetime(time_mid, timezone)).weekday() >= 5
+        weekend_today = datetime(
+            *stamp2datetime(time_mid, timezone)
+        ).weekday() >= 5
         if weekend_today:
             shifts = [
                 s for s in shifts
@@ -367,11 +378,15 @@ def routine_index(
                 ).weekday() < 5
             ]
 
-
     res = sum(
         avg_mobility_trace_difference(
             time_range, mobility_trace[::pcr_sample_rate],
-            np.column_stack([mobility_trace[:, :2], mobility_trace[:, 2] + i * 24 * 60 * 60])
+            np.column_stack(
+                [
+                    mobility_trace[:, :2],
+                    mobility_trace[:, 2] + i * 24 * 60 * 60
+                ]
+            )
         )
         for i in shifts
     )
@@ -1327,7 +1342,7 @@ def gps_stats_main(
                 )
                 write_all_summaries(participant_id, summary_stats2,
                                     f"{output_folder}/daily")
-                if save_osm_log:
+                if parameters.save_osm_log:
                     os.makedirs(f"{output_folder}/logs", exist_ok=True)
                     with open(
                         f"{output_folder}/logs/locations_logs_hourly.json",
