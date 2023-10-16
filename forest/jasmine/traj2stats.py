@@ -260,7 +260,7 @@ def get_nearby_locations(
 def avg_mobility_trace_difference(
     time_range: Tuple[int, int], mobility_trace1: np.ndarray,
     mobility_trace2: np.ndarray
-) -> float:
+) -> Optional[float]:
     """This function calculates the average mobility trace difference
 
     Args:
