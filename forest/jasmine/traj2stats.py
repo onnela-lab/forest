@@ -260,7 +260,7 @@ def get_nearby_locations(
 def avg_mobility_trace_difference(
     time_range: Tuple[int, int], mobility_trace1: np.ndarray,
     mobility_trace2: np.ndarray
-) -> Optional[float]:
+) -> float:
     """This function calculates the average mobility trace difference
 
     Args:
@@ -302,7 +302,11 @@ def avg_mobility_trace_difference(
     )
 
     dist_flag = dists <= 10
-    return np.mean(dist_flag)
+    res = np.mean(dist_flag)
+    if np.isnan(res):
+        raise ValueError("PCR calculation failed")
+
+    return float(res)
 
 
 def routine_index(
