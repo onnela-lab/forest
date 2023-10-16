@@ -954,9 +954,9 @@ def gps_summaries(
                     pd.NA,
                     pd.NA,
                     pd.NA,
-                    pd.NA,
-                    pd.NA,
                 ]
+                if pcr_bool:
+                    res += [pcr, pcr_stratified]
                 if places_of_interest is not None:
                     for place_int in range(2 * len(places_of_interest) + 1):
                         res.append(pd.NA)
@@ -985,9 +985,9 @@ def gps_summaries(
                     total_pause_time / 3600,
                     av_p_dur / 3600,
                     sd_p_dur / 3600,
-                    pcr,
-                    pcr_stratified,
                 ]
+                if pcr_bool:
+                    res += [pcr, pcr_stratified]
                 if places_of_interest is not None:
                     res += all_place_times
                     res += all_place_times_adjusted
@@ -1003,6 +1003,7 @@ def gps_summaries(
                 else:
                     log_tags[f"{day}/{month}/{year}"] = log_tags_temp
         summary_stats_df = pd.DataFrame(summary_stats)
+
         if places_of_interest is None:
             places_of_interest2 = []
             places_of_interest3 = []
@@ -1012,6 +1013,15 @@ def gps_summaries(
             places_of_interest3 = [
                 f"{pl}_adjusted" for pl in places_of_interest
             ]
+
+        if pcr_bool:
+            pcr_cols = [
+                "physical_cyrcadian_rhythm",
+                "physical_cyrcadian_rhythm_stratified",
+            ]
+        else:
+            pcr_cols = []
+
         if frequency != Frequency.DAILY:
             summary_stats_df.columns = (
                 [
@@ -1059,9 +1069,8 @@ def gps_summaries(
                     "total_pause_time",
                     "av_pause_duration",
                     "sd_pause_duration",
-                    "physical_cyrcadian_rhythm",
-                    "physical_cyrcadian_rhythm_stratified",
                 ]
+                + pcr_cols
                 + places_of_interest2
                 + places_of_interest3
             )
