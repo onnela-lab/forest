@@ -5,8 +5,9 @@ import pytest
 from shapely.geometry import Point
 
 from forest.jasmine.data2mobmat import great_circle_dist
-from forest.jasmine.traj2stats import (Frequency, transform_point_to_circle,
-                                       Hyperparameters, gps_summaries)
+from forest.jasmine.traj2stats import (
+    Frequency, gps_summaries, Hyperparameters, transform_point_to_circle
+)
 
 
 @pytest.fixture()

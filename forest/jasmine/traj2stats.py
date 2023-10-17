@@ -3,13 +3,13 @@ modules and calculate summary statistics of imputed trajectories.
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 import json
 import logging
 import os
 import pickle
 from typing import Dict, List, Optional, Tuple
 
-from datetime import datetime
 import numpy as np
 import pandas as pd
 from pyproj import Transformer
@@ -65,11 +65,11 @@ class Hyperparameters:
         quality_threshold: float, a percentage value of the fraction of data
             required for a summary to be created
         pcr_bool: bool, True if you want to calculate the physical
-            cyrcadian rhythm
+            circadian rhythm
         pcr_window: int, number of days to look back and forward
-            for calculating the physical cyrcadian rhythm
+            for calculating the physical circadian rhythm
         pcr_sample_rate: int, number of seconds between each sample
-            for calculating the physical cyrcadian rhythm
+            for calculating the physical circadian rhythm
     """
     # imputation hyperparameters
     l1: int = 60 * 60 * 24 * 10
@@ -327,9 +327,9 @@ def routine_index(
         mobility_trace: numpy array, trajectory
             contains 3 columns: [x, y, t]
         pcr_window: int, number of days to look back and forward
-            for calculating the physical cyrcadian rhythm
+            for calculating the physical circadian rhythm
         pcr_sample_rate: int, number of seconds between each sample
-            for calculating the physical cyrcadian rhythm
+            for calculating the physical circadian rhythm
         stratified: bool, True if you want to calculate the routine index
             for weekdays and weekends separately
         timezone: str, timezone of the mobility trace
@@ -447,7 +447,7 @@ def gps_summaries(
     "av_flight_duration","sd_flight_duration"]
     if the frequency is daily, it additionally returns
     ["obs_day","obs_night","radius","diameter""num_sig_places","entropy",
-    "physical_cyrcadian_rhythm","physical_cyrcadian_rhythm_stratified"]
+    "physical_circadian_rhythm","physical_circadian_rhythm_stratified"]
 
     Args:
         traj: 2d array, output from imp_to_traj(), which is a n by 8 mat,
@@ -475,25 +475,16 @@ def gps_summaries(
         ValueError: Frequency is not valid
     """
 
-    save_osm_log = parameters.save_osm_log
-    log_threshold = parameters.log_threshold
-    split_day_night = parameters.split_day_night
-    person_point_radius = parameters.person_point_radius
-    place_point_radius = parameters.place_point_radius
-    pcr_bool = parameters.pcr_bool
-    pcr_window = parameters.pcr_window
-    pcr_sample_rate = parameters.pcr_sample_rate
-
     if frequency == Frequency.HOURLY_AND_DAILY:
         raise ValueError("Frequency must be 'hourly' or 'daily'")
 
     if frequency != Frequency.DAILY:
-        split_day_night = False
+        parameters.split_day_night = False
 
     ids: Dict[str, List[int]] = {}
     locations: Dict[int, List[List[float]]] = {}
     tags: Dict[int, Dict[str, str]] = {}
-    if places_of_interest is not None or save_osm_log:
+    if places_of_interest is not None or parameters.save_osm_log:
         ids, locations, tags = get_nearby_locations(traj, osm_tags)
         ids_keys_list = list(ids.keys())
 
@@ -528,17 +519,15 @@ def gps_summaries(
         # then our daily summary starts from 2019-3-9)
         window = 60 * 60 * 24
         no_windows = (end_stamp - start_stamp) // window
-        if split_day_night:
+        if parameters.split_day_night:
             no_windows *= 2
-        # mobility trace
-        mobility_trace = create_mobility_trace(traj)
 
     if no_windows <= 0:
         raise ValueError("start time and end time are not correct")
 
     summary_stats_df = pd.DataFrame([])
     for i in range(no_windows):
-        if split_day_night:
+        if parameters.split_day_night:
             i2 = i // 2
         else:
             i2 = i
@@ -555,7 +544,7 @@ def gps_summaries(
 
         stop1 = 0
         stop2 = 0
-        if split_day_night:
+        if parameters.split_day_night:
             current_time_list2 = current_time_list.copy()
             current_time_list3 = current_time_list.copy()
             current_time_list2[3] = 8
@@ -584,7 +573,7 @@ def gps_summaries(
                 stop2 = sum(index1)
                 index_rows = index1 + index2
 
-        if sum(index_rows) == 0 and split_day_night:
+        if sum(index_rows) == 0 and parameters.split_day_night:
             # if there is no data in the day, then we need to
             # to add empty rows to the dataframe with 21 columns
             res = [year, month, day] + [0] * 18
@@ -594,7 +583,7 @@ def gps_summaries(
                 res += [0] * (2 * len(places_of_interest) + 1)
             summary_stats.append(res)
             continue
-        elif sum(index_rows) == 0 and not split_day_night:
+        elif sum(index_rows) == 0 and not parameters.split_day_night:
             # There is no data and it is daily data, so we need to add empty
             # rows
             res = [year, month, day] + [0] * 3 + [pd.NA] * 15
@@ -609,7 +598,7 @@ def gps_summaries(
         temp = traj[index_rows, :]
         # take a subset which is exactly one hour/day,
         # cut the trajs at two ends proportionally
-        if split_day_night and i % 2 == 0:
+        if parameters.split_day_night and i % 2 == 0:
             t0_temp = start_time2
             t1_temp = end_time2
         else:
@@ -628,7 +617,7 @@ def gps_summaries(
             temp[0, 5] = (1 - p1) * y0 + p1 * y1
             temp[0, 6] = t1_temp
         else:
-            if split_day_night and i % 2 != 0:
+            if parameters.split_day_night and i % 2 != 0:
                 t0_temp_l = [start_time, end_time2]
                 t1_temp_l = [start_time2, end_time]
                 start_temp = [0, stop2]
@@ -693,13 +682,13 @@ def gps_summaries(
         all_place_times = []
         all_place_times_adjusted = []
         log_tags_temp = []
-        if places_of_interest is not None or save_osm_log:
+        if places_of_interest is not None or parameters.save_osm_log:
             pause_vec = temp[temp[:, 0] == 2]
             pause_array: np.ndarray = np.array([])
             for row in pause_vec:
                 if (
                     great_circle_dist(row[1], row[2], home_lat, home_lon)[0]
-                    > 2*place_point_radius
+                    > 2*parameters.place_point_radius
                 ):
                     if len(pause_array) == 0:
                         pause_array = np.array(
@@ -712,7 +701,7 @@ def gps_summaries(
                                 pause_array[:, 0], pause_array[:, 1],
                             )
                         )
-                        > 2*place_point_radius
+                        > 2*parameters.place_point_radius
                     ):
                         pause_array = np.append(
                             pause_array,
@@ -742,7 +731,7 @@ def gps_summaries(
                         pause_circle = saved_polygons[pause_str]
                     else:
                         pause_circle = transform_point_to_circle(
-                            pause[0], pause[1], person_point_radius
+                            pause[0], pause[1], parameters.person_point_radius
                         )
                         saved_polygons[pause_str] = pause_circle
                     add_to_other = True
@@ -762,7 +751,7 @@ def gps_summaries(
                                     loc_circle = transform_point_to_circle(
                                         loc_lat,
                                         loc_lon,
-                                        place_point_radius,
+                                        parameters.place_point_radius,
                                     )
                                     saved_polygons[loc_str] = loc_circle
 
@@ -797,8 +786,8 @@ def gps_summaries(
                                 prob * pause[2] / 60
                             )
 
-                if save_osm_log:
-                    if pause[2] >= log_threshold:
+                if parameters.save_osm_log:
+                    if pause[2] >= parameters.log_threshold:
                         for place_id, place_coordinates in locations.items():
                             if len(place_coordinates) == 1:
                                 if (
@@ -807,7 +796,7 @@ def gps_summaries(
                                         place_coordinates[0][0],
                                         place_coordinates[0][1],
                                     )[0]
-                                    < place_point_radius
+                                    < parameters.place_point_radius
                                 ):
                                     log_tags_temp.append(tags[place_id])
                             elif len(place_coordinates) >= 3:
@@ -921,15 +910,17 @@ def gps_summaries(
             t_sig = np.array(t_xy)[np.array(t_xy) / 60 > 15]
             p = t_sig / sum(t_sig)
             entropy = -sum(p * np.log(p + 0.00001))
-            # physical cyrcadian rhythm
-            if obs_dur != 0 and pcr_bool:
+            # physical circadian rhythm
+            if obs_dur != 0 and parameters.pcr_bool:
+                mobility_trace = create_mobility_trace(traj)
                 pcr = routine_index(
                     (start_time, end_time), mobility_trace,
-                    pcr_window, pcr_sample_rate
+                    parameters.pcr_window, parameters.pcr_sample_rate
                 )
                 pcr_stratified = routine_index(
                     (start_time, end_time), mobility_trace,
-                    pcr_window, pcr_sample_rate, True, tz_str
+                    parameters.pcr_window, parameters.pcr_sample_rate,
+                    True, tz_str
                 )
             else:
                 pcr = pd.NA
@@ -970,7 +961,7 @@ def gps_summaries(
                     pd.NA,
                     pd.NA,
                 ]
-                if pcr_bool:
+                if parameters.pcr_bool:
                     res += [pcr, pcr_stratified]
                 if places_of_interest is not None:
                     for place_int in range(2 * len(places_of_interest) + 1):
@@ -1001,13 +992,13 @@ def gps_summaries(
                     av_p_dur / 3600,
                     sd_p_dur / 3600,
                 ]
-                if pcr_bool:
+                if parameters.pcr_bool:
                     res += [pcr, pcr_stratified]
                 if places_of_interest is not None:
                     res += all_place_times
                     res += all_place_times_adjusted
                 summary_stats.append(res)
-                if split_day_night:
+                if parameters.split_day_night:
                     if i % 2 == 0:
                         time_cat = "daytime"
                     else:
@@ -1029,10 +1020,10 @@ def gps_summaries(
                 f"{pl}_adjusted" for pl in places_of_interest
             ]
 
-        if pcr_bool:
+        if parameters.pcr_bool:
             pcr_cols = [
-                "physical_cyrcadian_rhythm",
-                "physical_cyrcadian_rhythm_stratified",
+                "physical_circadian_rhythm",
+                "physical_circadian_rhythm_stratified",
             ]
         else:
             pcr_cols = []
@@ -1090,7 +1081,7 @@ def gps_summaries(
                 + places_of_interest3
             )
 
-    if split_day_night:
+    if parameters.split_day_night:
         summary_stats_df_daytime = summary_stats_df[::2].reset_index(
             drop=True
             )
@@ -1366,7 +1357,7 @@ def gps_stats_main(
                 )
                 write_all_summaries(participant_id, summary_stats2,
                                     f"{output_folder}/daily")
-                if parameters.save_osm_log:
+                if parameters.parameters.save_osm_log:
                     os.makedirs(f"{output_folder}/logs", exist_ok=True)
                     with open(
                         f"{output_folder}/logs/locations_logs_hourly.json",
@@ -1390,7 +1381,7 @@ def gps_stats_main(
                 write_all_summaries(
                     participant_id, summary_stats, output_folder
                 )
-                if parameters.save_osm_log:
+                if parameters.parameters.save_osm_log:
                     os.makedirs(f"{output_folder}/logs", exist_ok=True)
                     with open(
                         f"{output_folder}/logs/locations_logs.json",
