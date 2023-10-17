@@ -1357,7 +1357,7 @@ def gps_stats_main(
                 )
                 write_all_summaries(participant_id, summary_stats2,
                                     f"{output_folder}/daily")
-                if parameters.parameters.save_osm_log:
+                if parameters.save_osm_log:
                     os.makedirs(f"{output_folder}/logs", exist_ok=True)
                     with open(
                         f"{output_folder}/logs/locations_logs_hourly.json",
@@ -1381,7 +1381,7 @@ def gps_stats_main(
                 write_all_summaries(
                     participant_id, summary_stats, output_folder
                 )
-                if parameters.parameters.save_osm_log:
+                if parameters.save_osm_log:
                     os.makedirs(f"{output_folder}/logs", exist_ok=True)
                     with open(
                         f"{output_folder}/logs/locations_logs.json",
