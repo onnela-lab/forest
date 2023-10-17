@@ -1,15 +1,26 @@
-# This CITATION.cff file was generated with cffinit.
-# Visit https://bit.ly/cffinit to generate yours today!
-
 cff-version: 1.2.0
 title: Forest
-message: >-
-  If you use this software, please cite it using the metadata from this file.
+message: "If you use Forest, please cite it using the metadata from this file."
 type: software
 authors:
-  - name: Onnela Lab
-repository-code: 'https://github.com/onnela-lab/forest'
-url: 'https://forest.beiwe.org'
-abstract: >-
-  Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data.
+  - name: "Onnela Lab"
+repository-code: https://github.com/onnela-lab/forest
+url: https://forest.beiwe.org
+abstract: "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data."
 license: BSD-3-Clause
+references:
+  - authors:
+      - family-names: Straczkiewicz
+        given-names: M
+      - family-names: Huang
+        given-names: EJ
+      - family-names: Onnela
+        given-names: JP
+    doi: 10.1038/s41746-022-00745-z
+    journal: "npj Digital Medicine"
+    month: 2
+    start: 29
+    title: "A “one-size-fits-most” walking recognition method for smartphones, smartwatches, and wearable accelerometers"
+    type: article
+    volume: 6
+    year: 2023
