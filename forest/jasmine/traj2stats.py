@@ -496,31 +496,21 @@ def gps_summaries(
     if frequency != Frequency.DAILY:
         # find starting and ending time
         logger.info("Calculating the hourly summary stats...")
-        time_list = stamp2datetime(traj[0, 3], tz_str)
-        time_list[4:6] = [0, 0]
-        start_stamp = datetime2stamp(time_list, tz_str)
-        time_list = stamp2datetime(traj[-1, 6], tz_str)
-        time_list[4:6] = [0, 0]
-        end_stamp = datetime2stamp(time_list, tz_str)
-        # start_time, end_time are exact points
-        # (if it ends at 2019-3-8 11 o'clock, then 11 shouldn't be included)
-        window = frequency.value * 60 * 60
-        no_windows = (end_stamp - start_stamp) // window
+        start_stamp, end_stamp = get_time_range(
+            traj, [4, 5], tz_str=tz_str
+        )
+        window, no_windows = compute_window_and_windows_count(
+            start_stamp, end_stamp, frequency.value
+        )
     else:
         # find starting and ending time
         logger.info("Calculating the daily summary stats...")
-        time_list = stamp2datetime(traj[0, 3], tz_str)
-        time_list[3:6] = [0, 0, 0]
-        start_stamp = datetime2stamp(time_list, tz_str)
-        time_list = stamp2datetime(traj[-1, 6], tz_str)
-        time_list[3:6] = [0, 0, 0]
-        end_stamp = datetime2stamp(time_list, tz_str) + 3600 * 24
-        # if it starts from 2019-3-8 11 o'clock,
-        # then our daily summary starts from 2019-3-9)
-        window = 60 * 60 * 24
-        no_windows = (end_stamp - start_stamp) // window
-        if parameters.split_day_night:
-            no_windows *= 2
+        start_stamp, end_stamp = get_time_range(
+            traj, [3, 4, 5], 3600*24, tz_str=tz_str
+        )
+        window, no_windows = compute_window_and_windows_count(
+            start_stamp, end_stamp, 24, parameters.split_day_night
+        )
 
     if no_windows <= 0:
         raise ValueError("start time and end time are not correct")
@@ -1082,50 +1072,114 @@ def gps_summaries(
             )
 
     if parameters.split_day_night:
-        summary_stats_df_daytime = summary_stats_df[::2].reset_index(
-            drop=True
-            )
-        summary_stats_df_nighttime = summary_stats_df[1::2].reset_index(
-            drop=True
-            )
-
-        summary_stats_df2 = pd.concat(
-            [
-                summary_stats_df_daytime,
-                summary_stats_df_nighttime.iloc[:, 3:],
-            ],
-            axis=1,
-        )
-        summary_stats_df2.columns = (
-            list(summary_stats_df.columns)[:3]
-            + [
-                f"{cname}_daytime"
-                for cname in list(summary_stats_df.columns)[3:]
-            ]
-            + [
-                f"{cname}_nighttime"
-                for cname in list(summary_stats_df.columns)[3:]
-            ]
-        )
-        summary_stats_df2 = summary_stats_df2.drop(
-            [
-                "obs_day_daytime",
-                "obs_night_daytime",
-                "obs_day_nighttime",
-                "obs_night_nighttime",
-            ],
-            axis=1,
-        )
-        summary_stats_df2.insert(
-            3,
-            "obs_duration",
-            summary_stats_df2["obs_duration_daytime"]
-            + summary_stats_df2["obs_duration_nighttime"],
-        )
+        summary_stats_df2 = split_day_night_cols(summary_stats_df)
     else:
         summary_stats_df2 = summary_stats_df
 
     return summary_stats_df2, log_tags
+
+
+def split_day_night_cols(summary_stats_df: pd.DataFrame) -> pd.DataFrame:
+    """This function splits the summary statistics dataframe
+    into daytime and nighttime columns.
+
+    Args:
+        summary_stats_df: pandas dataframe with summary statistics
+    Returns:
+        summary_stats_df2: pandas dataframe with summary statistics
+            split into daytime and nighttime columns
+    """
+
+    summary_stats_df_daytime = summary_stats_df[::2].reset_index(drop=True)
+    summary_stats_df_nighttime = summary_stats_df[1::2].reset_index(drop=True)
+
+    summary_stats_df2 = pd.concat(
+        [
+            summary_stats_df_daytime,
+            summary_stats_df_nighttime.iloc[:, 3:],
+        ],
+        axis=1,
+    )
+    summary_stats_df2.columns = (
+        list(summary_stats_df.columns)[:3]
+        + [
+            f"{cname}_daytime"
+            for cname in list(summary_stats_df.columns)[3:]
+        ]
+        + [
+            f"{cname}_nighttime"
+            for cname in list(summary_stats_df.columns)[3:]
+        ]
+    )
+    summary_stats_df2 = summary_stats_df2.drop(
+        [
+            "obs_day_daytime",
+            "obs_night_daytime",
+            "obs_day_nighttime",
+            "obs_night_nighttime",
+        ],
+        axis=1,
+    )
+    summary_stats_df2.insert(
+        3,
+        "obs_duration",
+        summary_stats_df2["obs_duration_daytime"]
+        + summary_stats_df2["obs_duration_nighttime"],
+    )
+
+    return summary_stats_df2
+
+
+def get_time_range(
+    traj: np.ndarray, time_reset_indices: list,
+    offset_seconds: int = 0, tz_str: Optional[str] = None
+) -> Tuple[int, int]:
+    """Computes the starting and ending time stamps
+     based on given trajectory and indices.
+
+    Args:
+        traj: numpy array of trajectory
+        time_reset_indices: list of indices to reset time
+        offset_seconds: int, offset in seconds
+        tz_str: str, timezone
+    Returns:
+        start_stamp: int, starting time stamp
+        end_stamp: int, ending time stamp
+    """
+    time_list = stamp2datetime(traj[0, 3], tz_str)
+    for idx in time_reset_indices:
+        time_list[idx] = 0
+    start_stamp = datetime2stamp(time_list, tz_str)
+
+    time_list = stamp2datetime(traj[-1, 6], tz_str)
+    for idx in time_reset_indices:
+        time_list[idx] = 0
+    end_stamp = datetime2stamp(time_list, tz_str) + offset_seconds
+
+    return start_stamp, end_stamp
+
+
+def compute_window_and_windows_count(
+    start_stamp: int, end_stamp: int, window_hours: int,
+    split_day_night: bool = False
+) -> Tuple[int, int]:
+    """Computes the window and number of windows based on given time stamps.
+
+    Args:
+        start_stamp: int, starting time stamp
+        end_stamp: int, ending time stamp
+        window_hours: int, window in hours
+        split_day_night: bool, True if split day and night
+    Returns:
+        window: int, window in seconds
+        no_windows: int, number of windows
+    """
+
+    window = window_hours * 60 * 60
+    no_windows = (end_stamp - start_stamp) // window
+    if split_day_night:
+        no_windows *= 2
+    return window, no_windows
 
 
 def gps_quality_check(study_folder: str, study_id: str) -> float:
