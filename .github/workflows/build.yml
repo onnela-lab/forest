@@ -9,8 +9,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-test:
-    name: 'Build and test'
+  test:
+    name: 'Run tests'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
