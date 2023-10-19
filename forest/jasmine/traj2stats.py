@@ -150,9 +150,10 @@ def get_nearby_locations(
             types of nearby locations supported by Overpass API
             defaults to [OSMTags.AMENITY, OSMTags.LEISURE]
     Returns:
-        ids: dictionary, contains nearby locations' ids
-        locations: dictionary, contains nearby locations' coordinates
-        tags: dictionary, contains nearby locations' tags
+        A tuple of:
+         dictionary, contains nearby locations' ids
+         dictionary, contains nearby locations' coordinates
+         dictionary, contains nearby locations' tags
     Raises:
         RuntimeError: if the query to Overpass API fails
     """
@@ -446,14 +447,15 @@ def get_day_night_indices(
         end_time: int, ending time of the window
         current_time_list: list of int, current time
     Returns:
-        index_rows: numpy array, indices of the rows in the trajectory
+        A tuple of:
+         numpy array, indices of the rows in the trajectory
             if the trajectory is split into day and night
-        stop1: int, index of the row in the trajectory
+         int, index of the row in the trajectory
             where the first part of the trajectory ends
-        stop2: int, index of the row in the trajectory
+         int, index of the row in the trajectory
             where the second part of the trajectory starts
-        start_time2: int, starting time of the second part of the trajectory
-        end_time2: int, ending time of the second part of the trajectory
+         int, starting time of the second part of the trajectory
+         int, ending time of the second part of the trajectory
     """
 
     current_time_list2 = current_time_list.copy()
@@ -646,8 +648,9 @@ def get_polygon(saved_polygons: dict, lat: float, lon: float, label: str,
         label: str, label of the location
         radius: float, radius of the circle
     Returns:
-        shapely polygon
-        dict, contains saved polygons
+        A tuple with the following elements:
+         shapely polygon
+         dict, contains saved polygons
     """
     loc_str = f"{lat}, {lon} - {label}"
     if loc_str in saved_polygons.keys():
@@ -675,9 +678,10 @@ def intersect_with_places_of_interest(
         locations: dict, contains nearby locations' coordinates
         ids_keys_list: list of str, keys of ids
     Returns:
-        all_place_probs: list of float, intersection between a pause and
+        A tuple with the following elements:
+         list of float, intersection between a pause and
             places of interest
-        add_to_other: bool, True if the pause is not intersected with
+         bool, True if the pause is not intersected with
             any place of interest
     """
     all_place_probs = [0] * len(places_of_interest)
@@ -786,8 +790,9 @@ def final_hourly_prep(
         datetime_list: list of int, current time
         places_of_interest: list of str, places of interest
     Returns:
-        summary_stats: list, summary statistics
-        log_tags: dict, contains log of tags of all locations visited
+        A tuple of:
+         a list, summary statistics
+         a dict, contains log of tags of all locations visited
             from openstreetmap
     """
 
@@ -890,8 +895,9 @@ def final_daily_prep(
         pcr_stratified: float, physical circadian rhythm stratified
         i: int, index of the window
     Returns:
-        summary_stats: list, summary statistics
-        log_tags: dict, contains log of tags of all locations visited
+        A tuple of:
+         a list, summary statistics
+         a dict, contains log of tags of all locations visited
             from openstreetmap
     """
 
@@ -990,8 +996,9 @@ def format_summary_stats(
             recommend to set it to default
         places_of_interest: list of str, places of interest
     Returns:
-        summary_stats_df2: pd dataframe, summary statistics
-        log_tags: dict, contains log of tags of all locations visited
+        A tuple of:
+         a pd dataframe, summary statistics
+         a dict, contains log of tags of all locations visited
             from openstreetmap
     """
 
@@ -1109,9 +1116,10 @@ def gps_summaries(
         osm_tags: list of tags to search for in openstreetmaps
             avoid using a lot of them if large area is covered
     Returns:
-        a pd dataframe, with each row as an hour/day,
+        A tuple of:
+         a pd dataframe, with each row as an hour/day,
             and each col as a feature/stat
-        a dictionary, contains log of tags of all locations visited
+         a dictionary, contains log of tags of all locations visited
             from openstreetmap
     Raises:
         RuntimeError: if the query to Overpass API fails
@@ -1402,7 +1410,7 @@ def split_day_night_cols(summary_stats_df: pd.DataFrame) -> pd.DataFrame:
     Args:
         summary_stats_df: pandas dataframe with summary statistics
     Returns:
-        spandas dataframe with summary statistics
+        pandas dataframe with summary statistics
          split into daytime and nighttime columns
     """
 
