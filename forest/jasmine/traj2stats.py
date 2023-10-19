@@ -272,6 +272,8 @@ def avg_mobility_trace_difference(
             contains 3 columns: [x, y, t]
     Returns:
         float, average mobility trace difference
+    Raises:
+        ValueError: if the calculation fails
     """
 
     # Create masks for timestamps that lie within the specified time range
