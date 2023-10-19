@@ -497,6 +497,9 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
             date_start = date_start - timedelta(hours=date_start.hour)
         else:
             date_start = datetime.strptime(time_start, fmt)
+            date_start = date_start.replace(
+                tzinfo=from_zone
+            ).astimezone(to_zone)
             date_start = date_start - timedelta(hours=date_start.hour)
 
         if time_end is None:
@@ -504,6 +507,7 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
             date_end = date_end - timedelta(hours=date_end.hour)
         else:
             date_end = datetime.strptime(time_end, fmt)
+            date_end = date_end.replace(tzinfo=from_zone).astimezone(to_zone)
             date_end = date_end - timedelta(hours=date_end.hour)
 
         days = pd.date_range(date_start, date_end, freq='D')
