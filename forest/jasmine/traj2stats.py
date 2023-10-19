@@ -426,9 +426,8 @@ def create_mobility_trace(traj: np.ndarray) -> np.ndarray:
 
     # check if duplicate timestamps exist
     _, unique_indices = np.unique(mobility_trace[:, 2], return_index=True)
-    mobility_trace = mobility_trace[unique_indices]
 
-    return mobility_trace
+    return mobility_trace[unique_indices]
 
 
 def get_day_night_indices(
@@ -1004,9 +1003,7 @@ def format_summary_stats(
     else:
         places_of_interest2 = places_of_interest.copy()
         places_of_interest2.append("other")
-        places_of_interest3 = [
-            f"{pl}_adjusted" for pl in places_of_interest
-        ]
+        places_of_interest3 = [f"{pl}_adjusted" for pl in places_of_interest]
 
     if parameters.pcr_bool:
         pcr_cols = [
@@ -1133,6 +1130,8 @@ def gps_summaries(
     if places_of_interest is not None or parameters.save_osm_log:
         ids, locations, tags = get_nearby_locations(traj, osm_tags)
         ids_keys_list = list(ids.keys())
+    else:
+        ids_keys_list = []
 
     obs_traj = traj[traj[:, 7] == 1, :]
     home_lat, home_lon = locate_home(obs_traj, tz_str)
@@ -1145,7 +1144,7 @@ def gps_summaries(
         start_stamp, end_stamp = get_time_range(
             traj, [4, 5], tz_str
         )
-        window, no_windows = compute_window_and_windows_count(
+        window, num_windows = compute_window_and_count(
             start_stamp, end_stamp, frequency.value
         )
     else:
@@ -1154,14 +1153,14 @@ def gps_summaries(
         start_stamp, end_stamp = get_time_range(
             traj, [3, 4, 5], tz_str, 3600*24
         )
-        window, no_windows = compute_window_and_windows_count(
+        window, num_windows = compute_window_and_count(
             start_stamp, end_stamp, 24, parameters.split_day_night
         )
 
-    if no_windows <= 0:
+    if num_windows <= 0:
         raise ValueError("start time and end time are not correct")
 
-    for i in range(no_windows):
+    for i in range(num_windows):
         if parameters.split_day_night:
             i2 = i // 2
         else:
@@ -1403,8 +1402,8 @@ def split_day_night_cols(summary_stats_df: pd.DataFrame) -> pd.DataFrame:
     Args:
         summary_stats_df: pandas dataframe with summary statistics
     Returns:
-        summary_stats_df2: pandas dataframe with summary statistics
-            split into daytime and nighttime columns
+        spandas dataframe with summary statistics
+         split into daytime and nighttime columns
     """
 
     summary_stats_df_daytime = summary_stats_df[::2].reset_index(drop=True)
@@ -1460,8 +1459,9 @@ def get_time_range(
         offset_seconds: int, offset in seconds
         tz_str: str, timezone
     Returns:
-        start_stamp: int, starting time stamp
-        end_stamp: int, ending time stamp
+        A tuple of two integers (start_stamp, end_stamp):
+            start_stamp: int, starting time stamp
+            end_stamp: int, ending time stamp
     """
     time_list = stamp2datetime(traj[0, 3], tz_str)
     for idx in time_reset_indices:
@@ -1476,7 +1476,7 @@ def get_time_range(
     return start_stamp, end_stamp
 
 
-def compute_window_and_windows_count(
+def compute_window_and_count(
     start_stamp: int, end_stamp: int, window_hours: int,
     split_day_night: bool = False
 ) -> Tuple[int, int]:
@@ -1488,15 +1488,16 @@ def compute_window_and_windows_count(
         window_hours: int, window in hours
         split_day_night: bool, True if split day and night
     Returns:
-        window: int, window in seconds
-        no_windows: int, number of windows
+        A tuple of two integers (window, num_windows):
+            window: int, window in seconds
+            num_windows: int, number of windows
     """
 
     window = window_hours * 60 * 60
-    no_windows = (end_stamp - start_stamp) // window
+    num_windows = (end_stamp - start_stamp) // window
     if split_day_night:
-        no_windows *= 2
-    return window, no_windows
+        num_windows *= 2
+    return window, num_windows
 
 
 def gps_quality_check(study_folder: str, study_id: str) -> float:
