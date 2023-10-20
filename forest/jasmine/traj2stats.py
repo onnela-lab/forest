@@ -468,10 +468,7 @@ def get_day_night_indices(
     end_time2 = datetime2stamp(current_time_list3, tz_str)
     if index % 2 == 0:
         # daytime
-        index_rows = (
-            (traj[:, 3] <= end_time2)
-            * (traj[:, 6] >= start_time2)
-            )
+        index_rows = (traj[:, 3] <= end_time2) * (traj[:, 6] >= start_time2)
 
         return index_rows, 0, 0, start_time2, end_time2
 

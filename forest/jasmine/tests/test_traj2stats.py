@@ -487,8 +487,7 @@ def test_avg_mobility_trace_difference_no_common_timestamps(
 
 
 def test_create_mobility_trace_shape(sample_trajectory):
-    """Testing shape of mobility trace
-    """
+    """Testing shape of mobility trace"""
 
     res = create_mobility_trace(sample_trajectory)
 
@@ -496,8 +495,7 @@ def test_create_mobility_trace_shape(sample_trajectory):
 
 
 def test_create_mobility_trace_start_end_times(sample_trajectory):
-    """Testing start and end times of mobility trace
-    """
+    """Testing start and end times of mobility trace"""
 
     res = create_mobility_trace(sample_trajectory)
 
@@ -506,8 +504,7 @@ def test_create_mobility_trace_start_end_times(sample_trajectory):
 
 
 def test_get_pause_array_shape(sample_trajectory, coords2):
-    """Testing shape of pause array
-    """
+    """Testing shape of pause array"""
 
     parameters = Hyperparameters()
 
@@ -521,8 +518,7 @@ def test_get_pause_array_shape(sample_trajectory, coords2):
 
 
 def test_get_pause_array_times(sample_trajectory, coords2):
-    """Testing times spent in places of pause array
-    """
+    """Testing times spent in places of pause array"""
 
     parameters = Hyperparameters()
 
@@ -537,8 +533,7 @@ def test_get_pause_array_times(sample_trajectory, coords2):
 
 
 def test_get_pause_array_house(sample_trajectory):
-    """Testing case where house is in pause array
-    """
+    """Testing case where house is in pause array"""
 
     house_coords = (51.45435654, -2.58555554)
     parameters = Hyperparameters()
@@ -553,8 +548,7 @@ def test_get_pause_array_house(sample_trajectory):
 
 
 def test_extract_pause_from_row_shape(sample_trajectory):
-    """Testing shape of pause array
-    """
+    """Testing shape of pause array"""
 
     pause_list = extract_pause_from_row(
         sample_trajectory[0, :]
@@ -564,8 +558,7 @@ def test_extract_pause_from_row_shape(sample_trajectory):
 
 
 def test_extract_pause_from_row_time(sample_trajectory):
-    """Testing shape of pause array
-    """
+    """Testing pause time of row"""
 
     pause_list = extract_pause_from_row(
         sample_trajectory[0, :]
@@ -576,9 +569,8 @@ def test_extract_pause_from_row_time(sample_trajectory):
     assert pause_list[2] == true_val / 60
 
 
-def test_compute_window_and_count_window(sample_trajectory):
-    """Testing window size is correct
-    """
+def test_compute_window_size(sample_trajectory):
+    """Testing window size is correct"""
 
     window, _ = compute_window_and_count(
         sample_trajectory[0, 3], sample_trajectory[-1, 6], 1
@@ -587,9 +579,8 @@ def test_compute_window_and_count_window(sample_trajectory):
     assert window == 3600
 
 
-def test_compute_window_and_count_num_windows(sample_trajectory):
-    """Testing number of windows is correct
-    """
+def test_compute_window_count(sample_trajectory):
+    """Testing number of windows is correct"""
 
     _, num_windows = compute_window_and_count(
         sample_trajectory[0, 3], sample_trajectory[-1, 6], 1
@@ -598,10 +589,8 @@ def test_compute_window_and_count_num_windows(sample_trajectory):
     assert num_windows == 24
 
 
-def test_compute_window_and_count_window2(sample_trajectory):
-    """Testing window size is correct
-    6 hour window
-    """
+def test_compute_window_size_6_hour(sample_trajectory):
+    """Testing window size is correct 6 hour window"""
 
     window, _ = compute_window_and_count(
         sample_trajectory[0, 3], sample_trajectory[-1, 6], 6
@@ -610,10 +599,8 @@ def test_compute_window_and_count_window2(sample_trajectory):
     assert window == 3600 * 6
 
 
-def test_compute_window_and_count_num_windows2(sample_trajectory):
-    """Testing number of windows is correct
-    6 hour window
-    """
+def test_compute_window_count_6_hour(sample_trajectory):
+    """Testing number of windows is correct 6 hour window"""
 
     _, num_windows = compute_window_and_count(
         sample_trajectory[0, 3], sample_trajectory[-1, 6], 6
