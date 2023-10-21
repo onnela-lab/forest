@@ -57,7 +57,7 @@ min_t = 3
 
 The outputs of the accelerometer module contains gait summary statistics for each specified participant in daily (_gait_daily.csv) or hourly windows (_gait_hourly.csv).
 
-The following variables are created in a csv file for each survey.
+The following variables are created in a csv file for each participant.
 
 |     Variable                          	|     Type     	|     Description of Variable                                                                                 	|
 |---------------------------------------	|--------------	|-------------------------------------------------------------------------------------------------------------	|
