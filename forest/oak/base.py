@@ -345,75 +345,48 @@ def find_continuous_dominant_peaks(valid_peaks: np.ndarray, min_t: int,
     Returns:
         Ndarray with binary matrix (1=peak,0=no peak) of continuous peaks
     """
-    valid_peaks = np.concatenate((valid_peaks,
-                                  np.zeros((valid_peaks.shape[0], 1))), axis=1)
-    cont_peaks = np.zeros((valid_peaks.shape[0], valid_peaks.shape[1]))
-    for slice_ind in range(valid_peaks.shape[1] - min_t):
-        slice_mat = valid_peaks[:, np.arange(slice_ind, slice_ind + min_t)]
-        windows = ([i for i in np.arange(min_t)] +
-                   [i for i in np.arange(min_t-2, -1, -1)])
+
+    num_rows, num_cols = valid_peaks.shape
+
+    valid_peaks = np.concatenate(
+        (valid_peaks, np.zeros((num_rows, 1))), axis=1
+    )
+    cont_peaks = np.zeros_like(valid_peaks)
+
+    windows = list(np.arange(min_t)) + list(np.arange(min_t-2, -1, -1))
+
+    for slice_ind in range(num_cols - min_t):
+        slice_mat = valid_peaks[:, slice_ind:slice_ind + min_t]
+
         for win_ind in windows:
             pr = np.where(slice_mat[:, win_ind] != 0)[0]
-            count = 0
-            if len(pr) > 0:
-                for i in range(len(pr)):
-                    index = np.arange(max(0, pr[i] - delta),
-                                      min(pr[i] + delta + 1,
-                                          slice_mat.shape[0]
-                                          ))
-                    if win_ind == 0 or win_ind == min_t - 1:
-                        cur_peak_loc = np.transpose(np.array(
-                            [np.ones(len(index))*pr[i], index], dtype=int
-                            ))
-                    else:
-                        cur_peak_loc = np.transpose(np.array(
-                            [index, np.ones(len(index))*pr[i], index],
-                            dtype=int
-                            ))
+            stop = True
 
-                    peaks = np.zeros((cur_peak_loc.shape[0],
-                                      cur_peak_loc.shape[1]), dtype=int)
-                    if win_ind == 0:
-                        peaks[:, 0] = slice_mat[cur_peak_loc[:, 0],
-                                                win_ind]
-                        peaks[:, 1] = slice_mat[cur_peak_loc[:, 1],
-                                                win_ind + 1]
-                    elif win_ind == min_t - 1:
-                        peaks[:, 0] = slice_mat[cur_peak_loc[:, 0],
-                                                win_ind]
-                        peaks[:, 1] = slice_mat[cur_peak_loc[:, 1],
-                                                win_ind - 1]
-                    else:
-                        peaks[:, 0] = slice_mat[cur_peak_loc[:, 0],
-                                                win_ind - 1]
-                        peaks[:, 1] = slice_mat[cur_peak_loc[:, 1],
-                                                win_ind]
-                        peaks[:, 2] = slice_mat[cur_peak_loc[:, 2],
-                                                win_ind + 1]
+            for p in pr:
+                index = np.arange(
+                    max(0, p - delta),
+                    min(p + delta + 1, num_rows)
+                )
 
-                    cont_peaks_edge = cur_peak_loc[np.sum(
-                        peaks[:, np.arange(2)], axis=1) > 1, :]
-                    cpe0 = cont_peaks_edge.shape[0]
-                    if win_ind == 0 or win_ind == min_t - 1:  # first or last
-                        if cpe0 == 0:
-                            slice_mat[cur_peak_loc[:, 0], win_ind] = 0
-                        else:
-                            count = count + 1
-                    else:
-                        cont_peaks_other = cur_peak_loc[np.sum(
-                            peaks[:, np.arange(1, 3)], axis=1) > 1, :]
-                        cpo0 = cont_peaks_other.shape[0]
-                        if cpe0 == 0 or cpo0 == 0:
-                            slice_mat[cur_peak_loc[:, 1], win_ind] = 0
-                        else:
-                            count = count + 1
-            if count == 0:
-                slice_mat = np.zeros((slice_mat.shape[0], slice_mat.shape[1]))
+                peaks = slice_mat[p, win_ind]
+                if win_ind > 0:
+                    peaks += slice_mat[index, win_ind - 1]
+                if win_ind < min_t - 1:
+                    peaks += slice_mat[index, win_ind + 1]
+                
+                if not np.any(peaks > 1):
+                    slice_mat[p, win_ind] = 0
+                else:
+                    stop = False
+
+            if stop:
+                slice_mat = np.zeros_like(slice_mat)
                 break
-        cont_peaks[:, np.arange(
-            slice_ind, slice_ind + min_t)] = np.maximum(
-                cont_peaks[:, np.arange(slice_ind, slice_ind + min_t)],
-                slice_mat)
+
+        cont_peaks[:, slice_ind:slice_ind + min_t] = np.maximum(
+            cont_peaks[:, slice_ind:slice_ind + min_t],
+            slice_mat
+        )
 
     return cont_peaks[:, :-1]
 
