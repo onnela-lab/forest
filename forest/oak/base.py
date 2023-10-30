@@ -348,17 +348,15 @@ def find_continuous_dominant_peaks(valid_peaks: np.ndarray, min_t: int,
 
     num_rows, num_cols = valid_peaks.shape
 
-    valid_peaks = np.concatenate(
-        (valid_peaks, np.zeros((num_rows, 1))), axis=1
-    )
-    cont_peaks = np.zeros_like(valid_peaks)
+    extended_peaks = np.zeros((num_rows, num_cols + 1), dtype=valid_peaks.dtype)
+    extended_peaks[:, :num_cols] = valid_peaks
 
-    windows = list(np.arange(min_t)) + list(np.arange(min_t-2, -1, -1))
+    cont_peaks = np.zeros_like(extended_peaks)
 
     for slice_ind in range(num_cols - min_t):
-        slice_mat = valid_peaks[:, slice_ind:slice_ind + min_t]
+        slice_mat = extended_peaks[:, slice_ind:slice_ind + min_t]
 
-        for win_ind in windows:
+        for win_ind in range(min_t):
             pr = np.where(slice_mat[:, win_ind] != 0)[0]
             stop = True
 
@@ -374,19 +372,16 @@ def find_continuous_dominant_peaks(valid_peaks: np.ndarray, min_t: int,
                 if win_ind < min_t - 1:
                     peaks += slice_mat[index, win_ind + 1]
                 
-                if not np.any(peaks > 1):
-                    slice_mat[p, win_ind] = 0
-                else:
+                if np.any(peaks > 1):
                     stop = False
+                else:
+                    slice_mat[p, win_ind] = 0
 
             if stop:
-                slice_mat = np.zeros_like(slice_mat)
                 break
 
-        cont_peaks[:, slice_ind:slice_ind + min_t] = np.maximum(
-            cont_peaks[:, slice_ind:slice_ind + min_t],
-            slice_mat
-        )
+        if not stop:
+            cont_peaks[:, slice_ind:slice_ind + min_t] = slice_mat
 
     return cont_peaks[:, :-1]
 
