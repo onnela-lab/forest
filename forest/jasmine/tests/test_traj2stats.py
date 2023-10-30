@@ -51,7 +51,7 @@ def test_transform_point_to_circle_radius(coords1):
     ]
 
     distance = great_circle_dist(*coords1, *point_in_edge)[0]
-    assert distance >= 4 and distance <= 5
+    assert 4 <= distance <= 5
 
 
 @pytest.fixture()
