@@ -419,9 +419,7 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
     # determine timezone shift
     fmt = '%Y-%m-%d %H_%M_%S'
     from_zone = tz.gettz('UTC')
-    if tz_str is None:
-        tz_str = 'UTC'
-    to_zone = tz.gettz(tz_str)
+    to_zone = tz.gettz(tz_str) if tz_str else from_zone
 
     # create folders to store results
     if frequency == Frequency.HOURLY_AND_DAILY:
@@ -534,24 +532,26 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
             # preprocess data fragment
             t_bout_interp, vm_bout = preprocess_bout(timestamp, x, y, z)
 
-            # get t as datetimes
-            t_datetime = [datetime.fromtimestamp(t_ind)
-                          for t_ind in t_bout_interp]
-
-            # transform t to full hours
-            t_hours = [t_i -
-                       timedelta(minutes=t_i.minute) -
-                       timedelta(seconds=t_i.second) -
-                       timedelta(microseconds=t_i.microsecond)
-                       for t_i in t_datetime]
-            t_hours = [date.replace(tzinfo=from_zone).astimezone(to_zone)
-                       for date in t_hours]
-
             # find walking and estimate cadence
             cadence_bout = find_walking(vm_bout)
 
             # distribute metrics across hours
             if frequency != Frequency.DAILY:
+                # get t as datetimes    
+                t_datetime = [datetime.fromtimestamp(t_ind)
+                            for t_ind in t_bout_interp]
+
+                # transform t to full hours
+                t_hours = [t_i -
+                        timedelta(minutes=t_i.minute) -
+                        timedelta(seconds=t_i.second) -
+                        timedelta(microseconds=t_i.microsecond)
+                        for t_i in t_datetime]
+
+                # convert t_hours to correct timezone
+                t_hours = [date.replace(tzinfo=from_zone).astimezone(to_zone)
+                       for date in t_hours]
+
                 for t_unique in np.unique(np.array(t_hours)):
                     t_ind_pydate = [t_ind.to_pydatetime() for t_ind in
                                     days_hourly]
