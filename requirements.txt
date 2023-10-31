@@ -1,4 +1,4 @@
-flake8==4.0.1
+flake8==6.1.0
 mypy==0.950
 pytest==7.4.3
 pytest-mock==3.12.0
