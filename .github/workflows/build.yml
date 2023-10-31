@@ -1,18 +1,24 @@
 # Install Python dependencies and run tests
+name: 'Build and test'
 
-name: build
-
-on: push
+on:
+  pull_request:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - 'CITATION.cff'
+  workflow_dispatch:
 
 jobs:
-  build:
+  test:
+    name: 'Run tests'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: ['ubuntu-22.04', 'windows-2022', 'macos-12']
     steps:
-      - name: Checkout Forest code from GitHub repo
-        uses: actions/checkout@v3
+      - name: Check out Forest code
+        uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -35,19 +41,3 @@ jobs:
         run: python -m unittest tests/imports.py
       - name: Run pytest suite
         run: pytest
-  build_docs:
-    runs-on: ubuntu-22.04
-    defaults:
-      run:
-        working-directory: ./docs
-    steps:
-      - name: Checkout Forest code from GitHub repo
-        uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.8
-      - name: Install documentation build dependencies
-        run: pip install -r requirements.txt
-      - name: Build the docs
-        run: make html SPHINXOPTS="-W"

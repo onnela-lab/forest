@@ -116,7 +116,7 @@ sample_gps_data = sim_gps_data(n_persons, location, start_date, end_date, cycle,
 gps_to_csv(sample_gps_data, path_to_synthetic_gps_data, start_date, end_date)
 
 # 2. Specify parameters for imputation 
-# See https://github.com/onnela-lab/forest/wiki/Jasmine-documentation#input for details
+# See https://forest.beiwe.org/en/latest/jasmine.html for details
 # time zone where the study took place (assumes that all participants were always in this time zone)
 tz_str = "Etc/GMT-1"
 # Generate summary metrics e.g. Frequency.HOURLY, Frequency.DAILY or Frequency.HOURLY_AND_DAILY (see Frequency class in constants.py)
@@ -127,12 +127,8 @@ save_traj = False
 parameters = None
 # list of locations to track if visited, leave None if don't want these summary statistics
 places_of_interest = ['cafe', 'bar', 'hospital']
-# True if want to save a log of all locations and attributes of those locations visited
-save_osm_log = True
 # list of OpenStreetMap tags to use for identifying locations, leave None to default to amenity and leisure tagged locations or if you don't want to use OSM (see OSMTags class in constants.py)
 osm_tags = None
-# threshold of time spent in a location to count as being in that location, in minutes
-threshold = 15
 
 # 3. Impute location data and generate mobility summary metrics using the simulated data above
 gps_stats_main(
@@ -143,9 +139,7 @@ gps_stats_main(
     save_traj = save_traj,
     parameters = parameters,
     places_of_interest = places_of_interest,
-    save_osm_log = save_osm_log,
-    osm_tags = None,
-    threshold = threshold,
+    osm_tags = osm_tags,
 )
 
 # 4. Generate daily summary metrics for call/text logs
@@ -163,4 +157,4 @@ log_stats_main(path_to_synthetic_log_data, path_to_log_summary, tz_str, option, 
 
 ## Publications
 * Straczkiewicz, M., Huang, E.J., and Onnela, JP. A “one-size-fits-most” walking recognition method for smartphones, smartwatches, and wearable accelerometers. _npj Digit. Med._ **6**, 29 (2023). https://doi.org/10.1038/s41746-022-00745-z Open Access: https://rdcu.be/c6dGV
-* Onnela JP, Dixon C, Griffin K, Jaenicke T, Minowada L, Esterkin S, Siu A, Zagorsky J, and Jones E. Beiwe: A data collection platform for high-throughput digital phenotyping. Journal of Open Source Software, 6(68), 3417 (2021). https://doi.org/10.21105/joss.03417
+* Onnela JP, Dixon C, Griffin K, Jaenicke T, Minowada L, Esterkin S, Siu A, Zagorsky J, and Jones E. Beiwe: A data collection platform for high-throughput digital phenotyping. Journal of Open Source Software, 6(68), 3417 (2021). [![DOI](https://joss.theoj.org/papers/10.21105/joss.03417/status.svg)](https://doi.org/10.21105/joss.03417)
