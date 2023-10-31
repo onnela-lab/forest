@@ -348,7 +348,9 @@ def find_continuous_dominant_peaks(valid_peaks: np.ndarray, min_t: int,
 
     num_rows, num_cols = valid_peaks.shape
 
-    extended_peaks = np.zeros((num_rows, num_cols + 1), dtype=valid_peaks.dtype)
+    extended_peaks = np.zeros(
+        (num_rows, num_cols + 1), dtype=valid_peaks.dtype
+    )
     extended_peaks[:, :num_cols] = valid_peaks
 
     cont_peaks = np.zeros_like(extended_peaks)
@@ -371,7 +373,7 @@ def find_continuous_dominant_peaks(valid_peaks: np.ndarray, min_t: int,
                     peaks += slice_mat[index, win_ind - 1]
                 if win_ind < min_t - 1:
                     peaks += slice_mat[index, win_ind + 1]
-                
+
                 if np.any(peaks > 1):
                     stop = False
                 else:
@@ -532,22 +534,21 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
 
             # distribute metrics across hours
             if frequency != Frequency.DAILY:
-                # get t as datetimes    
-                t_datetime = [datetime.fromtimestamp(t_ind)
-                            for t_ind in t_bout_interp]
+                # get t as datetimes
+                t_datetime = [
+                    datetime.fromtimestamp(t_ind) for t_ind in t_bout_interp
+                ]
 
                 # transform t to full hours
-                t_hours = [t_i -
-                        timedelta(minutes=t_i.minute) -
-                        timedelta(seconds=t_i.second) -
-                        timedelta(microseconds=t_i.microsecond)
-                        for t_i in t_datetime]
+                t_series = pd.Series(t_datetime)
+                t_hours_pd = t_series.dt.floor('H')
 
                 # convert t_hours to correct timezone
-                t_hours = [date.replace(tzinfo=from_zone).astimezone(to_zone)
-                       for date in t_hours]
+                t_hours_pd = t_hours_pd.dt.tz_localize(
+                    from_zone
+                ).dt.tz_convert(to_zone)
 
-                for t_unique in np.unique(np.array(t_hours)):
+                for t_unique in t_hours_pd.unique():
                     t_ind_pydate = [t_ind.to_pydatetime() for t_ind in
                                     days_hourly]
                     # get indexes of ranges of dates that contain t_unique
@@ -558,10 +559,9 @@ def run(study_folder: str, output_folder: str, tz_str: str = None,
                             < t_ind + timedelta(hours=frequency.value)
                         ):
                             break
-                    cadence_ind = np.array([time == t_unique for time in
-                                            t_hours])
-                    cadence_temp = cadence_bout[cadence_ind]
-                    cadence_temp = cadence_temp[np.where(cadence_temp > 0)]
+
+                    cadence_temp = cadence_bout[t_hours_pd == t_unique]
+                    cadence_temp = cadence_temp[cadence_temp > 0]
 
                     # store hourly metrics
                     if math.isnan(steps_hourly[ind_to_store]):
