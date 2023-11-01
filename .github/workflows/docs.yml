@@ -1,7 +1,6 @@
 name: Sphinx documentation
 
 on:
-  pull_request:
   push:
     paths:
       - 'docs/**'
