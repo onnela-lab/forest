@@ -24,10 +24,11 @@ def compute_survey_stats(
         study_folder: str, output_folder: str, tz_str: str = "UTC",
         users: Optional[List] = None,
         start_date: str = EARLIEST_DATE, end_date: Optional[str] = None,
-        config_path: Optional[str] = None, interventions_filepath: str = None,
+        config_path: Optional[str] = None,
+        interventions_filepath: Optional[str] = None,
         augment_with_answers: bool = True,
         submits_timeframe: Frequency = Frequency.HOURLY_AND_DAILY,
-        submits_by_survey_id: bool = True, history_path: str = None,
+        submits_by_survey_id: bool = True, history_path: Optional[str] = None,
         include_audio_surveys: bool = True
 ) -> bool:
     """Compute statistics on surveys
@@ -55,7 +56,7 @@ def compute_survey_stats(
             filepath where interventions json file is.
             The interventions json file
             can be downloaded by clicking "Edit this Study" on the Beiwe
-            website, then clicking clicking "Download Interventions" next to
+            website, then clicking "Download Interventions" next to
             "Intervention Data".
         augment_with_answers:
             Whether to use the survey_answers
@@ -219,9 +220,9 @@ def get_submits_for_tableau(
         study_folder: str, output_folder: str, config_path: str,
         tz_str: str = "UTC", start_date: str = EARLIEST_DATE,
         end_date: Optional[str] = None, users: Optional[List] = None,
-        interventions_filepath: str = None,
+        interventions_filepath: Optional[str] = None,
         submits_timeframe: Frequency = Frequency.DAILY,
-        history_path: str = None
+        history_path: Optional[str] = None
 ) -> None:
     """Get survey submissions per day for integration into Tableau WDC
 

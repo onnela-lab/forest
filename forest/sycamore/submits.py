@@ -176,7 +176,7 @@ def get_question_ids(survey_dict: dict, audio_survey_id_dict: dict) -> list:
 
 def gen_survey_schedule(
         config_path: str, time_start: str, time_end: str, users: list,
-        all_interventions_dict: dict, history_path: str = None
+        all_interventions_dict: dict, history_path: Optional[str] = None
 ) -> pd.DataFrame:
     """Get survey schedule for a number of users
 
@@ -278,8 +278,9 @@ def gen_survey_schedule(
 
 def survey_submits(
         config_path: str, time_start: str, time_end: str, users: list,
-        aggregated_data: pd.DataFrame, interventions_filepath: str = None,
-        history_path: str = None
+        aggregated_data: pd.DataFrame,
+        interventions_filepath: Optional[str] = None,
+        history_path: Optional[str] = None
 ) -> pd.DataFrame:
     """Get survey submits for users
 
@@ -481,7 +482,7 @@ def survey_submits(
 
 
 def summarize_submits(submits_df: pd.DataFrame,
-                      timeunit: Frequency = None,
+                      timeunit: Optional[Frequency] = None,
                       summarize_over_survey: bool = True) -> pd.DataFrame:
     """Summarize a survey submits df
 
