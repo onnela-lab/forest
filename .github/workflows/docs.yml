@@ -1,11 +1,7 @@
 name: Sphinx documentation
 
 on:
-  pull_request:
-    types: [opened, reopened]
   push:
-    paths:
-      - 'docs/**'
   workflow_dispatch:
 
 jobs:
