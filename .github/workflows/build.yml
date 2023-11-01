@@ -3,7 +3,7 @@ name: 'Build and test'
 
 on:
   pull_request:
-    types: [ready_for_review, review_requested]
+    types: [ready_for_review, review_requested, synchronize]
   push:
     paths-ignore:
       - 'docs/**'
