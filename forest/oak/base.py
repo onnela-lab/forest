@@ -213,38 +213,50 @@ def identify_peaks_in_cwt(freqs_interp: np.ndarray, coefs_interp: np.ndarray,
         Ndarray with dominant peaks
     """
     # identify dominant peaks within coefficients
-    dp = np.zeros((coefs_interp.shape[0], int(coefs_interp.shape[1]/fs)))
+    num_rows, num_cols = coefs_interp.shape
+    num_cols2 = int(num_cols/fs)
+
+    dp = np.zeros((num_rows, num_cols2))
+
     loc_min = np.argmin(abs(freqs_interp-step_freq[0]))
     loc_max = np.argmin(abs(freqs_interp-step_freq[1]))
-    for i in range(int(coefs_interp.shape[1]/fs)):
+
+    for i in range(num_cols2):
         # segment measurement into one-second non-overlapping windows
         x_start = i*fs
         x_end = (i + 1)*fs
+
         # identify peaks and their location in each window
         window = np.sum(coefs_interp[:, np.arange(x_start, x_end)], axis=1)
+
         locs, _ = find_peaks(window)
         pks = window[locs]
         ind = np.argsort(-pks)
+
         locs = locs[ind]
         pks = pks[ind]
-        index_in_range = []
+
+        index_in_range = None
 
         # account peaks that satisfy condition
-        for j in range(len(locs)):
-            if loc_min <= locs[j] <= loc_max:
-                index_in_range.append(j)
-            if len(index_in_range) >= 1:
+        for j, locs_j in enumerate(locs):
+            if loc_min <= locs_j <= loc_max:
+                index_in_range = j
                 break
-        peak_vec = np.zeros(coefs_interp.shape[0])
-        if len(index_in_range) > 0:
+
+        peak_vec = np.zeros(num_rows)
+
+        if index_in_range is not None:
+
             if locs[0] > loc_max:
-                if pks[0]/pks[index_in_range[0]] < beta:
-                    peak_vec[locs[index_in_range[0]]] = 1
+                if pks[0]/pks[index_in_range] < beta:
+                    peak_vec[locs[index_in_range]] = 1
             elif locs[0] < loc_min:
-                if pks[0]/pks[index_in_range[0]] < alpha:
-                    peak_vec[locs[index_in_range[0]]] = 1
+                if pks[0]/pks[index_in_range] < alpha:
+                    peak_vec[locs[index_in_range]] = 1
             else:
-                peak_vec[locs[index_in_range[0]]] = 1
+                peak_vec[locs[index_in_range]] = 1
+
         dp[:, i] = peak_vec
 
     return dp
