@@ -44,30 +44,26 @@ HISTORY_WITH_SEPS = os.path.join(
     TEST_DATA_DIR, "history_file_with_commas_and_semicolons.json"
 )
 
-AUDIO_SURVEY_CONFIG = os.path.join(
-    TEST_DATA_DIR, "audio_survey_config.json"
-)
+AUDIO_SURVEY_CONFIG = os.path.join(TEST_DATA_DIR, "audio_survey_config.json")
 
-AUDIO_SURVEY_HISTORY = os.path.join(
-    TEST_DATA_DIR, "audio_survey_history.json"
-)
+AUDIO_SURVEY_HISTORY = os.path.join(TEST_DATA_DIR, "audio_survey_history.json")
 
 SEP_QS_DIR = os.path.join(TEST_DATA_DIR, "dir_with_seps_in_qs")
 
 
-@pytest.fixture
+@pytest.fixture()
 def agg_data_config():
     return aggregate_surveys_config(SAMPLE_DIR, SURVEY_SETTINGS_PATH,
                                     "UTC", users=["16au2moz", "idr8gqdh"])
 
 
-@pytest.fixture
+@pytest.fixture()
 def agg_data_no_config():
     return aggregate_surveys_no_config(SAMPLE_DIR, study_tz="UTC",
                                        users=["16au2moz", "idr8gqdh"])
 
 
-@pytest.fixture
+@pytest.fixture()
 def submits_data():
     agg_data = aggregate_surveys_config(
         SAMPLE_DIR, SURVEY_SETTINGS_PATH_FOR_SUBMITS, study_tz="UTC",
@@ -100,7 +96,6 @@ def test_summarize_submits_day(submits_data):
 def test_get_empty_intervention():
     empty_path = os.path.join(TEST_DATA_DIR, "empty_intervention_data.json")
     empty_dict = get_all_interventions_dict(empty_path)
-
     assert empty_dict == {}
 
 
@@ -112,7 +107,6 @@ def test_get_intervention():
 
 def test_aggregate_surveys():
     sample_agg_data = aggregate_surveys(SAMPLE_DIR, ["idr8gqdh"])
-
     assert pd.isnull(sample_agg_data.loc[0, "time_prev"])
     assert "MALFORMED" not in sample_agg_data["question text"].values
 
@@ -124,8 +118,8 @@ def test_gen_survey_schedule():
         time_start=pd.to_datetime("2021-12-01"),
         time_end=pd.to_datetime("2021-12-30"),
         users=["idr8gqdh"],
-        all_interventions_dict=interventions_dict)
-
+        all_interventions_dict=interventions_dict
+    )
     assert sample_schedule.shape[0] == 6
     assert np.mean(
         sample_schedule.columns ==
@@ -391,9 +385,7 @@ def test_read_user_audio_recordings_stream():
 
 
 def test_read_user_audio_recordings_stream_no_history():
-    df = read_user_audio_recordings_stream(
-        SAMPLE_DIR, "audioqdz"
-    )
+    df = read_user_audio_recordings_stream(SAMPLE_DIR, "audioqdz")
     assert df.shape[0] == 24  # 8 surveys, 3 lines per survey
     assert df["UTC time"].nunique() == 16   # 8 surveys, 2 times per survey
     assert df["question text"].nunique() == 1
@@ -482,7 +474,7 @@ def test_gen_survey_schedule_with_audio():
         users=["idr8gqdh"],
         all_interventions_dict=interventions_dict,
         history_path=AUDIO_SURVEY_HISTORY
-        )
+    )
     assert sample_schedule.shape[0] == 687
     assert sample_schedule["question_id"].str.contains(
         'tO1GFjGJjMnaDRThUQK6l4dv'
