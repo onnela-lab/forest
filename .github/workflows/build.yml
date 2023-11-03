@@ -2,11 +2,7 @@
 name: 'Build and test'
 
 on:
-  pull_request:
   push:
-    paths-ignore:
-      - 'docs/**'
-      - 'CITATION.cff'
   workflow_dispatch:
 
 jobs:
