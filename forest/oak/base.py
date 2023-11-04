@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 import logging
 import math
 import os
+from typing import Optional
 
 from dateutil import tz
 import numpy as np
@@ -418,9 +419,10 @@ def find_continuous_dominant_peaks(valid_peaks: np.ndarray, min_t: int,
     return cont_peaks[:, :-1]
 
 
-def run(study_folder: str, output_folder: str, tz_str: str = None,
-        frequency: Frequency = Frequency.DAILY, time_start: str = None,
-        time_end: str = None, users: list = None) -> None:
+def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
+        frequency: Frequency = Frequency.DAILY,
+        time_start: Optional[str] = None, time_end: Optional[str] = None,
+        users: Optional[list] = None) -> None:
     """Runs walking recognition and step counting algorithm over dataset.
 
     Determine paths to input and output folders, set analysis time frames,

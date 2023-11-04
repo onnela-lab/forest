@@ -1,8 +1,9 @@
 flake8==6.1.0
-mypy==0.950
+flake8-pytest-style==1.7.2
+mypy==1.6.1
 pytest==7.4.3
 pytest-mock==3.12.0
-types-python-dateutil==2.8.10
-types-pytz==2021.3.7
-types-requests==2.27.25
-types-setuptools==57.4.14
+types-python-dateutil==2.8.19.14
+types-pytz==2023.3.1.1
+types-requests==2.31.0.10
+types-setuptools==68.2.0.0
