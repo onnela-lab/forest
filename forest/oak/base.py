@@ -214,38 +214,50 @@ def identify_peaks_in_cwt(freqs_interp: np.ndarray, coefs_interp: np.ndarray,
         Ndarray with dominant peaks
     """
     # identify dominant peaks within coefficients
-    dp = np.zeros((coefs_interp.shape[0], int(coefs_interp.shape[1]/fs)))
+    num_rows, num_cols = coefs_interp.shape
+    num_cols2 = int(num_cols/fs)
+
+    dp = np.zeros((num_rows, num_cols2))
+
     loc_min = np.argmin(abs(freqs_interp-step_freq[0]))
     loc_max = np.argmin(abs(freqs_interp-step_freq[1]))
-    for i in range(int(coefs_interp.shape[1]/fs)):
+
+    for i in range(num_cols2):
         # segment measurement into one-second non-overlapping windows
         x_start = i*fs
         x_end = (i + 1)*fs
+
         # identify peaks and their location in each window
         window = np.sum(coefs_interp[:, np.arange(x_start, x_end)], axis=1)
+
         locs, _ = find_peaks(window)
         pks = window[locs]
         ind = np.argsort(-pks)
+
         locs = locs[ind]
         pks = pks[ind]
-        index_in_range = []
+
+        index_in_range = None
 
         # account peaks that satisfy condition
-        for j in range(len(locs)):
-            if loc_min <= locs[j] <= loc_max:
-                index_in_range.append(j)
-            if len(index_in_range) >= 1:
+        for j, locs_j in enumerate(locs):
+            if loc_min <= locs_j <= loc_max:
+                index_in_range = j
                 break
-        peak_vec = np.zeros(coefs_interp.shape[0])
-        if len(index_in_range) > 0:
+
+        peak_vec = np.zeros(num_rows)
+
+        if index_in_range is not None:
+
             if locs[0] > loc_max:
-                if pks[0]/pks[index_in_range[0]] < beta:
-                    peak_vec[locs[index_in_range[0]]] = 1
+                if pks[0]/pks[index_in_range] < beta:
+                    peak_vec[locs[index_in_range]] = 1
             elif locs[0] < loc_min:
-                if pks[0]/pks[index_in_range[0]] < alpha:
-                    peak_vec[locs[index_in_range[0]]] = 1
+                if pks[0]/pks[index_in_range] < alpha:
+                    peak_vec[locs[index_in_range]] = 1
             else:
-                peak_vec[locs[index_in_range[0]]] = 1
+                peak_vec[locs[index_in_range]] = 1
+
         dp[:, i] = peak_vec
 
     return dp
@@ -346,75 +358,58 @@ def find_continuous_dominant_peaks(valid_peaks: np.ndarray, min_t: int,
     Returns:
         Ndarray with binary matrix (1=peak,0=no peak) of continuous peaks
     """
-    valid_peaks = np.concatenate((valid_peaks,
-                                  np.zeros((valid_peaks.shape[0], 1))), axis=1)
-    cont_peaks = np.zeros((valid_peaks.shape[0], valid_peaks.shape[1]))
-    for slice_ind in range(valid_peaks.shape[1] - min_t):
-        slice_mat = valid_peaks[:, np.arange(slice_ind, slice_ind + min_t)]
-        windows = ([i for i in np.arange(min_t)] +
-                   [i for i in np.arange(min_t-2, -1, -1)])
+
+    num_rows, num_cols = valid_peaks.shape
+
+    extended_peaks = np.zeros(
+        (num_rows, num_cols + 1), dtype=valid_peaks.dtype
+    )
+    extended_peaks[:, :num_cols] = valid_peaks
+
+    cont_peaks = np.zeros_like(extended_peaks)
+
+    for slice_ind in range(num_cols + 1 - min_t):
+        slice_mat = extended_peaks[:, slice_ind:slice_ind + min_t]
+
+        windows = list(range(min_t)) + list(range(min_t-2, -1, -1))
+        stop = True
+
         for win_ind in windows:
             pr = np.where(slice_mat[:, win_ind] != 0)[0]
-            count = 0
-            if len(pr) > 0:
-                for i in range(len(pr)):
-                    index = np.arange(max(0, pr[i] - delta),
-                                      min(pr[i] + delta + 1,
-                                          slice_mat.shape[0]
-                                          ))
-                    if win_ind == 0 or win_ind == min_t - 1:
-                        cur_peak_loc = np.transpose(np.array(
-                            [np.ones(len(index))*pr[i], index], dtype=int
-                            ))
-                    else:
-                        cur_peak_loc = np.transpose(np.array(
-                            [index, np.ones(len(index))*pr[i], index],
-                            dtype=int
-                            ))
+            stop = True
 
-                    peaks = np.zeros((cur_peak_loc.shape[0],
-                                      cur_peak_loc.shape[1]), dtype=int)
-                    if win_ind == 0:
-                        peaks[:, 0] = slice_mat[cur_peak_loc[:, 0],
-                                                win_ind]
-                        peaks[:, 1] = slice_mat[cur_peak_loc[:, 1],
-                                                win_ind + 1]
-                    elif win_ind == min_t - 1:
-                        peaks[:, 0] = slice_mat[cur_peak_loc[:, 0],
-                                                win_ind]
-                        peaks[:, 1] = slice_mat[cur_peak_loc[:, 1],
-                                                win_ind - 1]
-                    else:
-                        peaks[:, 0] = slice_mat[cur_peak_loc[:, 0],
-                                                win_ind - 1]
-                        peaks[:, 1] = slice_mat[cur_peak_loc[:, 1],
-                                                win_ind]
-                        peaks[:, 2] = slice_mat[cur_peak_loc[:, 2],
-                                                win_ind + 1]
+            for p in pr:
+                index = np.arange(
+                    max(0, p - delta),
+                    min(p + delta + 1, num_rows)
+                )
 
-                    cont_peaks_edge = cur_peak_loc[np.sum(
-                        peaks[:, np.arange(2)], axis=1) > 1, :]
-                    cpe0 = cont_peaks_edge.shape[0]
-                    if win_ind == 0 or win_ind == min_t - 1:  # first or last
-                        if cpe0 == 0:
-                            slice_mat[cur_peak_loc[:, 0], win_ind] = 0
-                        else:
-                            count = count + 1
+                peaks1 = slice_mat[p, win_ind]
+                peaks2 = peaks1
+                if win_ind == 0:
+                    peaks1 += slice_mat[index, win_ind + 1]
+                elif win_ind == min_t - 1:
+                    peaks1 += slice_mat[index, win_ind - 1]
+                else:
+                    peaks1 += slice_mat[index, win_ind - 1]
+                    peaks2 += slice_mat[index, win_ind + 1]
+
+                if win_ind == 0 or win_ind == min_t - 1:
+                    if np.any(peaks1 > 1):
+                        stop = False
                     else:
-                        cont_peaks_other = cur_peak_loc[np.sum(
-                            peaks[:, np.arange(1, 3)], axis=1) > 1, :]
-                        cpo0 = cont_peaks_other.shape[0]
-                        if cpe0 == 0 or cpo0 == 0:
-                            slice_mat[cur_peak_loc[:, 1], win_ind] = 0
-                        else:
-                            count = count + 1
-            if count == 0:
-                slice_mat = np.zeros((slice_mat.shape[0], slice_mat.shape[1]))
+                        slice_mat[p, win_ind] = 0
+                else:
+                    if np.any(peaks1 > 1) and np.any(peaks2 > 1):
+                        stop = False
+                    else:
+                        slice_mat[p, win_ind] = 0
+
+            if stop:
                 break
-        cont_peaks[:, np.arange(
-            slice_ind, slice_ind + min_t)] = np.maximum(
-                cont_peaks[:, np.arange(slice_ind, slice_ind + min_t)],
-                slice_mat)
+
+        if not stop:
+            cont_peaks[:, slice_ind:slice_ind + min_t] = slice_mat
 
     return cont_peaks[:, :-1]
 
@@ -448,9 +443,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
     # determine timezone shift
     fmt = '%Y-%m-%d %H_%M_%S'
     from_zone = tz.gettz('UTC')
-    if tz_str is None:
-        tz_str = 'UTC'
-    to_zone = tz.gettz(tz_str)
+    to_zone = tz.gettz(tz_str) if tz_str else from_zone
 
     # create folders to store results
     if frequency == Frequency.HOURLY_AND_DAILY:
@@ -563,25 +556,26 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
             # preprocess data fragment
             t_bout_interp, vm_bout = preprocess_bout(timestamp, x, y, z)
 
-            # get t as datetimes
-            t_datetime = [datetime.fromtimestamp(t_ind)
-                          for t_ind in t_bout_interp]
-
-            # transform t to full hours
-            t_hours = [t_i -
-                       timedelta(minutes=t_i.minute) -
-                       timedelta(seconds=t_i.second) -
-                       timedelta(microseconds=t_i.microsecond)
-                       for t_i in t_datetime]
-            t_hours = [date.replace(tzinfo=from_zone).astimezone(to_zone)
-                       for date in t_hours]
-
             # find walking and estimate cadence
             cadence_bout = find_walking(vm_bout)
 
             # distribute metrics across hours
             if frequency != Frequency.DAILY:
-                for t_unique in np.unique(np.array(t_hours)):
+                # get t as datetimes
+                t_datetime = [
+                    datetime.fromtimestamp(t_ind) for t_ind in t_bout_interp
+                ]
+
+                # transform t to full hours
+                t_series = pd.Series(t_datetime)
+                t_hours_pd = t_series.dt.floor('H')
+
+                # convert t_hours to correct timezone
+                t_hours_pd = t_hours_pd.dt.tz_localize(
+                    from_zone
+                ).dt.tz_convert(to_zone)
+
+                for t_unique in t_hours_pd.unique():
                     t_ind_pydate = [t_ind.to_pydatetime() for t_ind in
                                     days_hourly]
                     # get indexes of ranges of dates that contain t_unique
@@ -592,10 +586,9 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                             < t_ind + timedelta(hours=frequency.value)
                         ):
                             break
-                    cadence_ind = np.array([time == t_unique for time in
-                                            t_hours])
-                    cadence_temp = cadence_bout[cadence_ind]
-                    cadence_temp = cadence_temp[np.where(cadence_temp > 0)]
+
+                    cadence_temp = cadence_bout[t_hours_pd == t_unique]
+                    cadence_temp = cadence_temp[cadence_temp > 0]
 
                     # store hourly metrics
                     if math.isnan(steps_hourly[ind_to_store]):
