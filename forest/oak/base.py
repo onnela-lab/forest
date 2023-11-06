@@ -372,6 +372,7 @@ def find_continuous_dominant_peaks(valid_peaks: np.ndarray, min_t: int,
         slice_mat = extended_peaks[:, slice_ind:slice_ind + min_t]
 
         windows = list(range(min_t)) + list(range(min_t-2, -1, -1))
+        stop = True
 
         for win_ind in windows:
             pr = np.where(slice_mat[:, win_ind] != 0)[0]
