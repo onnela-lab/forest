@@ -15,6 +15,7 @@ import math
 import os
 from typing import Optional
 
+from datetime import tzinfo
 from dateutil import tz
 import numpy as np
 import numpy.typing as npt
@@ -416,7 +417,7 @@ def find_continuous_dominant_peaks(valid_peaks: np.ndarray, min_t: int,
 
 def preprocess_dates(
     file_list: list, time_start: Optional[str], time_end: Optional[str],
-    fmt: str, from_zone: tz.tzutc(), to_zone: tz.tzlocal()
+    fmt: str, from_zone: Optional[tzinfo], to_zone: Optional[tzinfo]
 ) -> tuple:
     """Preprocesses dates of accelerometer files.
 
@@ -429,9 +430,9 @@ def preprocess_dates(
             final date of study in format: 'YYYY-mm-dd HH_MM_SS'
         fmt: string
             format of dates in file_list
-        from_zone: tz.tzutc()
+        from_zone: tzinfo
             timezone of dates in file_list
-        to_zone: tz.tzlocal()
+        to_zone: tzinfo
             local timezone
     Returns:
         Tuple of ndarrays:
@@ -484,10 +485,12 @@ def preprocess_dates(
     return dates_shifted, date_start, date_end
 
 
-def run_hourly(t_hours_pd: pd.Series, days_hourly: pd.DatetimeIndex,
-                cadence_bout: np.ndarray, steps_hourly: np.ndarray,
-                walkingtime_hourly: np.ndarray, cadence_hourly: np.ndarray,
-                frequency: Frequency) -> None:
+def run_hourly(
+    t_hours_pd: pd.Series, days_hourly: pd.DatetimeIndex,
+    cadence_bout: np.ndarray, steps_hourly: np.ndarray,
+    walkingtime_hourly: np.ndarray, cadence_hourly: np.ndarray,
+    frequency: Frequency
+) -> None:
     """Runs hourly metrics computation for steps, walking time, and cadence.
 
     Args:
