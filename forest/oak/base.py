@@ -414,6 +414,128 @@ def find_continuous_dominant_peaks(valid_peaks: np.ndarray, min_t: int,
     return cont_peaks[:, :-1]
 
 
+def preprocess_dates(
+    file_list: list, time_start: Optional[str], time_end: Optional[str],
+    fmt: str, from_zone: tz.tzutc(), to_zone: tz.tzlocal()
+) -> tuple:
+    """Preprocesses dates of accelerometer files.
+
+    Args:
+        file_list: list of strings
+            list of accelerometer files
+        time_start: optional string
+            initial date of study in format: 'YYYY-mm-dd HH_MM_SS'
+        time_end: optional string
+            final date of study in format: 'YYYY-mm-dd HH_MM_SS'
+        fmt: string
+            format of dates in file_list
+        from_zone: tz.tzutc()
+            timezone of dates in file_list
+        to_zone: tz.tzlocal()
+            local timezone
+    Returns:
+        Tuple of ndarrays:
+            - dates_shifted: list of datetimes with hours set to 0
+            - date_start: datetime of initial date of study
+            - date_end: datetime of final date of study
+    """
+    # transform all files in folder to datelike format
+    file_dates = [
+        file.replace(".csv", "").replace("+00_00", "")
+        for file in file_list
+    ]
+
+    # process dates
+    dates = [datetime.strptime(file, fmt) for file in file_dates]
+    dates = [
+        date.replace(tzinfo=from_zone).astimezone(to_zone)
+        for date in dates
+    ]
+
+    # trim dataset according to time_start and time_end
+    if time_start is not None and time_end is not None:
+        time_min = datetime.strptime(time_start, fmt)
+        time_min = time_min.replace(tzinfo=from_zone).astimezone(to_zone)
+        time_max = datetime.strptime(time_end, fmt)
+        time_max = time_max.replace(tzinfo=from_zone).astimezone(to_zone)
+        dates = [date for date in dates if time_min <= date <= time_max]
+
+    dates_shifted = [date-timedelta(hours=date.hour) for date in dates]
+
+    # create time vector with days for analysis
+    if time_start is None:
+        date_start = dates_shifted[0]
+        date_start = date_start - timedelta(hours=date_start.hour)
+    else:
+        date_start = datetime.strptime(time_start, fmt)
+        date_start = date_start.replace(
+            tzinfo=from_zone
+        ).astimezone(to_zone)
+        date_start = date_start - timedelta(hours=date_start.hour)
+
+    if time_end is None:
+        date_end = dates_shifted[-1]
+        date_end = date_end - timedelta(hours=date_end.hour)
+    else:
+        date_end = datetime.strptime(time_end, fmt)
+        date_end = date_end.replace(tzinfo=from_zone).astimezone(to_zone)
+        date_end = date_end - timedelta(hours=date_end.hour)
+
+    return dates_shifted, date_start, date_end
+
+
+def run_hourly(t_hours_pd: pd.Series, days_hourly: pd.DatetimeIndex,
+                cadence_bout: np.ndarray, steps_hourly: np.ndarray,
+                walkingtime_hourly: np.ndarray, cadence_hourly: np.ndarray,
+                frequency: Frequency) -> None:
+    """Runs hourly metrics computation for steps, walking time, and cadence.
+
+    Args:
+        t_hours_pd: pd.Series
+            timestamp of each measurement
+        days_hourly: pd.DatetimeIndex
+            list of days with hourly resolution
+        cadence_bout: np.ndarray
+            cadence of each measurement
+        steps_hourly: np.ndarray
+            number of steps per hour
+        walkingtime_hourly: np.ndarray
+            number of minutes of walking per hour
+        cadence_hourly: np.ndarray
+            average cadence per hour
+        frequency: Frequency
+            summary statistics format, Frequency class at constants.py
+    """
+    for t_unique in t_hours_pd.unique():
+        t_ind_pydate = [t_ind.to_pydatetime() for t_ind in
+                        days_hourly]
+        # get indexes of ranges of dates that contain t_unique
+        ind_to_store = -1
+        for ind_to_store, t_ind in enumerate(t_ind_pydate):
+            if (
+                t_ind <= t_unique
+                < t_ind + timedelta(hours=frequency.value)
+            ):
+                break
+
+        cadence_temp = cadence_bout[t_hours_pd == t_unique]
+        cadence_temp = cadence_temp[cadence_temp > 0]
+
+        # store hourly metrics
+        if math.isnan(steps_hourly[ind_to_store]):
+            steps_hourly[ind_to_store] = int(np.sum(cadence_temp))
+            walkingtime_hourly[ind_to_store] = len(cadence_temp)
+        else:
+            steps_hourly[ind_to_store] += int(np.sum(cadence_temp))
+            walkingtime_hourly[ind_to_store] += len(cadence_temp)
+
+    for idx in range(len(cadence_hourly)):
+        if walkingtime_hourly[idx] > 0:
+            cadence_hourly[idx] = (
+                steps_hourly[idx] / walkingtime_hourly[idx]
+            )
+
+
 def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
         frequency: Frequency = Frequency.DAILY,
         time_start: Optional[str] = None, time_end: Optional[str] = None,
@@ -465,45 +587,9 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
         file_list = os.listdir(source_folder)
         file_list.sort()
 
-        # transform all files in folder to datelike format
-        file_dates = [
-            file.replace(".csv", "").replace("+00_00", "")
-            for file in file_list
-        ]
-
-        # process dates
-        dates = [datetime.strptime(file, fmt) for file in file_dates]
-        dates = [date.replace(tzinfo=from_zone).astimezone(to_zone)
-                 for date in dates]
-
-        # trim dataset according to time_start and time_end
-        if time_start is not None and time_end is not None:
-            time_min = datetime.strptime(time_start, fmt)
-            time_min = time_min.replace(tzinfo=from_zone).astimezone(to_zone)
-            time_max = datetime.strptime(time_end, fmt)
-            time_max = time_max.replace(tzinfo=from_zone).astimezone(to_zone)
-            dates = [date for date in dates if time_min <= date <= time_max]
-
-        dates_shifted = [date-timedelta(hours=date.hour) for date in dates]
-
-        # create time vector with days for analysis
-        if time_start is None:
-            date_start = dates_shifted[0]
-            date_start = date_start - timedelta(hours=date_start.hour)
-        else:
-            date_start = datetime.strptime(time_start, fmt)
-            date_start = date_start.replace(
-                tzinfo=from_zone
-            ).astimezone(to_zone)
-            date_start = date_start - timedelta(hours=date_start.hour)
-
-        if time_end is None:
-            date_end = dates_shifted[-1]
-            date_end = date_end - timedelta(hours=date_end.hour)
-        else:
-            date_end = datetime.strptime(time_end, fmt)
-            date_end = date_end.replace(tzinfo=from_zone).astimezone(to_zone)
-            date_end = date_end - timedelta(hours=date_end.hour)
+        dates_shifted, date_start, date_end = preprocess_dates(
+            file_list, time_start, time_end, fmt, from_zone, to_zone
+        )
 
         days = pd.date_range(date_start, date_end, freq='D')
         if (
@@ -575,34 +661,10 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                     from_zone
                 ).dt.tz_convert(to_zone)
 
-                for t_unique in t_hours_pd.unique():
-                    t_ind_pydate = [t_ind.to_pydatetime() for t_ind in
-                                    days_hourly]
-                    # get indexes of ranges of dates that contain t_unique
-                    ind_to_store = -1
-                    for ind_to_store, t_ind in enumerate(t_ind_pydate):
-                        if (
-                            t_ind <= t_unique
-                            < t_ind + timedelta(hours=frequency.value)
-                        ):
-                            break
-
-                    cadence_temp = cadence_bout[t_hours_pd == t_unique]
-                    cadence_temp = cadence_temp[cadence_temp > 0]
-
-                    # store hourly metrics
-                    if math.isnan(steps_hourly[ind_to_store]):
-                        steps_hourly[ind_to_store] = int(np.sum(cadence_temp))
-                        walkingtime_hourly[ind_to_store] = len(cadence_temp)
-                    else:
-                        steps_hourly[ind_to_store] += int(np.sum(cadence_temp))
-                        walkingtime_hourly[ind_to_store] += len(cadence_temp)
-
-                for idx in range(len(cadence_hourly)):
-                    if walkingtime_hourly[idx] > 0:
-                        cadence_hourly[idx] = (
-                            steps_hourly[idx] / walkingtime_hourly[idx]
-                        )
+                run_hourly(
+                    t_hours_pd, days_hourly, cadence_bout, steps_hourly,
+                    walkingtime_hourly, cadence_hourly, frequency
+                )
 
             cadence_bout = cadence_bout[np.where(cadence_bout > 0)]
 
