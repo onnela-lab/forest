@@ -8,7 +8,7 @@ from forest.oak.base import run_hourly, find_walking, preprocess_bout
 from forest.constants import Frequency
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def test_input(signal_bout):
     timestamp, _, x, y, z = signal_bout
 
