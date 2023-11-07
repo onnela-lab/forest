@@ -62,7 +62,9 @@ def test_run_hourly_accuracy(test_input):
 
     steps_hourly, cadence_hourly, walkingtime_hourly = test_input[3:]
 
+    indice = np.where(~np.isnan(steps_hourly))[0]
+
     # get non-nan indices
-    assert steps_hourly[32][0] == 16
-    assert cadence_hourly[32][0] == 1.6
-    assert walkingtime_hourly[32][0] == 10
+    assert steps_hourly[indice][0] == 16
+    assert cadence_hourly[indice][0] == 1.6
+    assert walkingtime_hourly[indice][0] == 10
