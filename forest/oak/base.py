@@ -580,8 +580,9 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                     from_zone
                 ).dt.tz_convert(to_zone)
 
+                t_ind_pydate = days_hourly.to_pydatetime()
+
                 for t_unique in t_hours_pd.unique():
-                    t_ind_pydate = days_hourly.to_pydatetime()
                     # get indexes of ranges of dates that contain t_unique
                     ind_to_store = -1
                     for ind_to_store, t_ind in enumerate(t_ind_pydate):
@@ -633,8 +634,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                 summary_stats.to_csv(dest_path, index=False)
             if frequency != Frequency.DAILY:
                 summary_stats = pd.DataFrame({
-                    'date': [date.strftime('%Y-%m-%d %H:%M:%S')
-                             for date in days_hourly],
+                    'date': t_ind_pydate.astype(str),
                     'walking_time': walkingtime_hourly[:, -1],
                     'steps': steps_hourly[:, -1],
                     'cadence': cadence_hourly[:, -1]})
