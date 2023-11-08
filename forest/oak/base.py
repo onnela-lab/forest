@@ -136,8 +136,7 @@ def get_pp(vm_bout: np.ndarray, fs: int = 10) -> npt.NDArray[np.float64]:
 
     """
     vm_res_sec = vm_bout.reshape((fs, -1), order="F")
-    pp = np.array([max(vm_res_sec[:, i])-min(vm_res_sec[:, i])
-                   for i in range(vm_res_sec.shape[1])])
+    pp = np.ptp(vm_res_sec, axis=0)
 
     return pp
 
