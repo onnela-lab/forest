@@ -26,6 +26,7 @@ class Frequency(Enum):
     THREE_HOURLY = 3
     SIX_HOURLY = 6
     TWELVE_HOURLY = 12
+    MINUTELY = 1/60
 
 
 class OSMTags(Enum):

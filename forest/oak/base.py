@@ -511,6 +511,8 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
             or frequency == Frequency.HOURLY
         ):
             freq = 'H'
+        elif frequency == Frequency.MINUTELY:
+            freq = 'T'
         else:
             freq = str(frequency.value) + 'H'
         days_hourly = pd.date_range(date_start, date_end+timedelta(days=1),
@@ -568,7 +570,10 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
 
                 # transform t to full hours
                 t_series = pd.Series(t_datetime)
-                t_hours_pd = t_series.dt.floor('H')
+                if frequency == Frequency.MINUTELY:
+                    t_hours_pd = t_series.dt.floor('T')
+                else:
+                    t_hours_pd = t_series.dt.floor('H')
 
                 # convert t_hours to correct timezone
                 t_hours_pd = t_hours_pd.dt.tz_localize(
