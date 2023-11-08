@@ -581,8 +581,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                 ).dt.tz_convert(to_zone)
 
                 for t_unique in t_hours_pd.unique():
-                    t_ind_pydate = [t_ind.to_pydatetime() for t_ind in
-                                    days_hourly]
+                    t_ind_pydate = days_hourly.to_pydatetime()
                     # get indexes of ranges of dates that contain t_unique
                     ind_to_store = -1
                     for ind_to_store, t_ind in enumerate(t_ind_pydate):
