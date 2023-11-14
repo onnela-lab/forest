@@ -20,12 +20,12 @@ def sample_run_input(signal_bout):
         "2020-02-25 08:00:00-05:00",
         "2020-02-25 08:00:00-05:00"
     ], utc=True).tz_convert('US/Eastern'))
-    days_hourly = pd.date_range(
+    t_ind_pydate = pd.date_range(
         start='2020-02-24 00:00:00',
         end='2020-02-25 23:00:00',
         freq='H',
         tz='US/Eastern'
-    )
+    ).to_pydatetime()
     cadence_bout = np.array(
         [1.65, 1.6, 1.55, 1.6, 1.55, 1.85, 1.8, 1.75, 1.75, 1.7]
     )
@@ -35,7 +35,7 @@ def sample_run_input(signal_bout):
 
     return (
         t_hours_pd,
-        days_hourly,
+        t_ind_pydate,
         cadence_bout,
         steps_hourly,
         walkingtime_hourly,
@@ -44,7 +44,7 @@ def sample_run_input(signal_bout):
 
 
 def test_run_hourly_one_hour_data(sample_run_input):
-    run_hourly(*sample_run_input, Frequency.HOURLY)
+    run_hourly(*sample_run_input, 1)
     steps_hourly, cadence_hourly, walkingtime_hourly = sample_run_input[3:]
 
     assert len(steps_hourly) - np.sum(np.isnan(steps_hourly)) == 1
@@ -53,7 +53,7 @@ def test_run_hourly_one_hour_data(sample_run_input):
 
 
 def test_run_hourly_accuracy(sample_run_input):
-    run_hourly(*sample_run_input, Frequency.HOURLY)
+    run_hourly(*sample_run_input, 1)
     steps_hourly, cadence_hourly, walkingtime_hourly = sample_run_input[3:]
     index = np.where(~np.isnan(steps_hourly))[0]
     # get non-nan indices
