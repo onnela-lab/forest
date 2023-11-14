@@ -469,9 +469,7 @@ def preprocess_dates(
         date_start = date_start - timedelta(hours=date_start.hour)
     else:
         date_start = datetime.strptime(time_start, fmt)
-        date_start = date_start.replace(
-            tzinfo=from_zone
-        ).astimezone(to_zone)
+        date_start = date_start.replace(tzinfo=from_zone).astimezone(to_zone)
         date_start = date_start - timedelta(hours=date_start.hour)
 
     if time_end is None:
@@ -492,6 +490,7 @@ def run_hourly(
     frequency: Frequency
 ) -> None:
     """Runs hourly metrics computation for steps, walking time, and cadence.
+     Updates steps_hourly, walkingtime_hourly, and cadence_hourly in place.
 
     Args:
         t_hours_pd: pd.Series
@@ -516,8 +515,7 @@ def run_hourly(
         ind_to_store = -1
         for ind_to_store, t_ind in enumerate(t_ind_pydate):
             if (
-                t_ind <= t_unique
-                < t_ind + timedelta(hours=frequency.value)
+                t_ind <= t_unique < t_ind + timedelta(hours=frequency.value)
             ):
                 break
 
@@ -534,9 +532,7 @@ def run_hourly(
 
     for idx in range(len(cadence_hourly)):
         if walkingtime_hourly[idx] > 0:
-            cadence_hourly[idx] = (
-                steps_hourly[idx] / walkingtime_hourly[idx]
-            )
+            cadence_hourly[idx] = steps_hourly[idx] / walkingtime_hourly[idx]
 
 
 def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
