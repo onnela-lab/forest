@@ -1,5 +1,3 @@
-from datetime import datetime, timedelta
-from dateutil import tz
 import numpy as np
 import pandas as pd
 import pytest
@@ -25,13 +23,15 @@ def sample_run_input(signal_bout):
     ], utc=True).tz_convert('US/Eastern'))
 
     days_hourly = pd.date_range(
-        start='2020-02-24 00:00:00', 
-        end='2020-02-25 23:00:00', 
-        freq='H', 
+        start='2020-02-24 00:00:00',
+        end='2020-02-25 23:00:00',
+        freq='H',
         tz='US/Eastern'
     )
 
-    cadence_bout = np.array([1.65, 1.6 , 1.55, 1.6 , 1.55, 1.85, 1.8 , 1.75, 1.75, 1.7 ])
+    cadence_bout = np.array(
+        [1.65, 1.6, 1.55, 1.6, 1.55, 1.85, 1.8, 1.75, 1.75, 1.7]
+    )
 
     steps_hourly = np.full((48, 1), np.nan)
     cadence_hourly = np.full((48, 1), np.nan)
