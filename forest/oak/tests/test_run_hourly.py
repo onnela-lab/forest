@@ -3,7 +3,6 @@ import pandas as pd
 import pytest
 
 from forest.oak.base import run_hourly
-from forest.constants import Frequency
 
 
 @pytest.fixture()
