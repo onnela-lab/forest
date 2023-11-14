@@ -85,7 +85,6 @@ def sample_file_list():
 
 def test_preprocess_dates_length(sample_file_list):
     """Test preprocess_dates function for length of output list"""
-
     time_start = None
     time_end = None
     fmt = "%Y-%m-%d %H_%M_%S"
@@ -100,7 +99,6 @@ def test_preprocess_dates_length(sample_file_list):
 
 def test_preprocess_dates_start_end_dates(sample_file_list):
     """Test preprocess_dates function for start/end date"""
-
     time_start = None
     time_end = None
     fmt = "%Y-%m-%d %H_%M_%S"
@@ -116,7 +114,6 @@ def test_preprocess_dates_start_end_dates(sample_file_list):
 
 def test_preprocess_dates_start_end_dates_inputs(sample_file_list):
     """Test preprocess_dates function for start/end date, with inputs"""
-
     time_start = "2023-10-31 00_00_00"
     time_end = "2023-11-03 00_00_00"
     fmt = "%Y-%m-%d %H_%M_%S"

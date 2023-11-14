@@ -442,17 +442,13 @@ def preprocess_dates(
     """
     # transform all files in folder to datelike format
     file_dates = [
-        file.replace(".csv", "").replace("+00_00", "")
-        for file in file_list
+        file.replace(".csv", "").replace("+00_00", "") for file in file_list
     ]
-
     # process dates
     dates = [datetime.strptime(file, fmt) for file in file_dates]
     dates = [
-        date.replace(tzinfo=from_zone).astimezone(to_zone)
-        for date in dates
+        date.replace(tzinfo=from_zone).astimezone(to_zone) for date in dates
     ]
-
     # trim dataset according to time_start and time_end
     if time_start is not None and time_end is not None:
         time_min = datetime.strptime(time_start, fmt)
@@ -462,7 +458,6 @@ def preprocess_dates(
         dates = [date for date in dates if time_min <= date <= time_max]
 
     dates_shifted = [date-timedelta(hours=date.hour) for date in dates]
-
     # create time vector with days for analysis
     if time_start is None:
         date_start = dates_shifted[0]
@@ -471,7 +466,6 @@ def preprocess_dates(
         date_start = datetime.strptime(time_start, fmt)
         date_start = date_start.replace(tzinfo=from_zone).astimezone(to_zone)
         date_start = date_start - timedelta(hours=date_start.hour)
-
     if time_end is None:
         date_end = dates_shifted[-1]
         date_end = date_end - timedelta(hours=date_end.hour)
@@ -509,19 +503,14 @@ def run_hourly(
             summary statistics format, Frequency class at constants.py
     """
     for t_unique in t_hours_pd.unique():
-        t_ind_pydate = [t_ind.to_pydatetime() for t_ind in
-                        days_hourly]
+        t_ind_pydate = [t_ind.to_pydatetime() for t_ind in days_hourly]
         # get indexes of ranges of dates that contain t_unique
         ind_to_store = -1
         for ind_to_store, t_ind in enumerate(t_ind_pydate):
-            if (
-                t_ind <= t_unique < t_ind + timedelta(hours=frequency.value)
-            ):
+            if t_ind <= t_unique < t_ind + timedelta(hours=frequency.value):
                 break
-
         cadence_temp = cadence_bout[t_hours_pd == t_unique]
         cadence_temp = cadence_temp[cadence_temp > 0]
-
         # store hourly metrics
         if math.isnan(steps_hourly[ind_to_store]):
             steps_hourly[ind_to_store] = int(np.sum(cadence_temp))
@@ -574,13 +563,11 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
         os.makedirs(
             os.path.join(output_folder, frequency.name.lower()), exist_ok=True
         )
-
     if users is None:
         users = get_ids(study_folder)
 
     for user in users:
         logger.info("Beiwe ID: %s", user)
-
         # get file list
         source_folder = os.path.join(study_folder, user, "accelerometer")
         file_list = os.listdir(source_folder)
@@ -591,16 +578,13 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
         )
 
         days = pd.date_range(date_start, date_end, freq='D')
-        if (
-            frequency == Frequency.HOURLY_AND_DAILY
-            or frequency == Frequency.HOURLY
-        ):
+        if (frequency == Frequency.HOURLY_AND_DAILY
+                or frequency == Frequency.HOURLY):
             freq = 'H'
         else:
             freq = str(frequency.value) + 'H'
         days_hourly = pd.date_range(date_start, date_end+timedelta(days=1),
                                     freq=freq)[:-1]
-
         # allocate memory
         steps_daily = np.full((len(days), 1), np.nan)
         cadence_daily = np.full((len(days), 1), np.nan)
@@ -612,22 +596,17 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
 
         for d_ind, d_datetime in enumerate(days):
             logger.info("Day: %d", d_ind)
-
             # find file indices for this d_ind
             file_ind = [i for i, x in enumerate(dates_shifted)
                         if x == d_datetime]
-
             # check if there is at least one file for a given day
             if len(file_ind) <= 0:
                 continue
-
             # initiate dataframe
             data = pd.DataFrame()
-
             # load data for a given day
             for f in file_ind:
                 logger.info("File: %d", f)
-
                 # read data
                 file_path = os.path.join(source_folder, file_list[f])
                 data = pd.concat([data, pd.read_csv(file_path)], axis=0)
@@ -637,24 +616,19 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
             x = np.array(data["x"], dtype="float64")  # x-axis acc.
             y = np.array(data["y"], dtype="float64")  # y-axis acc.
             z = np.array(data["z"], dtype="float64")  # z-axis acc.
-
             # preprocess data fragment
             t_bout_interp, vm_bout = preprocess_bout(timestamp, x, y, z)
-
             # find walking and estimate cadence
             cadence_bout = find_walking(vm_bout)
-
             # distribute metrics across hours
             if frequency != Frequency.DAILY:
                 # get t as datetimes
                 t_datetime = [
                     datetime.fromtimestamp(t_ind) for t_ind in t_bout_interp
                 ]
-
                 # transform t to full hours
                 t_series = pd.Series(t_datetime)
                 t_hours_pd = t_series.dt.floor('H')
-
                 # convert t_hours to correct timezone
                 t_hours_pd = t_hours_pd.dt.tz_localize(
                     from_zone
@@ -666,7 +640,6 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                 )
 
             cadence_bout = cadence_bout[np.where(cadence_bout > 0)]
-
             # store daily metrics
             steps_daily[d_ind] = int(np.sum(cadence_bout))
             if len(cadence_bout) > 0:  # control for empty slices
@@ -674,12 +647,9 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
             else:
                 cadence_daily[d_ind] = np.nan
             walkingtime_daily[d_ind] = len(cadence_bout)
-
             # save results depending on "frequency"
-            if (
-                frequency == Frequency.DAILY
-                or frequency == Frequency.HOURLY_AND_DAILY
-            ):
+            if (frequency == Frequency.DAILY
+                    or frequency == Frequency.HOURLY_AND_DAILY):
                 summary_stats = pd.DataFrame({
                     'date': days.strftime('%Y-%m-%d'),
                     'walking_time': walkingtime_daily[:, -1],
