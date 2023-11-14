@@ -5,7 +5,7 @@ import pytest
 from forest.oak.base import preprocess_dates
 
 
-@pytest.fixture
+@pytest.fixture()
 def sample_file_list():
     return [
         '2023-11-01 00_00_00+00_00.csv', '2023-11-01 01_00_00+00_00.csv',
