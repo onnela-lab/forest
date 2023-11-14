@@ -602,7 +602,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
             steps_hourly = np.full((len(days_hourly), 1), np.nan)
             cadence_hourly = np.full((len(days_hourly), 1), np.nan)
             walkingtime_hourly = np.full((len(days_hourly), 1), np.nan)
-            
+
             t_ind_pydate = days_hourly.to_pydatetime()
             t_ind_pydate_str = t_ind_pydate.astype(str)
 
