@@ -477,10 +477,10 @@ def preprocess_dates(
 
 
 def run_hourly(
-    t_hours_pd: pd.Series, days_hourly: pd.DatetimeIndex,
+    t_hours_pd: pd.Series, t_ind_pydate: list,
     cadence_bout: np.ndarray, steps_hourly: np.ndarray,
     walkingtime_hourly: np.ndarray, cadence_hourly: np.ndarray,
-    frequency: Frequency
+    freq_value: float
 ) -> None:
     """Runs hourly metrics computation for steps, walking time, and cadence.
      Updates steps_hourly, walkingtime_hourly, and cadence_hourly in place.
@@ -488,7 +488,7 @@ def run_hourly(
     Args:
         t_hours_pd: pd.Series
             timestamp of each measurement
-        days_hourly: pd.DatetimeIndex
+        t_ind_pydate: list
             list of days with hourly resolution
         cadence_bout: np.ndarray
             cadence of each measurement
@@ -498,15 +498,14 @@ def run_hourly(
             number of minutes of walking per hour
         cadence_hourly: np.ndarray
             average cadence per hour
-        frequency: Frequency
-            summary statistics format, Frequency class at constants.py
+        freq_value: float
+            frequency value in hours
     """
     for t_unique in t_hours_pd.unique():
-        t_ind_pydate = [t_ind.to_pydatetime() for t_ind in days_hourly]
         # get indexes of ranges of dates that contain t_unique
         ind_to_store = -1
         for ind_to_store, t_ind in enumerate(t_ind_pydate):
-            if t_ind <= t_unique < t_ind + timedelta(hours=frequency.value):
+            if t_ind <= t_unique < t_ind + timedelta(hours=freq_value):
                 break
         cadence_temp = cadence_bout[t_hours_pd == t_unique]
         cadence_temp = cadence_temp[cadence_temp > 0]
@@ -652,8 +651,8 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                 ).dt.tz_convert(to_zone)
 
                 run_hourly(
-                    t_hours_pd, days_hourly, cadence_bout, steps_hourly,
-                    walkingtime_hourly, cadence_hourly, frequency
+                    t_hours_pd, t_ind_pydate, cadence_bout, steps_hourly,
+                    walkingtime_hourly, cadence_hourly, freq_value
                 )
 
             cadence_bout = cadence_bout[np.where(cadence_bout > 0)]
