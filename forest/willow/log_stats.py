@@ -414,7 +414,7 @@ def log_stats_main(
     frequency: Frequency,
     time_start: Optional[List] = None,
     time_end: Optional[List] = None,
-    beiwe_id: Optional[List[str]] = None,
+    beiwe_ids: Optional[List[str]] = None,
 ) -> None:
     """Main function for calculating the summary statistics for the
     communication logs.
@@ -427,7 +427,7 @@ def log_stats_main(
             determining resolution of the summary stats
         time_start: starting timestamp of the study
         time_end: ending timestamp of the study
-        beiwe_id: list of Beiwe IDs to be processed
+        beiwe_ids: list of Beiwe IDs to be processed
     """
     os.makedirs(output_folder, exist_ok=True)
 
@@ -436,114 +436,113 @@ def log_stats_main(
         os.makedirs(output_folder + "/daily", exist_ok=True)
 
     # beiwe_id should be a list of str
-    if beiwe_id is None:
-        beiwe_id = [
-            i for i in os.listdir(study_folder)
-            if os.path.isdir(f"{study_folder}/{i}")
+    if beiwe_ids is None:
+        beiwe_ids = [
+            participant_id for participant_id in os.listdir(study_folder)
+            if os.path.isdir(f"{study_folder}/{participant_id}")
         ]
 
-    if len(beiwe_id) > 0:
-        for bid in beiwe_id:
-            logger.info("User: %s", bid)
-            try:
-                # read data
-                text_data, text_stamp_start, text_stamp_end = read_data(
-                    bid, study_folder, "texts", tz_str, time_start, time_end
-                )
-                call_data, call_stamp_start, call_stamp_end = read_data(
-                    bid, study_folder, "calls", tz_str, time_start, time_end
-                )
+    for bid in beiwe_ids:
+        logger.info("User: %s", bid)
+        try:
+            # read data
+            text_data, text_stamp_start, text_stamp_end = read_data(
+                bid, study_folder, "texts", tz_str, time_start, time_end
+            )
+            call_data, call_stamp_start, call_stamp_end = read_data(
+                bid, study_folder, "calls", tz_str, time_start, time_end
+            )
 
-                if text_data.shape[0] > 0 or call_data.shape[0] > 0:
-                    # stamps from call and text should be the stamp_end
-                    logger.info("Data imported ...")
-                    stamp_start = min(text_stamp_start, call_stamp_start)
-                    stamp_end = max(text_stamp_end, call_stamp_end)
+            if text_data.shape[0] > 0 or call_data.shape[0] > 0:
+                # stamps from call and text should be the stamp_end
+                logger.info("Data imported ...")
+                stamp_start = min(text_stamp_start, call_stamp_start)
+                stamp_end = max(text_stamp_end, call_stamp_end)
 
-                    # process data
-                    if frequency == Frequency.HOURLY_AND_DAILY:
-                        stats_pdframe1 = comm_logs_summaries(
-                            text_data,
-                            call_data,
-                            stamp_start,
-                            stamp_end,
-                            tz_str,
-                            Frequency.HOURLY,
-                        )
-                        stats_pdframe2 = comm_logs_summaries(
-                            text_data,
-                            call_data,
-                            stamp_start,
-                            stamp_end,
-                            tz_str,
-                            Frequency.DAILY,
-                        )
+                # process data
+                if frequency == Frequency.HOURLY_AND_DAILY:
+                    stats_pdframe1 = comm_logs_summaries(
+                        text_data,
+                        call_data,
+                        stamp_start,
+                        stamp_end,
+                        tz_str,
+                        Frequency.HOURLY,
+                    )
+                    stats_pdframe2 = comm_logs_summaries(
+                        text_data,
+                        call_data,
+                        stamp_start,
+                        stamp_end,
+                        tz_str,
+                        Frequency.DAILY,
+                    )
 
-                        write_all_summaries(
-                            bid, stats_pdframe1, output_folder + "/hourly"
-                        )
-                        write_all_summaries(
-                            bid, stats_pdframe2, output_folder + "/daily"
-                        )
-                    else:
-                        stats_pdframe = comm_logs_summaries(
-                            text_data,
-                            call_data,
-                            stamp_start,
-                            stamp_end,
-                            tz_str,
-                            frequency,
-                        )
-                        # num_uniq_individuals_call_or_text is the cardinality
-                        # of the union of several sets. It should should always
-                        # be at least as large as the cardinality of any one of
-                        # the sets, and it should never be larger than the sum
-                        # of the cardinalities of all of the sets
-                        # (it may be equal if all the sets are disjoint)
-                        sum_all_set_cols = pd.Series(
-                            [0]*stats_pdframe.shape[0]
-                        )
-                        for col in [
-                            "num_s_tel", "num_r_tel", "num_in_caller",
-                            "num_out_caller", "num_mis_caller"
-                        ]:
-                            sum_all_set_cols += stats_pdframe[col]
-                            if (
-                                stats_pdframe[
-                                    "num_uniq_individuals_call_or_text"
-                                ] < stats_pdframe[col]
-                            ).any():
-                                logger.error(
-                                    "Error: "
-                                    "num_uniq_individuals_call_or_text "
-                                    "was found to be less than %s for at "
-                                    "least one time interval. This error "
-                                    "comes from an issue with the code,"
-                                    " not an issue with the input data",
-                                    col
-                                    )
+                    write_all_summaries(
+                        bid, stats_pdframe1, output_folder + "/hourly"
+                    )
+                    write_all_summaries(
+                        bid, stats_pdframe2, output_folder + "/daily"
+                    )
+                else:
+                    stats_pdframe = comm_logs_summaries(
+                        text_data,
+                        call_data,
+                        stamp_start,
+                        stamp_end,
+                        tz_str,
+                        frequency,
+                    )
+                    # num_uniq_individuals_call_or_text is the cardinality
+                    # of the union of several sets. It should should always
+                    # be at least as large as the cardinality of any one of
+                    # the sets, and it should never be larger than the sum
+                    # of the cardinalities of all of the sets
+                    # (it may be equal if all the sets are disjoint)
+                    sum_all_set_cols = pd.Series(
+                        [0]*stats_pdframe.shape[0]
+                    )
+                    for col in [
+                        "num_s_tel", "num_r_tel", "num_in_caller",
+                        "num_out_caller", "num_mis_caller"
+                    ]:
+                        sum_all_set_cols += stats_pdframe[col]
                         if (
                             stats_pdframe[
                                 "num_uniq_individuals_call_or_text"
-                            ] > sum_all_set_cols
+                            ] < stats_pdframe[col]
                         ).any():
                             logger.error(
-                                    "Error: "
-                                    "num_uniq_individuals_call_or_text "
-                                    "was found to be larger than the sum "
-                                    "of individual cardinalities for at "
-                                    "least one time interval. This error "
-                                    "comes from an issue with the code,"
-                                    " not an issue with the input data"
-                                    )
+                                "Error: "
+                                "num_uniq_individuals_call_or_text "
+                                "was found to be less than %s for at "
+                                "least one time interval. This error "
+                                "comes from an issue with the code,"
+                                " not an issue with the input data",
+                                col
+                                )
+                    if (
+                        stats_pdframe[
+                            "num_uniq_individuals_call_or_text"
+                        ] > sum_all_set_cols
+                    ).any():
+                        logger.error(
+                                "Error: "
+                                "num_uniq_individuals_call_or_text "
+                                "was found to be larger than the sum "
+                                "of individual cardinalities for at "
+                                "least one time interval. This error "
+                                "comes from an issue with the code,"
+                                " not an issue with the input data"
+                                )
 
-                        write_all_summaries(bid, stats_pdframe, output_folder)
+                    write_all_summaries(bid, stats_pdframe, output_folder)
 
-                    logger.info(
-                        "Summary statistics obtained. Finished."
-                    )
-
-            except Exception as err:
-                logger.error(
-                    "An error occurred when processing the data: %s", err
+                logger.info(
+                    "Summary statistics obtained. Finished."
                 )
+
+        except Exception as err:
+            logger.error(
+                "An error occurred when processing the data: %s", err
+            )
