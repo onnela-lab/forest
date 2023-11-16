@@ -402,9 +402,7 @@ def test_gps_summaries_log_format(
 def test_gps_summaries_summary_vals(
     coords1, sample_trajectory, sample_nearby_locations, mocker
 ):
-    """Testing gps summaries summary values
-    are correct
-    """
+    """Testing gps summaries summary values are correct"""
     mocker.patch(
         "forest.jasmine.traj2stats.get_nearby_locations",
         return_value=sample_nearby_locations,
@@ -459,8 +457,7 @@ def test_gps_summaries_summary_vals(
 def test_gps_summaries_pcr(
     coords1, sample_trajectory, sample_nearby_locations, mocker
 ):
-    """Testing gps summaries pcr
-    """
+    """Testing gps summaries pcr"""
     mocker.patch(
         "forest.jasmine.traj2stats.get_nearby_locations",
         return_value=sample_nearby_locations,
