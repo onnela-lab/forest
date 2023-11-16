@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 
 from forest.oak.base import run_hourly
+from forest.constants import Frequency
 
 
 @pytest.fixture()
@@ -43,7 +44,7 @@ def sample_run_input(signal_bout):
 
 
 def test_run_hourly_one_hour_data(sample_run_input):
-    run_hourly(*sample_run_input, 1)
+    run_hourly(*sample_run_input, Frequency.HOURLY)
     steps_hourly, cadence_hourly, walkingtime_hourly = sample_run_input[3:]
 
     assert len(steps_hourly) - np.sum(np.isnan(steps_hourly)) == 1
@@ -52,7 +53,7 @@ def test_run_hourly_one_hour_data(sample_run_input):
 
 
 def test_run_hourly_accuracy(sample_run_input):
-    run_hourly(*sample_run_input, 1)
+    run_hourly(*sample_run_input, Frequency.HOURLY)
     steps_hourly, cadence_hourly, walkingtime_hourly = sample_run_input[3:]
     index = np.where(~np.isnan(steps_hourly))[0]
     # get non-nan indices
