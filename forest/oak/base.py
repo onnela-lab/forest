@@ -480,7 +480,7 @@ def run_hourly(
     t_hours_pd: pd.Series, t_ind_pydate: list,
     cadence_bout: np.ndarray, steps_hourly: np.ndarray,
     walkingtime_hourly: np.ndarray, cadence_hourly: np.ndarray,
-    freq_value: float
+    frequency: Frequency
 ) -> None:
     """Runs hourly metrics computation for steps, walking time, and cadence.
      Updates steps_hourly, walkingtime_hourly, and cadence_hourly in place.
@@ -498,14 +498,14 @@ def run_hourly(
             number of minutes of walking per hour
         cadence_hourly: np.ndarray
             average cadence per hour
-        freq_value: float
-            frequency value in hours
+        frequency: Frequency
+            summary statistics format, Frequency class at constants.py
     """
     for t_unique in t_hours_pd.unique():
         # get indexes of ranges of dates that contain t_unique
         ind_to_store = -1
         for ind_to_store, t_ind in enumerate(t_ind_pydate):
-            if t_ind <= t_unique < t_ind + timedelta(hours=freq_value):
+            if t_ind <= t_unique < t_ind + timedelta(hours=frequency.value):
                 break
         cadence_temp = cadence_bout[t_hours_pd == t_unique]
         cadence_temp = cadence_temp[cadence_temp > 0]
@@ -553,7 +553,6 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
     from_zone = tz.gettz('UTC')
     to_zone = tz.gettz(tz_str) if tz_str else from_zone
 
-    freq_value = frequency.value
     freq_str = frequency.name.lower()
 
     # create folders to store results
@@ -594,7 +593,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
             elif frequency == Frequency.MINUTELY:
                 freq = 'T'
             else:
-                freq = str(freq_value) + 'H'
+                freq = str(frequency.value) + 'H'
 
             days_hourly = pd.date_range(date_start, date_end+timedelta(days=1),
                                         freq=freq)[:-1]
@@ -605,6 +604,13 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
 
             t_ind_pydate = days_hourly.to_pydatetime()
             t_ind_pydate_str = t_ind_pydate.astype(str)
+        else:
+            # set them to None to avoid reference before assignment
+            steps_hourly = None
+            cadence_hourly = None
+            walkingtime_hourly = None
+            t_ind_pydate = None
+            t_ind_pydate_str = None
 
         for d_ind, d_datetime in enumerate(days):
             logger.info("Day: %d", d_ind)
@@ -652,7 +658,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
 
                 run_hourly(
                     t_hours_pd, t_ind_pydate, cadence_bout, steps_hourly,
-                    walkingtime_hourly, cadence_hourly, freq_value
+                    walkingtime_hourly, cadence_hourly, frequency
                 )
 
             cadence_bout = cadence_bout[np.where(cadence_bout > 0)]
