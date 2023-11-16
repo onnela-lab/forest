@@ -606,9 +606,9 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
             t_ind_pydate_str = t_ind_pydate.astype(str)
         else:
             # set them to None to avoid reference before assignment
-            steps_hourly = None
-            cadence_hourly = None
-            walkingtime_hourly = None
+            steps_hourly = np.full((1, 1), np.nan)
+            cadence_hourly = np.full((1, 1), np.nan)
+            walkingtime_hourly = np.full((1, 1), np.nan)
             t_ind_pydate = None
             t_ind_pydate_str = None
 
