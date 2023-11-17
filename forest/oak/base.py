@@ -589,7 +589,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
         steps_hourly = np.full((1, 1), np.nan)
         cadence_hourly = np.full((1, 1), np.nan)
         walkingtime_hourly = np.full((1, 1), np.nan)
-        t_ind_pydate = None
+        t_ind_pydate = pd.Series([])
         t_ind_pydate_str = None
 
         if frequency != Frequency.DAILY:
