@@ -573,7 +573,7 @@ def test_compute_window_size(sample_trajectory):
     """Testing window size is correct"""
 
     window, _ = compute_window_and_count(
-        sample_trajectory[0, 3], sample_trajectory[-1, 6], 1
+        sample_trajectory[0, 3], sample_trajectory[-1, 6], 60
     )
 
     assert window == 3600
@@ -583,7 +583,7 @@ def test_compute_window_count(sample_trajectory):
     """Testing number of windows is correct"""
 
     _, num_windows = compute_window_and_count(
-        sample_trajectory[0, 3], sample_trajectory[-1, 6], 1
+        sample_trajectory[0, 3], sample_trajectory[-1, 6], 60
     )
 
     assert num_windows == 24
@@ -593,7 +593,7 @@ def test_compute_window_size_6_hour(sample_trajectory):
     """Testing window size is correct 6 hour window"""
 
     window, _ = compute_window_and_count(
-        sample_trajectory[0, 3], sample_trajectory[-1, 6], 6
+        sample_trajectory[0, 3], sample_trajectory[-1, 6], 360
     )
 
     assert window == 3600 * 6
@@ -603,7 +603,7 @@ def test_compute_window_count_6_hour(sample_trajectory):
     """Testing number of windows is correct 6 hour window"""
 
     _, num_windows = compute_window_and_count(
-        sample_trajectory[0, 3], sample_trajectory[-1, 6], 6
+        sample_trajectory[0, 3], sample_trajectory[-1, 6], 360
     )
 
     assert num_windows == 4

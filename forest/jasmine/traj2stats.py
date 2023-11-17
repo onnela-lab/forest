@@ -1152,7 +1152,7 @@ def gps_summaries(
             traj, [4, 5], tz_str
         )
         window, num_windows = compute_window_and_count(
-            start_stamp, end_stamp, int(frequency.value/60)
+            start_stamp, end_stamp, frequency.value
         )
     else:
         # find starting and ending time
@@ -1161,7 +1161,7 @@ def gps_summaries(
             traj, [3, 4, 5], tz_str, 3600*24
         )
         window, num_windows = compute_window_and_count(
-            start_stamp, end_stamp, 24, parameters.split_day_night
+            start_stamp, end_stamp, 24*60, parameters.split_day_night
         )
 
     if num_windows <= 0:
@@ -1484,7 +1484,7 @@ def get_time_range(
 
 
 def compute_window_and_count(
-    start_stamp: int, end_stamp: int, window_hours: int,
+    start_stamp: int, end_stamp: int, window_minutes: int,
     split_day_night: bool = False
 ) -> Tuple[int, int]:
     """Computes the window and number of windows based on given time stamps.
@@ -1492,7 +1492,7 @@ def compute_window_and_count(
     Args:
         start_stamp: int, starting time stamp
         end_stamp: int, ending time stamp
-        window_hours: int, window in hours
+        window_minutes: int, window in minutes
         split_day_night: bool, True if split day and night
     Returns:
         A tuple of two integers (window, num_windows):
@@ -1500,7 +1500,7 @@ def compute_window_and_count(
             num_windows: int, number of windows
     """
 
-    window = window_hours * 60 * 60
+    window = window_minutes * 60
     num_windows = (end_stamp - start_stamp) // window
     if split_day_night:
         num_windows *= 2
