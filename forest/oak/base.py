@@ -584,6 +584,12 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
         cadence_daily = np.full((len(days), 1), np.nan)
         walkingtime_daily = np.full((len(days), 1), np.nan)
 
+        steps_hourly = np.full((1, 1), np.nan)
+        cadence_hourly = np.full((1, 1), np.nan)
+        walkingtime_hourly = np.full((1, 1), np.nan)
+        t_ind_pydate = None
+        t_ind_pydate_str = None
+
         if frequency != Frequency.DAILY:
             if (
                 frequency == Frequency.HOURLY_AND_DAILY
@@ -604,13 +610,6 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
 
             t_ind_pydate = days_hourly.to_pydatetime()
             t_ind_pydate_str = t_ind_pydate.astype(str)
-        else:
-            # set them to None to avoid reference before assignment
-            steps_hourly = np.full((1, 1), np.nan)
-            cadence_hourly = np.full((1, 1), np.nan)
-            walkingtime_hourly = np.full((1, 1), np.nan)
-            t_ind_pydate = None
-            t_ind_pydate_str = None
 
         for d_ind, d_datetime in enumerate(days):
             logger.info("Day: %d", d_ind)
