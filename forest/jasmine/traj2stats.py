@@ -1125,8 +1125,8 @@ def gps_summaries(
         ValueError: Frequency is not valid
     """
 
-    if frequency == Frequency.HOURLY_AND_DAILY:
-        raise ValueError("Frequency must be 'hourly' or 'daily'")
+    if frequency in [Frequency.HOURLY_AND_DAILY, Frequency.MINUTELY]:
+        raise ValueError(f"Frequency cannot be {frequency.name.lower()}.")
 
     if frequency != Frequency.DAILY:
         parameters.split_day_night = False
@@ -1152,7 +1152,7 @@ def gps_summaries(
             traj, [4, 5], tz_str
         )
         window, num_windows = compute_window_and_count(
-            start_stamp, end_stamp, frequency.value
+            start_stamp, end_stamp, frequency.value/60
         )
     else:
         # find starting and ending time
@@ -1595,7 +1595,13 @@ def gps_stats_main(
             as pickle files for future use
         and a record csv file to show which users are processed
         and logger csv file to show warnings and bugs during the run
+    Raises:
+        ValueError: Frequency is not valid
     """
+
+    # no minutely analysis on GPS data
+    if frequency == Frequency.MINUTELY:
+        raise ValueError("Frequency cannot be minutely.")
 
     os.makedirs(output_folder, exist_ok=True)
 

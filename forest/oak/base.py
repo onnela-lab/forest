@@ -505,7 +505,9 @@ def run_hourly(
         # get indexes of ranges of dates that contain t_unique
         ind_to_store = -1
         for ind_to_store, t_ind in enumerate(t_ind_pydate):
-            if t_ind <= t_unique < t_ind + timedelta(hours=frequency.value):
+            if t_ind <= t_unique < t_ind + timedelta(
+                hours=frequency.value/60
+            ):
                 break
         cadence_temp = cadence_bout[t_hours_pd == t_unique]
         cadence_temp = cadence_temp[cadence_temp > 0]
@@ -599,7 +601,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
             elif frequency == Frequency.MINUTELY:
                 freq = 'T'
             else:
-                freq = str(frequency.value) + 'H'
+                freq = str(frequency.value/60) + 'H'
 
             days_hourly = pd.date_range(date_start, date_end+timedelta(days=1),
                                         freq=freq)[:-1]
