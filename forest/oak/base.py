@@ -505,9 +505,7 @@ def run_hourly(
         # get indexes of ranges of dates that contain t_unique
         ind_to_store = -1
         for ind_to_store, t_ind in enumerate(t_ind_pydate):
-            if t_ind <= t_unique < t_ind + timedelta(
-                hours=frequency.value/60
-            ):
+            if t_ind <= t_unique < t_ind + timedelta(minutes=frequency.value):
                 break
         cadence_temp = cadence_bout[t_hours_pd == t_unique]
         cadence_temp = cadence_temp[cadence_temp > 0]
