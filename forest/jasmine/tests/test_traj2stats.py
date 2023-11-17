@@ -399,6 +399,87 @@ def test_gps_summaries_log_format(
     assert np.all(dates_stats == dates_log)
 
 
+def test_gps_summaries_summary_vals(
+    coords1, sample_trajectory, sample_nearby_locations, mocker
+):
+    """Testing gps summaries summary values are correct"""
+    mocker.patch(
+        "forest.jasmine.traj2stats.get_nearby_locations",
+        return_value=sample_nearby_locations,
+    )
+    mocker.patch("forest.jasmine.traj2stats.locate_home", return_value=coords1)
+
+    parameters = Hyperparameters()
+
+    summary, _ = gps_summaries(
+        traj=sample_trajectory,
+        tz_str="Europe/London",
+        frequency=Frequency.DAILY,
+        parameters=parameters,
+    )
+
+    assert np.all(summary["obs_duration"] == 24)
+    assert summary["obs_day"].iloc[0] == 10
+    assert summary["obs_night"].iloc[0] == 14
+    assert summary["obs_day"].iloc[1] == 24
+    assert summary["obs_night"].iloc[1] == 0
+    assert np.all(summary["home_time"] == 0)
+    assert summary["dist_traveled"].iloc[0] == 0.208
+    assert summary["dist_traveled"].iloc[1] == 0
+    assert np.round(summary["max_dist_home"].iloc[0], 3) == 0.915
+    assert np.round(summary["max_dist_home"].iloc[1], 3) == 0.915
+    assert np.round(summary["radius"].iloc[0], 3) == 0.013
+    assert summary["radius"].iloc[1] == 0
+    assert np.round(summary["diameter"].iloc[0], 3) == 0.064
+    assert summary["diameter"].iloc[1] == 0
+    assert summary["num_sig_places"].iloc[0] == 2
+    assert summary["num_sig_places"].iloc[1] == 1
+    assert np.round(summary["entropy"].iloc[0], 3) == 0.468
+    assert summary["entropy"].iloc[1] == 0
+    assert round(summary["total_flight_time"].iloc[0], 3) == 1.528
+    assert summary["total_flight_time"].iloc[1] == 0
+    assert round(summary["av_flight_length"].iloc[0], 3) == 0.052
+    assert summary["av_flight_length"].iloc[1] == 0
+    assert round(summary["sd_flight_length"].iloc[0], 3) == 0.012
+    assert summary["sd_flight_length"].iloc[1] == 0
+    assert round(summary["av_flight_duration"].iloc[0], 3) == 0.382
+    assert summary["av_flight_duration"].iloc[1] == 0
+    assert round(summary["sd_flight_duration"].iloc[0], 3) == 0.132
+    assert summary["sd_flight_duration"].iloc[1] == 0
+    assert round(summary["total_pause_time"].iloc[0], 3) == 22.472
+    assert summary["total_pause_time"].iloc[1] == 24
+    assert round(summary["av_pause_duration"].iloc[0], 3) == 4.494
+    assert summary["av_pause_duration"].iloc[1] == 24
+    assert round(summary["sd_pause_duration"].iloc[0], 3) == 3.496
+    assert summary["sd_pause_duration"].iloc[1] == 0
+
+
+def test_gps_summaries_pcr(
+    coords1, sample_trajectory, sample_nearby_locations, mocker
+):
+    """Testing gps summaries pcr"""
+    mocker.patch(
+        "forest.jasmine.traj2stats.get_nearby_locations",
+        return_value=sample_nearby_locations,
+    )
+    mocker.patch("forest.jasmine.traj2stats.locate_home", return_value=coords1)
+
+    parameters = Hyperparameters()
+    parameters.pcr_bool = True
+
+    summary, _ = gps_summaries(
+        traj=sample_trajectory,
+        tz_str="Europe/London",
+        frequency=Frequency.DAILY,
+        parameters=parameters,
+    )
+
+    assert summary["physical_circadian_rhythm"].iloc[0] == 0
+    assert summary["physical_circadian_rhythm"].iloc[1] == 1
+    assert summary["physical_circadian_rhythm_stratified"].iloc[0] == 0
+    assert summary["physical_circadian_rhythm_stratified"].iloc[1] == 0
+
+
 @pytest.fixture()
 def mobmat1():
     """mobility matrix 1"""
