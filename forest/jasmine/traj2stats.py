@@ -1152,7 +1152,7 @@ def gps_summaries(
             traj, [4, 5], tz_str
         )
         window, num_windows = compute_window_and_count(
-            start_stamp, end_stamp, frequency.value/60
+            start_stamp, end_stamp, int(frequency.value/60)
         )
     else:
         # find starting and ending time
