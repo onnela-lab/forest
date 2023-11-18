@@ -136,7 +136,7 @@ def read_user_audio_recordings_stream(
             if valid_file:
                 all_files.append(filename)
                 all_durations.append(librosa.get_duration(
-                    path = os.path.join(audio_dir, survey, filename)
+                    path=os.path.join(audio_dir, survey, filename)
                 ))
 
         if len(all_files) == 0:
