@@ -85,7 +85,8 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
                              z_bout_interp**2)
 
     # standardize measurement to gravity units (g) if its recorded in m/s**2
-    if np.mean(vm_bout_interp) > 5:
+    # Also avoid a runtime warning of taking the mean of an empty slice
+    if vm_bout_interp.shape[0] > 0 and np.mean(vm_bout_interp) > 5:
         x_bout_interp = x_bout_interp/9.80665
         y_bout_interp = y_bout_interp/9.80665
         z_bout_interp = z_bout_interp/9.80665
