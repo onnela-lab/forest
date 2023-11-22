@@ -366,7 +366,7 @@ def comm_logs_summaries(
         if frequency == Frequency.DAILY:
             newline = [year, month, day] + newline
         else:
-            newline = [year, month, day, hour] + newline[:16]
+            newline = [year, month, day, hour] + newline[:17]
 
         summary_stats.append(newline)
 
