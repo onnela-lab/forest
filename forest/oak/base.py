@@ -619,7 +619,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
             z = np.array(data["z"], dtype="float64")  # z-axis acc.
             # preprocess data fragment
             t_bout_interp, vm_bout = preprocess_bout(timestamp, x, y, z)
-            if len(t_bout_interp) == 0: ## no valid data
+            if len(t_bout_interp) == 0:  # no valid data to process here
                 continue
             # find walking and estimate cadence
             cadence_bout = find_walking(vm_bout)
