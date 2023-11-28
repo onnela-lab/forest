@@ -435,7 +435,7 @@ def preprocess_dates(
             local timezone
     Returns:
         Tuple of ndarrays:
-            - dates_shifted: list of datetimes with hours set to 0
+            - dates_original: list of datetimes with hours set to 0
             - date_start: datetime of initial date of study
             - date_end: datetime of final date of study
     """
@@ -454,9 +454,12 @@ def preprocess_dates(
         time_min = time_min.replace(tzinfo=from_zone).astimezone(to_zone)
         time_max = datetime.strptime(time_end, fmt)
         time_max = time_max.replace(tzinfo=from_zone).astimezone(to_zone)
-        dates = [date for date in dates if time_min <= date <= time_max]
+        dates2 = [date for date in dates if time_min <= date <= time_max]
+    else:
+        dates2 = dates
 
-    dates_shifted = [date-timedelta(hours=date.hour) for date in dates]
+    dates_original = [date-timedelta(hours=date.hour) for date in dates]
+    dates_shifted = [date-timedelta(hours=date.hour) for date in dates2]
     # create time vector with days for analysis
     if time_start is None:
         date_start = dates_shifted[0]
@@ -473,7 +476,7 @@ def preprocess_dates(
         date_end = date_end.replace(tzinfo=from_zone).astimezone(to_zone)
         date_end = date_end - timedelta(hours=date_end.hour)
 
-    return dates_shifted, date_start, date_end
+    return dates_original, date_start, date_end
 
 
 def run_hourly(
@@ -573,7 +576,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
         file_list = os.listdir(source_folder)
         file_list.sort()
 
-        dates_shifted, date_start, date_end = preprocess_dates(
+        dates_original, dates_shifted, date_start, date_end = preprocess_dates(
             file_list, time_start, time_end, fmt, from_zone, to_zone
         )
 
@@ -614,7 +617,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
         for d_ind, d_datetime in enumerate(days):
             logger.info("Day: %d", d_ind)
             # find file indices for this d_ind
-            file_ind = [i for i, x in enumerate(dates_shifted)
+            file_ind = [i for i, x in enumerate(dates_original)
                         if x == d_datetime]
             # check if there is at least one file for a given day
             if len(file_ind) <= 0:
