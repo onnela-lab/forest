@@ -576,7 +576,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
         file_list = os.listdir(source_folder)
         file_list.sort()
 
-        dates_original, dates_shifted, date_start, date_end = preprocess_dates(
+        dates_original, date_start, date_end = preprocess_dates(
             file_list, time_start, time_end, fmt, from_zone, to_zone
         )
 
