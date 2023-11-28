@@ -20,12 +20,12 @@ def sample_run_input(signal_bout):
         "2020-02-25 08:00:00-05:00",
         "2020-02-25 08:00:00-05:00"
     ], utc=True).tz_convert('US/Eastern'))
-    days_hourly = pd.date_range(
+    t_ind_pydate = pd.date_range(
         start='2020-02-24 00:00:00',
         end='2020-02-25 23:00:00',
         freq='H',
         tz='US/Eastern'
-    )
+    ).to_pydatetime()
     cadence_bout = np.array(
         [1.65, 1.6, 1.55, 1.6, 1.55, 1.85, 1.8, 1.75, 1.75, 1.7]
     )
@@ -35,7 +35,7 @@ def sample_run_input(signal_bout):
 
     return (
         t_hours_pd,
-        days_hourly,
+        t_ind_pydate,
         cadence_bout,
         steps_hourly,
         walkingtime_hourly,
