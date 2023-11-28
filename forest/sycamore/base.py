@@ -91,6 +91,13 @@ def compute_survey_stats(
     Returns:
         True if successful, False otherwise
     """
+
+    if submits_timeframe not in [
+        Frequency.HOURLY_AND_DAILY, Frequency.HOURLY, Frequency.DAILY
+    ]:
+        logger.error("Error: Invalid submits timeframe")
+        return False
+
     os.makedirs(output_folder, exist_ok=True)
     os.makedirs(os.path.join(output_folder, "summaries"), exist_ok=True)
     os.makedirs(os.path.join(output_folder, "by_survey"), exist_ok=True)
@@ -250,6 +257,13 @@ def get_submits_for_tableau(
         history_path: Filepath to the survey history file. If this is not
                 included, audio survey timings cannot be estimated.
     """
+
+    if submits_timeframe not in [
+        Frequency.HOURLY, Frequency.DAILY, Frequency.HOURLY_AND_DAILY
+    ]:
+        logger.error("Error: Invalid submits timeframe")
+        return
+
     os.makedirs(output_folder, exist_ok=True)
 
     if users is None:

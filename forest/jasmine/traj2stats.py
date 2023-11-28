@@ -1125,8 +1125,8 @@ def gps_summaries(
         ValueError: Frequency is not valid
     """
 
-    if frequency == Frequency.HOURLY_AND_DAILY:
-        raise ValueError("Frequency must be 'hourly' or 'daily'")
+    if frequency in [Frequency.HOURLY_AND_DAILY, Frequency.MINUTELY]:
+        raise ValueError(f"Frequency cannot be {frequency.name.lower()}.")
 
     if frequency != Frequency.DAILY:
         parameters.split_day_night = False
@@ -1161,7 +1161,7 @@ def gps_summaries(
             traj, [3, 4, 5], tz_str, 3600*24
         )
         window, num_windows = compute_window_and_count(
-            start_stamp, end_stamp, 24, parameters.split_day_night
+            start_stamp, end_stamp, 24*60, parameters.split_day_night
         )
 
     if num_windows <= 0:
@@ -1484,7 +1484,7 @@ def get_time_range(
 
 
 def compute_window_and_count(
-    start_stamp: int, end_stamp: int, window_hours: int,
+    start_stamp: int, end_stamp: int, window_minutes: int,
     split_day_night: bool = False
 ) -> Tuple[int, int]:
     """Computes the window and number of windows based on given time stamps.
@@ -1492,7 +1492,7 @@ def compute_window_and_count(
     Args:
         start_stamp: int, starting time stamp
         end_stamp: int, ending time stamp
-        window_hours: int, window in hours
+        window_minutes: int, window in minutes
         split_day_night: bool, True if split day and night
     Returns:
         A tuple of two integers (window, num_windows):
@@ -1500,7 +1500,7 @@ def compute_window_and_count(
             num_windows: int, number of windows
     """
 
-    window = window_hours * 60 * 60
+    window = window_minutes * 60
     num_windows = (end_stamp - start_stamp) // window
     if split_day_night:
         num_windows *= 2
@@ -1595,7 +1595,13 @@ def gps_stats_main(
             as pickle files for future use
         and a record csv file to show which users are processed
         and logger csv file to show warnings and bugs during the run
+    Raises:
+        ValueError: Frequency is not valid
     """
+
+    # no minutely analysis on GPS data
+    if frequency == Frequency.MINUTELY:
+        raise ValueError("Frequency cannot be minutely.")
 
     os.makedirs(output_folder, exist_ok=True)
 
