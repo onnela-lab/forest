@@ -459,17 +459,17 @@ def preprocess_dates(
         dates2 = dates
 
     dates_original = [date-timedelta(hours=date.hour) for date in dates]
-    dates_shifted = [date-timedelta(hours=date.hour) for date in dates2]
+
     # create time vector with days for analysis
     if time_start is None:
-        date_start = dates_shifted[0]
+        date_start = dates2[0]
         date_start = date_start - timedelta(hours=date_start.hour)
     else:
         date_start = datetime.strptime(time_start, fmt)
         date_start = date_start.replace(tzinfo=from_zone).astimezone(to_zone)
         date_start = date_start - timedelta(hours=date_start.hour)
     if time_end is None:
-        date_end = dates_shifted[-1]
+        date_end = dates2[-1]
         date_end = date_end - timedelta(hours=date_end.hour)
     else:
         date_end = datetime.strptime(time_end, fmt)
