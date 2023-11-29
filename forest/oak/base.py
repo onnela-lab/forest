@@ -450,24 +450,29 @@ def preprocess_dates(
         date.replace(tzinfo=from_zone).astimezone(to_zone) for date in dates
     ]
     # trim dataset according to time_start and time_end
-    if time_start is not None and time_end is not None:
+    if time_start is None or time_end is None:
+        dates_filtered = dates
+    else:
         time_min = datetime.strptime(time_start, fmt)
         time_min = time_min.replace(tzinfo=from_zone).astimezone(to_zone)
         time_max = datetime.strptime(time_end, fmt)
         time_max = time_max.replace(tzinfo=from_zone).astimezone(to_zone)
-        dates = [date for date in dates if time_min <= date <= time_max]
+        dates_filtered = [
+            date for date in dates if time_min <= date <= time_max
+        ]
 
     dates_shifted = [date-timedelta(hours=date.hour) for date in dates]
+
     # create time vector with days for analysis
     if time_start is None:
-        date_start = dates_shifted[0]
+        date_start = dates_filtered[0]
         date_start = date_start - timedelta(hours=date_start.hour)
     else:
         date_start = datetime.strptime(time_start, fmt)
         date_start = date_start.replace(tzinfo=from_zone).astimezone(to_zone)
         date_start = date_start - timedelta(hours=date_start.hour)
     if time_end is None:
-        date_end = dates_shifted[-1]
+        date_end = dates_filtered[-1]
         date_end = date_end - timedelta(hours=date_end.hour)
     else:
         date_end = datetime.strptime(time_end, fmt)
@@ -588,7 +593,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
         steps_hourly = np.full((1, 1), np.nan)
         cadence_hourly = np.full((1, 1), np.nan)
         walkingtime_hourly = np.full((1, 1), np.nan)
-        t_ind_pydate = pd.Series([])
+        t_ind_pydate = pd.Series([], dtype='datetime64[ns]')
         t_ind_pydate_str = None
 
         if frequency != Frequency.DAILY:
