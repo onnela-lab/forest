@@ -457,7 +457,9 @@ def preprocess_dates(
         time_min = time_min.replace(tzinfo=from_zone).astimezone(to_zone)
         time_max = datetime.strptime(time_end, fmt)
         time_max = time_max.replace(tzinfo=from_zone).astimezone(to_zone)
-        dates_filtered = [date for date in dates if time_min <= date <= time_max]
+        dates_filtered = [
+            date for date in dates if time_min <= date <= time_max
+        ]
 
     dates_shifted = [date-timedelta(hours=date.hour) for date in dates]
 
