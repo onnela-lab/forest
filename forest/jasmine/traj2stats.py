@@ -1020,6 +1020,7 @@ def format_summary_stats(
         pcr_cols = []
 
     if frequency != Frequency.DAILY:
+        print("not daily")
         summary_stats_df.columns = (
             [
                 "year",
@@ -1125,8 +1126,8 @@ def gps_summaries(
         ValueError: Frequency is not valid
     """
 
-    if frequency in [Frequency.HOURLY_AND_DAILY, Frequency.MINUTELY]:
-        raise ValueError(f"Frequency cannot be {frequency.name.lower()}.")
+    if frequency == Frequency.HOURLY_AND_DAILY:
+        raise ValueError("Frequency must be 'hourly' or 'daily'")
 
     if frequency != Frequency.DAILY:
         parameters.split_day_night = False
@@ -1161,7 +1162,7 @@ def gps_summaries(
             traj, [3, 4, 5], tz_str, 3600*24
         )
         window, num_windows = compute_window_and_count(
-            start_stamp, end_stamp, 24*60, parameters.split_day_night
+            start_stamp, end_stamp, 24, parameters.split_day_night
         )
 
     if num_windows <= 0:
@@ -1484,7 +1485,7 @@ def get_time_range(
 
 
 def compute_window_and_count(
-    start_stamp: int, end_stamp: int, window_minutes: int,
+    start_stamp: int, end_stamp: int, window_hours: int,
     split_day_night: bool = False
 ) -> Tuple[int, int]:
     """Computes the window and number of windows based on given time stamps.
@@ -1492,7 +1493,7 @@ def compute_window_and_count(
     Args:
         start_stamp: int, starting time stamp
         end_stamp: int, ending time stamp
-        window_minutes: int, window in minutes
+        window_hours: int, window in hours
         split_day_night: bool, True if split day and night
     Returns:
         A tuple of two integers (window, num_windows):
@@ -1500,7 +1501,7 @@ def compute_window_and_count(
             num_windows: int, number of windows
     """
 
-    window = window_minutes * 60
+    window = window_hours * 60 * 60
     num_windows = (end_stamp - start_stamp) // window
     if split_day_night:
         num_windows *= 2
@@ -1534,10 +1535,37 @@ def gps_quality_check(study_folder: str, study_id: str) -> float:
         quality_yes = 0.
         for i, _ in enumerate(file_path_array):
             df = pd.read_csv(file_path_array[i])
+            #philip line
+            # Convert timestamp from milliseconds to seconds
+            if 'timestamp' in df.columns:
+                df['timestamp_seconds'] = df['timestamp'] / 1000
+                # Convert to UTC datetime and format
+                df['UTC time'] = df['timestamp_seconds'].apply(lambda x: datetime.utcfromtimestamp(x).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3])
+                # Reorder columns to match your desired format
+
+                cols_to_check = ['longitude', 'altitude', 'latitude', 'accuracy']
+                cols_present = [col for col in cols_to_check if col in df.columns]
+                if len(cols_present) == len(cols_to_check):
+                    df = df[['timestamp', 'UTC time', 'latitude', 'longitude', 'altitude', 'accuracy']]
+                print(df)
+            #end philip line
+            
             if df.shape[0] > 60:
                 quality_yes = quality_yes + 1.
         quality_check = quality_yes / (len(file_path_array) + 0.0001)
     return quality_check
+
+def validate_trajectory(traj):
+    if (
+        np.max(traj[:, 1]) > 90 or np.min(traj[:, 1]) < -90 or
+        np.max(traj[:, 2]) > 180 or np.min(traj[:, 2]) < -180 or
+        np.max(traj[:, 4]) > 90 or np.min(traj[:, 4]) < -90 or
+        np.max(traj[:, 5]) > 180 or np.min(traj[:, 5]) < -180
+    ):
+        raise ValueError(
+            f"Trajectory coordinates are not in the range of {traj}"
+            "[-90, 90] and [-180, 180]."
+        )
 
 
 def gps_stats_main(
@@ -1595,13 +1623,7 @@ def gps_stats_main(
             as pickle files for future use
         and a record csv file to show which users are processed
         and logger csv file to show warnings and bugs during the run
-    Raises:
-        ValueError: Frequency is not valid
     """
-
-    # no minutely analysis on GPS data
-    if frequency == Frequency.MINUTELY:
-        raise ValueError("Frequency cannot be minutely.")
 
     os.makedirs(output_folder, exist_ok=True)
 
@@ -1649,6 +1671,7 @@ def gps_stats_main(
                 participant_id, study_folder, "gps",
                 tz_str, time_start, time_end,
             )
+            print(f"data{data}")
             if data.shape == (0, 0):
                 logger.info("No data available.")
                 continue
@@ -1669,6 +1692,8 @@ def gps_stats_main(
                 data, parameters.itrvl, parameters.accuracylim,
                 params_r, params_w, params_h
             )
+            print(f"mobmat1{mobmat1}")
+
             mobmat2 = infer_mobmat(mobmat1, parameters.itrvl, params_r)
             out_dict = bv_select(
                 mobmat2,
@@ -1693,7 +1718,28 @@ def gps_stats_main(
             traj = imp_to_traj(imp_table, mobmat2, params_w)
             # raise error if traj coordinates are not in the range of
             # [-90, 90] and [-180, 180]
+            print(f"traj before if{traj}")
+
+            print("Max of column 1 (longitude) > 90:", np.max(traj[:, 1]) > 90, "| Value:", np.max(traj[:, 1]))
+            print("Min of column 1 (longitude) < -90:", np.min(traj[:, 1]) < -90, "| Value:", np.min(traj[:, 1]))
+            print("Max of column 2 (latitude) > 180:", np.max(traj[:, 2]) > 180, "| Value:", np.max(traj[:, 2]))
+            print("Min of column 2 (latitude) < -180:", np.min(traj[:, 2]) < -180, "| Value:", np.min(traj[:, 2]))
+            print("Max of column 4 (duplicate altitude) > 90:", np.max(traj[:, 4]) > 90, "| Value:", np.max(traj[:, 4]))
+            print("Min of column 4 (duplicate altitude) < -90:", np.min(traj[:, 4]) < -90, "| Value:", np.min(traj[:, 4]))
+            print("Max of column 5 (timestamp?) > 180:", np.max(traj[:, 5]) > 180, "| Value:", np.max(traj[:, 5]))
+            print("Min of column 5 (timestamp?) < -180:", np.min(traj[:, 5]) < -180, "| Value:", np.min(traj[:, 5]))
+
+
+
             if traj.shape[0] > 0:
+                try:
+                    validate_trajectory(traj)
+                    # Further processing if validation is successful
+                except ValueError as e:
+                    print("trajectory failed:", e)
+                    continue
+
+                """ philip commented this out 
                 if (
                     np.max(traj[:, 1]) > 90
                     or np.min(traj[:, 1]) < -90
@@ -1705,9 +1751,16 @@ def gps_stats_main(
                     or np.min(traj[:, 5]) < -180
                 ):
                     raise ValueError(
-                        "Trajectory coordinates are not in the range of "
+                        f"Trajectory coordinates are not in the range of {traj}"
                         "[-90, 90] and [-180, 180]."
                     )
+
+                philip lines 
+ """
+         
+                
+
+           
             # save all_memory_dict and all_bv_set
             with open(f"{output_folder}/all_memory_dict.pkl", "wb") as f:
                 pickle.dump(all_memory_dict, f)
