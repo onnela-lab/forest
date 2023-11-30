@@ -1764,7 +1764,7 @@ def gps_stats_generate_summary(
         participant_id: str,
         output_folder: str,
         logs_folder: str,
-        parameters: Optional[Hyperparameters] = None,
+        parameters: Hyperparameters,
         places_of_interest: Optional[list] = None,
         osm_tags: Optional[List[OSMTags]] = None,
     ):
