@@ -509,9 +509,9 @@ def log_stats_inner(
 
     # num_uniq_individuals_call_or_text is the cardinality of the union of
     # several sets. It should should always be at least as large as the
-    # cardinality of any one of the sets, and it should never be larger than the
-    # sum of the cardinalities of all of the sets. (it may be equal if all the
-    # sets are disjoint)
+    # cardinality of any one of the sets, and it should never be larger than
+    # the sum of the cardinalities of all of the sets. (it may be equal if all
+    # the sets are disjoint)
     num_uniq_column = "num_uniq_individuals_call_or_text"  # legibility hax.
     sum_all_set_cols = pd.Series([0]*stats_pdframe.shape[0])
     for column in [

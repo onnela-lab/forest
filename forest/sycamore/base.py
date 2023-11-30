@@ -251,7 +251,7 @@ def get_submits_for_tableau(
         end_date:
             The latest survey data to read in, in YYYY-MM-DD format
         users:
-            List of users in study for which we are generating a survey schedule
+            List of users in study that we are generating a survey schedule for
         interventions_filepath:
             filepath where interventions json file is.
         submits_timeframe:

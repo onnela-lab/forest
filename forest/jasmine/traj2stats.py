@@ -1611,8 +1611,8 @@ def gps_stats_main(
     else:
         frequencies = [frequency]
 
-    # Ensure that the correct output folder structures exist, centralize folder names.
-    # Note that frequencies
+    # Ensure that the correct output folder structures exist, centralize folder
+    # names. Note that frequencies
     trajectory_folder = f"{output_folder}/trajectory"
     logs_folder = f"{output_folder}/logs"
     os.makedirs(output_folder, exist_ok=True)
@@ -1636,7 +1636,7 @@ def gps_stats_main(
     if participant_ids is None:
         participant_ids = get_ids(study_folder)
 
-    # Create a record of processed user participant_id and starting/ending time.
+    # Create a record of processed participant_id and starting/ending time.
     # These are updated and saved to disk after each participant is processed.
     all_memory_dict_file = f"{output_folder}/all_memory_dict.pkl"
     all_bv_set_file = f"{output_folder}/all_bv_set.pkl"
@@ -1737,7 +1737,8 @@ def gps_stats_main(
                     index=False
                 )
 
-            # generate summary stats. (variable "frequency" is already declared in signature)
+            # generate summary stats.
+            # (variable "frequency" is already declared in signature)
             for freq in frequencies:
                 gps_stats_generate_summary(
                     traj=traj,
@@ -1766,8 +1767,7 @@ def gps_stats_generate_summary(
         logs_folder: str,
         parameters: Hyperparameters,
         places_of_interest: Optional[list] = None,
-        osm_tags: Optional[List[OSMTags]] = None,
-    ):
+        osm_tags: Optional[List[OSMTags]] = None):
     """This is simply the inner functionality of gps_stats_main.
     Runs summaries code, writes to disk, saves logs if required. """
     summary_stats, logs = gps_summaries(
