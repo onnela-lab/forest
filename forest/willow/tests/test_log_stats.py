@@ -17,6 +17,14 @@ def test_comm_log_summaries_with_empty_data():
     assert isinstance(stats_pdframe, pd.DataFrame)
 
 
+def test_comm_log_summaries_with_empty_data_hourly():
+    text_data = pd.DataFrame.from_dict({})
+    call_data = pd.DataFrame.from_dict({})
+    stats_pdframe = comm_logs_summaries(text_data, call_data, STAMP_START,
+                                        STAMP_END, TZ_STR, Frequency.HOURLY)
+    assert isinstance(stats_pdframe, pd.DataFrame)
+
+
 def test_comm_log_summaries_with_empty_text_data():
     text_data = pd.DataFrame.from_dict({})
     call_data = pd.DataFrame.from_dict(

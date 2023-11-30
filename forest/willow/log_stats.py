@@ -17,8 +17,8 @@ from forest.poplar.legacy.common_funcs import (
 )
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def text_analysis(
@@ -304,9 +304,6 @@ def comm_logs_summaries(
 
     Returns:
         pandas dataframe of summary stats
-
-    Raises:
-        ValueError: if frequency is not of correct type
     """
     summary_stats = []
     start_year, start_month, start_day, start_hour, _, _ = stamp2datetime(
@@ -318,7 +315,9 @@ def comm_logs_summaries(
 
     # determine the starting and ending timestamp again based on the frequency
     if frequency == Frequency.HOURLY_AND_DAILY:
-        raise ValueError("frequency not of correct type")
+        logger.error(
+            "Error: frequency cannot be HOURLY_AND_DAILY for this function"
+        )
 
     if frequency == Frequency.DAILY:
         table_start = datetime2stamp(
@@ -337,7 +336,7 @@ def comm_logs_summaries(
 
     # determine the step size based on the frequency
     # step_size is in seconds
-    step_size = 3600 * frequency.value
+    step_size = 60 * frequency.value
 
     # for each chunk, calculate the summary statistics (colmean or count)
     for stamp in np.arange(table_start, table_end + 1, step=step_size):
@@ -366,7 +365,7 @@ def comm_logs_summaries(
         if frequency == Frequency.DAILY:
             newline = [year, month, day] + newline
         else:
-            newline = [year, month, day, hour] + newline[:16]
+            newline = [year, month, day, hour] + newline[:17]
 
         summary_stats.append(newline)
 
@@ -429,6 +428,15 @@ def log_stats_main(
         time_end: ending timestamp of the study
         beiwe_ids: list of Beiwe IDs to be processed
     """
+
+    if frequency not in [
+        Frequency.HOURLY_AND_DAILY, Frequency.DAILY, Frequency.HOURLY
+    ]:
+        logger.error(
+            "Error: frequency must be one of the following: "
+            "HOURLY_AND_DAILY, DAILY, HOURLY"
+        )
+
     if frequency == Frequency.HOURLY_AND_DAILY:
         frequencies = [Frequency.HOURLY, Frequency.DAILY]
     else:

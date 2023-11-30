@@ -85,7 +85,8 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
                              z_bout_interp**2)
 
     # standardize measurement to gravity units (g) if its recorded in m/s**2
-    if np.mean(vm_bout_interp) > 5:
+    # Also avoid a runtime warning of taking the mean of an empty slice
+    if vm_bout_interp.shape[0] > 0 and np.mean(vm_bout_interp) > 5:
         x_bout_interp = x_bout_interp/9.80665
         y_bout_interp = y_bout_interp/9.80665
         z_bout_interp = z_bout_interp/9.80665
@@ -137,8 +138,7 @@ def get_pp(vm_bout: np.ndarray, fs: int = 10) -> npt.NDArray[np.float64]:
 
     """
     vm_res_sec = vm_bout.reshape((fs, -1), order="F")
-    pp = np.array([max(vm_res_sec[:, i])-min(vm_res_sec[:, i])
-                   for i in range(vm_res_sec.shape[1])])
+    pp = np.ptp(vm_res_sec, axis=0)
 
     return pp
 
@@ -450,24 +450,29 @@ def preprocess_dates(
         date.replace(tzinfo=from_zone).astimezone(to_zone) for date in dates
     ]
     # trim dataset according to time_start and time_end
-    if time_start is not None and time_end is not None:
+    if time_start is None or time_end is None:
+        dates_filtered = dates
+    else:
         time_min = datetime.strptime(time_start, fmt)
         time_min = time_min.replace(tzinfo=from_zone).astimezone(to_zone)
         time_max = datetime.strptime(time_end, fmt)
         time_max = time_max.replace(tzinfo=from_zone).astimezone(to_zone)
-        dates = [date for date in dates if time_min <= date <= time_max]
+        dates_filtered = [
+            date for date in dates if time_min <= date <= time_max
+        ]
 
     dates_shifted = [date-timedelta(hours=date.hour) for date in dates]
+
     # create time vector with days for analysis
     if time_start is None:
-        date_start = dates_shifted[0]
+        date_start = dates_filtered[0]
         date_start = date_start - timedelta(hours=date_start.hour)
     else:
         date_start = datetime.strptime(time_start, fmt)
         date_start = date_start.replace(tzinfo=from_zone).astimezone(to_zone)
         date_start = date_start - timedelta(hours=date_start.hour)
     if time_end is None:
-        date_end = dates_shifted[-1]
+        date_end = dates_filtered[-1]
         date_end = date_end - timedelta(hours=date_end.hour)
     else:
         date_end = datetime.strptime(time_end, fmt)
@@ -478,7 +483,7 @@ def preprocess_dates(
 
 
 def run_hourly(
-    t_hours_pd: pd.Series, days_hourly: pd.DatetimeIndex,
+    t_hours_pd: pd.Series, t_ind_pydate: list,
     cadence_bout: np.ndarray, steps_hourly: np.ndarray,
     walkingtime_hourly: np.ndarray, cadence_hourly: np.ndarray,
     frequency: Frequency
@@ -489,7 +494,7 @@ def run_hourly(
     Args:
         t_hours_pd: pd.Series
             timestamp of each measurement
-        days_hourly: pd.DatetimeIndex
+        t_ind_pydate: list
             list of days with hourly resolution
         cadence_bout: np.ndarray
             cadence of each measurement
@@ -503,11 +508,10 @@ def run_hourly(
             summary statistics format, Frequency class at constants.py
     """
     for t_unique in t_hours_pd.unique():
-        t_ind_pydate = [t_ind.to_pydatetime() for t_ind in days_hourly]
         # get indexes of ranges of dates that contain t_unique
         ind_to_store = -1
         for ind_to_store, t_ind in enumerate(t_ind_pydate):
-            if t_ind <= t_unique < t_ind + timedelta(hours=frequency.value):
+            if t_ind <= t_unique < t_ind + timedelta(minutes=frequency.value):
                 break
         cadence_temp = cadence_bout[t_hours_pd == t_unique]
         cadence_temp = cadence_temp[cadence_temp > 0]
@@ -555,13 +559,15 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
     from_zone = tz.gettz('UTC')
     to_zone = tz.gettz(tz_str) if tz_str else from_zone
 
+    freq_str = frequency.name.lower()
+
     # create folders to store results
     if frequency == Frequency.HOURLY_AND_DAILY:
         os.makedirs(os.path.join(output_folder, "daily"), exist_ok=True)
         os.makedirs(os.path.join(output_folder, "hourly"), exist_ok=True)
     else:
         os.makedirs(
-            os.path.join(output_folder, frequency.name.lower()), exist_ok=True
+            os.path.join(output_folder, freq_str), exist_ok=True
         )
     if users is None:
         users = get_ids(study_folder)
@@ -578,21 +584,38 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
         )
 
         days = pd.date_range(date_start, date_end, freq='D')
-        if (frequency == Frequency.HOURLY_AND_DAILY
-                or frequency == Frequency.HOURLY):
-            freq = 'H'
-        else:
-            freq = str(frequency.value) + 'H'
-        days_hourly = pd.date_range(date_start, date_end+timedelta(days=1),
-                                    freq=freq)[:-1]
+
         # allocate memory
         steps_daily = np.full((len(days), 1), np.nan)
         cadence_daily = np.full((len(days), 1), np.nan)
         walkingtime_daily = np.full((len(days), 1), np.nan)
 
-        steps_hourly = np.full((len(days_hourly), 1), np.nan)
-        cadence_hourly = np.full((len(days_hourly), 1), np.nan)
-        walkingtime_hourly = np.full((len(days_hourly), 1), np.nan)
+        steps_hourly = np.full((1, 1), np.nan)
+        cadence_hourly = np.full((1, 1), np.nan)
+        walkingtime_hourly = np.full((1, 1), np.nan)
+        t_ind_pydate = pd.Series([], dtype='datetime64[ns]')
+        t_ind_pydate_str = None
+
+        if frequency != Frequency.DAILY:
+            if (
+                frequency == Frequency.HOURLY_AND_DAILY
+                or frequency == Frequency.HOURLY
+            ):
+                freq = 'H'
+            elif frequency == Frequency.MINUTELY:
+                freq = 'T'
+            else:
+                freq = str(frequency.value/60) + 'H'
+
+            days_hourly = pd.date_range(date_start, date_end+timedelta(days=1),
+                                        freq=freq)[:-1]
+
+            steps_hourly = np.full((len(days_hourly), 1), np.nan)
+            cadence_hourly = np.full((len(days_hourly), 1), np.nan)
+            walkingtime_hourly = np.full((len(days_hourly), 1), np.nan)
+
+            t_ind_pydate = days_hourly.to_pydatetime()
+            t_ind_pydate_str = t_ind_pydate.astype(str)
 
         for d_ind, d_datetime in enumerate(days):
             logger.info("Day: %d", d_ind)
@@ -618,6 +641,8 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
             z = np.array(data["z"], dtype="float64")  # z-axis acc.
             # preprocess data fragment
             t_bout_interp, vm_bout = preprocess_bout(timestamp, x, y, z)
+            if len(t_bout_interp) == 0:  # no valid data to process here
+                continue
             # find walking and estimate cadence
             cadence_bout = find_walking(vm_bout)
             # distribute metrics across hours
@@ -628,14 +653,18 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                 ]
                 # transform t to full hours
                 t_series = pd.Series(t_datetime)
-                t_hours_pd = t_series.dt.floor('H')
+                if frequency == Frequency.MINUTELY:
+                    t_hours_pd = t_series.dt.floor('T')
+                else:
+                    t_hours_pd = t_series.dt.floor('H')
+
                 # convert t_hours to correct timezone
                 t_hours_pd = t_hours_pd.dt.tz_localize(
                     from_zone
                 ).dt.tz_convert(to_zone)
 
                 run_hourly(
-                    t_hours_pd, days_hourly, cadence_bout, steps_hourly,
+                    t_hours_pd, t_ind_pydate, cadence_bout, steps_hourly,
                     walkingtime_hourly, cadence_hourly, frequency
                 )
 
@@ -660,8 +689,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                 summary_stats.to_csv(dest_path, index=False)
             if frequency != Frequency.DAILY:
                 summary_stats = pd.DataFrame({
-                    'date': [date.strftime('%Y-%m-%d %H:%M:%S')
-                             for date in days_hourly],
+                    'date': t_ind_pydate_str,
                     'walking_time': walkingtime_hourly[:, -1],
                     'steps': steps_hourly[:, -1],
                     'cadence': cadence_hourly[:, -1]})
@@ -669,6 +697,6 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                 if frequency == Frequency.HOURLY_AND_DAILY:
                     freq_name = "hourly"
                 else:
-                    freq_name = frequency.name.lower()
+                    freq_name = freq_str
                 dest_path = os.path.join(output_folder, freq_name, output_file)
                 summary_stats.to_csv(dest_path, index=False)
