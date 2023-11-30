@@ -1,4 +1,0 @@
-question id,question type,question text,question answer options,answer
-90268105-b59e-4e17-d231-613e8523e310,Radio Button Question,This question should not get flagged (v2),[This choice should not get flagged (v2); This choice should not get flagged (v2); this one should not be flagged too (v2)],0
-1cd434c3-9d1a-4211-a47f-942cae1515f2,Radio Button Question,This question should not get flagged,[No commas here!; Nope. No commas here.],0
-07369e05-b2f7-465a-e66e-8e473fcd3c2f,Radio Button Question,This question should be flagged,[here (;) is a comma; ; comma at begin; comma at end ;; ;semicolon at begin; semicolon at end;; no problems here],0

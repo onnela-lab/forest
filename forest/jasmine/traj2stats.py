@@ -2,6 +2,7 @@
 modules and calculate summary statistics of imputed trajectories.
 """
 
+from ast import Attribute
 from dataclasses import dataclass
 from datetime import datetime
 import json
@@ -1547,7 +1548,7 @@ def gps_quality_check(study_folder: str, study_id: str) -> float:
                 cols_present = [col for col in cols_to_check if col in df.columns]
                 if len(cols_present) == len(cols_to_check):
                     df = df[['timestamp', 'UTC time', 'latitude', 'longitude', 'altitude', 'accuracy']]
-                print(df)
+                print(f"here is df:{df} ")
             #end philip line
             
             if df.shape[0] > 60:
@@ -1684,7 +1685,11 @@ def gps_stats_main(
             else:
                 params_h = parameters.h
             if parameters.w is None:
-                params_w = np.mean(data.accuracy)
+                try:
+                    params_w = np.mean(data.accuracy)
+                except AttributeError:
+                    print("No accuracy column in the data.")
+                    continue
             else:
                 params_w = parameters.w
             # process data

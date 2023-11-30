@@ -1,5 +1,0 @@
-timestamp,UTC time,question id,survey id,question type,question text,question answer options,answer
-1654317847456,2022-06-04T04:44:07.456,Survey first rendered and displayed to user,ESBAWuEB7iux4jR3MBb4fwIG
-1654317851336,2022-06-04T04:44:11.336,90268105-b59e-4e17-d231-613e8523e310,ESBAWuEB7iux4jR3MBb4fwIG,Radio Button Question,This question should not get flagged (v2),[This choice should not get flagged (v2); This choice should not get flagged (v2); this one should not be flagged too (v2)],This choice should not get flagged (v2)
-1654317853092,2022-06-04T04:44:13.092,1cd434c3-9d1a-4211-a47f-942cae1515f2,ESBAWuEB7iux4jR3MBb4fwIG,Radio Button Question,This question should not get flagged,[No commas here!; Nope. No commas here.],No commas here!
-1654317855217,2022-06-04T04:44:15.217,07369e05-b2f7-465a-e66e-8e473fcd3c2f,ESBAWuEB7iux4jR3MBb4fwIG,Radio Button Question,This question should be flagged,[here (;) is a comma; ; comma at begin; comma at end ;; ;semicolon at begin; semicolon at end;; no problems here],here (;) is a comma

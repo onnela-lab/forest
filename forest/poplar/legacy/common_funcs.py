@@ -4,6 +4,7 @@ from datetime import datetime
 import logging
 import os
 from typing import Optional, Any, List, Union, Tuple
+import re
 
 import numpy as np
 import pandas as pd
@@ -77,12 +78,25 @@ def filename2stamp(filename: str) -> int:
     Returns:
         UNIX time (int)
     """
-    [d_str, h_str] = filename.split(" ")
-    [year, month, day] = np.array(d_str.split("-"), dtype=int)
-    hour = int(h_str.split("_")[0])
+    #[d_str, h_str] = filename.split(" ")
+    #[year, month, day] = np.array(d_str.split("-"), dtype=int)
+    #hour = int(h_str.split("_")[0])
 
-    stamp = datetime2stamp((year, month, day, hour, 0, 0), "UTC")
-    return stamp
+    #stamp = datetime2stamp((year, month, day, hour, 0, 0), "UTC")
+    if re.match(r'^\d+\.csv$', filename):
+        return int(filename.split('.')[0])
+    else:
+        try:
+            [d_str, h_str] = filename.split(" ")
+            [year, month, day] = np.array(d_str.split("-"), dtype=int)
+            hour = int(h_str.split("_")[0])
+
+            stamp = datetime2stamp([year, month, day, hour, 0, 0], "America/New_York")
+            return stamp
+        except ValueError:
+            print(f"Filename {filename} does not match expected format")
+            return None
+    #return stamp
 
 
 def get_files_timestamps(folder_path: str) -> Tuple[np.ndarray, np.ndarray]:
@@ -248,6 +262,18 @@ def read_data(
                 for data_file in files_in_range:
                     dest_path = os.path.join(folder_path, data_file)
                     hour_data = pd.read_csv(dest_path)
+                    #philip line
+                    df = hour_data
+                    if 'timestamp' in df.columns:
+                        df['timestamp_seconds'] = df['timestamp'] / 1000
+                        # Convert to UTC datetime and format
+                        df['UTC time'] = df['timestamp_seconds'].apply(lambda x: datetime.utcfromtimestamp(x).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3])
+                        # Reorder columns
+                        try: 
+                            df = df[['timestamp', 'UTC time', 'latitude', 'longitude', 'altitude', 'accuracy']]
+                            hour_data = df
+                        except KeyError:
+                           print(f"key error in df: common func df {df}")
                     if res.shape[0] == 0:
                         res = hour_data
                     else:

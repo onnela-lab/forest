@@ -304,6 +304,9 @@ def comm_logs_summaries(
 
     Returns:
         pandas dataframe of summary stats
+
+    Raises:
+        ValueError: if frequency is not of correct type
     """
     summary_stats = []
     start_year, start_month, start_day, start_hour, _, _ = stamp2datetime(
@@ -315,9 +318,7 @@ def comm_logs_summaries(
 
     # determine the starting and ending timestamp again based on the frequency
     if frequency == Frequency.HOURLY_AND_DAILY:
-        logger.error(
-            "Error: frequency cannot be HOURLY_AND_DAILY for this function"
-        )
+        raise ValueError("frequency not of correct type")
 
     if frequency == Frequency.DAILY:
         table_start = datetime2stamp(
@@ -336,7 +337,7 @@ def comm_logs_summaries(
 
     # determine the step size based on the frequency
     # step_size is in seconds
-    step_size = 60 * frequency.value
+    step_size = 3600 * frequency.value
 
     # for each chunk, calculate the summary statistics (colmean or count)
     for stamp in np.arange(table_start, table_end + 1, step=step_size):
@@ -428,15 +429,6 @@ def log_stats_main(
         time_end: ending timestamp of the study
         beiwe_id: list of Beiwe IDs to be processed
     """
-
-    if frequency not in [
-        Frequency.HOURLY_AND_DAILY, Frequency.DAILY, Frequency.HOURLY
-    ]:
-        logger.error(
-            "Error: frequency must be one of the following: "
-            "HOURLY_AND_DAILY, DAILY, HOURLY"
-        )
-
     os.makedirs(output_folder, exist_ok=True)
 
     if frequency == Frequency.HOURLY_AND_DAILY:

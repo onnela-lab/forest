@@ -759,12 +759,13 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
             if not accelerometer_file_viable(file_path):
                 logger.info("File %s is not viable", file_path)
                 continue
-            #if data["timestamp"].isnull().values.any():
-               # print("timestamp is null")
-              #  continue
-           # if data["timestamp"].isna().values.any():
-            #    print("timestamp is na")
-             #   continue
+            if data["timestamp"].isnull().values.any():
+                print("timestamp is null")
+                continue
+            if data["timestamp"].isna().values.any():
+                print("timestamp is na")
+                continue
+            print(np.array(data["timestamp"]))
             if data.shape[0] == 0:
                 continue
             
@@ -793,8 +794,10 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
             print("Start:", timestamp[0], "End:", timestamp[-1])
             print(f"{type(timestamp[0])} {type(timestamp[-1])}")
             if np.isnan(timestamp[0]):
+                print("first nan")
                 continue
             if np.isnan(timestamp[-1]):
+                print("should have continued")
                 continue
             t_bout_interp, vm_bout = preprocess_bout(timestamp, x, y, z)
             # find walking and estimate cadence
