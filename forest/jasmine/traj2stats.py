@@ -1533,22 +1533,24 @@ def gps_quality_check(study_folder: str, study_id: str) -> float:
         ]
         file_path_array = np.sort(np.array(file_path))
         # check if there are enough data for the following algorithm
+         # check if there are enough data for the following algorithm
         quality_yes = 0.
         for i, _ in enumerate(file_path_array):
-            df = pd.read_csv(file_path_array[i])
+            df = pd.read_csv(file_path_array[i], error_bad_lines=False, warn_bad_lines=True)
             #philip line
             # Convert timestamp from milliseconds to seconds
             if 'timestamp' in df.columns:
                 df['timestamp_seconds'] = df['timestamp'] / 1000
                 # Convert to UTC datetime and format
                 df['UTC time'] = df['timestamp_seconds'].apply(lambda x: datetime.utcfromtimestamp(x).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3])
-                # Reorder columns to match your desired format
-
                 cols_to_check = ['longitude', 'altitude', 'latitude', 'accuracy']
                 cols_present = [col for col in cols_to_check if col in df.columns]
                 if len(cols_present) == len(cols_to_check):
                     df = df[['timestamp', 'UTC time', 'latitude', 'longitude', 'altitude', 'accuracy']]
-                print(f"here is df:{df} ")
+                    print(f"here is df:{df} ")
+                else :
+                    quality_check = 0.
+            #end philip line
             #end philip line
             
             if df.shape[0] > 60:
