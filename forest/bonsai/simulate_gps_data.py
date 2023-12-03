@@ -27,8 +27,8 @@ ACTIVE_STATUS_LIST = range(11)
 TRAVELLING_STATUS_LIST = range(11)
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class PossibleExits(Enum):

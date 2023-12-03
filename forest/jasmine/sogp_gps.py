@@ -14,8 +14,8 @@ from typing import Dict, Tuple
 import numpy as np
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def calculate_k0(x1: np.ndarray, x2: np.ndarray, pars: list) -> float:
