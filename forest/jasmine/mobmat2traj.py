@@ -13,8 +13,8 @@ from ..poplar.legacy.common_funcs import stamp2datetime
 from .data2mobmat import great_circle_dist, exist_knot
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 # the details of the functions are in paper [Liu and Onnela (2020)]

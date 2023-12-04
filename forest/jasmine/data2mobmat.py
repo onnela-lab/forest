@@ -15,8 +15,8 @@ from forest.constants import EARTH_RADIUS_METERS
 TOLERANCE = 1e-6
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def cartesian(
