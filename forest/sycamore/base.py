@@ -107,6 +107,24 @@ def compute_survey_stats(
     if end_date is None:
         end_date = get_month_from_today()
 
+   # List all directories in the base folder
+    participants = [d for d in os.listdir(study_folder) if os.path.isdir(os.path.join(study_folder, d))]
+
+    # Iterate over each participant's folder
+    for participant in participants:
+        participant_path = os.path.join(study_folder, participant)
+        survey_answers_path = os.path.join(participant_path, 'survey_answers')
+        survey_timings_path = os.path.join(participant_path, 'survey_timings')
+        gps_path = os.path.join(participant_path, 'gps')
+
+    # Check if the 'survey_answers' folder exists
+        if not os.path.exists(survey_answers_path):
+            print(f"Participant '{participant}' does not have a 'survey_answers' folder.")
+        if not os.path.exists(survey_timings_path):
+            print(f"Participant '{participant}' does not have a 'survey_timings' folder.")
+        #if not os.path.exists(gps_path):
+        #    print(f"Participant '{participant}' does not have a 'gps' folder.")
+
     # Read, aggregate and clean data
     if config_path is None:
         logger.warning("No config file provided. "
