@@ -602,7 +602,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                 or frequency == Frequency.HOURLY
             ):
                 freq = 'H'
-            elif frequency == Frequency.MINUTELY:
+            elif frequency == Frequency.MINUTE:
                 freq = 'T'
             else:
                 freq = str(frequency.value/60) + 'H'
@@ -653,7 +653,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                 ]
                 # transform t to full hours
                 t_series = pd.Series(t_datetime)
-                if frequency == Frequency.MINUTELY:
+                if frequency == Frequency.MINUTE:
                     t_hours_pd = t_series.dt.floor('T')
                 else:
                     t_hours_pd = t_series.dt.floor('H')
