@@ -19,12 +19,17 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.8
-      - name: Install Forest dependencies
+      - name: Install Forest dependencies for Linux
         # required by librosa
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg libsndfile1
+      - name: Install Forest dependencies for Windows
+        # required by librosa
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        uses: FedericoCarboni/setup-ffmpeg@v2
+        id: setup-ffmpeg
       - name: Install Forest
         run: pip install -e .
       - name: Install dev dependencies
