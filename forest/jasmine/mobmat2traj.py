@@ -662,7 +662,7 @@ def forward_impute(
             method, start_t, start_x, start_y,
             flight_table, pars
         )
-        if weight is None:
+        if weight is None or len(weight) == 0:
             sys.exit("Invalid method for calculate_k1.")
 
         normalize_w = (weight + 1e-5) / float(sum(weight + 1e-5))
@@ -907,7 +907,7 @@ def backward_impute(
                 method, end_t, end_x, end_y,
                 pause_table, pars
             )
-            if weight is None:
+            if weight is None or len(weight) == 0:
                 sys.exit("Invalid method for calculate_k1.")
 
             normalize_w = (weight + 1e-5) / float(sum(weight + 1e-5))
@@ -971,6 +971,11 @@ def impute_gps(
     # create three tables
     # for observed flights, observed pauses, and missing intervals
     flight_table, pause_table, mis_table = create_tables(mob_mat, bv_subset)
+
+    if len(flight_table) == 0:
+        sys.exit("No flight observed in the data.")
+    if len(pause_table) == 0:
+        sys.exit("No pause observed in the data.")
 
     # initialize the imputed trajectory table
     imp_table = np.zeros((1, 7))
