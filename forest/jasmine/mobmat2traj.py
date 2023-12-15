@@ -3,7 +3,6 @@ trajectories. It is part of the Jasmine package.
 """
 import logging
 import math
-import sys
 from typing import Optional, Tuple
 
 import numpy as np
@@ -278,7 +277,7 @@ def indicate_flight(
     # Calculate k1 using the specified method
     k1 = calculate_k1(method, current_t, current_x, current_y, bv_subset, pars)
     if k1 is None:
-        sys.exit("Invalid method for calculate_k1.")
+        raise ValueError("Invalid method for calculate_k1.")
 
     # Select flight and pause indicators from the bv_subset
     flight_k = k1[bv_subset[:, 0] == 1]
@@ -663,7 +662,7 @@ def forward_impute(
             flight_table, pars
         )
         if weight is None or len(weight) == 0:
-            sys.exit("Invalid method for calculate_k1.")
+            raise ValueError("Invalid method for calculate_k1.")
 
         normalize_w = (weight + 1e-5) / float(sum(weight + 1e-5))
         flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
@@ -743,7 +742,7 @@ def forward_impute(
                 pause_table, pars
             )
             if weight is None:
-                sys.exit("Invalid method for calculate_k1.")
+                raise ValueError("Invalid method for calculate_k1.")
 
             normalize_w = (weight + 1e-5) / float(sum(weight + 1e-5))
             pause_index = np.random.choice(pause_table.shape[0], p=normalize_w)
@@ -832,7 +831,7 @@ def backward_impute(
             flight_table, pars
         )
         if weight is None:
-            sys.exit("Invalid method for calculate_k1.")
+            raise ValueError("Invalid method for calculate_k1.")
 
         normalize_w = (weight + 1e-5) / float(sum(weight + 1e-5))
         flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
@@ -908,7 +907,7 @@ def backward_impute(
                 pause_table, pars
             )
             if weight is None or len(weight) == 0:
-                sys.exit("Invalid method for calculate_k1.")
+                raise ValueError("Invalid method for calculate_k1.")
 
             normalize_w = (weight + 1e-5) / float(sum(weight + 1e-5))
             pause_index = np.random.choice(pause_table.shape[0], p=normalize_w)
@@ -973,9 +972,9 @@ def impute_gps(
     flight_table, pause_table, mis_table = create_tables(mob_mat, bv_subset)
 
     if len(flight_table) == 0:
-        sys.exit("No flight observed in the data.")
+        raise ValueError("No flight observed in the data.")
     if len(pause_table) == 0:
-        sys.exit("No pause observed in the data.")
+        raise ValueError("No pause observed in the data.")
 
     # initialize the imputed trajectory table
     imp_table = np.zeros((1, 7))
