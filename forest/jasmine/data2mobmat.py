@@ -181,7 +181,7 @@ def collapse_data(
     data = data[data.accuracy < accuracy_limit]
     if data.shape[0] == 0:
         raise ValueError(
-            "No GPS record with accuracy less than {}.".format(accuracy_limit)
+            f"No GPS record with accuracy less than {accuracy_limit}."
         )
 
     # Get the start and end timestamps in seconds
