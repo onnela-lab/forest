@@ -1125,7 +1125,7 @@ def gps_summaries(
         ValueError: Frequency is not valid
     """
 
-    if frequency in [Frequency.HOURLY_AND_DAILY, Frequency.MINUTELY]:
+    if frequency in [Frequency.HOURLY_AND_DAILY, Frequency.MINUTE]:
         raise ValueError(f"Frequency cannot be {frequency.name.lower()}.")
 
     if frequency != Frequency.DAILY:
@@ -1600,7 +1600,7 @@ def gps_stats_main(
     """
 
     # no minutely analysis on GPS data
-    if frequency == Frequency.MINUTELY:
+    if frequency == Frequency.MINUTE:
         raise ValueError("Frequency cannot be minutely.")
 
     os.makedirs(output_folder, exist_ok=True)

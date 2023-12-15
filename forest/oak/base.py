@@ -55,6 +55,13 @@ def preprocess_bout(t_bout: np.ndarray, x_bout: np.ndarray, y_bout: np.ndarray,
             - t_bout_interp: resampled timestamp (in Unix)
             - vm_bout_interp: vector magnitude of acceleration
     """
+
+    if (
+        len(t_bout) < 2 or len(x_bout) < 2 or
+        len(y_bout) < 2 or len(z_bout) < 2
+    ):
+        return np.array([]), np.array([])
+
     t_bout_interp = t_bout - t_bout[0]
     t_bout_interp = np.arange(t_bout_interp[0], t_bout_interp[-1], (1/fs))
     t_bout_interp = t_bout_interp + t_bout[0]
@@ -602,7 +609,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                 or frequency == Frequency.HOURLY
             ):
                 freq = 'H'
-            elif frequency == Frequency.MINUTELY:
+            elif frequency == Frequency.MINUTE:
                 freq = 'T'
             else:
                 freq = str(frequency.value/60) + 'H'
@@ -653,7 +660,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                 ]
                 # transform t to full hours
                 t_series = pd.Series(t_datetime)
-                if frequency == Frequency.MINUTELY:
+                if frequency == Frequency.MINUTE:
                     t_hours_pd = t_series.dt.floor('T')
                 else:
                     t_hours_pd = t_series.dt.floor('H')
