@@ -179,6 +179,10 @@ def collapse_data(
     # Filter out rows where the GPS accuracy is beyond
     # the provided accuracy_limit
     data = data[data.accuracy < accuracy_limit]
+    if data.shape[0] == 0:
+        raise ValueError(
+            "No GPS record with accuracy less than {}.".format(accuracy_limit)
+        )
 
     # Get the start and end timestamps in seconds
     t_start = sorted(np.array(data.timestamp))[0] / 1000
