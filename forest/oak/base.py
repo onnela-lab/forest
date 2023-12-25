@@ -28,7 +28,9 @@ from ssqueezepy import ssq_cwt
 from forest.constants import Frequency
 from forest.utils import get_ids
 import pytz 
-from datetime import datetime, timezone 
+from datetime import datetime, timezone
+
+from torch import Value 
 
 
 
@@ -676,6 +678,9 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
         )
     if users is None:
         users = get_ids(study_folder)
+        index = users.index("rmzjfefw")
+        users = users[index:]
+        print(f"users: {users}")
 
     for user in users:
         logger.info("Beiwe ID: %s", user)
@@ -749,11 +754,23 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                 logger.info("File: %d", f)
                 file_path = os.path.join(source_folder, file_list[f])
                 #data = pd.concat([data, pd.read_csv(file_path)], axis=0)
+
+                
                 try:
-                    data = pd.concat([data, pd.read_csv(file_path, encoding='utf-8')], axis=0)
+                    #data = pd.concat([data, pd.read_csv(file_path, encoding='utf-8')], axis=0)
+                     if os.path.getsize(file_path) > 0:
+                        new_data = pd.read_csv(file_path, encoding='utf-8')
+                        data = pd.concat([data, new_data], axis=0)
+                     else:
+                        print(f"File {file_path} is empty.")
                 except UnicodeDecodeError:
                     # Try a different encoding if UTF-8 fails
                     continue
+                except pd.errors.EmptyDataError:
+                    continue
+                except Exception as e:
+                    print(f"An error occurred while processing {file_path}: {e}")
+                
 
             # extract data
             if not accelerometer_file_viable(file_path):
@@ -775,10 +792,13 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                 print("timestamp is not a number")
           
             #timestamp = np.nan_to_num(timestamp)
-
-            x = np.array(data["x"], dtype="float64")  # x-axis acc.
-            y = np.array(data["y"], dtype="float64")  # y-axis acc.
-            z = np.array(data["z"], dtype="float64")  # z-axis acc.
+            try:
+                x = np.array(data["x"], dtype="float64")  # x-axis acc.
+                y = np.array(data["y"], dtype="float64")  # y-axis acc.
+                z = np.array(data["z"], dtype="float64")  # z-axis acc.
+            except ValueError:
+                print("x, y, or z is not a number")
+                continue
             # preprocess data fragment
             """maskx = np.zeros((len(x),), dtype=bool)
             masky = np.zeros((len(y),), dtype=bool)
@@ -799,7 +819,12 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
             if np.isnan(timestamp[-1]):
                 print("should have continued")
                 continue
-            t_bout_interp, vm_bout = preprocess_bout(timestamp, x, y, z)
+            try:
+                t_bout_interp, vm_bout = preprocess_bout(timestamp, x, y, z)
+            except ZeroDivisionError:
+                print(f"division by zero")
+                continue
+
             # find walking and estimate cadence
             cadence_bout = find_walking(vm_bout)
             # distribute metrics across hours

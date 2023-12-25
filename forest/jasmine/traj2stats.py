@@ -1533,11 +1533,14 @@ def gps_quality_check(study_folder: str, study_id: str) -> float:
         ]
         file_path_array = np.sort(np.array(file_path))
         # check if there are enough data for the following algorithm
-         # check if there are enough data for the following algorithm
         quality_yes = 0.
         for i, _ in enumerate(file_path_array):
-            df = pd.read_csv(file_path_array[i], error_bad_lines=False, warn_bad_lines=True)
-            #philip line
+            try:
+                df = pd.read_csv(file_path_array[i], error_bad_lines=False, warn_bad_lines=True)
+            except UnicodeDecodeError:
+                print(f"unicode error")
+                quality_check = 0.
+           #philip line
             # Convert timestamp from milliseconds to seconds
             if 'timestamp' in df.columns:
                 df['timestamp_seconds'] = df['timestamp'] / 1000
@@ -1550,7 +1553,6 @@ def gps_quality_check(study_folder: str, study_id: str) -> float:
                     print(f"here is df:{df} ")
                 else :
                     quality_check = 0.
-            #end philip line
             #end philip line
             
             if df.shape[0] > 60:
@@ -1645,6 +1647,8 @@ def gps_stats_main(
     # participant_ids should be a list of str
     if participant_ids is None:
         participant_ids = get_ids(study_folder)
+        participant_ids.sort()
+
     # create a record of processed user participant_id and starting/ending time
 
     if all_memory_dict is None:
@@ -1670,10 +1674,14 @@ def gps_stats_main(
         if quality > parameters.quality_threshold:
             # read data
             logger.info("Read in the csv files ...")
-            data, _, _ = read_data(
-                participant_id, study_folder, "gps",
-                tz_str, time_start, time_end,
-            )
+            try:
+                data, _, _ = read_data(
+                    participant_id, study_folder, "gps",
+                    tz_str, time_start, time_end,
+                )
+            except Exception as e:
+                logger.error("Error: %s", e)
+                continue
             print(f"data{data}")
             if data.shape == (0, 0):
                 logger.info("No data available.")

@@ -261,7 +261,10 @@ def read_data(
                 # read in the data one by one file and stack them
                 for data_file in files_in_range:
                     dest_path = os.path.join(folder_path, data_file)
-                    hour_data = pd.read_csv(dest_path)
+                    try:
+                        hour_data = pd.read_csv(dest_path)
+                    except UnicodeDecodeError:
+                        print(f"UnicodeDecodeError in {dest_path}")
                     #philip line
                     df = hour_data
                     if 'timestamp' in df.columns:

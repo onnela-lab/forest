@@ -540,6 +540,8 @@ def calculate_delta(
             displacement and time difference
             between two points
     """
+    if flight_table.size == 0:
+        return 0, 0, 0
     delta_x = flight_table[flight_index, 4] - flight_table[flight_index, 1]
     delta_y = flight_table[flight_index, 5] - flight_table[flight_index, 2]
     delta_t = flight_table[flight_index, 6] - flight_table[flight_index, 3]
@@ -666,8 +668,11 @@ def forward_impute(
             sys.exit("Invalid method for calculate_k1.")
 
         normalize_w = (weight + 1e-5) / float(sum(weight + 1e-5))
-        flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
-
+        try:  
+            flight_index = np.random.choice(flight_table.shape[0], p=normalize_w)
+        except ValueError as e:
+            print(f"an error with flight table: {flight_table}")
+            flight_index = 0
         delta_x, delta_y, delta_t = calculate_delta(flight_table, flight_index)
 
         delta_x, delta_y, delta_t = adjust_delta_if_needed(
