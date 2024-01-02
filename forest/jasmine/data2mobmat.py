@@ -179,6 +179,10 @@ def collapse_data(
     # Filter out rows where the GPS accuracy is beyond
     # the provided accuracy_limit
     data = data[data.accuracy < accuracy_limit]
+    if data.shape[0] == 0:
+        raise ValueError(
+            f"No GPS record with accuracy less than {accuracy_limit}."
+        )
 
     # Get the start and end timestamps in seconds
     t_start = sorted(np.array(data.timestamp))[0] / 1000
@@ -1000,7 +1004,8 @@ def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
         (mobmat, np.ones(n_rows).reshape(n_rows, 1))
     )
     # Append new pauses to the trajectory matrix
-    mobmat = np.vstack((mobmat, new_pauses_array))
+    if new_pauses_array.shape[0] > 0:
+        mobmat = np.vstack((mobmat, new_pauses_array))
     # Sort the matrix by start time
     mobmat = mobmat[mobmat[:, 3].argsort()].astype(float)
 
