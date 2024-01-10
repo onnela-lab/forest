@@ -1648,7 +1648,19 @@ def gps_stats_main(
                     or (data["longitude"].min() < -180)):
                 logger.info("Reconciled bad longitude data for user %s",
                             participant_id)
-                data["longitude"] = data["longitude"] % 360 - 180
+                data["longitude"] = (data["longitude"] + 180) % 360 - 180
+                if ((places_of_interest is not None)
+                        or (osm_tags is not None)):
+                    logger.warning("Warning: user %s had longitude values "
+                                   "outside the valid range [-180, 180] "
+                                   "but OSM location summaries were "
+                                   "requested. Longitude values outside "
+                                   "the valid range may signify that GPS "
+                                   "fuzzing was directed to be used in "
+                                   "the study setup file. If GPS "
+                                   "coordinates were fuzzed, OSM "
+                                   "location summaries are meaningless",
+                                   participant_id)
 
             if data.shape == (0, 0):
                 logger.info("No data available.")
