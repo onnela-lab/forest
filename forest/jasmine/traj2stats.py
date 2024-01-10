@@ -1643,6 +1643,13 @@ def gps_stats_main(
                 participant_id, study_folder, "gps",
                 tz_str, time_start, time_end,
             )
+
+            if ((data["longitude"].max() > 180)
+                    or (data["longitude"].min() < -180)):
+                logger.info("Reconciled bad longitude data for user %s",
+                            participant_id)
+                data["longitude"] = data["longitude"] % 360 - 180
+
             if data.shape == (0, 0):
                 logger.info("No data available.")
                 continue
