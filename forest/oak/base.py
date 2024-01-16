@@ -691,7 +691,7 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                     'walking_time': walkingtime_daily[:, -1],
                     'steps': steps_daily[:, -1],
                     'cadence': cadence_daily[:, -1]})
-                output_file = user + "_gait_daily.csv"
+                output_file = user + ".csv"
                 dest_path = os.path.join(output_folder, "daily", output_file)
                 summary_stats.to_csv(dest_path, index=False)
             if frequency != Frequency.DAILY:
