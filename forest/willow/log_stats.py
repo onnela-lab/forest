@@ -457,7 +457,7 @@ def log_stats_main(
     # the corresponding frequency.
     for beiwe_id in beiwe_ids:
         for freq in frequencies:
-            logger.info(f"({freq.name.lower()}) Participant: {beiwe_id}")
+            logger.info("(%s) Participant: %s", freq.name.lower(), beiwe_id)
             try:
                 log_stats_inner(
                     beiwe_id,
@@ -469,7 +469,7 @@ def log_stats_main(
                     time_end
                 )
             except Exception as err:
-                logger.error(f"An error occurred when processing data: {err}")
+                logger.error("An error occurred when processing data: %s", err)
 
     logger.info("Summary statistics obtained. Finished.")
 
@@ -494,7 +494,7 @@ def log_stats_inner(
 
     # give up early if there is no data
     if text_data.shape[0] <= 0 and call_data.shape[0] <= 0:
-        logger.info(f"There was no data for participant {beiwe_id}")
+        logger.info("There was no data for participant %s", beiwe_id)
         return
 
     # stamps from call and text should be the stamp_end
@@ -524,7 +524,7 @@ def log_stats_inner(
                 "Error: "
                 "num_uniq_individuals_call_or_text was found to be less than "
                 "%s for at least one time interval. This error comes from an "
-                "issue with the code, not an issue with the input data." %
+                "issue with the code, not an issue with the input data.",
                 column
             )
 
