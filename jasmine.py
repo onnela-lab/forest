@@ -6,12 +6,14 @@ def main():
     #study_folder = "/Volumes/gustaf_kata/smith/man_dl/ext"
     #output_folder = "/Volumes/gustaf_kata/smith/output/jasmine"
     #study_folder = "/Volumes/One Touch/cnoc/gps_decrypt"
-    study_folder = "/Volumes/One Touch/cnoc/gps_decrypt/"
-    output_folder = "/Volumes/One Touch/cnoc/gps_stats"
+    study_folder = "/Users/nielsgudde/Documents/GitHub/cnoc/gps_decrypt2"
+    output_folder = "/Users/nielsgudde/Documents/GitHub/cnoc/gps_stats"
     tz_str = "America/New_York"
     option = "both"
     time_start = "2018-01-01 00_00_00"
     time_end = "2023-03-01 00_00_00"
+    #time_start = [2020, 1, 1, 0, 0, 0]
+    #time_end = [2020, 2, 1, 0, 0, 0]
 
     frequency = Frequency.DAILY
     save_traj = False

@@ -1536,7 +1536,8 @@ def gps_quality_check(study_folder: str, study_id: str) -> float:
         quality_yes = 0.
         for i, _ in enumerate(file_path_array):
             try:
-                df = pd.read_csv(file_path_array[i], error_bad_lines=False, warn_bad_lines=True)
+                df = pd.read_csv(file_path_array[i])
+##                df = pd.read_csv(file_path_array[i], error_bad_lines=False, warn_bad_lines=True) Removed "bad arguments"
             except UnicodeDecodeError:
                 print(f"unicode error")
                 quality_check = 0.
