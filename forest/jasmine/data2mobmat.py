@@ -619,7 +619,7 @@ def gps_to_mobmat(
     return mobmat
 
 
-def force_valid_longitude(longitude):
+def force_valid_longitude(longitude: float) -> float:
     """Forces a longitude coordinate to be within -180 and 180
     Args:
         longitude: float. The longitude to be coerced
