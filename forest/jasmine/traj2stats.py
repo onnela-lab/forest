@@ -32,8 +32,8 @@ from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
 from forest.utils import get_ids
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 @dataclass
@@ -1125,8 +1125,8 @@ def gps_summaries(
         ValueError: Frequency is not valid
     """
 
-    if frequency == Frequency.HOURLY_AND_DAILY:
-        raise ValueError("Frequency must be 'hourly' or 'daily'")
+    if frequency in [Frequency.HOURLY_AND_DAILY, Frequency.MINUTE]:
+        raise ValueError(f"Frequency cannot be {frequency.name.lower()}.")
 
     if frequency != Frequency.DAILY:
         parameters.split_day_night = False
@@ -1161,7 +1161,7 @@ def gps_summaries(
             traj, [3, 4, 5], tz_str, 3600*24
         )
         window, num_windows = compute_window_and_count(
-            start_stamp, end_stamp, 24, parameters.split_day_night
+            start_stamp, end_stamp, 24*60, parameters.split_day_night
         )
 
     if num_windows <= 0:
@@ -1484,7 +1484,7 @@ def get_time_range(
 
 
 def compute_window_and_count(
-    start_stamp: int, end_stamp: int, window_hours: int,
+    start_stamp: int, end_stamp: int, window_minutes: int,
     split_day_night: bool = False
 ) -> Tuple[int, int]:
     """Computes the window and number of windows based on given time stamps.
@@ -1492,7 +1492,7 @@ def compute_window_and_count(
     Args:
         start_stamp: int, starting time stamp
         end_stamp: int, ending time stamp
-        window_hours: int, window in hours
+        window_minutes: int, window in minutes
         split_day_night: bool, True if split day and night
     Returns:
         A tuple of two integers (window, num_windows):
@@ -1500,7 +1500,7 @@ def compute_window_and_count(
             num_windows: int, number of windows
     """
 
-    window = window_hours * 60 * 60
+    window = window_minutes * 60
     num_windows = (end_stamp - start_stamp) // window
     if split_day_night:
         num_windows *= 2
@@ -1561,7 +1561,8 @@ def gps_stats_main(
     Args:
         study_folder: str, the path of the study folder
         output_folder: str, the path of the folder
-            where you want to save results
+            where you want to save results. A folder named jasmine
+            will be created containing all output.
         tz_str: str, timezone
         frequency: Frequency, the frequency of the summary stats
             (resolution for summary statistics)
@@ -1595,13 +1596,33 @@ def gps_stats_main(
             as pickle files for future use
         and a record csv file to show which users are processed
         and logger csv file to show warnings and bugs during the run
+    Raises:
+        ValueError: Frequency is not valid
     """
-
-    os.makedirs(output_folder, exist_ok=True)
+    # no minutely analysis on GPS data
+    if frequency == Frequency.MINUTE:
+        raise ValueError("Frequency cannot be minutely.")
 
     if parameters is None:
         parameters = Hyperparameters()
 
+    if frequency == Frequency.HOURLY_AND_DAILY:
+        frequencies = [Frequency.HOURLY, Frequency.DAILY]
+    else:
+        frequencies = [frequency]
+
+    # Ensure that the correct output folder structures exist, centralize folder
+    # names. Note that frequencies
+    trajectory_folder = f"{output_folder}/trajectory"
+    logs_folder = f"{output_folder}/logs"
+    os.makedirs(output_folder, exist_ok=True)
+    os.makedirs(logs_folder, exist_ok=True)
+    for freq in frequencies:
+        os.makedirs(f"{output_folder}/{freq.name.lower()}", exist_ok=True)
+    if save_traj:
+        os.makedirs(trajectory_folder, exist_ok=True)
+
+    # pars0 is passed to bv_select, pars1 to impute_gps
     pars0 = [
         parameters.l1, parameters.l2, parameters.l3, parameters.a1,
         parameters.a2, parameters.b1, parameters.b2, parameters.b3
@@ -1614,23 +1635,19 @@ def gps_stats_main(
     # participant_ids should be a list of str
     if participant_ids is None:
         participant_ids = get_ids(study_folder)
-    # create a record of processed user participant_id and starting/ending time
 
+    # Create a record of processed participant_id and starting/ending time.
+    # These are updated and saved to disk after each participant is processed.
+    all_memory_dict_file = f"{output_folder}/all_memory_dict.pkl"
+    all_bv_set_file = f"{output_folder}/all_bv_set.pkl"
     if all_memory_dict is None:
         all_memory_dict = {}
         for participant_id in participant_ids:
             all_memory_dict[str(participant_id)] = None
-
     if all_bv_set is None:
         all_bv_set = {}
         for participant_id in participant_ids:
             all_bv_set[str(participant_id)] = None
-
-    if frequency == Frequency.HOURLY_AND_DAILY:
-        os.makedirs(f"{output_folder}/hourly", exist_ok=True)
-        os.makedirs(f"{output_folder}/daily", exist_ok=True)
-    if save_traj:
-        os.makedirs(f"{output_folder}/trajectory", exist_ok=True)
 
     for participant_id in participant_ids:
         logger.info("User: %s", participant_id)
@@ -1677,6 +1694,7 @@ def gps_stats_main(
                 params_w = np.mean(data.accuracy)
             else:
                 params_w = parameters.w
+
             # process data
             mobmat1 = gps_to_mobmat(
                 data, parameters.itrvl, parameters.accuracylim,
@@ -1694,6 +1712,8 @@ def gps_stats_main(
             )
             all_bv_set[str(participant_id)] = bv_set = out_dict["BV_set"]
             all_memory_dict[str(participant_id)] = out_dict["memory_dict"]
+
+            # impute_gps can fail, if so we skip this participant.
             try:
                 imp_table = impute_gps(
                     mobmat2, bv_set, parameters.method,
@@ -1703,6 +1723,7 @@ def gps_stats_main(
             except RuntimeError as e:
                 logger.error("Error: %s", e)
                 continue
+
             traj = imp_to_traj(imp_table, mobmat2, params_w)
             # raise error if traj coordinates are not in the range of
             # [-90, 90] and [-180, 180]
@@ -1722,72 +1743,64 @@ def gps_stats_main(
                         "[-90, 90] and [-180, 180]."
                     )
             # save all_memory_dict and all_bv_set
-            with open(f"{output_folder}/all_memory_dict.pkl", "wb") as f:
+            with open(all_memory_dict_file, "wb") as f:
                 pickle.dump(all_memory_dict, f)
-            with open(f"{output_folder}/all_bv_set.pkl", "wb") as f:
+            with open(all_bv_set_file, "wb") as f:
                 pickle.dump(all_bv_set, f)
             if save_traj is True:
                 pd_traj = pd.DataFrame(traj)
                 pd_traj.columns = ["status", "x0", "y0", "t0", "x1", "y1",
                                    "t1", "obs"]
                 pd_traj.to_csv(
-                    f"{output_folder}/trajectory/{participant_id}.csv",
+                    f"{trajectory_folder}/{participant_id}.csv",
                     index=False
                 )
-            if frequency == Frequency.HOURLY_AND_DAILY:
-                summary_stats1, logs1 = gps_summaries(
-                    traj,
-                    tz_str,
-                    Frequency.HOURLY,
-                    parameters,
-                    places_of_interest,
-                    osm_tags,
+
+            # generate summary stats.
+            # (variable "frequency" is already declared in signature)
+            for freq in frequencies:
+                gps_stats_generate_summary(
+                    traj=traj,
+                    tz_str=tz_str,
+                    frequency=freq,
+                    participant_id=participant_id,
+                    output_folder=f"{output_folder}/{freq.name.lower()}",
+                    logs_folder=logs_folder,
+                    parameters=parameters,
+                    places_of_interest=places_of_interest,
+                    osm_tags=osm_tags,
                 )
-                write_all_summaries(participant_id, summary_stats1,
-                                    f"{output_folder}/hourly")
-                summary_stats2, logs2 = gps_summaries(
-                    traj,
-                    tz_str,
-                    Frequency.DAILY,
-                    parameters,
-                    places_of_interest,
-                    osm_tags,
-                )
-                write_all_summaries(participant_id, summary_stats2,
-                                    f"{output_folder}/daily")
-                if parameters.save_osm_log:
-                    os.makedirs(f"{output_folder}/logs", exist_ok=True)
-                    with open(
-                        f"{output_folder}/logs/locations_logs_hourly.json",
-                        "w",
-                    ) as hourly:
-                        json.dump(logs1, hourly, indent=4)
-                    with open(
-                        f"{output_folder}/logs/locations_logs_daily.json",
-                        "w",
-                    ) as daily:
-                        json.dump(logs2, daily, indent=4)
-            else:
-                summary_stats, logs = gps_summaries(
-                    traj,
-                    tz_str,
-                    frequency,
-                    parameters,
-                    places_of_interest,
-                    osm_tags,
-                )
-                write_all_summaries(
-                    participant_id, summary_stats, output_folder
-                )
-                if parameters.save_osm_log:
-                    os.makedirs(f"{output_folder}/logs", exist_ok=True)
-                    with open(
-                        f"{output_folder}/logs/locations_logs.json",
-                        "w",
-                    ) as loc:
-                        json.dump(logs, loc, indent=4)
         else:
             logger.info(
                 "GPS data are not collected"
                 " or the data quality is too low"
             )
+
+
+def gps_stats_generate_summary(
+        traj: np.ndarray,
+        tz_str: str,
+        frequency: Frequency,
+        participant_id: str,
+        output_folder: str,
+        logs_folder: str,
+        parameters: Hyperparameters,
+        places_of_interest: Optional[list] = None,
+        osm_tags: Optional[List[OSMTags]] = None):
+    """This is simply the inner functionality of gps_stats_main.
+    Runs summaries code, writes to disk, saves logs if required. """
+    summary_stats, logs = gps_summaries(
+        traj,
+        tz_str,
+        frequency,
+        parameters,
+        places_of_interest,
+        osm_tags,
+    )
+    write_all_summaries(participant_id, summary_stats, output_folder)
+    if parameters.save_osm_log:
+        with open(
+            f"{logs_folder}/locations_logs_{frequency.name.lower()}.json",
+            "wa",
+        ) as loc:
+            json.dump(logs, loc, indent=4)

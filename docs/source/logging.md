@@ -37,13 +37,6 @@ import logging
 logger = logging.getLogger(__name__)
 ```
 
-Or like this:
-
-```
-from logging import getLogger
-logger = getLogger(__name__)
-```
-
 ## 3. How to insert log messages into definitions
 
 Basic `logging` messages:
