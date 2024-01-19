@@ -614,12 +614,14 @@ def gps_to_mobmat(
 
     return mobmat
 
+
 def force_valid_longitude(longitude):
     """Forces a longitude coordinate to be within -180 and 180
     Args:
         longitude: float. The longitude to be coerced
     """
     return (longitude + 180) % 360 - 180
+
 
 def compute_flight_positions(
     index: int, mobmat: np.ndarray, interval: float
