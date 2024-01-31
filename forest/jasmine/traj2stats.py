@@ -1661,8 +1661,13 @@ def gps_stats_main(
                 tz_str, time_start, time_end,
             )
 
-            if ((data["longitude"].max() > 180)
-                    or (data["longitude"].min() < -180)):
+            if (
+                    ("longitude" in data.columns)
+                    and (
+                        (data["longitude"].max() > 180)
+                        or (data["longitude"].min() < -180)
+                        )
+                    ):
                 logger.info("Reconciled bad longitude data for user %s",
                             participant_id)
                 data["longitude"] = (data["longitude"] + 180) % 360 - 180
