@@ -624,10 +624,10 @@ def force_valid_longitude(longitude: float) -> float:
 
     In some cases, the imputation code seems to yield out-of-range
     GPS coordinates. This function wrps longitude coordinates to be back
-    in the correct range so an error isn't thrown. 
+    in the correct range so an error isn't thrown.
 
     For example, 190 would get transformed into -170.
-    
+
     Args:
         longitude: float. The longitude to be coerced
     """
