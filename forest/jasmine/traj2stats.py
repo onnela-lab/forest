@@ -1660,7 +1660,11 @@ def gps_stats_main(
                 participant_id, study_folder, "gps",
                 tz_str, time_start, time_end,
             )
-
+            # If the data comes from a study thata hada GPS fuzzing,
+            # and the study was prior to March 2023, the longitude
+            # coordinates may be outside of the required range of
+            # (-180, 180). This chunk of code wraps out of range
+            # coordinates to be in that range
             if (
                     ("longitude" in data.columns)
                     and (
