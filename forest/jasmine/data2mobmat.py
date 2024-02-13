@@ -619,6 +619,21 @@ def gps_to_mobmat(
     return mobmat
 
 
+def force_valid_longitude(longitude: float) -> float:
+    """Forces a longitude coordinate to be within -180 and 180
+
+    In some cases, the imputation code seems to yield out-of-range
+    GPS coordinates. This function wrps longitude coordinates to be back
+    in the correct range so an error isn't thrown.
+
+    For example, 190 would get transformed into -170.
+
+    Args:
+        longitude: float. The longitude to be coerced
+    """
+    return (longitude + 180) % 360 - 180
+
+
 def compute_flight_positions(
     index: int, mobmat: np.ndarray, interval: float
 ) -> np.ndarray:
@@ -660,8 +675,8 @@ def compute_flight_positions(
     # Update the mobility matrix with the new start and end positions
     mobmat[index, 1] = start_x
     mobmat[index, 4] = end_x
-    mobmat[index, 2] = start_y
-    mobmat[index, 5] = end_y
+    mobmat[index, 2] = force_valid_longitude(start_y)
+    mobmat[index, 5] = force_valid_longitude(end_y)
 
     return mobmat
 
@@ -708,8 +723,8 @@ def compute_future_flight_positions(
     # Update the mobility matrix with the new start and end positions
     mobmat[index, 1] = start_x
     mobmat[index, 4] = end_x
-    mobmat[index, 2] = start_y
-    mobmat[index, 5] = end_y
+    mobmat[index, 2] = force_valid_longitude(start_y)
+    mobmat[index, 5] = force_valid_longitude(end_y)
 
     return mobmat
 
