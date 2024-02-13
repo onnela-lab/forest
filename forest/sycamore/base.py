@@ -224,12 +224,16 @@ def compute_survey_stats(
 
 
 def get_submits_for_tableau(
-        study_folder: str, output_folder: str, config_path: str,
-        tz_str: str = "UTC", start_date: str = EARLIEST_DATE,
-        end_date: Optional[str] = None, users: Optional[List] = None,
-        interventions_filepath: Optional[str] = None,
-        submits_timeframe: Frequency = Frequency.DAILY,
-        history_path: Optional[str] = None
+    study_folder: str,
+    output_folder: str,
+    config_path: str,
+    tz_str: str = "UTC",
+    start_date: str = EARLIEST_DATE,
+    end_date: Optional[str] = None,
+    users: Optional[List] = None,
+    interventions_filepath: Optional[str] = None,
+    submits_timeframe: Frequency = Frequency.DAILY,
+    history_path: Optional[str] = None
 ) -> None:
     """Get survey submissions per day for integration into Tableau WDC
 
@@ -247,8 +251,7 @@ def get_submits_for_tableau(
         end_date:
             The latest survey data to read in, in YYYY-MM-DD format
         users:
-            List of users in study for which we
-            are generating a survey schedule
+            List of users in study that we are generating a survey schedule for
         interventions_filepath:
             filepath where interventions json file is.
         submits_timeframe:
@@ -257,65 +260,49 @@ def get_submits_for_tableau(
         history_path: Filepath to the survey history file. If this is not
                 included, audio survey timings cannot be estimated.
     """
-
     if submits_timeframe not in [
         Frequency.HOURLY, Frequency.DAILY, Frequency.HOURLY_AND_DAILY
     ]:
         logger.error("Error: Invalid submits timeframe")
         return
 
+    if submits_timeframe == Frequency.HOURLY_AND_DAILY:
+        submits_timeframes = [Frequency.HOURLY, Frequency.DAILY]
+    else:
+        submits_timeframes = [submits_timeframe]
+
     os.makedirs(output_folder, exist_ok=True)
+    for freq in submits_timeframes:
+        os.makedirs(f"{output_folder}/{freq.name.lower()}", exist_ok=True)
 
     if users is None:
         users = get_ids(study_folder)
-
     if end_date is None:
         end_date = get_month_from_today()
 
     # Read, aggregate and clean data
-    else:
-        agg_data = aggregate_surveys_config(
-            study_folder, config_path, tz_str, users, start_date,
-            end_date, augment_with_answers=True, include_audio_surveys=True
+    agg_data = aggregate_surveys_config(
+        study_folder, config_path, tz_str, users, start_date,
+        end_date, augment_with_answers=True, include_audio_surveys=True
+    )
+
+    if agg_data.shape[0] == 0:
+        logger.error("Error: No survey data found in %s", study_folder)
+        return
+
+    # Create survey submits detail and summary
+    ss_detail = survey_submits(
+        config_path, start_date, end_date,
+        users, agg_data, interventions_filepath, history_path
+    )
+
+    if ss_detail.shape[0] == 0:
+        logger.error("Error: no submission data found")
+        return
+
+    # run once for every submits_timeframe, per-user is handled internally
+    for freq in submits_timeframes:
+        ss_summary = summarize_submits(ss_detail, freq, False)
+        write_data_by_user(
+            ss_summary, f"{output_folder}/{freq.name.lower()}", users
         )
-
-        if agg_data.shape[0] == 0:
-            logger.error("Error: No survey data found in %s", study_folder)
-            return
-
-        # Create survey submits detail and summary
-        ss_detail = survey_submits(
-            config_path, start_date, end_date,
-            users, agg_data, interventions_filepath, history_path
-        )
-
-        if ss_detail.shape[0] == 0:
-            logger.error("Error: no submission data found")
-            return
-
-        if submits_timeframe == Frequency.HOURLY_AND_DAILY:
-            ss_summary_h = summarize_submits(
-                ss_detail, Frequency.HOURLY, False
-            )
-            ss_summary_d = summarize_submits(
-                ss_detail, Frequency.DAILY, False
-            )
-
-            write_data_by_user(ss_summary_d,
-                               os.path.join(output_folder, "both", "daily"),
-                               users)
-            write_data_by_user(ss_summary_h,
-                               os.path.join(output_folder, "both", "hourly"),
-                               users)
-
-        elif submits_timeframe == Frequency.HOURLY:
-            ss_summary_h = summarize_submits(
-                ss_detail, Frequency.HOURLY, False
-            )
-            write_data_by_user(ss_summary_h, output_folder, users)
-
-        elif submits_timeframe == Frequency.DAILY:
-            ss_summary_d = summarize_submits(
-                ss_detail, Frequency.DAILY, False
-            )
-            write_data_by_user(ss_summary_d, output_folder, users)
