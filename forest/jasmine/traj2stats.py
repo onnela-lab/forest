@@ -1213,20 +1213,16 @@ def gps_summaries(
 
                 if parameters.pcr_bool:
                     res += [pd.NA] * 2
-                if places_of_interest is not None:
-                    # add empty data for places of interest
-                    # for daytime/nighttime + other
-                    res += [0] * (2 * len(places_of_interest) + 1)
-                summary_stats.append(res)
             else:
                 # if there is no data in the day, then we need to
-                # to add empty rows to the dataframe with 21 columns
+                # add empty rows to the dataframe with 21 columns
                 res = [year, month, day, hour] + [0] + [pd.NA] * 11
-                if places_of_interest is not None:
-                    # add empty data for places of interest
-                    # for daytime/nighttime + other
-                    res += [0] * (2 * len(places_of_interest) + 1)
-                summary_stats.append(res)
+
+            if places_of_interest is not None:
+                # add empty data for places of interest
+                # for daytime/nighttime + other
+                res += [0] * (2 * len(places_of_interest) + 1)
+            summary_stats.append(res)
             continue
 
         temp = traj[index_rows, :]
