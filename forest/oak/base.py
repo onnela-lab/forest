@@ -176,6 +176,7 @@ def compute_interpolate_cwt(tapered_bout: np.ndarray, fs: int = 10,
     out = ssq_cwt(tapered_bout[:-1], wavelet, fs=10)
     coefs = out[0]
     coefs = np.append(coefs, coefs[:, -1:], 1)
+    coefs = coefs.astype('complex128')
 
     # magnitude of cwt
     coefs = np.abs(coefs**2)
