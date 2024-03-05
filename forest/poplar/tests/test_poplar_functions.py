@@ -29,31 +29,31 @@ def test_datetime2stamp():
 
 
 def test_datetime2stamp_bad_seconds():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="second must be in 0..59"):
         datetime2stamp(time_list=[2020, 11, 1, 12, 9, 150],
                        tz_str="America/New_York")
 
 
 def test_datetime2stamp_bad_minutes():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="minute must be in 0..59"):
         datetime2stamp(time_list=[2020, 11, 1, 12, 209, 50],
                        tz_str="America/New_York")
 
 
 def test_datetime2stamp_bad_hours():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="hour must be in 0..23"):
         datetime2stamp(time_list=[2020, 11, 1, 35, 20, 50],
                        tz_str="America/New_York")
 
 
 def test_datetime2stamp_bad_days():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="day is out of range for month"):
         datetime2stamp(time_list=[2020, 11, 35, 5, 20, 50],
                        tz_str="America/New_York")
 
 
 def test_datetime2stamp_bad_months():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="month must be in 1..12"):
         datetime2stamp(time_list=[2020, 15, 20, 5, 20, 50],
                        tz_str="America/New_York")
 
@@ -119,19 +119,19 @@ def test_get_files_timestamps():
     file_list, timestamp_list = get_files_timestamps(
         os.path.join(TEST_DATA_DIR, "idr8gqdh", "gps")
     )
-
-    assert np.array_equal(file_list, np.array(
-        ['2021-12-15 01_00_00+00_00.csv', '2021-12-16 21_00_00+00_00.csv',
-         '2021-12-17 00_00_00+00_00.csv']
-    ))
-    assert np.array_equal(timestamp_list, np.array(
-        [1639530000, 1639688400, 1639699200]
-    ))
+    assert np.array_equal(
+        file_list, np.array(['2021-12-15 01_00_00+00_00.csv',
+                             '2021-12-16 21_00_00+00_00.csv',
+                             '2021-12-17 00_00_00+00_00.csv'])
+    )
+    assert np.array_equal(
+        timestamp_list, np.array([1639530000, 1639688400, 1639699200])
+    )
 
 # Testing functions in forest.poplar.functions.helpers
 
 
-@pytest.fixture
+@pytest.fixture()
 def gps_df():
     return read_data("idr8gqdh", TEST_DATA_DIR, "gps", "America/New_York",
                      time_start=[2021, 12, 15, 20, 9, 50],

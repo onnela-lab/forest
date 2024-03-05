@@ -31,8 +31,7 @@ def get_month_from_today():
             datetime.timedelta(31)).strftime("%Y-%m-%d")
 
 
-def filename_to_timestamp(filename: str, tz_str: str = "UTC"
-                          ) -> pd.Timestamp:
+def filename_to_timestamp(filename: str, tz_str: str = "UTC") -> pd.Timestamp:
     """Extract a datetime from a filepath.
 
     Args:

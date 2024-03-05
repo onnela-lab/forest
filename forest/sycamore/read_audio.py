@@ -2,7 +2,7 @@
 
 import logging
 import os
-from typing import Dict
+from typing import Dict, Optional
 
 import librosa
 import numpy as np
@@ -16,7 +16,9 @@ from forest.utils import get_ids
 logger = logging.getLogger(__name__)
 
 
-def get_audio_survey_id_dict(history_path: str = None) -> Dict[str, str]:
+def get_audio_survey_id_dict(
+        history_path: Optional[str] = None
+) -> Dict[str, str]:
     """Create a dict that has most recent prompt corresponding to an audio
     survey as keys and the survey ID as the corresponding value.
 
@@ -47,7 +49,7 @@ def get_audio_survey_id_dict(history_path: str = None) -> Dict[str, str]:
     return output_dict
 
 
-def get_config_id_dict(config_path: str = None) -> Dict[str, int]:
+def get_config_id_dict(config_path: Optional[str] = None) -> Dict[str, int]:
     """Get a dict with question prompts as keys and the config IDs as values
 
     Args:
@@ -78,8 +80,8 @@ def get_config_id_dict(config_path: str = None) -> Dict[str, int]:
 
 def read_user_audio_recordings_stream(
         download_folder: str, user: str, tz_str: str = "UTC",
-        time_start: str = EARLIEST_DATE, time_end: str = None,
-        history_path: str = None
+        time_start: str = EARLIEST_DATE, time_end: Optional[str] = None,
+        history_path: Optional[str] = None
 ) -> pd.DataFrame:
     """Reads in all audio_recordings data for a user
 
@@ -134,7 +136,7 @@ def read_user_audio_recordings_stream(
             if valid_file:
                 all_files.append(filename)
                 all_durations.append(librosa.get_duration(
-                    filename=os.path.join(audio_dir, survey, filename)
+                    path=os.path.join(audio_dir, survey, filename)
                 ))
 
         if len(all_files) == 0:
@@ -200,10 +202,10 @@ def read_user_audio_recordings_stream(
 
 
 def read_aggregate_audio_recordings_stream(
-        download_folder: str, users: list = None,
-        tz_str: str = "UTC", config_path: str = None,
-        time_start: str = EARLIEST_DATE, time_end: str = None,
-        history_path: str = None
+        download_folder: str, users: Optional[list] = None,
+        tz_str: str = "UTC", config_path: Optional[str] = None,
+        time_start: str = EARLIEST_DATE, time_end: Optional[str] = None,
+        history_path: Optional[str] = None
 ) -> pd.DataFrame:
     """Reads in all answers data for many users and fixes Android users to have
     an answer instead of an integer

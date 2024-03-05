@@ -1,8 +1,9 @@
 __pycache__/
 .DS_Store
 
-# IntelliJ project files
+# IntelliJ, VsCode project files
 .idea
+.vscode
 
 # for installing Forest in editable mode when developing
 /forest.egg-info/
@@ -18,3 +19,6 @@ __pycache__/
 
 #sphinx build
 docs/_build/
+
+# any python environment files
+.python-version

@@ -52,3 +52,16 @@ delta = 20
 # minimum walking time (in seconds (s))
 min_t = 3
 ```
+
+## List of summary statistics
+
+The outputs of the accelerometer module contains gait summary statistics for each specified participant in daily (_gait_daily.csv) or hourly windows (_gait_hourly.csv).
+
+The following variables are created in a csv file for each participant.
+
+|     Variable                          	|     Type     	|     Description of Variable                                                                                 	|
+|---------------------------------------	|--------------	|-------------------------------------------------------------------------------------------------------------	|
+|     date                   	|       str      	|     Time of observation (_gait_daily.csv format: yyyy-mm-dd; _gait_hourly.csv format: yyyy-mm-dd HH:MM:SS’)                                                  	|
+|     walking_time               	|        int      	|    Total walking time (in seconds)                                	|
+|     steps                             	|       int       	|   Total steps taken                                                   	|
+|     cadence |        float      	|     Average cadence in time window (daily or hourly)                                                    	|
