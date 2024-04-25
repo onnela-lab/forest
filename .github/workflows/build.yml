@@ -28,7 +28,7 @@ jobs:
       - name: Install Forest dependencies for Windows
         # required by librosa
         if: ${{ startsWith(matrix.os, 'windows') }}
-        uses: FedericoCarboni/setup-ffmpeg@v2
+        uses: FedericoCarboni/setup-ffmpeg@v3
         id: setup-ffmpeg
       - name: Install Forest
         run: pip install -e .
