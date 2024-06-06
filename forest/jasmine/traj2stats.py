@@ -1821,6 +1821,6 @@ def gps_stats_generate_summary(
     if parameters.save_osm_log:
         with open(
             f"{logs_folder}/locations_logs_{frequency.name.lower()}.json",
-            "w",
+            "a",
         ) as loc:
             json.dump(logs, loc, indent=4)
