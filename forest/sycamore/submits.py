@@ -470,12 +470,12 @@ def survey_submits(
     submit_lines3["time_to_submit"] = np.where(
         submit_lines3["submit_flg"] == 1,
         submit_lines3["time_to_submit"],
-        np.NaN
+        np.nan
     )
     submit_lines3["time_to_open"] = np.where(
         submit_lines3["opened_flg"] == 1,
         submit_lines3["time_to_open"],
-        np.NaN
+        np.nan
     )
     return submit_lines3.sort_values(["survey id", "beiwe_id"]
                                      ).drop_duplicates()
