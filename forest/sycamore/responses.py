@@ -143,7 +143,7 @@ def agg_changed_answers_summary(
     detail["time_to_answer"] = np.where(
         detail["data_stream"] == "survey_timings",
         detail["time_to_answer"],
-        np.NaN
+        np.nan
     )
 
     #####################################################################
@@ -251,7 +251,7 @@ def format_responses_by_submission(agg_data: pd.DataFrame) -> dict:
             survey_df["survey_duration"] = np.where(
                 survey_df["data_stream"] == "survey_timings",
                 survey_df["survey_duration"],
-                np.NaN
+                np.nan
             )
 
             keep_cols = ["beiwe_id", "start_time", "end_time",
