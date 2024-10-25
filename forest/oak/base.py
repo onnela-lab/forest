@@ -613,11 +613,11 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                 frequency == Frequency.HOURLY_AND_DAILY
                 or frequency == Frequency.HOURLY
             ):
-                freq = 'H'
+                freq = 'h'
             elif frequency == Frequency.MINUTE:
-                freq = 'T'
+                freq = 'min'
             else:
-                freq = str(frequency.value/60) + 'H'
+                freq = str(frequency.value/60) + 'h'
 
             days_hourly = pd.date_range(date_start, date_end+timedelta(days=1),
                                         freq=freq)[:-1]
