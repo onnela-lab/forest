@@ -11,14 +11,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ['ubuntu-22.04', 'windows-2022', 'macos-12']
+        os: ['ubuntu-24.04', 'windows-2022', 'macos-14']
     steps:
       - name: Check out Forest code
         uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: 3.11
       - name: Install Forest dependencies for Linux
         # required by librosa
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
@@ -28,7 +28,7 @@ jobs:
       - name: Install Forest dependencies for Windows
         # required by librosa
         if: ${{ startsWith(matrix.os, 'windows') }}
-        uses: FedericoCarboni/setup-ffmpeg@v2
+        uses: FedericoCarboni/setup-ffmpeg@v3
         id: setup-ffmpeg
       - name: Install Forest
         run: pip install -e .

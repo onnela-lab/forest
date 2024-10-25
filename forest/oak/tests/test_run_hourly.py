@@ -23,7 +23,7 @@ def sample_run_input(signal_bout):
     t_ind_pydate = pd.date_range(
         start='2020-02-24 00:00:00',
         end='2020-02-25 23:00:00',
-        freq='H',
+        freq='h',
         tz='US/Eastern'
     ).to_pydatetime()
     cadence_bout = np.array(

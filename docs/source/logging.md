@@ -358,4 +358,4 @@ a, b, c = wrapper(x, y, z, 'path/to/log/output/directory')
 
 * [The Python Standard Library's documentation for `logging`](https://docs.python.org/3/library/logging.html)
 * Vinay Sajip's [*Logging HOWTO*](https://docs.python.org/3/howto/logging.html)
-* [`LogRecord` attributes](https://docs.python.org/3.8/library/logging.html?highlight=logging#logrecord-attributes)
+* [`LogRecord` attributes](https://docs.python.org/3.11/library/logging.html#logrecord-attributes)
