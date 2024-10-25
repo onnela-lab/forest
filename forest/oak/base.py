@@ -528,7 +528,7 @@ def run_hourly(
         cadence_temp = cadence_bout[t_hours_pd == t_unique]
         cadence_temp = cadence_temp[cadence_temp > 0]
         # store hourly metrics
-        if math.isnan(steps_hourly[ind_to_store]):
+        if math.isnan(steps_hourly[ind_to_store].item()):
             steps_hourly[ind_to_store] = int(np.sum(cadence_temp))
             walkingtime_hourly[ind_to_store] = len(cadence_temp)
         else:
@@ -613,11 +613,11 @@ def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
                 frequency == Frequency.HOURLY_AND_DAILY
                 or frequency == Frequency.HOURLY
             ):
-                freq = 'H'
+                freq = 'h'
             elif frequency == Frequency.MINUTE:
-                freq = 'T'
+                freq = 'min'
             else:
-                freq = str(frequency.value/60) + 'H'
+                freq = str(frequency.value/60) + 'h'
 
             days_hourly = pd.date_range(date_start, date_end+timedelta(days=1),
                                         freq=freq)[:-1]
