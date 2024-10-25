@@ -528,7 +528,7 @@ def run_hourly(
         cadence_temp = cadence_bout[t_hours_pd == t_unique]
         cadence_temp = cadence_temp[cadence_temp > 0]
         # store hourly metrics
-        if math.isnan(steps_hourly[ind_to_store]):
+        if math.isnan(steps_hourly[ind_to_store].item()):
             steps_hourly[ind_to_store] = int(np.sum(cadence_temp))
             walkingtime_hourly[ind_to_store] = len(cadence_temp)
         else:
