@@ -628,6 +628,11 @@ def find_missing_data(user: str, survey_id: str, agg_data: pd.DataFrame,
     ].unique()
     missing_times = []
     for time in known_answers_submits:
+        # If there were no timings submits recorded, every answers
+        # submit will be missing
+        if len(known_timings_submits) == 0:
+            missing_times.append(time)
+            continue
 
         hours_from_nearest = np.min(
             np.abs((pd.to_datetime(known_timings_submits)
@@ -635,7 +640,7 @@ def find_missing_data(user: str, survey_id: str, agg_data: pd.DataFrame,
         ) / 60 / 60
         # add on the data if there is more than 1/2 hour between an
         # answers submission and a timing submission.
-        if hours_from_nearest > .5 or len(known_timings_submits) == 0:
+        if hours_from_nearest > .5:
             missing_times.append(time)
     if len(missing_times) > 0:
         missing_data = answers_data.loc[
