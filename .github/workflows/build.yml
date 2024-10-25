@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ['ubuntu-22.04', 'windows-2022', 'macos-12']
+        os: ['ubuntu-24.04', 'windows-2022', 'macos-14']
     steps:
       - name: Check out Forest code
         uses: actions/checkout@v4
