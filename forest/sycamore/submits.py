@@ -525,7 +525,7 @@ def summarize_submits(submits_df: pd.DataFrame,
     if timeunit == Frequency.DAILY:
         submits["delivery_time_floor"] = submits["delivery_time"].dt.floor("D")
     elif timeunit == Frequency.HOURLY:
-        submits["delivery_time_floor"] = submits["delivery_time"].dt.floor("H")
+        submits["delivery_time_floor"] = submits["delivery_time"].dt.floor("h")
     if timeunit is not None:
         # round to the nearest desired unit
         submits["year"] = submits["delivery_time_floor"].dt.year
