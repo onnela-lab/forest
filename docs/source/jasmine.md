@@ -163,3 +163,6 @@ A flight is defined to be a longest straight-line trip of a particle from one lo
 
 - Definition of a place  
 A place is defined as a location where a person has paused for at least 15 minutes.
+
+- "GPS data are not collected or the quality is too low"
+This error gets triggered when the subject either has no data, or when less than 5% of their generated data files have at least 60 seconds of data.
