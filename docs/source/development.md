@@ -67,7 +67,7 @@ Development workflow:
 * If you need to update an existing PR simply add commits to the corresponding feature branch instead of creating a new separate PR
 * Make sure your PR has the latest changes from the develop branch and that it passes the [build process](https://github.com/onnela-lab/forest/actions/workflows/build.yml)
 
-How to create a PR:
+#### How to create a PR:
 1. Create a feature branch off the default branch: `git switch -c new-feature develop`
 1. Push the new feature branch upstream to GitHub: `git push --set-upstream origin new-feature`
 1. [Create a PR on GitHub](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request):
@@ -79,7 +79,7 @@ How to create a PR:
 1. [Re-request the review](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/requesting-a-pull-request-review) after each round of changes
 1. After the PR is merged delete the feature branch in your local repository: `git branch -d new-feature`
 
-How to review PR:
+#### How to review a PR:
 1. [Comment on proposed changes](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/commenting-on-a-pull-request)
 1. Resolve conversations when changes are addressed (either in code or comments)
 1. [Approve the PR](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/approving-a-pull-request-with-required-reviews)
