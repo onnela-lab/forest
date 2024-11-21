@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "forest-analysis"
+version = "0.1.1"
+description = "--add description here--"
+readme = "README.md"
+license = { file = "LICENSE.md" }
+authors = [
+    { name = "Onnela Lab", email = "onnela.lab@gmail.com" }
+]
+dependencies = [
+    "holidays",  # poplar
+    "librosa",  # audio file durations in sycamore
+    "numpy",
+    "openrouteservice",
+    "pandas",
+    "pyproj",  # jasmine
+    "pytz",  # jasmine, poplar
+    "ratelimit",
+    "requests",  # bonsai
+    "scipy",
+    "shapely",  # jasmine
+    "ssqueezepy",  # oak
+    "timezonefinder",  # poplar, bonsai
+]
+requires-python = ">=3.11"
+
+[project.urls]
+Homepage = "https://github.com/onnela-lab/forest"
+
+[project.optional-dependencies]
+dev = [
+    "build",
+    "flake8==6.1.0",
+    "flake8-pytest-style==1.7.2",
+    "mypy==1.6.1",
+    "pytest==7.4.3",
+    "pytest-mock==3.12.0",
+    "twine",
+    "types-python-dateutil==2.8.19.14",
+    "types-pytz==2023.3.1.1",
+    "types-requests==2.31.0.10",
+    "types-setuptools==68.2.0.0"
+]
+
+[tool.setuptools.packages.find]
+include = ["forest*"]
+
+[tool.setuptools.package-data]
+"forest.poplar.raw" = ["noncode/*.csv", "noncode/*.json"]

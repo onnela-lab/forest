@@ -4,8 +4,7 @@ Information for contributors
 
 ## Quick start
 * Change current directory to the top level of your local Forest repository
-* Install Forest in editable mode: `pip install -e .`
-* Install development tools: `pip install -r requirements.txt`
+* Install Forest in editable mode along with development tools: `pip install -e ".[dev]"`
 * Run code style checks: `flake8`
 * Run type hint checks: `mypy -p forest`
 * Run test suite: `pytest`
@@ -44,6 +43,23 @@ Open `docs/_build/html/index.html` in a web browser to check the results
 * Use the [logging module](https://docs.python.org/3/library/logging.html) instead of `print()`
 * [Formatting log messages](http://reinout.vanrees.org/weblog/2015/06/05/logging-formatting.html): `logger.info("%s went %s wrong", 42, 'very')`
 * Continue writing code and comments all the way until the end of the line then indent appropriately
+* [Packaging Python Projects](https://packaging.python.org/en/latest/tutorials/packaging-projects)
+
+### Packaging and distribution
+
+#### Python Package Index
+* Use [TestPyPI](https://test.pypi.org/) for testing that your package can be uploaded, downloaded, and installed correctly
+* [Register an account](https://test.pypi.org/account/register/)
+* [Create an API token](https://test.pypi.org/manage/account/#api-tokens) (setting the "Scope" to "Entire account")
+* [Add API token](https://packaging.python.org/en/latest/specifications/pypirc/#using-a-pypi-token) to your `$HOME/.pypirc` file
+* Generate distribution archives: `python -m build`
+* Check the results: `twine check dist/*`
+* Upload distribution archives:
+  * TestPyPI: `twine upload --repository testpypi dist/*`
+  * PyPI: `twine upload dist/*`
+* Install from TestPyPI to verify:
+  * TestPyPI: `pip install --index-url https://test.pypi.org/simple/ --no-deps forest-analysis`
+  * PyPI: `pip install forest-analysis`
 
 ## GitHub
 

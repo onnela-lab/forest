@@ -30,10 +30,8 @@ jobs:
         if: ${{ startsWith(matrix.os, 'windows') }}
         uses: FedericoCarboni/setup-ffmpeg@v3
         id: setup-ffmpeg
-      - name: Install Forest
-        run: pip install -e .
-      - name: Install dev dependencies
-        run: pip install -r requirements.txt
+      - name: Install Forest and optional development dependencies
+        run: pip install -e ".[dev]"
       - name: Run code style checking
         run: flake8
       - name: Run static type checking
