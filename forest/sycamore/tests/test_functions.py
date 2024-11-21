@@ -51,19 +51,19 @@ AUDIO_SURVEY_HISTORY = os.path.join(TEST_DATA_DIR, "audio_survey_history.json")
 SEP_QS_DIR = os.path.join(TEST_DATA_DIR, "dir_with_seps_in_qs")
 
 
-@pytest.fixture()
+@pytest.fixture
 def agg_data_config():
     return aggregate_surveys_config(SAMPLE_DIR, SURVEY_SETTINGS_PATH,
                                     "UTC", users=["16au2moz", "idr8gqdh"])
 
 
-@pytest.fixture()
+@pytest.fixture
 def agg_data_no_config():
     return aggregate_surveys_no_config(SAMPLE_DIR, study_tz="UTC",
                                        users=["16au2moz", "idr8gqdh"])
 
 
-@pytest.fixture()
+@pytest.fixture
 def submits_data():
     agg_data = aggregate_surveys_config(
         SAMPLE_DIR, SURVEY_SETTINGS_PATH_FOR_SUBMITS, study_tz="UTC",
