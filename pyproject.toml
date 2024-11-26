@@ -5,31 +5,52 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "forest-analysis"
 version = "0.1.1"
-description = "--add description here--"
-readme = "README.md"
-license = { file = "LICENSE.md" }
+description = "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data"
 authors = [
     { name = "Onnela Lab", email = "onnela.lab@gmail.com" }
 ]
+maintainers = [
+    { name = "Onnela Lab", email = "onnela.lab@gmail.com" }
+]
+readme = "README.md"
+license = { text = "BSD-3-Clause" }
+requires-python = ">=3.11"
 dependencies = [
-    "holidays",  # poplar
-    "librosa",  # audio file durations in sycamore
+    "holidays",
+    "librosa",
     "numpy",
     "openrouteservice",
     "pandas",
-    "pyproj",  # jasmine
-    "pytz",  # jasmine, poplar
+    "pyproj",
+    "python-dateutil",
+    "pytz",
     "ratelimit",
-    "requests",  # bonsai
+    "requests",
     "scipy",
-    "shapely",  # jasmine
-    "ssqueezepy",  # oak
-    "timezonefinder",  # poplar, bonsai
+    "shapely",
+    "ssqueezepy",
+    "timezonefinder",
 ]
-requires-python = ">=3.11"
+keywords = ["digital phenotyping", "smartphone", "statistics", "accelerometer", "GPS"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
 
 [project.urls]
-Homepage = "https://github.com/onnela-lab/forest"
+homepage = "https://github.com/onnela-lab/forest"
+documentation = "https://forest.beiwe.org"
+issues = "https://github.com/onnela-lab/forest/issues"
+source = "https://github.com/onnela-lab/forest"
 
 [project.optional-dependencies]
 dev = [
