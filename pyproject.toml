@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "forest-analysis"
-version = "0.1.1"
+version = "1.0.dev2"
 description = "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data"
 authors = [
     { name = "Onnela Lab", email = "onnela.lab@gmail.com" }
@@ -47,10 +47,10 @@ classifiers = [
 ]
 
 [project.urls]
-homepage = "https://github.com/onnela-lab/forest"
-documentation = "https://forest.beiwe.org"
-issues = "https://github.com/onnela-lab/forest/issues"
-source = "https://github.com/onnela-lab/forest"
+Documentation = "https://forest.beiwe.org"
+Homepage = "https://github.com/onnela-lab/forest"
+Issues = "https://github.com/onnela-lab/forest/issues"
+Source = "https://github.com/onnela-lab/forest"
 
 [project.optional-dependencies]
 dev = [

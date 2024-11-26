@@ -1,7 +1,8 @@
 [![build](https://github.com/onnela-lab/forest/actions/workflows/build.yml/badge.svg)](https://github.com/onnela-lab/forest/actions/workflows/build.yml)
 [![Documentation Status](https://readthedocs.org/projects/forest-docs/badge/)](https://forest.beiwe.org/en/latest/)
 
-<img width="264" height="99" src="forest-logo-color.png" alt="Forest logo">
+<!--- using a URL to display logo on PyPI --->
+<img width="264" height="99" src="https://raw.githubusercontent.com/onnela-lab/forest/main/forest-logo-color.png" alt="Forest logo">
 
 The Onnela Lab at the Harvard T.H. Chan School of Public Health has developed the Forest library to analyze smartphone-based high-throughput digital phenotyping data. The main intellectual challenge in smartphone-based digital phenotyping has moved from data collection to data analysis. Our research focuses on the development of mathematical and statistical methods for analyzing intensive high-dimensional data. We are actively developing the Forest library for analyzing smartphone-based high-throughput digital phenotyping data collected with the [Beiwe](https://github.com/onnela-lab/beiwe-backend) platform. Forest will implement our methods for analyzing Beiwe data as a Python package and is released under the BSD-3 open-source license. The Forest library will continue to grow over the coming years as we develop new analytical methods.
 
