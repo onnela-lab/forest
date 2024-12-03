@@ -414,9 +414,7 @@ def aggregate_surveys_config(
         config_surveys[["config_id", "question_id"]], how="left",
         left_on="question id", right_on="question_id"
     ).drop(["question_id"], axis=1)
-    df_merged["config_id_update"] = df_merged["config_id"].fillna(
-        method="ffill"
-    )
+    df_merged["config_id_update"] = df_merged["config_id"].ffill()
     df_merged["config_id"] = df_merged.apply(
         lambda row:
         row["config_id_update"] if row["event"] in ["User hit submit",

@@ -730,7 +730,7 @@ def gen_basic_traj(location_start: Tuple[float, float],
     time_end = time_start
     while traveled < distance:
         random_speed = np.random.uniform(speed_range[0], speed_range[1], 1)[0]
-        random_time = int(np.around(np.random.uniform(30, 120, 1), 0))
+        random_time = int(np.around(np.random.uniform(30, 120), 0))
         mov = random_speed * random_time
         if (
             traveled + mov > distance
@@ -800,7 +800,7 @@ def gen_basic_pause(location_start: Tuple[float, float], time_start: float,
         if len(t_diff_range) == 2:
             random_time = int(
                 np.around(
-                    np.random.uniform(t_diff_range[0], t_diff_range[1], 1), 0
+                    np.random.uniform(t_diff_range[0], t_diff_range[1]), 0
                     )
             )
         else:
@@ -809,7 +809,7 @@ def gen_basic_pause(location_start: Tuple[float, float], time_start: float,
         if len(t_e_range) == 2:
             random_time = int(
                 np.around(
-                    np.random.uniform(t_e_range[0], t_e_range[1], 1), 0
+                    np.random.uniform(t_e_range[0], t_e_range[1]), 0
                     ) - time_start
             )
         else:
@@ -1036,7 +1036,7 @@ def remove_data(
     sample_dur = int(np.around(60 * cycle * (1 - percentage), 0))
     index_all: np.ndarray = np.array([])
     for i in range(day):
-        start = int(np.around(np.random.uniform(0, 60 * cycle, 1), 0))
+        start = int(np.around(np.random.uniform(0, 60 * cycle), 0))
         start += 86400 * i
         index_cycle = np.arange(start, start + sample_dur)
         if i == 0:
@@ -1394,7 +1394,10 @@ def sim_gps_data(
         obs = remove_data(all_traj, cycle, percentage, no_of_days)
         obs_pd = prepare_data(obs, int(timestamp_s / 1000), tz_str)
         obs_pd['user'] = user + 1
-        gps_data = pd.concat([gps_data, obs_pd])
+        if gps_data.empty:
+            gps_data = obs_pd
+        else:
+            gps_data = pd.concat([gps_data, obs_pd])
 
         user += 1
         ind += 1

@@ -6,7 +6,7 @@ from forest.oak.base import run_hourly
 from forest.constants import Frequency
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_run_input(signal_bout):
     t_hours_pd = pd.Series(pd.to_datetime([
         "2020-02-25 08:00:00-05:00",

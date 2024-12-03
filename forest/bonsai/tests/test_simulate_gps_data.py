@@ -282,7 +282,7 @@ def test_get_path_close_locations(coords1, coords3):
             == 2)
 
 
-@pytest.fixture()
+@pytest.fixture
 def random_path(directions1, coords1, coords2):
     lat1, lon1 = coords1
     lat2, lon2 = coords2
@@ -507,7 +507,7 @@ def test_person_office_days(sample_coordinates, sample_locations,
     assert len(random_person.office_days) <= 5
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_person(sample_coordinates, sample_locations, sample_attributes):
     user_attrs = sample_attributes["User 5"]
     attributes = Attributes(**user_attrs)
@@ -804,7 +804,7 @@ def test_gen_all_traj_dist_travelled(sample_person, mocker):
     assert np.all(total_d_list >= 0)
 
 
-@pytest.fixture()
+@pytest.fixture
 def generated_trajectory(sample_person, mocker):
     mocker.patch(
         "forest.bonsai.simulate_gps_data.get_path", side_effect=mock_get_path
@@ -869,7 +869,7 @@ def test_load_attributes_switches(sample_attributes):
     assert switches[5]["travelling_status-20"] == 1
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_addresses():
     return np.array(
         [
