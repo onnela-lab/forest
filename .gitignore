@@ -1,14 +1,15 @@
 __pycache__/
 dist/
-/forest_analysis.egg-info
+/forest_analysis.egg-info/
 
 .vagrant/
 .venv/
+venv/
 .DS_Store
 
 # IntelliJ, VsCode project files
-.idea
-.vscode
+.idea/
+.vscode/
 
 #We don't want to add data to github
 /tutorials/data/
