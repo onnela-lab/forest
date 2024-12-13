@@ -131,7 +131,7 @@ def test_get_files_timestamps():
 # Testing functions in forest.poplar.functions.helpers
 
 
-@pytest.fixture()
+@pytest.fixture
 def gps_df():
     return read_data("idr8gqdh", TEST_DATA_DIR, "gps", "America/New_York",
                      time_start=[2021, 12, 15, 20, 9, 50],

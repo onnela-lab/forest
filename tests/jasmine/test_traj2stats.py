@@ -12,12 +12,12 @@ from forest.jasmine.traj2stats import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture
 def coords1():
     return 51.457183, -2.597960
 
 
-@pytest.fixture()
+@pytest.fixture
 def coords2():
     return 51.457267, -2.598045
 
@@ -54,7 +54,7 @@ def test_transform_point_to_circle_radius(coords1):
     assert 4 <= distance <= 5
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_trajectory():
     """16 minutes of a random trajectory"""
     return np.array(
@@ -153,7 +153,7 @@ def sample_trajectory():
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_nearby_locations():
     ids = {
         "post_box": [560374554],
@@ -480,7 +480,7 @@ def test_gps_summaries_pcr(
     assert summary["physical_circadian_rhythm_stratified"].iloc[1] == 0
 
 
-@pytest.fixture()
+@pytest.fixture
 def mobmat1():
     """mobility matrix 1"""
     return np.array(
@@ -494,7 +494,7 @@ def mobmat1():
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def mobmat2():
     """mobility matrix 2"""
     return np.array(
@@ -508,7 +508,7 @@ def mobmat2():
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def mobmat3():
     """mobility matrix 3"""
     return np.array(

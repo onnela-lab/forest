@@ -1,13 +1,14 @@
 [![build](https://github.com/onnela-lab/forest/actions/workflows/build.yml/badge.svg)](https://github.com/onnela-lab/forest/actions/workflows/build.yml)
 [![Documentation Status](https://readthedocs.org/projects/forest-docs/badge/)](https://forest.beiwe.org/en/latest/)
 
-<img width="264" height="99" src="forest-logo-color.png" alt="Forest logo">
+<!--- using a URL to display logo on PyPI --->
+<img width="264" height="99" src="https://raw.githubusercontent.com/onnela-lab/forest/main/forest-logo-color.png" alt="Forest logo">
 
 The Onnela Lab at the Harvard T.H. Chan School of Public Health has developed the Forest library to analyze smartphone-based high-throughput digital phenotyping data. The main intellectual challenge in smartphone-based digital phenotyping has moved from data collection to data analysis. Our research focuses on the development of mathematical and statistical methods for analyzing intensive high-dimensional data. We are actively developing the Forest library for analyzing smartphone-based high-throughput digital phenotyping data collected with the [Beiwe](https://github.com/onnela-lab/beiwe-backend) platform. Forest will implement our methods for analyzing Beiwe data as a Python package and is released under the BSD-3 open-source license. The Forest library will continue to grow over the coming years as we develop new analytical methods.
 
 Forest can be run locally but is also integrated into the Beiwe back-end on AWS, consistent with the preferred big-data computing paradigm of moving computation to the data. Integrated with Beiwe, Forest can be used to generate on-demand analytics, most importantly daily or hourly summary statistics of collected data, which are stored in a relational database on AWS. The system also implements an API for Tableau, which supports the creation of customizable workbooks and dashboards to view data summaries and troubleshoot any issues with data collection. Tableau is commercial software but is available under free viewer licenses and may be free to academic users for the first year (see Tableau for more information).
 
-For more detailed info on specific subpackages, see our [Documentation](https://forest.beiwe.org). Please note that Forest uses Python 3.11.
+For more detailed info on specific subpackages, see our [Documentation](https://forest.beiwe.org).
 
 # Description
 
@@ -30,13 +31,13 @@ Output: typically summary files
 
 # Usage
 
-To install, clone this repository to a local directory and then:
+Please note that Forest uses Python 3.11. To install, clone this repository to a local directory and then:
 
 ```console
 pip install path/to/forest
 ```
 
-Alternatively, [install directly from github](https://pip.pypa.io/en/stable/reference/pip_install/#git) with `pip`. As the repo is public, it won't prompt you to login. If you've used forest in the past, it might be prudent to do a '''pip uninstall forest''' first.
+Alternatively, [install directly from GitHub](https://pip.pypa.io/en/stable/cli/pip_install/#examples) with `pip`. As the repo is public, it won't prompt you to login. If you've used forest in the past, it might be prudent to do a `pip uninstall forest` first.
 
 ```console
 pip install git+https://github.com/onnela-lab/forest
@@ -46,7 +47,7 @@ To immediately test out forest, adapt the filepaths in the code below and run:
 
 ```python
 # Currently, all imports from `forest` must be explicit.  For the below example you need to import the following
-# In future, it would be great to have all functions import automatically
+# In the future, it would be great to have all functions import automatically
 import datetime
 
 from forest.bonsai.simulate_log_data import sim_log_data
