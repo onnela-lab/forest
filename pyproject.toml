@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "forest-analysis"
-version = "1.0.dev2"
+version = "1.0.dev3"
 description = "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data"
 authors = [
     { name = "Onnela Lab", email = "onnela.lab@gmail.com" }
@@ -66,9 +66,6 @@ dev = [
     "types-requests",
     "types-setuptools",
 ]
-
-[tool.setuptools.packages.find]
-include = ["forest*"]
 
 [tool.setuptools.package-data]
 "forest.poplar.raw" = ["noncode/*.csv", "noncode/*.json"]

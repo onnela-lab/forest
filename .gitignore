@@ -1,6 +1,6 @@
 __pycache__/
 dist/
-/forest_analysis.egg-info/
+forest_analysis.egg-info/
 
 .vagrant/
 .venv/
