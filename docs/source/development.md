@@ -5,9 +5,10 @@ Information for contributors
 ## Quick start
 * Change current directory to the top level of your local Forest repository
 * Install Forest in editable mode along with development tools: `pip install -e ".[dev]"`
-* Run code style checks: `flake8`
-* Run type hint checks: `mypy`
-* Run test suite: `pytest`
+* Check code style: `flake8`
+* Run static type checks: `mypy`
+* Run the test suite: `pytest`
+* Validate the citation file: `cffconvert -i CITATION.cff`
 
 ### Documentation
 Install required dependencies:
