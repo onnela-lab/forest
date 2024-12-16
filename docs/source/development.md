@@ -52,6 +52,9 @@ Open `docs/_build/html/index.html` in a web browser to check the results
 * [Register an account](https://test.pypi.org/account/register/)
 * [Create an API token](https://test.pypi.org/manage/account/#api-tokens) (setting the "Scope" to "Entire account")
 * [Add API token](https://packaging.python.org/en/latest/specifications/pypirc/#using-a-pypi-token) to your `$HOME/.pypirc` file
+* Increment the project version in `pyproject.toml`
+* Commit and push all local changes to GitHub
+* Clear the build directory: `rm -r dist`
 * Generate distribution archives: `python -m build`
 * Check the results: `twine check dist/*`
 * Upload distribution archives:
