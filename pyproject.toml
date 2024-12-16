@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "forest-analysis"
-version = "1.0.dev3"
+version = "1.0.dev4"
 description = "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data"
 authors = [
     { name = "Onnela Lab", email = "onnela.lab@gmail.com" }
