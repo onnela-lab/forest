@@ -8,7 +8,7 @@ Information for contributors
 * Check code style: `flake8`
 * Run static type checks: `mypy`
 * Run the test suite: `pytest`
-* Validate the citation file: `cffconvert -i CITATION.cff`
+* Validate the citation file: `cffconvert -i CITATION.cff --validate`
 
 ### Documentation
 Install required dependencies:
