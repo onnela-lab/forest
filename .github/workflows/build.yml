@@ -38,3 +38,5 @@ jobs:
         run: mypy -p forest
       - name: Run the test suite
         run: pytest
+      - name: Validate citation file
+        run: cffconvert -i CITATION.cff
