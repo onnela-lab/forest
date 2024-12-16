@@ -10,6 +10,9 @@ abstract: "Forest is a library for analyzing smartphone-based high-throughput di
 keywords:
   - digital phenotyping
   - smartphone
+  - statistics
+  - accelerometer
+  - GPS
 license: BSD-3-Clause
 references:
   - authors:
