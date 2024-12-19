@@ -55,6 +55,7 @@ Source = "https://github.com/onnela-lab/forest"
 [project.optional-dependencies]
 dev = [
     "build",
+    "cffconvert",
     "flake8",
     "flake8-pytest-style",
     "mypy",
