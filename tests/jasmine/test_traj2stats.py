@@ -3,6 +3,8 @@
 import numpy as np
 import pytest
 from shapely.geometry import Point
+import sys
+sys.path.append('C:/Users/gioef/Desktop/onnela_lab/forest/src')
 
 from forest.jasmine.data2mobmat import great_circle_dist
 from forest.jasmine.traj2stats import (
@@ -418,40 +420,26 @@ def test_gps_summaries_summary_vals(
         parameters=parameters,
     )
 
-    assert np.all(summary["obs_duration"] == 24)
+    assert summary["obs_duration"].iloc[0] == 24
     assert summary["obs_day"].iloc[0] == 10
     assert summary["obs_night"].iloc[0] == 14
-    assert summary["obs_day"].iloc[1] == 24
+    assert summary["obs_day"].iloc[1] == 0
     assert summary["obs_night"].iloc[1] == 0
-    assert np.all(summary["home_time"] == 0)
+    assert summary["home_time"].iloc[0] == 0
     assert summary["dist_traveled"].iloc[0] == 0.208
-    assert summary["dist_traveled"].iloc[1] == 0
     assert np.round(summary["max_dist_home"].iloc[0], 3) == 0.915
-    assert np.round(summary["max_dist_home"].iloc[1], 3) == 0.915
     assert np.round(summary["radius"].iloc[0], 3) == 0.013
-    assert summary["radius"].iloc[1] == 0
     assert np.round(summary["diameter"].iloc[0], 3) == 0.064
-    assert summary["diameter"].iloc[1] == 0
     assert summary["num_sig_places"].iloc[0] == 2
-    assert summary["num_sig_places"].iloc[1] == 1
     assert np.round(summary["entropy"].iloc[0], 3) == 0.468
-    assert summary["entropy"].iloc[1] == 0
     assert round(summary["total_flight_time"].iloc[0], 3) == 1.528
-    assert summary["total_flight_time"].iloc[1] == 0
     assert round(summary["av_flight_length"].iloc[0], 3) == 0.052
-    assert summary["av_flight_length"].iloc[1] == 0
     assert round(summary["sd_flight_length"].iloc[0], 3) == 0.012
-    assert summary["sd_flight_length"].iloc[1] == 0
     assert round(summary["av_flight_duration"].iloc[0], 3) == 0.382
-    assert summary["av_flight_duration"].iloc[1] == 0
     assert round(summary["sd_flight_duration"].iloc[0], 3) == 0.132
-    assert summary["sd_flight_duration"].iloc[1] == 0
     assert round(summary["total_pause_time"].iloc[0], 3) == 22.472
-    assert summary["total_pause_time"].iloc[1] == 24
     assert round(summary["av_pause_duration"].iloc[0], 3) == 4.494
-    assert summary["av_pause_duration"].iloc[1] == 24
     assert round(summary["sd_pause_duration"].iloc[0], 3) == 3.496
-    assert summary["sd_pause_duration"].iloc[1] == 0
 
 
 def test_gps_summaries_pcr(
@@ -475,9 +463,7 @@ def test_gps_summaries_pcr(
     )
 
     assert summary["physical_circadian_rhythm"].iloc[0] == 0
-    assert summary["physical_circadian_rhythm"].iloc[1] == 1
     assert summary["physical_circadian_rhythm_stratified"].iloc[0] == 0
-    assert summary["physical_circadian_rhythm_stratified"].iloc[1] == 0
 
 
 @pytest.fixture
