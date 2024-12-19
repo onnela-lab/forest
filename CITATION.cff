@@ -3,12 +3,30 @@ title: Forest
 message: "If you use Forest, please cite it using the metadata from this file."
 type: software
 authors:
-  - name: "Onnela Lab"
+  - family-names: Clement
+    given-names: Zachary
+  - family-names: Efstathiadis
+    given-names: Georgios
+    orcid: "https://orcid.org/0009-0006-2278-1882"
+  - family-names: Huang
+    given-names: Emily J.
+    orcid: "https://orcid.org/0000-0003-1964-5231"
+  - family-names: Karas
+    given-names: Marta
+    orcid: "https://orcid.org/0000-0001-5889-3970"
+  - family-names: Liu
+    given-names: Greyson
+  - family-names: Onnela
+    given-names: Jukka-Pekka
+    orcid: "https://orcid.org/0000-0001-6613-8668"
+  - family-names: Straczkiewicz
+    given-names: Marcin
+    orcid: "https://orcid.org/0000-0002-8703-4451"
 repository-code: "https://github.com/onnela-lab/forest"
 url: "https://forest.beiwe.org"
 abstract: "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data."
 keywords:
-  - digital phenotyping
+  - "digital phenotyping"
   - smartphone
   - statistics
   - accelerometer
