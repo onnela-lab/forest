@@ -531,6 +531,10 @@ def smooth_temp_ends(
         temp[0, 4] = (1 - p1) * x0 + p1 * x1
         temp[0, 5] = (1 - p1) * y0 + p1 * y1
         temp[0, 6] = t1_temp
+
+        # if expanding range, then convert to imputed status and not observed
+        if max(p0, p1) > 1:
+            temp[0, 7] = 0
     else:
         if parameters.split_day_night and i % 2 != 0:
             t0_temp_l = [start_time, end_time2]
@@ -558,6 +562,11 @@ def smooth_temp_ends(
                     end_temp[j], 2
                 ] + p1 * temp[end_temp[j], 5]
                 temp[end_temp[j], 6] = t1_temp_l[j]
+
+                if p0 > 1:
+                    temp[start_temp[j], 7] = 0
+                if p1 > 1:
+                    temp[end_temp[j], 7] = 0
         else:
             p0 = (temp[0, 6] - t0_temp) / (temp[0, 6] - temp[0, 3])
             p1 = (
@@ -570,6 +579,11 @@ def smooth_temp_ends(
             temp[-1, 4] = (1 - p1) * temp[-1, 1] + p1 * temp[-1, 4]
             temp[-1, 5] = (1 - p1) * temp[-1, 2] + p1 * temp[-1, 5]
             temp[-1, 6] = t1_temp
+
+            if p0 > 1:
+                temp[0, 7] = 0
+            if p1 > 1:
+                temp[-1, 7] = 0
 
     return temp
 
