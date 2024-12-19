@@ -57,6 +57,22 @@ references:
     volume: 22
     year: 2022
   - authors:
+      - family-names: Liu
+        given-names: Guangyu
+        affiliation: "Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University"
+      - family-names: Onnela
+        given-names: Jukka-Pekka
+        affiliation: "Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University"
+        orcid: "https://orcid.org/0000-0001-6613-8668"
+    doi: 10.1093/jamia/ocab069
+    issue: 8
+    journal: "Journal of the American Medical Informatics Association"
+    start: 1777
+    title: "Bidirectional imputation of spatial GPS trajectories with missingness using sparse online Gaussian Process"
+    type: article
+    volume: 28
+    year: 2021
+  - authors:
       - family-names: Onnela
         given-names: Jukka-Pekka
         affiliation: "Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University"
