@@ -110,3 +110,21 @@ references:
     type: article
     volume: 6
     year: 2021
+  - authors:
+      - family-names: Barnett
+        given-names: Ian
+        affiliation: "Department of Biostatistics, Epidemiology, and Informatics, University of Pennsylvania"
+        orcid: "https://orcid.org/0000-0003-3256-5703"
+      - family-names: Onnela
+        given-names: Jukka-Pekka
+        affiliation: "Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University"
+        orcid: "https://orcid.org/0000-0001-6613-8668"
+    doi: 10.1093/biostatistics/kxy059
+    end: e112
+    issue: 2
+    journal: Biostatistics
+    start: e98
+    title: "Inferring mobility measures from GPS with missing data"
+    type: article
+    volume: 21
+    year: 2020
