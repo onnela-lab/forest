@@ -3,8 +3,6 @@
 import numpy as np
 import pytest
 from shapely.geometry import Point
-import sys
-sys.path.append('C:/Users/gioef/Desktop/onnela_lab/forest/src')
 
 from forest.jasmine.data2mobmat import great_circle_dist
 from forest.jasmine.traj2stats import (
