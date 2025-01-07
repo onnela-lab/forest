@@ -4,16 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "forest-analysis"
-version = "1.0.dev4"
+version = "1.0.dev5"
 description = "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data"
 authors = [
-    { name = "Onnela Lab", email = "onnela.lab@gmail.com" }
+    {name = "Zachary Clement"},
+    {name = "Georgios Efstathiadis"},
+    {name = "Emily J. Huang"},
+    {name = "Marta Karas"},
+    {name = "Greyson Liu"},
+    {name = "Jukka-Pekka Onnela"},
+    {name = "Marcin Straczkiewicz"},
 ]
 maintainers = [
-    { name = "Onnela Lab", email = "onnela.lab@gmail.com" }
+    {name = "Onnela Lab", email = "onnela.lab@gmail.com"}
 ]
 readme = "README.md"
-license = { text = "BSD-3-Clause" }
+license = {text = "BSD-3-Clause"}
 requires-python = ">=3.11"
 dependencies = [
     "holidays",
@@ -48,7 +54,7 @@ classifiers = [
 
 [project.urls]
 Documentation = "https://forest.beiwe.org"
-Homepage = "https://github.com/onnela-lab/forest"
+Homepage = "https://forest.beiwe.org"
 Issues = "https://github.com/onnela-lab/forest/issues"
 Source = "https://github.com/onnela-lab/forest"
 
