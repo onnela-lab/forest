@@ -48,13 +48,21 @@ Open `docs/_build/html/index.html` in a web browser to check the results
 
 ### Packaging and distribution
 
-#### Python Package Index
+#### Create a release
+* Update the version number in `pyproject.toml`
+* Update the changelog in `CHANGELOG.md`
+* Commit and push all local changes to GitHub
+* Merge the develop branch into the main branch
+* Create a tag for the release: `git tag -a v1.1.0 -m "Release 1.1.0"`
+* Push the tag to GitHub: `git push origin v1.1.0`
+* [Create a release on GitHub](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
+* Build and upload the distribution archives to Python Package Index (see below) 
+
+#### Upload to Python Package Index
 * Use [TestPyPI](https://test.pypi.org/) for testing that your package can be uploaded, downloaded, and installed correctly
 * [Register an account](https://test.pypi.org/account/register/)
 * [Create an API token](https://test.pypi.org/manage/account/#api-tokens) (setting the "Scope" to "Entire account")
 * [Add API token](https://packaging.python.org/en/latest/specifications/pypirc/#using-a-pypi-token) to your `$HOME/.pypirc` file
-* Increment the project version in `pyproject.toml`
-* Commit and push all local changes to GitHub
 * Clear the build directory: `rm -r dist`
 * Generate distribution archives: `python -m build`
 * Check the results: `twine check dist/*`
