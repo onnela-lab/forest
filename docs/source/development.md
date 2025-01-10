@@ -70,8 +70,8 @@ Open `docs/_build/html/index.html` in a web browser to check the results
   * TestPyPI: `twine upload --repository testpypi dist/*`
   * PyPI: `twine upload dist/*`
 * Install from TestPyPI to verify:
-  * TestPyPI: `pip install --index-url https://test.pypi.org/simple/ --no-deps forest-analysis`
-  * PyPI: `pip install forest-analysis`
+  * TestPyPI: `pip install --index-url https://test.pypi.org/simple/ --no-deps beiwe-forest`
+  * PyPI: `pip install beiwe-forest`
 
 ## GitHub
 

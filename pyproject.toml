@@ -3,8 +3,8 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "forest-analysis"
-version = "1.0.dev5"
+name = "beiwe-forest"
+version = "1.0rc1"
 description = "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data"
 authors = [
     {name = "Zachary Clement"},
@@ -48,7 +48,6 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3.11",
-    "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 
