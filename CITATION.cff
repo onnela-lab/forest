@@ -3,11 +3,19 @@ title: Forest
 message: "If you use Forest, please cite it using the metadata from this file."
 type: software
 authors:
+  - family-names: Barback
+    given-names: Josh
+  - family-names: Beukenhorst
+    given-names: Anna
+    orcid: "https://orcid.org/0000-0002-1765-4890"
   - family-names: Clement
     given-names: Zachary
   - family-names: Efstathiadis
     given-names: Georgios
     orcid: "https://orcid.org/0009-0006-2278-1882"
+  - family-names: Emedom-Nnamdi
+    given-names: Patrick
+    orcid: "https://orcid.org/0000-0003-4442-924X"
   - family-names: Huang
     given-names: Emily J.
     orcid: "https://orcid.org/0000-0003-1964-5231"
@@ -16,12 +24,14 @@ authors:
     orcid: "https://orcid.org/0000-0001-5889-3970"
   - family-names: Liu
     given-names: Greyson
-  - family-names: Onnela
-    given-names: Jukka-Pekka
-    orcid: "https://orcid.org/0000-0001-6613-8668"
+  - family-names: Ponarul
+    given-names: Nellie
   - family-names: Straczkiewicz
     given-names: Marcin
     orcid: "https://orcid.org/0000-0002-8703-4451"
+  - family-names: Onnela
+    given-names: Jukka-Pekka
+    orcid: "https://orcid.org/0000-0001-6613-8668"
 repository-code: "https://github.com/onnela-lab/forest"
 url: "https://forest.beiwe.org"
 abstract: "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data."

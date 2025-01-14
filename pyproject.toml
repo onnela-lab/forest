@@ -4,16 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "beiwe-forest"
-version = "1.0rc1"
+version = "1.0rc2"
 description = "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data"
 authors = [
+    {name = "Josh Barback"},
+    {name = "Anna Beukenhorst"},
     {name = "Zachary Clement"},
     {name = "Georgios Efstathiadis"},
+    {name = "Patrick Emedom-Nnamdi"},
     {name = "Emily J. Huang"},
     {name = "Marta Karas"},
     {name = "Greyson Liu"},
-    {name = "Jukka-Pekka Onnela"},
+    {name = "Nellie Ponarul"},
     {name = "Marcin Straczkiewicz"},
+    {name = "Jukka-Pekka Onnela"},
 ]
 maintainers = [
     {name = "Onnela Lab", email = "onnela.lab@gmail.com"}
