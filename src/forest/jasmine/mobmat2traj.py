@@ -1253,7 +1253,8 @@ def imp_to_traj(
                 start_idx = end_idx
                 end_idx += 1
 
-                # If the trajectory is multiple pauses, add it to the tidy_trajectory
+                # If the trajectory is multiple pauses,
+                # add it to the tidy_trajectory
                 if temp[start, 0] == 2:
                     tidy_trajectory.append(
                         [
@@ -1262,7 +1263,8 @@ def imp_to_traj(
                             *temp[end, 4:7],
                         ]
                     )
-                # If the trajectory is a flight in one row, add it to the tidy_trajectory
+                # If the trajectory is a flight in one row,
+                # add it to the tidy_trajectory
                 elif end == start:
                     tidy_trajectory.append(
                         [
