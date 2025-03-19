@@ -1,0 +1,5 @@
+BEIWE_ID_FIX_1 = "c3qgv1lo"
+BEIWE_ID_FIX_2 = "q1asyq1d"
+BEIWE_ID_FIX_3 = "upxfqjc4"
+BEIWE_ID_FIX_4 = "8wm2hk33"
+BEIWE_ID_FIX_5 = "thozhbm7"

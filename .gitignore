@@ -17,6 +17,9 @@ venv/
 /tutorials/gps_output/
 /tutorials/gps_summary.csv
 
+/src/forest/stb_screen_time/data_nock_lab/
+/src/forest/stb_screen_time/results/
+
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
 

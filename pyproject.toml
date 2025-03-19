@@ -30,7 +30,7 @@ dependencies = [
     "librosa",
     "numpy",
     "openrouteservice",
-    "pandas",
+    "pandas[excel]",
     "pyproj",
     "python-dateutil",
     "pytz",
