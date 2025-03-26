@@ -915,15 +915,17 @@ def final_daily_prep(
     """
 
     year, month, day = datetime_list[:3]
+    date = datetime(year, month, day).strftime("%m/%d/%Y")
     (
         av_f_len, sd_f_len, av_f_dur, sd_f_dur, av_p_dur, sd_p_dur
     ) = flight_pause_stats
 
     if obs_dur == 0:
         res = [
-            year,
-            month,
-            day,
+            #year,
+            #month,
+            #day,
+            date,
             0,
             0,
             0,
@@ -952,9 +954,10 @@ def final_daily_prep(
         log_tags[f"{day}/{month}/{year}"] = []
     else:
         res = [
-            year,
-            month,
-            day,
+            #year,
+            #month,
+            #day,
+            date,
             obs_dur / 3600,
             obs_day / 3600,
             obs_night / 3600,
@@ -1059,9 +1062,10 @@ def format_summary_stats(
     else:
         summary_stats_df.columns = (
             [
-                "year",
-                "month",
-                "day",
+                #"year",
+                #"month",
+                #"day",
+                "date",
                 "obs_duration",
                 "obs_day",
                 "obs_night",
