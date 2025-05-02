@@ -6,9 +6,8 @@
     - power_events.csv
 
 """
-import os
 from logging import getLogger
-from pkg_resources import resource_filename
+from importlib.resources import files
 from ..functions.io import read_json
 
 
@@ -24,7 +23,7 @@ docnames = [
     "power_events.csv",
 ]
 for d in docnames:
-    DOCPATHS[d] = resource_filename(__name__, os.path.join("noncode", d))
+    DOCPATHS[d] = str(files(__name__).joinpath("noncode", d))
 
 
 """Dictionary of data streams.
