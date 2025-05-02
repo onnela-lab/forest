@@ -7,9 +7,10 @@ name = "beiwe-forest"
 version = "1.0rc2"
 description = "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data"
 authors = [
+    {name = "Jukka-Pekka Onnela"},
     {name = "Josh Barback"},
-    {name = "Anna Beukenhorst"},
     {name = "Zachary Clement"},
+    {name = "Hassan Dawood"},
     {name = "Georgios Efstathiadis"},
     {name = "Patrick Emedom-Nnamdi"},
     {name = "Emily J. Huang"},
@@ -17,7 +18,8 @@ authors = [
     {name = "Greyson Liu"},
     {name = "Nellie Ponarul"},
     {name = "Marcin Straczkiewicz"},
-    {name = "Jukka-Pekka Onnela"},
+    {name = "Ilya Sytchev"},
+    {name = "Anna Beukenhorst"},
 ]
 maintainers = [
     {name = "Onnela Lab", email = "onnela.lab@gmail.com"}
