@@ -339,7 +339,7 @@ def comm_logs_summaries(
     step_size = 60 * frequency.value
 
     # for each chunk, calculate the summary statistics (colmean or count)
-    for stamp in np.arange(table_start, table_end + 1, step=step_size):
+    for stamp in range(int(table_start), int(table_end) + 1, int(step_size)):
         year, month, day, hour, _, _ = stamp2datetime(stamp, tz_str)
         # initialize the summary statistics
         newline = []
