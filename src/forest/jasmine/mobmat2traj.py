@@ -491,7 +491,7 @@ def create_tables(
     ]
 
     # Initialize missing intervals table
-    mis_table = np.zeros((1, 8))
+    mis_table = np.empty((0, 8))
 
     # Iterate over mobility matrix rows to find missing intervals
     for i in range(mob_mat_rows - 1):
@@ -514,10 +514,6 @@ def create_tables(
             )
             # Append the missing interval to the table
             mis_table = np.vstack((mis_table, mov))
-
-    # Remove the first row of missing_intervals_table
-    # (which was initialized to zero)
-    mis_table = np.delete(mis_table, 0, 0)
 
     return flight_table, pause_table, mis_table
 
@@ -1207,7 +1203,7 @@ def imp_to_traj(
     logger.info("Tidying up the trajectories...")
 
     # Create a table for missing values
-    mis_table = np.zeros((1, 8))
+    mis_table = np.empty((0, 8))
 
     # Find missing values in mobility matrix and add them to the mis_table
     for i in range(mob_mat.shape[0] - 1):
@@ -1221,9 +1217,6 @@ def imp_to_traj(
                 ]
             )
             mis_table = np.vstack((mis_table, movement_data))
-
-    # Delete the first row of zeros
-    mis_table = np.delete(mis_table, 0, 0)
 
     tidy_trajectory = []
     for k in range(mis_table.shape[0]):

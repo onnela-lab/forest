@@ -860,8 +860,7 @@ def gen_route_traj(route: list, vehicle: Vehicle,
             trip = gen_basic_pause(location_end, time_start, None, [5, 120])
             time_start = trip[-1, 0]
             traj = np.vstack((traj, trip))
-    traj = traj[1:, :]
-    return traj, total_distance
+    return traj[1:, :], total_distance
 
 
 def gen_all_traj(person: Person, switches: Dict[str, int],
@@ -1014,9 +1013,7 @@ def gen_all_traj(person: Person, switches: Dict[str, int],
             home_time = 0
             total_d = 0
 
-    traj = traj[:-1, :]
-
-    return traj, home_time_list, total_d_list
+    return traj[:-1, :], home_time_list, total_d_list
 
 
 def remove_data(
