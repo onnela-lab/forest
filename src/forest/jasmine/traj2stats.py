@@ -1551,7 +1551,7 @@ def gps_quality_check(study_folder: str, study_id: str) -> float:
             if file_list[i][0] == ".":
                 file_list[i] = file_list[i][2:]
         file_path = [
-            f"{gps_path }/{file_list[j]}"
+            f"{gps_path}/{file_list[j]}"
             for j, _ in enumerate(file_list)
         ]
         file_path_array = np.sort(np.array(file_path))
