@@ -10,6 +10,9 @@ jobs:
   build-html-docs:
     name: 'Build HTML docs'
     runs-on: 'ubuntu-24.04'
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
     defaults:
       run:
         working-directory: './docs'
@@ -19,7 +22,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.11
+          python-version: ${{ matrix.python-version }}
       - name: Install documentation build dependencies
         run: pip install -r requirements.txt
       - name: Build HTML docs
