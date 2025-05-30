@@ -31,7 +31,7 @@ Output: typically summary files
 
 # Usage
 
-Please note that Forest uses Python 3.11. To install, clone this repository to a local directory and then:
+Please note that Forest is tested again Python 3.11 and 3.12 only. To install, clone this repository to a local directory and then:
 
 ```console
 pip install path/to/forest
