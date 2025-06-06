@@ -32,7 +32,7 @@ passive-data.md
 
 # Home
 
-Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data collected with the [Beiwe platform](https://www.beiwe.org/). Forest implements methods as a Python 3.11 package. Forest is integrated into the Beiwe back-end on AWS but can also be run locally.
+Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data collected with the [Beiwe platform](https://www.beiwe.org/). Forest implements methods as a Python 3.12 package. Forest is integrated into the Beiwe back-end on AWS but can also be run locally.
 
 **Table of Contents**
 ```{contents}

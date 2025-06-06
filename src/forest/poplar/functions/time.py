@@ -124,8 +124,7 @@ def to_readable(timestamp: int, to_format: str,
     try:
         if isinstance(to_tz, str):
             to_tz = pytz.timezone(to_tz)
-        datetime_date = datetime.datetime.utcfromtimestamp(timestamp / 1000)
-        utc_dt = pytz.utc.localize(datetime_date)
+        utc_dt = datetime.datetime.fromtimestamp(timestamp / 1000, tz=pytz.UTC)
         local_dt = utc_dt.astimezone(to_tz)
         readable = local_dt.strftime(to_format)
         return readable

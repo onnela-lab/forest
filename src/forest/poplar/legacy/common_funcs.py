@@ -56,10 +56,7 @@ def stamp2datetime(stamp: Union[float, int], tz_str: str) -> list:
          specified tz
     """
     loc_tz = timezone(tz_str)
-
-    utc = timezone("UTC")
-    utc_dt = utc.localize(datetime.utcfromtimestamp(stamp))
-
+    utc_dt = datetime.fromtimestamp(stamp, timezone("UTC"))
     loc_dt = utc_dt.astimezone(loc_tz)
     return [
         loc_dt.year, loc_dt.month, loc_dt.day,
