@@ -8,14 +8,49 @@ authors:
   - name: Jukka-Pekka Onnela^[Principal Investigator and corresponding author.]
     orcid: 0000-0001-6613-8668
     affiliation: 1
-  - name: xxx
+  - name: Josh Barback
+    orcid: ______________
+    affiliation: 1
+  - name: Zachary Clement
+    orcid: ______________
+    affiliation: _________
+  - name: Hassan Dawood
+    orcid: 0000-0002-2190-5146
+    affiliation: 1
+  - name: Georgios Efstathiadis
+    orcid: ______________
+    affiliation: _________
+  - name: Patrick Emedom-Nnamdi
+    orcid: ______________
+    affiliation: _________
+  - name: Emily J. Huang
+    orcid: ______________
+    affiliation: _________
+  - name: Marta Karas
+    orcid: 0000-0001-5889-3970
     affiliation: 2
-  - name: yyy
-    affiliation: 3
+  - name: Greyson Liu
+    orcid: ______________
+    affiliation: _________
+  - name: Max Melnikas
+    orcid: ______________
+    affiliation: _________
+  - name: Nellie Ponarul
+    orcid: ______________
+    affiliation: _________
+  - name: Marcin Straczkiewicz
+    orcid: ______________
+    affiliation: _________
+  - name: Ilya Sytchev
+    orcid: ______________
+    affiliation: _________
+  - name: Anna Beukenhorst
+    orcid: ______________
+    affiliation: _________
 affiliations:
  - name: Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University
    index: 1
- - name: aaaaaaaaaa
+ - name: Takeda Development Center Americas, Cambridge, MA, USA
    index: 2
  - name: bbbbbbbbbb
    index: 3
