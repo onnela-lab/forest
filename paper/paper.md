@@ -12,20 +12,20 @@ authors:
     orcid: ______________
     affiliation: 1
   - name: Zachary Clement
-    orcid: ______________
-    affiliation: _________
+    orcid: 0000-0003-2279-5265
+    affiliation: 7
   - name: Hassan Dawood
     orcid: 0000-0002-2190-5146
     affiliation: 1
   - name: Georgios Efstathiadis
-    orcid: ______________
-    affiliation: _________
+    orcid: 0009-0006-2278-1882
+    affiliation: 1,3
   - name: Patrick Emedom-Nnamdi
-    orcid: ______________
-    affiliation: _________
+    orcid: 0000-0003-4442-924X
+    affiliation: 3
   - name: Emily J. Huang
-    orcid: ______________
-    affiliation: _________
+    orcid: 0000-0003-1964-5231
+    affiliation: 6
   - name: Marta Karas
     orcid: 0000-0001-5889-3970
     affiliation: 2
@@ -33,27 +33,35 @@ authors:
     orcid: ______________
     affiliation: _________
   - name: Max Melnikas
-    orcid: ______________
-    affiliation: _________
+    orcid: 0009-0005-4327-4495
+    affiliation: 1
   - name: Nellie Ponarul
     orcid: ______________
     affiliation: _________
   - name: Marcin Straczkiewicz
-    orcid: ______________
-    affiliation: _________
+    orcid: 0000-0002-8703-4451
+    affiliation: 4
   - name: Ilya Sytchev
     orcid: ______________
     affiliation: _________
   - name: Anna Beukenhorst
-    orcid: ______________
-    affiliation: _________
+    orcid: 0000-0002-1765-4890
+    affiliation: 1,5
 affiliations:
  - name: Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University
    index: 1
  - name: Takeda Development Center Americas, Cambridge, MA, USA
    index: 2
- - name: bbbbbbbbbb
+ - name: Olira, 11201 USA, New York City, NY, USA
    index: 3
+ - name: Department of Measurement and Electronics, AGH University of Krakow, Krakow, Poland
+   index: 4
+ - name: Leyden Labs, Leiden, The Netherlands
+   index: 5
+ - name: Department of Statistical Sciences, Wake Forest University, Winston-Salem, North Carolina
+   index: 6
+ - name: CVS Health
+   index: 7
 date: 28 May 2025
 bibliography: paper.bib
 
