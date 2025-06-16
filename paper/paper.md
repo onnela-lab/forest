@@ -42,8 +42,8 @@ authors:
     orcid: 0000-0002-8703-4451
     affiliation: 4
   - name: Ilya Sytchev
-    orcid: ______________
-    affiliation: _________
+    orcid: 0009-0003-0647-5613
+    affiliation: 1
   - name: Anna Beukenhorst
     orcid: 0000-0002-1765-4890
     affiliation: 1,5
