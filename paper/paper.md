@@ -13,7 +13,7 @@ authors:
     affiliation: 1
   - name: Zachary Clement
     orcid: 0000-0003-2279-5265
-    affiliation: 7
+    affiliation: 1,7
   - name: Hassan Dawood
     orcid: 0000-0002-2190-5146
     affiliation: 1
@@ -22,25 +22,25 @@ authors:
     affiliation: 1,3
   - name: Patrick Emedom-Nnamdi
     orcid: 0000-0003-4442-924X
-    affiliation: 3
+    affiliation: 1,3
   - name: Emily J. Huang
     orcid: 0000-0003-1964-5231
-    affiliation: 6
+    affiliation: 1,6
   - name: Marta Karas
     orcid: 0000-0001-5889-3970
-    affiliation: 2
-  - name: Greyson Liu
-    orcid: ______________
-    affiliation: _________
+    affiliation: 1,2
+  - name: Gang Liu
+    orcid: 0000-0003-3544-363X
+    affiliation: 1,8
   - name: Max Melnikas
     orcid: 0009-0005-4327-4495
     affiliation: 1
   - name: Nellie Ponarul
     orcid: ______________
-    affiliation: _________
+    affiliation: 1
   - name: Marcin Straczkiewicz
     orcid: 0000-0002-8703-4451
-    affiliation: 4
+    affiliation: 1,4
   - name: Ilya Sytchev
     orcid: 0009-0003-0647-5613
     affiliation: 1
@@ -48,7 +48,7 @@ authors:
     orcid: 0000-0002-1765-4890
     affiliation: 1,5
 affiliations:
- - name: Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University
+ - name: Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University, Boston, MA, USA
    index: 1
  - name: Takeda Development Center Americas, Cambridge, MA, USA
    index: 2
@@ -58,10 +58,12 @@ affiliations:
    index: 4
  - name: Leyden Labs, Leiden, The Netherlands
    index: 5
- - name: Department of Statistical Sciences, Wake Forest University, Winston-Salem, North Carolina
+ - name: Department of Statistical Sciences, Wake Forest University, Winston-Salem, North Carolina, USA
    index: 6
  - name: CVS Health
    index: 7
+ - name: Google LLC, Mountain View, California, USA
+   index: 8
 date: 28 May 2025
 bibliography: paper.bib
 
