@@ -10,6 +10,7 @@ authors:
     given-names: Josh
   - family-names: Clement
     given-names: Zachary
+    orcid: "https://orcid.org/0000-0003-2279-5265"
   - family-names: Dawood
     given-names: Hassan
     orcid: "https://orcid.org/0000-0002-2190-5146"
@@ -26,7 +27,8 @@ authors:
     given-names: Marta
     orcid: "https://orcid.org/0000-0001-5889-3970"
   - family-names: Liu
-    given-names: Greyson
+    given-names: Gang
+    orcid: "https://orcid.org/0000-0003-3544-363X"
   - family-names: Ponarul
     given-names: Nellie
   - family-names: Straczkiewicz
@@ -89,8 +91,9 @@ references:
     year: 2022
   - authors:
       - family-names: Liu
-        given-names: Guangyu
+        given-names: Gang
         affiliation: "Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University"
+        orcid: "https://orcid.org/0000-0003-3544-363X"
       - family-names: Onnela
         given-names: Jukka-Pekka
         affiliation: "Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University"
