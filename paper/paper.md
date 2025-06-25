@@ -1,0 +1,113 @@
+---
+title: 'Forest: A data analysis library for raw high-throughput digital phenotyping data'
+tags:
+  - high-throughput
+  - digital phenotyping
+  - smartphone
+authors:
+  - name: Jukka-Pekka Onnela^[Principal Investigator and corresponding author.]
+    orcid: 0000-0001-6613-8668
+    affiliation: 1
+  - name: Josh Barback
+    orcid: ______________
+    affiliation: 1
+  - name: Zachary Clement
+    orcid: 0000-0003-2279-5265
+    affiliation: 1,7
+  - name: Hassan Dawood
+    orcid: 0000-0002-2190-5146
+    affiliation: 1
+  - name: Georgios Efstathiadis
+    orcid: 0009-0006-2278-1882
+    affiliation: 1,3
+  - name: Patrick Emedom-Nnamdi
+    orcid: 0000-0003-4442-924X
+    affiliation: 1,3
+  - name: Emily J. Huang
+    orcid: 0000-0003-1964-5231
+    affiliation: 1,6
+  - name: Marta Karas
+    orcid: 0000-0001-5889-3970
+    affiliation: 1,2
+  - name: Gang Liu
+    orcid: 0000-0003-3544-363X
+    affiliation: 1,8
+  - name: Max Melnikas
+    orcid: 0009-0005-4327-4495
+    affiliation: 1
+  - name: Nellie Ponarul
+    orcid: ______________
+    affiliation: 1
+  - name: Marcin Straczkiewicz
+    orcid: 0000-0002-8703-4451
+    affiliation: 1,4
+  - name: Ilya Sytchev
+    orcid: 0009-0003-0647-5613
+    affiliation: 1
+  - name: Anna Beukenhorst
+    orcid: 0000-0002-1765-4890
+    affiliation: 1,5
+affiliations:
+ - name: Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University, Boston, MA, USA
+   index: 1
+ - name: Takeda Development Center Americas, Cambridge, MA, USA
+   index: 2
+ - name: Olira, 11201 USA, New York City, NY, USA
+   index: 3
+ - name: Department of Measurement and Electronics, AGH University of Krakow, Krakow, Poland
+   index: 4
+ - name: Leyden Labs, Leiden, The Netherlands
+   index: 5
+ - name: Department of Statistical Sciences, Wake Forest University, Winston-Salem, North Carolina, USA
+   index: 6
+ - name: CVS Health
+   index: 7
+ - name: Google LLC, Mountain View, CA, USA
+   index: 8
+date: 28 May 2025
+bibliography: paper.bib
+
+---
+
+# Summary
+
+Forest is a data analysis library for raw high-throughput digital phenotyping data. It is intended to integrate direcly with its companion software--the Beiwe plaform--which is a high-throughput data collection platform for smartphone data from Android and iOS phones. Beiwe is in digital phenotyping to collect active data (e.g., surveys and audio samples) and passive data (e.g., accelerometer data) from Android and iOS phones. Most smartphone applications use software development kits (SDKs) that generate unvalidated behavioral summary measures using closed proprietary algorithms. These applications do not meet the high standards of reproducible science, and often require researchers to modify their scientific questions based on what data happens to be available. In contrast, Beiwe collects raw sensor and phone use data, and its data collection parameters can be customized to address specific scientific questions of interest. The quantitative methods for analyzing such data have been developed and published elsewhere. The purpose of the Forest is to provide software implementations of these methods in Python. Each method within Forest is named after a tree; for example, the method that implements our sparse online Gaussian process imputation of missing GPS trajectories is called Python. We expect Forest to grow by the addition of new trees as more methods become available in the future.
+
+# Statement of need
+
+**Background.** The phenotype of an organism is a collection of traits, such as enzyme activity, hormone levels, and behavior. Many researchers are increasingly advocating a more substantial role for large scale phenotyping as a route to advances in the biomedical sciences [@houle2010phenomics; @delude2015deep; @bilder2009phenomics; @robinson2012deep]. Of the many different phenotypes, social, behavioral, and cognitive phenotypes are difficult to study due to their temporal and contextual dependence. The standard approach to learning about something as complex as human behavior is to use surveys, which are cross-sectional, subjective, and often burdensome. The ubiquity and capability of smartphones—when coupled with appropriate data analytic techniques—can be part of the solution. We coined the term Digital Phenotyping to refer to the “moment-by-moment quantification of the individual-level human phenotype *in situ* using data from personal digital devices, in particular smartphones” [@onnela2016harnessing; @torous2016new]. We developed Beiwe specifically for use in smartphone-based digital phenotyping research. In addition to enabling more objective measurement of existing phenotypes, the approach can also give rise to entirely new phenotypes.
+
+**State of the field.** Social and behavioral phenotypes have traditionally been studied using either self-administered or investigator-administered surveys in research settings and self-administered or clinician-administered surveys in clinical settings. For example, the Amyotrophic Lateral Sclerosis Functional Rating Scale - Revised (ALSFRS-R) includes 12 questions (items) each scored on 0 (no function) to 4 (full function) scale, and it has been used for both diagnosing patients and for measuring disease progression [@mora2017edaravone]. In observational studies and clinical trials, it may be administered every six weeks, with smaller within-subject standard deviation in the score if self-administered by the patient on the smartphone rather than administered by a clinician at the clinic on paper [@berry2019design]. To eliminate recall bias, some of these items may be actually measured objectively in free-living settings. For example, two of the items in ALSFRS-R are related to physical activity: walking (Item 8) and climbing stairs (Item 9), both of which can be estimated using smartphone accelerometer and gyroscope data [@straczkiewicz2021systematic].
+
+An important development for the field has been the introduction of software development kits (SDKs) for smartphones, such as Apple’s ResearchKit and Google’s Research-Stack, which has facilitated writing of software for these devices. Use of prepackaged software however limits what types of data can be collected, which then limits the types of analyses that may be performed [@onnela2021opportunities]. For example, Apple’s ResearchKit does not support background sensor data collection [@researchkit]; Apple's HealthKit supports background sensor data collection for selected sensors only [@sensorkit]; and the Core Motion framework makes it possible to collect raw accelerometer data in the background but only for up to 12 hours at a time [@cmsensor]. The algorithms that underlie HealthKit metrics, such as step count [@sensorkit_stepcount], appear all to be proprietary. The use of closed algorithms, which may change at any time without notice, makes it hard or impossible to compare data collected at different times (using possibly different versions of these algorithms) or data collected using different SDKs.
+
+To the best of our knowledge, Forest is the only existing raw high-throughput smartphone data analysis library. Most investigators use data from commercially maintained SDKs like those mentioned. The minority of investigators who choose to use raw data either end up using general purpose statistical methods that have not been developed for this specific purpose or invent ad hoc methods whose statistical properties and operating characteristics are not known. There is substantial benefit to having statisticians, data scientists, and machine learning experts develop such methods and implement them in easy-to-use software. This is expected to improve the quality of statistical methods and the quality of evidence generated in scientific publication.
+
+**Workflow.** The Forest library starts where its software companion, the Beiwe platform ends. The Beiwe platform is used primarily in health research settings to collect active and passive data. Depending on data collection settings, the volume of raw data per participant per month typically ranges from 100MB to 1GB. The purpose of the Forest library is to read in the raw data and convert it into interpretable summary statistics, such as estimated daily step count. In many cases, the user can specify the time granularity of these summaries. For example, in some settings, it may be more relevant to work with hourly step count estimates rather than daily step count estimates. These summary statistics are then the input to subsequent data analysis, where they may be used as outcomes or predictors. The time granularity of the summaries is expected to influence the choice of statistical methods employed. For example, to investigate the longitudinal association between daily mood (outcome) and daily step count (predictor), one might use generalized linear mixed models to learn about the effect of physical activity (walking) while accounted for the correlated nature of the data (data within person are correlated over time). In contrast, if one wanted to carry out the same investigation in hourly time windows, methods in functional data analysis would likely be better suited for the task. It is worth pointing out that some of the methods in Forest have been used and also validated for data from wearable devices other than the smartphone. For this reason, it is possible to use the Jasmin method to impute data obtained from any wearable GPS tracker and, similarly, to use the Oak method to estimate step counts or learn about properties of gait from accelerometer data connected by a smartwatch.
+
+**Supported methods.** There are currently XXX trees in production use that make up the Forest library, and the number is expected to continue increasing. In the following, we provide a brief overview of each included method (tree).
+
+**Jasmine** is used to convert raw GPS data (time, latitude, longitude, altitude, accuracy) into a more abstract date type consisting flights (corresponding to linear movement) and pauses (corresponding to non-movement). To avoid planar projection and subsequent distortion of movement patterns, these objects are specified in spherical coordinates where the origin corresponds to the center of the Earth; flights then correspond to short arcs on the surface of the Earth. A pattern of movement when formulated in terms of flights and pauses is called a mobility trajectory. In general, there will be missingness in mobility trajectories; some the missigness may be intentional by design (e.g., GPS sampling may alternate between on and off cycles to preserve battery) while in other instances it may be due to some technological reason (e.g., GPS signal cannot be received because the person is inside a building). Jasmine uses a resampling method that was introduced by Barnett \& Onnela (CITE) and subsequently refined by Liu \& Onnela (CITE). The latter is based on sparse online Gaussian processes and has many advantages over the former. In addition to generating imputed mobility trajectories, Jasmine also computes various mobility summary statistics. There are several input parameters that the user may specify, such as the threshold distance for considering movement a pause, the number of basis vectors for flights and pauses in the kernel function, and the variance parameter in sparse online Gaussian process.
+
+**Oak** is used to convert raw time-stamped triaxial accelerometer data (time, $a_x$, $a_y$, $a_z$) into summary statistics capturing properties of gait, cadence, and step counts. Some of the generated summaries, such as those characterizing gait, are intensive or density-like measures, whereas others, such as daily step count, are extensive or volume-like measures. This distinction is important when considering how to handle device non-wear in subsequent analyses. For the sake of this explanation, assume that the properties of a person's physical activity do not change over the course of the day (e.g., gait does not become slower in the evening), which corresponds to the mathematical assumption that the (accelerometer) data generating process can be assumed to be stationary throughout the day (and may or may not be stationary across the days). Most studies dealing with physical activity need to address device non-wear. For intensive quantities under our assumptions, non-wear reduced the precision of estimates somewhat but does not introduce a bias; in contrast, for extensive quantities, non wear can lead to significant bias. To use step counts as the example, the estimand of interest may be the (true but unobserved) daily step count, whereas what is observed is a conditional step count, the number of steps oberved while the device is worn. Depending on the scientific question, study design, and planned statistical analyses, some reweighting or adjustment may be needed for extensive quantities. Currently, summary statistics may be computed daily or hourly. Examples of summary statistics include walking time and the number of steps taken.
+
+**Willow** is used to process Android communication logs into summary statistics capturing phone-based measures of sociability and communicativity. Communication logs on the device contain actual phone numbers of communication partners, which is a clear risk to privacy if shared in this form. To address this concern, communication logs collected using the Beiwe platform use a form of one-way-hash to conver the numbers into surrogate keys, and this process is completed on the phone prior to data being uploaded to the system back-end. This mapping cannot be inverted, so it is not possible to recover the underlying phone numbers from the surrogate keys. Because each number is mapped to a unique key, it is possible at the data analysis stage to distinguish between, say, one phone call each to five distinct individuals from five phone calls to the same individual. Communication logs cover phone-based calls, text messages, and multimedia messages. No data about the audio phone call is collected by Beiwe and no data about the content of text messages is collected by Beiwe. However, analogous to call duration (recorded at the level of seconds), the length of messages (recorded as the number of characters) is available for text messages. Examples of summary statistics include the total number of unique incoming callers (the number of people who called the subject), the total number of unique outcoing callees (the number of people whom the subject called), and the total number of characters received.
+
+**Sycamore** is used to generate survey data summary statistics and provide preprocessed data elements for surveys implemented on Beiwe. The methods have been designed for use on the `survey_timings`, `survey_answers`, and `audio_recordings` data from Beiwe. The `survey_timings` and `survey_answers` data streams are required for optimal data processing. The `survey_timings` stream is the best source of survey data because it has information on when a user responded to each question. Because survey files are not always uploaded to the Beiwe server, the `survey_answers` data stream is used as a backup to the `survey_timings` stream. The `survey_answers` stream only contains information about survey responses and the time of the survey’s final submission, so the `survey_answers` stream alone should not be used for survey processing. The `audio_recordings` data stream can also be included in survey summary outputs. Sycamore does not process the audio data returned as part of audio surveys, but it can generate summaries with submission frequencies and survey duration for audio surveys. Summary statistics include the survey ID, the number of submitted survey responses, and the average time between survey delivery and survey submission (in seconds) for complete surveys. Since the implementation of surveys and audio surveys is specific to the Beiwe platform, the features of this tree are most readily used with Beiwe-generated survey and audio files.
+
+**Poplar** implements various common functions for data preparation mainly used by other trees (e.g., time zone conversion, reading/writing). **Bonsai** is used to generate synthetic communication logs data and synthetic GPS data, both intended for testing, prototyping, and development of statistical and machine learning methods.
+
+------------------------
+
+<!-- OLD: **Data elements.** The Beiwe platform can collect both active data (subject input required) and passive data (subject input not required). Currently supported active data types for both Android and iOS are text surveys and audio diary entries and their associated metadata. Passive data can be further divided into two groups: phone sensor data and phone logs. Beiwe collects raw sensor data and raw phone logs, which is absolutely crucial in scientific settings, yet this point remains underappreciated. Relying on generic SDKs for data collection is convenient but for many reasons ineffective: the data generated by different SDKs are not comparable; the algorithms used to generate data are proprietary and hence unsuitable for reproducible research; new data summaries cannot be implemented post data collection; the composition of the metrics collected by SDKs changes in time, making it difficult or impossible to make comparisons across subjects when they are enrolled at different points in time; and data cannot be pooled across studies for later re-analyses or meta-analyses. Currently supported passive data types are the following: accelerometer, gyroscope, magnetometer, GPS, call and text message logs on Android devices (metadata only, no content), proximity,  device motion, reachability, Wi-Fi, Bluetooth, and power state. For each sensor, such as GPS, data collection alternates between an on-cycle (data collected) and an off-cycle (data not collected); logs are collected without sampling if their collection is specified. The investigators specify what data is collected based on the scientific question: for example, a study on mobility might choose to collect accelerometer and gyroscope data used in human activity recognition. The text that appears within the application is also customizable for each study. Data streams that contain identifiers, such as phone numbers in communication (call and text message) logs, are anonymized on the device; the "fuzzy" GPS feature if enabled adds randomly generated noise to the GPS coordinates on the device. Finally, study meta settings are also customizable, and include items such as frequency of uploading data files to the back-end (typically 1 hour) and duration before auto logout from the application (typically 10 minutes). -->
+
+<!-- OLD: **Privacy and security.** All Beiwe data are encrypted while stored on the phone awaiting upload and while in transit, and they are re-encrypted for storage on the study server while at rest. More specifically, during study registration the platform provides the smartphone app with the public half of a 2048-bit RSA encryption key. With this key the device can encrypt data, but only the server, which has the private key, can decrypt it. Thus, the Beiwe application cannot read its own data that it stores temporarily, and therefore there is no way for a user (or anyone else) to export the data. The RSA key is used to encrypt symmetric Advanced Encryption Standard (AES) keys for bulk encryption. These keys are generated as needed by the app and must be decrypted by the study server before data recovery. Data received by the cloud server is re-encrypted with the study master key provided and then stored on the cloud. Some of the collected data contain identifiers: communication logs on Android devices contain phone numbers, and Wi-Fi and Bluetooth scans contain media access control (MAC) address. If the study is configured to collect these data, the identifiers in them are anonymized on the phone, and only anonymized versions of the data are uploaded to the back-end server. Briefly, the Beiwe front-end application generates a unique cryptographic code, called a salt, during the Beiwe registration process, and then uses the salt to encrypt phone numbers and other similar identifiers. The salt never gets uploaded to the server and is known only to the phone for this purpose. Using the industry standard SHA-256 (Secure Hash Algorithm) and PBKDF2 (Password-Based Key Derivation Function 2) algorithms, an identifier is transformed into an 88-character anonymized string that can then be used in data analysis. -->
+
+<!-- OLD: **Use cases.** At the time of writing, Beiwe is or has been used in tens of scientific studies on three continents across various fields, and there are likely several additional studies we are not aware of. Smartphone-based digital phenotyping is potentially very promising in behavioral and mental health [@onnela2016harnessing], and new research tools like Beiwe are especially needed in psychiatry [@torous2016new], where in the context of schizophrenia it has been used to predict patient relapse [@barnett2018relapse], compare passive and active estimates of sleep [@staples2017comparison], and characterize the clinical relevance of digital phenotyping data quality [@torous2018characterizing]. The platform has also been used to assess depressive symptoms in a transdiagnostic cohort [@pelligrini2021estimating] and to capture suicidal thinking during the COVID-19 pandemic [@fortgang2020increase]. There is an increasing amount of research on the use of Beiwe in neurological disorders, such as in the quantification of ALS progression [@berry2019design] and behavioral changes in people with ALS during the COVID-19 pandemic [@beukenhorst2021smartphone]. The platform has been used in the context of cancer to assess postoperative physical activity among patients undergoing cancer surgery [@panda2021smartphone], to capture novel recovery metrics after cancer surgery [@panda2020using], to enhance recovery assessment after breast cancer surgery [@panda2020smartphone], and to enhance cancer care [@wright2018hope]. Digital phenotyping and Beiwe have also been applied to quantifying mobility and quality of life of spine patients [@cote2019digital] and to study psychosocial well-being of individuals after spinal cord injury [@mercier2020digital]. -->
+
+
+# Acknowledgements
+
+The Principal Investigator, Jukka-Pekka Onnela, is extremely grateful for his NIH Director’s New Innovator Award in 2013 (DP2MH103909) for enabling the crystallization of the concept of digital phenotyping and the construction of the Beiwe platform. He is also grateful to the members of the Onnela Lab.
+
+# References

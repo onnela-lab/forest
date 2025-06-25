@@ -593,10 +593,10 @@ to that user.
 Assume we are ssh-ed to the EC2 instance.
 
 To create a new environment named `forest_main` with Python version
-`3.11` use
+`3.12` use
 
 ``` sh
-conda create --name forest_main python=3.11
+conda create --name forest_main python=3.12
 ```
 
 To activate an environment named `forest_main` use
@@ -678,12 +678,12 @@ base                  *  /opt/anaconda
 [Forest](https://github.com/onnela-lab/forest) is a Python library for
 analyzing smartphone-based high-throughput digital phenotyping data
 collected with the Beiwe platform. Forest implements methods as a Python
-3.11 package. Forest is integrated into the Beiwe back-end on AWS but can
+3.12 package. Forest is integrated into the Beiwe back-end on AWS but can
 also be run locally.
 
 Assume we are ssh-ed to the EC2 instance. Use the commands below to
 activate Anaconda environment of choice (here, `forest_main` that has
-Python `3.11` installed) and install `git`, `pip`.
+Python `3.12` installed) and install `git`, `pip`.
 
 ``` sh
 conda activate forest_main

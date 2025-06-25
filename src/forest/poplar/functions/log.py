@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 # Dictionary of available log record attributes:
 # For details, see:
-# https://docs.python.org/3.11/library/logging.html#logrecord-attributes
+# https://docs.python.org/3.12/library/logging.html#logrecord-attributes
 AVAILABLE_ATTRIBUTES = {
     "asctime,msecs": "%(asctime)s",  # Human-readable time with milliseconds.
     "created": "%(created)f",  # Unix timestamp (seconds since epoch).
@@ -134,7 +134,7 @@ def log_to_csv(
         log_name (str): Name for the log file.
         log_format (str): The format argument for logging.basicConfig.
             For available attributes and formatting instructions, see:
-            https://docs.python.org/3.11/library/logging.html#logrecord-attributes
+            https://docs.python.org/3.12/library/logging.html#logrecord-attributes
         header (list): Header for the csv.
 
     Returns:
