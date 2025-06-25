@@ -261,14 +261,12 @@ def identify_peaks_in_cwt(freqs_interp: np.ndarray, coefs_interp: np.ndarray,
         peak_vec = np.zeros(num_rows)
 
         if index_in_range is not None:
-
-            if locs[0] > loc_max:
-                if pks[0]/pks[index_in_range] < beta:
-                    peak_vec[locs[index_in_range]] = 1
-            elif locs[0] < loc_min:
-                if pks[0]/pks[index_in_range] < alpha:
-                    peak_vec[locs[index_in_range]] = 1
-            else:
+            max_peak_magnitude_a = np.max(pks[locs < loc_min])
+            max_peak_magnitude_b = np.max(pks[locs > loc_max])
+            if (
+                max_peak_magnitude_b / pks[index_in_range] < beta
+                or max_peak_magnitude_a / pks[index_in_range] < alpha
+            ):
                 peak_vec[locs[index_in_range]] = 1
 
         dp[:, i] = peak_vec
