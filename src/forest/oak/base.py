@@ -266,10 +266,12 @@ def identify_peaks_in_cwt(freqs_interp: np.ndarray, coefs_interp: np.ndarray,
             peaks_above = pks[locs > loc_max]
 
             # Calculate max peak magnitudes, handling empty arrays
-            max_peak_magnitude_a = (np.max(peaks_below) 
-                                   if len(peaks_below) > 0 else 0)
-            max_peak_magnitude_b = (np.max(peaks_above) 
-                                   if len(peaks_above) > 0 else 0)
+            max_peak_magnitude_a = (
+                np.max(peaks_below) if len(peaks_below) > 0 else 0
+            )
+            max_peak_magnitude_b = (
+                np.max(peaks_above) if len(peaks_above) > 0 else 0
+            )
 
             if (
                 max_peak_magnitude_b / pks[index_in_range] < beta
