@@ -261,14 +261,19 @@ def identify_peaks_in_cwt(freqs_interp: np.ndarray, coefs_interp: np.ndarray,
         peak_vec = np.zeros(num_rows)
 
         if index_in_range is not None:
-            max_peak_magnitude_a = np.max(pks[locs < loc_min])
-            max_peak_magnitude_b = np.max(pks[locs > loc_max])
+            # Check if there are peaks below and above the step frequency range
+            peaks_below = pks[locs < loc_min]
+            peaks_above = pks[locs > loc_max]
+
+            # Calculate max peak magnitudes, handling empty arrays
+            max_peak_magnitude_a = np.max(peaks_below) if len(peaks_below) > 0 else 0
+            max_peak_magnitude_b = np.max(peaks_above) if len(peaks_above) > 0 else 0
+
             if (
                 max_peak_magnitude_b / pks[index_in_range] < beta
                 or max_peak_magnitude_a / pks[index_in_range] < alpha
             ):
                 peak_vec[locs[index_in_range]] = 1
-
         dp[:, i] = peak_vec
 
     return dp
