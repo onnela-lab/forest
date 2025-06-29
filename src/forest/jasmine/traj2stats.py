@@ -1271,7 +1271,8 @@ def format_summary_stats(
                 ]
 
         full_column_order = new_column_order + [
-            col for col in summary_stats_df.columns if col not in new_column_order
+            col for col in summary_stats_df.columns
+            if col not in new_column_order
             ]
         summary_stats_df = summary_stats_df[full_column_order]
         summary_stats_df2 = summary_stats_df
