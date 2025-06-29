@@ -3,7 +3,6 @@
 import numpy as np
 import pytest
 from shapely.geometry import Point
-from datetime import datetime, timezone
 
 from forest.jasmine.data2mobmat import great_circle_dist
 from forest.jasmine.traj2stats import (
@@ -426,7 +425,9 @@ def test_gps_summaries_summary_vals(
     assert np.round(summary["Gyration Radius"].iloc[0], 3) == 0.013
     assert np.round(summary["Distance Diameter"].iloc[0], 3) == 0.064
     assert summary["Significant Location Count"].iloc[0] == 2
-    assert np.round(summary["Significant Location Entropy"].iloc[0], 3) == 0.468
+    assert np.round(
+        summary["Significant Location Entropy"].iloc[0], 3
+        ) == 0.468
     assert round(summary["Total Flight Time"].iloc[0], 3) == 1.528
     assert round(summary["Flight Distance Average"].iloc[0], 3) == 0.052
     assert round(summary["Flight Distance Stddev"].iloc[0], 3) == 0.012
