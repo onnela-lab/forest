@@ -817,9 +817,9 @@ def final_hourly_prep(
 
     if obs_dur == 0:
         res = [
-            #year,
-            #month,
-            #day,
+            # year,
+            # month,
+            # day,
             date,
             hour,
             0,
@@ -842,9 +842,9 @@ def final_hourly_prep(
         log_tags[f"{day}/{month}/{year} {hour}:00"] = []
     else:
         res = [
-            #year,
-            #month,
-            #day,
+            # year,
+            # month,
+            # day,
             date,
             hour,
             obs_dur / 60,
@@ -995,9 +995,9 @@ def final_daily_prep(
     else:
         if obs_dur == 0:
             res = [
-                #year,
-                #month,
-                #day,
+                # year,
+                # month,
+                # day,
                 date,
                 0,
                 0,
@@ -1027,9 +1027,9 @@ def final_daily_prep(
             log_tags[f"{day}/{month}/{year}"] = []
         else:
             res = [
-                #year,
-                #month,
-                #day,
+                # year,
+                # month,
+                # day,
                 date,
                 obs_dur / 3600,
                 obs_day / 3600,
@@ -1090,7 +1090,9 @@ def format_summary_stats(
         else:
             places_of_interest2 = places_of_interest.copy()
             places_of_interest2.append("other")
-            places_of_interest3 = [f"{pl}_adjusted" for pl in places_of_interest]
+            places_of_interest3 = [
+                f"{pl}_adjusted" for pl in places_of_interest
+                ]
 
         if parameters.pcr_bool:
             pcr_cols = [
@@ -1160,7 +1162,9 @@ def format_summary_stats(
         else:
             places_of_interest2 = places_of_interest.copy()
             places_of_interest2.append("Other")
-            places_of_interest3 = [f"{pl} Adjusted" for pl in places_of_interest]
+            places_of_interest3 = [
+                f"{pl} Adjusted" for pl in places_of_interest
+                ]
 
         if parameters.pcr_bool:
             pcr_cols = [
@@ -1173,9 +1177,9 @@ def format_summary_stats(
         if frequency != Frequency.DAILY:
             summary_stats_df.columns = (
                 [
-                    #"year",
-                    #"month",
-                    #"day",
+                    # "year",
+                    # "month",
+                    # "day",
                     "Date",
                     "Hour",
                     "Obs Duration",
@@ -1198,9 +1202,9 @@ def format_summary_stats(
         else:
             summary_stats_df.columns = (
                 [
-                    #"year",
-                    #"month",
-                    #"day",
+                    # "year",
+                    # "month",
+                    # "day",
                     "Date",
                     "Obs Duration",
                     "Obs Day",
@@ -1225,7 +1229,7 @@ def format_summary_stats(
                 + places_of_interest2
                 + places_of_interest3
             )
-            
+
         if frequency != Frequency.DAILY:
             new_column_order = [
                 "Date",
@@ -1265,8 +1269,10 @@ def format_summary_stats(
                 "Av Pause Duration",
                 "Sd Pause Duration",
                 ]
-            
-        full_column_order = new_column_order + [col for col in summary_stats_df.columns if col not in new_column_order]
+
+        full_column_order = new_column_order + [
+            col for col in summary_stats_df.columns if col not in new_column_order
+            ]
         summary_stats_df = summary_stats_df[full_column_order]
         summary_stats_df2 = summary_stats_df
 
