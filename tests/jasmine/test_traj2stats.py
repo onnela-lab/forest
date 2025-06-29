@@ -403,8 +403,14 @@ def test_gps_summaries_log_format(
     )
     if "Date" in summary.columns:
         # Convert to datetime, then to the expected string format
-        dates_stats = (pd.to_datetime(summary["Date"])
-                       .dt.strftime("%-d/%-m/%Y").astype(str))
+        # Use a more portable approach for date formatting
+        dates_stats = []
+        for date in pd.to_datetime(summary["Date"]):
+            day = str(date.day)
+            month = str(date.month)
+            year = str(date.year)
+            dates_stats.append(f"{day}/{month}/{year}")
+        dates_stats = np.array(dates_stats)
     else:
         dates_stats = (
             summary["day"].astype(int).astype(str)
