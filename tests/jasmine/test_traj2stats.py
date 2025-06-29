@@ -401,10 +401,9 @@ def test_gps_summaries_log_format(
         parameters=parameters,
         places_of_interest=["pub", "fast_food"],
     )
-    # Handle both new and old column names for date
     if "Date" in summary.columns:
-        dates_stats = (pd.to_datetime(summary["Date"])
-                       .dt.strftime("%-d/%-m/%Y").astype(str))
+        # Convert to datetime, then to the expected string format
+        dates_stats = pd.to_datetime(summary["Date"]).dt.strftime("%-d/%-m/%Y").astype(str)
     else:
         dates_stats = (
             summary["day"].astype(int).astype(str)
