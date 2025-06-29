@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 from shapely.geometry import Point
+from datetime import datetime, timezone
 
 from forest.jasmine.data2mobmat import great_circle_dist
 from forest.jasmine.traj2stats import (
@@ -287,7 +288,8 @@ def test_gps_summaries_shape(
         parameters=parameters,
         places_of_interest=["pub", "fast_food"],
     )
-    assert summary.shape == (24, 21)
+    # Updated shape: 24 hours, 19 columns (17 base + 2 places of interest)
+    assert summary.shape == (24, 19)
 
 
 def test_gps_summaries_places_of_interest(
@@ -311,9 +313,9 @@ def test_gps_summaries_places_of_interest(
         places_of_interest=["pub", "fast_food"],
     )
     time_in_places_of_interest = (
-        summary["pub"] + summary["fast_food"] + summary["other"]
+        summary["pub"] + summary["fast_food"] + summary["Other"]
     )
-    assert np.all(time_in_places_of_interest <= summary["total_pause_time"])
+    assert np.all(time_in_places_of_interest <= summary["Pause Time"])
 
 
 def test_gps_summaries_obs_day_night(
@@ -338,8 +340,8 @@ def test_gps_summaries_obs_day_night(
         parameters=parameters,
         places_of_interest=["pub", "fast_food"],
     )
-    total_obs = summary["obs_day"] + summary["obs_night"]
-    assert np.all(round(total_obs, 4) == round(summary["obs_duration"], 4))
+    total_obs = summary["Obs Day"] + summary["Obs Night"]
+    assert np.all(round(total_obs, 4) == round(summary["Obs Duration"], 4))
 
 
 def test_gps_summaries_datetime_nighttime_shape(
@@ -388,13 +390,8 @@ def test_gps_summaries_log_format(
         parameters=parameters,
         places_of_interest=["pub", "fast_food"],
     )
-    dates_stats = (
-        summary["day"].astype(int).astype(str)
-        + "/"
-        + summary["month"].astype(int).astype(str)
-        + "/"
-        + summary["year"].astype(int).astype(str)
-    )
+    # Use the Date column directly instead of separate year/month/day
+    dates_stats = summary["Date"].astype(str)
     dates_log = np.array(list(log.keys()))
     assert np.all(dates_stats == dates_log)
 
@@ -418,26 +415,26 @@ def test_gps_summaries_summary_vals(
         parameters=parameters,
     )
 
-    assert summary["obs_duration"].iloc[0] == 24
-    assert summary["obs_day"].iloc[0] == 10
-    assert summary["obs_night"].iloc[0] == 14
-    assert summary["obs_day"].iloc[1] == 0
-    assert summary["obs_night"].iloc[1] == 0
-    assert summary["home_time"].iloc[0] == 0
-    assert summary["dist_traveled"].iloc[0] == 0.208
-    assert np.round(summary["max_dist_home"].iloc[0], 3) == 0.915
-    assert np.round(summary["radius"].iloc[0], 3) == 0.013
-    assert np.round(summary["diameter"].iloc[0], 3) == 0.064
-    assert summary["num_sig_places"].iloc[0] == 2
-    assert np.round(summary["entropy"].iloc[0], 3) == 0.468
-    assert round(summary["total_flight_time"].iloc[0], 3) == 1.528
-    assert round(summary["av_flight_length"].iloc[0], 3) == 0.052
-    assert round(summary["sd_flight_length"].iloc[0], 3) == 0.012
-    assert round(summary["av_flight_duration"].iloc[0], 3) == 0.382
-    assert round(summary["sd_flight_duration"].iloc[0], 3) == 0.132
-    assert round(summary["total_pause_time"].iloc[0], 3) == 22.472
-    assert round(summary["av_pause_duration"].iloc[0], 3) == 4.494
-    assert round(summary["sd_pause_duration"].iloc[0], 3) == 3.496
+    assert summary["Obs Duration"].iloc[0] == 24
+    assert summary["Obs Day"].iloc[0] == 10
+    assert summary["Obs Night"].iloc[0] == 14
+    assert summary["Obs Day"].iloc[1] == 0
+    assert summary["Obs Night"].iloc[1] == 0
+    assert summary["Home Duration"].iloc[0] == 0
+    assert summary["Distance Traveled"].iloc[0] == 0.208
+    assert np.round(summary["Distance From Home"].iloc[0], 3) == 0.915
+    assert np.round(summary["Gyration Radius"].iloc[0], 3) == 0.013
+    assert np.round(summary["Distance Diameter"].iloc[0], 3) == 0.064
+    assert summary["Significant Location Count"].iloc[0] == 2
+    assert np.round(summary["Significant Location Entropy"].iloc[0], 3) == 0.468
+    assert round(summary["Total Flight Time"].iloc[0], 3) == 1.528
+    assert round(summary["Flight Distance Average"].iloc[0], 3) == 0.052
+    assert round(summary["Flight Distance Stddev"].iloc[0], 3) == 0.012
+    assert round(summary["Flight Duration Average"].iloc[0], 3) == 0.382
+    assert round(summary["Flight Duration Stddev"].iloc[0], 3) == 0.132
+    assert round(summary["Pause Time"].iloc[0], 3) == 22.472
+    assert round(summary["Av Pause Duration"].iloc[0], 3) == 4.494
+    assert round(summary["Sd Pause Duration"].iloc[0], 3) == 3.496
 
 
 def test_gps_summaries_pcr(
@@ -460,8 +457,8 @@ def test_gps_summaries_pcr(
         parameters=parameters,
     )
 
-    assert summary["physical_circadian_rhythm"].iloc[0] == 0
-    assert summary["physical_circadian_rhythm_stratified"].iloc[0] == 0
+    assert summary["Physical Circadian Rhythm"].iloc[0] == 0
+    assert summary["Physical Circadian Rhythm Stratified"].iloc[0] == 0
 
 
 @pytest.fixture
