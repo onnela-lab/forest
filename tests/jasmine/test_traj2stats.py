@@ -389,8 +389,8 @@ def test_gps_summaries_log_format(
         parameters=parameters,
         places_of_interest=["pub", "fast_food"],
     )
-    # Use the Date column directly instead of separate year/month/day
-    dates_stats = summary["Date"].astype(str)
+    # Convert Date column to the expected string format (day/month/year)
+    dates_stats = summary["Date"].dt.strftime("%-d/%-m/%Y").astype(str)
     dates_log = np.array(list(log.keys()))
     assert np.all(dates_stats == dates_log)
 
