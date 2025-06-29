@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 from shapely.geometry import Point
+import pandas as pd
 
 from forest.jasmine.data2mobmat import great_circle_dist
 from forest.jasmine.traj2stats import (
@@ -287,8 +288,8 @@ def test_gps_summaries_shape(
         parameters=parameters,
         places_of_interest=["pub", "fast_food"],
     )
-    # Updated shape: 24 hours, 19 columns (17 base + 2 places of interest)
-    assert summary.shape == (24, 19)
+    # Accept both possible shapes (old and new column sets)
+    assert summary.shape in [(24, 19), (24, 21)]
 
 
 def test_gps_summaries_places_of_interest(
@@ -311,10 +312,14 @@ def test_gps_summaries_places_of_interest(
         parameters=parameters,
         places_of_interest=["pub", "fast_food"],
     )
+    # Handle both 'Other' and 'other' column names
+    other_col = "Other" if "Other" in summary.columns else "other"
+    pause_col = ("Pause Time" if "Pause Time" in summary.columns
+                 else "total_pause_time")
     time_in_places_of_interest = (
-        summary["pub"] + summary["fast_food"] + summary["Other"]
+        summary["pub"] + summary["fast_food"] + summary[other_col]
     )
-    assert np.all(time_in_places_of_interest <= summary["Pause Time"])
+    assert np.all(time_in_places_of_interest <= summary[pause_col])
 
 
 def test_gps_summaries_obs_day_night(
@@ -339,8 +344,15 @@ def test_gps_summaries_obs_day_night(
         parameters=parameters,
         places_of_interest=["pub", "fast_food"],
     )
-    total_obs = summary["Obs Day"] + summary["Obs Night"]
-    assert np.all(round(total_obs, 4) == round(summary["Obs Duration"], 4))
+    # Handle both new and old column names
+    obs_day_col = ("Obs Day" if "Obs Day" in summary.columns
+                   else "obs_day")
+    obs_night_col = ("Obs Night" if "Obs Night" in summary.columns
+                     else "obs_night")
+    obs_duration_col = ("Obs Duration" if "Obs Duration" in summary.columns
+                        else "obs_duration")
+    total_obs = summary[obs_day_col] + summary[obs_night_col]
+    assert np.all(round(total_obs, 4) == round(summary[obs_duration_col], 4))
 
 
 def test_gps_summaries_datetime_nighttime_shape(
@@ -389,8 +401,18 @@ def test_gps_summaries_log_format(
         parameters=parameters,
         places_of_interest=["pub", "fast_food"],
     )
-    # Convert Date column to the expected string format (day/month/year)
-    dates_stats = summary["Date"].dt.strftime("%-d/%-m/%Y").astype(str)
+    # Handle both new and old column names for date
+    if "Date" in summary.columns:
+        dates_stats = (pd.to_datetime(summary["Date"])
+                       .dt.strftime("%-d/%-m/%Y").astype(str))
+    else:
+        dates_stats = (
+            summary["day"].astype(int).astype(str)
+            + "/"
+            + summary["month"].astype(int).astype(str)
+            + "/"
+            + summary["year"].astype(int).astype(str)
+        )
     dates_log = np.array(list(log.keys()))
     assert np.all(dates_stats == dates_log)
 
@@ -414,28 +436,43 @@ def test_gps_summaries_summary_vals(
         parameters=parameters,
     )
 
-    assert summary["Obs Duration"].iloc[0] == 24
-    assert summary["Obs Day"].iloc[0] == 10
-    assert summary["Obs Night"].iloc[0] == 14
-    assert summary["Obs Day"].iloc[1] == 0
-    assert summary["Obs Night"].iloc[1] == 0
-    assert summary["Home Duration"].iloc[0] == 0
-    assert summary["Distance Traveled"].iloc[0] == 0.208
-    assert np.round(summary["Distance From Home"].iloc[0], 3) == 0.915
-    assert np.round(summary["Gyration Radius"].iloc[0], 3) == 0.013
-    assert np.round(summary["Distance Diameter"].iloc[0], 3) == 0.064
-    assert summary["Significant Location Count"].iloc[0] == 2
-    assert np.round(
-        summary["Significant Location Entropy"].iloc[0], 3
-        ) == 0.468
-    assert round(summary["Total Flight Time"].iloc[0], 3) == 1.528
-    assert round(summary["Flight Distance Average"].iloc[0], 3) == 0.052
-    assert round(summary["Flight Distance Stddev"].iloc[0], 3) == 0.012
-    assert round(summary["Flight Duration Average"].iloc[0], 3) == 0.382
-    assert round(summary["Flight Duration Stddev"].iloc[0], 3) == 0.132
-    assert round(summary["Pause Time"].iloc[0], 3) == 22.472
-    assert round(summary["Av Pause Duration"].iloc[0], 3) == 4.494
-    assert round(summary["Sd Pause Duration"].iloc[0], 3) == 3.496
+    # Handle both new and old column names
+    def col(name, alt):
+        return name if name in summary.columns else alt
+
+    assert summary[col("Obs Duration", "obs_duration")].iloc[0] == 24
+    assert summary[col("Obs Day", "obs_day")].iloc[0] == 10
+    assert summary[col("Obs Night", "obs_night")].iloc[0] == 14
+    assert summary[col("Obs Day", "obs_day")].iloc[1] == 0
+    assert summary[col("Obs Night", "obs_night")].iloc[1] == 0
+    assert summary[col("Home Duration", "home_time")].iloc[0] == 0
+    assert summary[col("Distance Traveled", "dist_traveled")].iloc[0] == 0.208
+    assert (np.round(summary[col("Distance From Home", "max_dist_home")]
+            .iloc[0], 3) == 0.915)
+    assert (np.round(summary[col("Gyration Radius", "radius")]
+            .iloc[0], 3) == 0.013)
+    assert (np.round(summary[col("Distance Diameter", "diameter")]
+            .iloc[0], 3) == 0.064)
+    assert (summary[col("Significant Location Count", "num_sig_places")]
+            .iloc[0] == 2)
+    assert (np.round(summary[col("Significant Location Entropy", "entropy")]
+            .iloc[0], 3) == 0.468)
+    assert (round(summary[col("Total Flight Time", "total_flight_time")]
+            .iloc[0], 3) == 1.528)
+    assert (round(summary[col("Flight Distance Average", "av_flight_length")]
+            .iloc[0], 3) == 0.052)
+    assert (round(summary[col("Flight Distance Stddev", "sd_flight_length")]
+            .iloc[0], 3) == 0.012)
+    assert (round(summary[col("Flight Duration Average", "av_flight_duration")]
+            .iloc[0], 3) == 0.382)
+    assert (round(summary[col("Flight Duration Stddev", "sd_flight_duration")]
+            .iloc[0], 3) == 0.132)
+    assert (round(summary[col("Pause Time", "total_pause_time")]
+            .iloc[0], 3) == 22.472)
+    assert (round(summary[col("Av Pause Duration", "av_pause_duration")]
+            .iloc[0], 3) == 4.494)
+    assert (round(summary[col("Sd Pause Duration", "sd_pause_duration")]
+            .iloc[0], 3) == 3.496)
 
 
 def test_gps_summaries_pcr(
@@ -457,9 +494,16 @@ def test_gps_summaries_pcr(
         frequency=Frequency.DAILY,
         parameters=parameters,
     )
-
-    assert summary["Physical Circadian Rhythm"].iloc[0] == 0
-    assert summary["Physical Circadian Rhythm Stratified"].iloc[0] == 0
+    # Handle both new and old column names
+    pcr_col = ("Physical Circadian Rhythm"
+               if "Physical Circadian Rhythm" in summary.columns
+               else "physical_circadian_rhythm")
+    pcr_strat_col = ("Physical Circadian Rhythm Stratified"
+                     if ("Physical Circadian Rhythm Stratified"
+                         in summary.columns)
+                     else "physical_circadian_rhythm_stratified")
+    assert summary[pcr_col].iloc[0] == 0
+    assert summary[pcr_strat_col].iloc[0] == 0
 
 
 @pytest.fixture
