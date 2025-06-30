@@ -31,10 +31,9 @@ Output: typically summary files
 
 # Usage
 
-Please note that Forest is tested only against Python 3.11 and 3.12 (preferred). To install, clone this repository to a local directory and then:
-
+Please note that Forest is tested only against Python 3.11 and 3.12 (preferred). To install:
 ```console
-pip install path/to/forest
+pip install beiwe-forest
 ```
 
 Alternatively, [install directly from GitHub](https://pip.pypa.io/en/stable/cli/pip_install/#examples) with `pip`. As the repo is public, it won't prompt you to login. If you've used forest in the past, it might be prudent to do a `pip uninstall forest` first.

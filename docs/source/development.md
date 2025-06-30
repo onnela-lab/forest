@@ -49,13 +49,12 @@ Open `docs/_build/html/index.html` in a web browser to check the results
 ### Packaging and distribution
 
 #### Create a release
-* Update the version number in `pyproject.toml`
-* Update the changelog in `CHANGELOG.md`
+* Update the version number in `pyproject.toml` on the develop branch (for example: `1.1.0`)
 * Commit and push all local changes to GitHub
 * Merge the develop branch into the main branch
 * Create a tag for the release: `git tag -a v1.1.0 -m "Release 1.1.0"`
 * Push the tag to GitHub: `git push origin v1.1.0`
-* [Create a release on GitHub](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
+* [Create a release on GitHub](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) and auto-generate the changelog
 * Build and upload the distribution archives to Python Package Index (see below) 
 
 #### Upload to Python Package Index

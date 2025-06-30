@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "beiwe-forest"
-version = "1.0rc2"
+version = "1.0"
 description = "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data"
 authors = [
     {name = "Jukka-Pekka Onnela"},
