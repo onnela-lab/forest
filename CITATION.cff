@@ -1,0 +1,181 @@
+cff-version: 1.2.0
+title: Forest
+message: "If you use Forest, please cite it using the metadata from this file."
+type: software
+authors:
+  - family-names: Onnela
+    given-names: Jukka-Pekka
+    orcid: "https://orcid.org/0000-0001-6613-8668"
+  - family-names: Barback
+    given-names: Josh
+  - family-names: Clement
+    given-names: Zachary
+    orcid: "https://orcid.org/0000-0003-2279-5265"
+  - family-names: Dawood
+    given-names: Hassan
+    orcid: "https://orcid.org/0000-0002-2190-5146"
+  - family-names: Efstathiadis
+    given-names: Georgios
+    orcid: "https://orcid.org/0009-0006-2278-1882"
+  - family-names: Emedom-Nnamdi
+    given-names: Patrick
+    orcid: "https://orcid.org/0000-0003-4442-924X"
+  - family-names: Huang
+    given-names: Emily J.
+    orcid: "https://orcid.org/0000-0003-1964-5231"
+  - family-names: Karas
+    given-names: Marta
+    orcid: "https://orcid.org/0000-0001-5889-3970"
+  - family-names: Liu
+    given-names: Gang
+    orcid: "https://orcid.org/0000-0003-3544-363X"
+  - family-names: Ponarul
+    given-names: Nellie
+  - family-names: Straczkiewicz
+    given-names: Marcin
+    orcid: "https://orcid.org/0000-0002-8703-4451"
+  - family-names: Beukenhorst
+    given-names: Anna
+    orcid: "https://orcid.org/0000-0002-1765-4890"
+repository-code: "https://github.com/onnela-lab/forest"
+url: "https://forest.beiwe.org"
+abstract: "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data."
+keywords:
+  - "digital phenotyping"
+  - smartphone
+  - statistics
+  - accelerometer
+  - GPS
+license: BSD-3-Clause
+references:
+  - authors:
+      - family-names: Straczkiewicz
+        given-names: Marcin
+        affiliation: "Department of Biostatistics, Harvard University"
+        orcid: "https://orcid.org/0000-0002-8703-4451"
+      - family-names: Huang
+        given-names: Emily J.
+        affiliation: "Department of Statistical Sciences, Wake Forest University"
+        orcid: "https://orcid.org/0000-0003-1964-5231"
+      - family-names: Onnela
+        given-names: Jukka-Pekka
+        affiliation: "Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University"
+        orcid: "https://orcid.org/0000-0001-6613-8668"
+    doi: 10.1038/s41746-022-00745-z
+    journal: "npj Digital Medicine"
+    month: 2
+    start: 29
+    title: "A “one-size-fits-most” walking recognition method for smartphones, smartwatches, and wearable accelerometers"
+    type: article
+    volume: 6
+    year: 2023
+  - authors:
+      - family-names: Huang
+        given-names: Emily J.
+        affiliation: "Department of Mathematics and Statistics, Wake Forest University"
+        orcid: "https://orcid.org/0000-0003-1964-5231"
+      - family-names: Yan
+        given-names: Kebin
+        affiliation: "Department of Biostatistics, Epidemiology, and Informatics, University of Pennsylvania"
+      - family-names: Onnela
+        given-names: Jukka-Pekka
+        affiliation: "Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University"
+        orcid: "https://orcid.org/0000-0001-6613-8668"
+    doi: 10.3390/s22072618
+    issue: 7
+    journal: Sensors
+    start: 2618
+    title: "Smartphone-Based Activity Recognition Using Multistream Movelets Combining Accelerometer and Gyroscope Data"
+    type: article
+    volume: 22
+    year: 2022
+  - authors:
+      - family-names: Liu
+        given-names: Gang
+        affiliation: "Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University"
+        orcid: "https://orcid.org/0000-0003-3544-363X"
+      - family-names: Onnela
+        given-names: Jukka-Pekka
+        affiliation: "Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University"
+        orcid: "https://orcid.org/0000-0001-6613-8668"
+    doi: 10.1093/jamia/ocab069
+    issue: 8
+    journal: "Journal of the American Medical Informatics Association"
+    start: 1777
+    title: "Bidirectional imputation of spatial GPS trajectories with missingness using sparse online Gaussian Process"
+    type: article
+    volume: 28
+    year: 2021
+  - authors:
+      - family-names: Onnela
+        given-names: Jukka-Pekka
+        affiliation: "Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University"
+        orcid: "https://orcid.org/0000-0001-6613-8668"
+      - family-names: Dixon
+        given-names: Caleb
+        affiliation: "Zagaran, Inc."
+      - family-names: Griffin
+        given-names: Keary
+        affiliation: "Rocket Farm Studios"
+      - family-names: Jaenicke
+        given-names: Tucker
+        affiliation: "Zagaran, Inc."
+      - family-names: Minowada
+        given-names: Leila
+        affiliation: "Zagaran, Inc."
+      - family-names: Esterkin
+        given-names: Sean
+        affiliation: "Zagaran, Inc."
+      - family-names: Siu
+        given-names: Alvin
+        affiliation: "Zagaran, Inc."
+      - family-names: Zagorsky
+        given-names: Josh
+        affiliation: "Zagaran, Inc."
+      - family-names: Jones
+        given-names: Eli
+        affiliation: "Zagaran, Inc."
+    doi: 10.21105/joss.03417
+    issue: 68
+    journal: "Journal of Open Source Software"
+    month: 12
+    start: 3417
+    title: "Beiwe: A data collection platform for high-throughput digital phenotyping"
+    type: article
+    volume: 6
+    year: 2021
+  - authors:
+      - family-names: Barnett
+        given-names: Ian
+        affiliation: "Department of Biostatistics, Epidemiology, and Informatics, University of Pennsylvania"
+        orcid: "https://orcid.org/0000-0003-3256-5703"
+      - family-names: Onnela
+        given-names: Jukka-Pekka
+        affiliation: "Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University"
+        orcid: "https://orcid.org/0000-0001-6613-8668"
+    doi: 10.1093/biostatistics/kxy059
+    end: e112
+    issue: 2
+    journal: Biostatistics
+    start: e98
+    title: "Inferring mobility measures from GPS with missing data"
+    type: article
+    volume: 21
+    year: 2020
+  - authors:
+      - family-names: Huang
+        given-names: Emily J.
+        affiliation: "Department of Mathematics and Statistics, Wake Forest University"
+        orcid: "https://orcid.org/0000-0003-1964-5231"
+      - family-names: Onnela
+        given-names: Jukka-Pekka
+        affiliation: "Department of Biostatistics, Harvard T.H. Chan School of Public Health, Harvard University"
+        orcid: "https://orcid.org/0000-0001-6613-8668"
+    doi: 10.3390/s20133706
+    issue: 13
+    journal: Sensors
+    start: 3706
+    title: "Augmented movelet method for activity classification using smartphone gyroscope and accelerometer data"
+    type: article
+    volume: 20
+    year: 2020

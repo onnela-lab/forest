@@ -1,18 +1,45 @@
 # Install Python dependencies and run tests
+name: 'Build and test'
 
-name: build
-
-on: push
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+  workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-20.04
+  test:
+    name: 'Run tests'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ['ubuntu-24.04', 'windows-2022', 'macos-14']
+        python-version: ['3.11', '3.12']
     steps:
-      - name: Checkout Forest code from GitHub repo
-        uses: actions/checkout@v2
+      - name: Check out Forest code
+        uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.8
-      - name: Run tests
-        run: python -m unittest tests/imports.py
+          python-version: ${{ matrix.python-version }}
+      - name: Install Forest dependencies for Linux
+        # required by librosa
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg libsndfile1
+      - name: Install Forest dependencies for Windows
+        # required by librosa
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        id: setup-ffmpeg
+      - name: Install Forest and optional development dependencies
+        run: pip install -e ".[dev]"
+      - name: Run code style checking
+        run: flake8
+      - name: Run static type checking
+        run: mypy -p forest
+      - name: Run the test suite
+        run: pytest
+      - name: Validate citation file
+        run: cffconvert -i CITATION.cff --validate

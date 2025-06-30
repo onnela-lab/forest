@@ -1,0 +1,29 @@
+name: Sphinx documentation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+  workflow_dispatch:
+
+jobs:
+  build-html-docs:
+    name: 'Build HTML docs'
+    runs-on: 'ubuntu-24.04'
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+    defaults:
+      run:
+        working-directory: './docs'
+    steps:
+      - name: Check out Forest code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install documentation build dependencies
+        run: pip install -r requirements.txt
+      - name: Build HTML docs
+        run: make html SPHINXOPTS="-W"

@@ -1,0 +1,9 @@
+timestamp,UTC time,question id,survey id,question type,question text,question answer options,answer,event
+1647274214970,2022-03-14T16:10:14.970,,hkmxse2N7aMGfNyVMQDiWWEP,,,,,expired
+1647275510198,2022-03-14T16:31:50.198,cc18444e-53c5-4014-84b0-a041350d3a36,hkmxse2N7aMGfNyVMQDiWWEP,info_text_box,What is your first name?,,,present
+1647275512268,2022-03-14T16:31:52.268,cc18444e-53c5-4014-84b0-a041350d3a36,hkmxse2N7aMGfNyVMQDiWWEP,info_text_box,What is your first name?,,,unpresent
+1647275512343,2022-03-14T16:31:52.343,fe260986-c52d-4371-953b-4e7877d822c5,hkmxse2N7aMGfNyVMQDiWWEP,slider,What is your last name?,min = 0; max = 10,0,present
+1647275517782,2022-03-14T16:31:57.782,fe260986-c52d-4371-953b-4e7877d822c5,hkmxse2N7aMGfNyVMQDiWWEP,slider,What is your last name?,min = 0; max = 10,0,unpresent
+1647275517811,2022-03-14T16:31:57.811,5edacd0c-d818-4c3e-9553-2b0b6bd55508,hkmxse2N7aMGfNyVMQDiWWEP,free_response,What is your program?,Text-field input type = SINGLE_LINE_TEXT,,present
+1647275522499,2022-03-14T16:32:02.499,5edacd0c-d818-4c3e-9553-2b0b6bd55508,hkmxse2N7aMGfNyVMQDiWWEP,free_response,What is your program?,Text-field input type = SINGLE_LINE_TEXT,,unpresent
+1647275576022,2022-03-14T16:32:56.022,,hkmxse2N7aMGfNyVMQDiWWEP,,,,,expired
