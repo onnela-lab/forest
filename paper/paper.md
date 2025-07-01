@@ -36,8 +36,8 @@ authors:
     orcid: 0009-0005-4327-4495
     affiliation: 1
   - name: Nellie Ponarul
-    orcid: ______________
-    affiliation: 1
+    orcid: 0009-0003-1279-3757
+    affiliation: 1,9
   - name: Marcin Straczkiewicz
     orcid: 0000-0002-8703-4451
     affiliation: 1,4
@@ -64,6 +64,8 @@ affiliations:
    index: 7
  - name: Google LLC, Mountain View, CA, USA
    index: 8
+ - name: Peal Health, New York, NY, USA
+   index: 9
 date: 28 May 2025
 bibliography: paper.bib
 
