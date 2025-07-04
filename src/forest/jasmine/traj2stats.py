@@ -810,15 +810,17 @@ def final_hourly_prep(
     """
 
     year, month, day, hour = datetime_list[:4]
+    date = datetime(year, month, day).strftime("%Y-%m-%d")
     (
         av_f_len, sd_f_len, av_f_dur, sd_f_dur, av_p_dur, sd_p_dur
     ) = flight_pause_stats
 
     if obs_dur == 0:
         res = [
-            year,
-            month,
-            day,
+            # year,
+            # month,
+            # day,
+            date,
             hour,
             0,
             pd.NA,
@@ -840,9 +842,10 @@ def final_hourly_prep(
         log_tags[f"{day}/{month}/{year} {hour}:00"] = []
     else:
         res = [
-            year,
-            month,
-            day,
+            # year,
+            # month,
+            # day,
+            date,
             hour,
             obs_dur / 60,
             time_at_home / 60,
@@ -915,72 +918,73 @@ def final_daily_prep(
     """
 
     year, month, day = datetime_list[:3]
+    date = datetime(year, month, day).strftime("%Y-%m-%d")
     (
         av_f_len, sd_f_len, av_f_dur, sd_f_dur, av_p_dur, sd_p_dur
     ) = flight_pause_stats
+    if parameters.split_day_night:
+        if obs_dur == 0:
+            res = [
+                year,
+                month,
+                day,
+                0,
+                0,
+                0,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+            ]
+            if parameters.pcr_bool:
+                res += [pcr, pcr_stratified]
+            if places_of_interest is not None:
+                for place_int in range(2 * len(places_of_interest) + 1):
+                    res.append(pd.NA)
+            summary_stats.append(res)
+            log_tags[f"{day}/{month}/{year}"] = []
+        else:
+            res = [
+                year,
+                month,
+                day,
+                obs_dur / 3600,
+                obs_day / 3600,
+                obs_night / 3600,
+                time_at_home / 3600,
+                dist_traveled / 1000,
+                max_dist_home / 1000,
+                radius / 1000,
+                diameter / 1000,
+                num_sig,
+                entropy,
+                total_flight_time / 3600,
+                av_f_len / 1000,
+                sd_f_len / 1000,
+                av_f_dur / 3600,
+                sd_f_dur / 3600,
+                total_pause_time / 3600,
+                av_p_dur / 3600,
+                sd_p_dur / 3600,
+            ]
+            if parameters.pcr_bool:
+                res += [pcr, pcr_stratified]
+            if places_of_interest is not None:
+                res += all_place_times
+                res += all_place_times_adjusted
+            summary_stats.append(res)
 
-    if obs_dur == 0:
-        res = [
-            year,
-            month,
-            day,
-            0,
-            0,
-            0,
-            pd.NA,
-            pd.NA,
-            pd.NA,
-            pd.NA,
-            pd.NA,
-            pd.NA,
-            pd.NA,
-            pd.NA,
-            pd.NA,
-            pd.NA,
-            pd.NA,
-            pd.NA,
-            pd.NA,
-            pd.NA,
-            pd.NA,
-        ]
-        if parameters.pcr_bool:
-            res += [pcr, pcr_stratified]
-        if places_of_interest is not None:
-            for place_int in range(2 * len(places_of_interest) + 1):
-                res.append(pd.NA)
-        summary_stats.append(res)
-        log_tags[f"{day}/{month}/{year}"] = []
-    else:
-        res = [
-            year,
-            month,
-            day,
-            obs_dur / 3600,
-            obs_day / 3600,
-            obs_night / 3600,
-            time_at_home / 3600,
-            dist_traveled / 1000,
-            max_dist_home / 1000,
-            radius / 1000,
-            diameter / 1000,
-            num_sig,
-            entropy,
-            total_flight_time / 3600,
-            av_f_len / 1000,
-            sd_f_len / 1000,
-            av_f_dur / 3600,
-            sd_f_dur / 3600,
-            total_pause_time / 3600,
-            av_p_dur / 3600,
-            sd_p_dur / 3600,
-        ]
-        if parameters.pcr_bool:
-            res += [pcr, pcr_stratified]
-        if places_of_interest is not None:
-            res += all_place_times
-            res += all_place_times_adjusted
-        summary_stats.append(res)
-        if parameters.split_day_night:
             if i % 2 == 0:
                 time_cat = "daytime"
             else:
@@ -988,7 +992,70 @@ def final_daily_prep(
             log_tags[f"{day}/{month}/{year}, {time_cat}"] = (
                 log_tags_temp
             )
+    else:
+        if obs_dur == 0:
+            res = [
+                # year,
+                # month,
+                # day,
+                date,
+                0,
+                0,
+                0,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                pd.NA,
+            ]
+            if parameters.pcr_bool:
+                res += [pcr, pcr_stratified]
+            if places_of_interest is not None:
+                for place_int in range(2 * len(places_of_interest) + 1):
+                    res.append(pd.NA)
+            summary_stats.append(res)
+            log_tags[f"{day}/{month}/{year}"] = []
         else:
+            res = [
+                # year,
+                # month,
+                # day,
+                date,
+                obs_dur / 3600,
+                obs_day / 3600,
+                obs_night / 3600,
+                time_at_home / 3600,
+                dist_traveled / 1000,
+                max_dist_home / 1000,
+                radius / 1000,
+                diameter / 1000,
+                num_sig,
+                entropy,
+                total_flight_time / 3600,
+                av_f_len / 1000,
+                sd_f_len / 1000,
+                av_f_dur / 3600,
+                sd_f_dur / 3600,
+                total_pause_time / 3600,
+                av_p_dur / 3600,
+                sd_p_dur / 3600,
+            ]
+            if parameters.pcr_bool:
+                res += [pcr, pcr_stratified]
+            if places_of_interest is not None:
+                res += all_place_times
+                res += all_place_times_adjusted
+            summary_stats.append(res)
             log_tags[f"{day}/{month}/{year}"] = log_tags_temp
 
     return summary_stats, log_tags
@@ -1016,79 +1083,198 @@ def format_summary_stats(
     """
 
     summary_stats_df = pd.DataFrame(summary_stats)
-
-    if places_of_interest is None:
-        places_of_interest2 = []
-        places_of_interest3 = []
-    else:
-        places_of_interest2 = places_of_interest.copy()
-        places_of_interest2.append("other")
-        places_of_interest3 = [f"{pl}_adjusted" for pl in places_of_interest]
-
-    if parameters.pcr_bool:
-        pcr_cols = [
-            "physical_circadian_rhythm",
-            "physical_circadian_rhythm_stratified",
-        ]
-    else:
-        pcr_cols = []
-
-    if frequency != Frequency.DAILY:
-        summary_stats_df.columns = (
-            [
-                "year",
-                "month",
-                "day",
-                "hour",
-                "obs_duration",
-                "home_time",
-                "dist_traveled",
-                "max_dist_home",
-                "total_flight_time",
-                "av_flight_length",
-                "sd_flight_length",
-                "av_flight_duration",
-                "sd_flight_duration",
-                "total_pause_time",
-                "av_pause_duration",
-                "sd_pause_duration",
-            ]
-            + places_of_interest2
-            + places_of_interest3
-        )
-    else:
-        summary_stats_df.columns = (
-            [
-                "year",
-                "month",
-                "day",
-                "obs_duration",
-                "obs_day",
-                "obs_night",
-                "home_time",
-                "dist_traveled",
-                "max_dist_home",
-                "radius",
-                "diameter",
-                "num_sig_places",
-                "entropy",
-                "total_flight_time",
-                "av_flight_length",
-                "sd_flight_length",
-                "av_flight_duration",
-                "sd_flight_duration",
-                "total_pause_time",
-                "av_pause_duration",
-                "sd_pause_duration",
-            ]
-            + pcr_cols
-            + places_of_interest2
-            + places_of_interest3
-        )
-
     if parameters.split_day_night:
+        if places_of_interest is None:
+            places_of_interest2 = []
+            places_of_interest3 = []
+        else:
+            places_of_interest2 = places_of_interest.copy()
+            places_of_interest2.append("other")
+            places_of_interest3 = [
+                f"{pl}_adjusted" for pl in places_of_interest
+                ]
+
+        if parameters.pcr_bool:
+            pcr_cols = [
+                "physical_circadian_rhythm",
+                "physical_circadian_rhythm_stratified",
+            ]
+        else:
+            pcr_cols = []
+
+        if frequency != Frequency.DAILY:
+            summary_stats_df.columns = (
+                [
+                    "year",
+                    "month",
+                    "day",
+                    "hour",
+                    "obs_duration",
+                    "home_time",
+                    "dist_traveled",
+                    "max_dist_home",
+                    "total_flight_time",
+                    "av_flight_length",
+                    "sd_flight_length",
+                    "av_flight_duration",
+                    "sd_flight_duration",
+                    "total_pause_time",
+                    "av_pause_duration",
+                    "sd_pause_duration",
+                ]
+                + places_of_interest2
+                + places_of_interest3
+            )
+        else:
+            summary_stats_df.columns = (
+                [
+                    "year",
+                    "month",
+                    "day",
+                    "obs_duration",
+                    "obs_day",
+                    "obs_night",
+                    "home_time",
+                    "dist_traveled",
+                    "max_dist_home",
+                    "radius",
+                    "diameter",
+                    "num_sig_places",
+                    "entropy",
+                    "total_flight_time",
+                    "av_flight_length",
+                    "sd_flight_length",
+                    "av_flight_duration",
+                    "sd_flight_duration",
+                    "total_pause_time",
+                    "av_pause_duration",
+                    "sd_pause_duration",
+                ]
+                + pcr_cols
+                + places_of_interest2
+                + places_of_interest3
+            )
         summary_stats_df2 = split_day_night_cols(summary_stats_df)
     else:
+        if places_of_interest is None:
+            places_of_interest2 = []
+            places_of_interest3 = []
+        else:
+            places_of_interest2 = places_of_interest.copy()
+            places_of_interest2.append("Other")
+            places_of_interest3 = [
+                f"{pl} Adjusted" for pl in places_of_interest
+                ]
+
+        if parameters.pcr_bool:
+            pcr_cols = [
+                "Physical Circadian Rhythm",
+                "Physical Circadian Rhythm Stratified",
+            ]
+        else:
+            pcr_cols = []
+
+        if frequency != Frequency.DAILY:
+            summary_stats_df.columns = (
+                [
+                    # "year",
+                    # "month",
+                    # "day",
+                    "Date",
+                    "Hour",
+                    "Obs Duration",
+                    "Home Duration",
+                    "Distance Traveled",
+                    "Distance From Home",
+                    "Total Flight Time",
+                    "Flight Distance Average",
+                    "Flight Distance Stddev",
+                    "Flight Duration Average",
+                    "Flight Duration Stddev",
+                    "Pause Time",
+                    "Av Pause Duration",
+                    "Sd Pause Duration",
+                ]
+                + pcr_cols
+                + places_of_interest2
+                + places_of_interest3
+            )
+        else:
+            summary_stats_df.columns = (
+                [
+                    # "year",
+                    # "month",
+                    # "day",
+                    "Date",
+                    "Obs Duration",
+                    "Obs Day",
+                    "Obs Night",
+                    "Home Duration",
+                    "Distance Traveled",
+                    "Distance From Home",
+                    "Gyration Radius",
+                    "Distance Diameter",
+                    "Significant Location Count",
+                    "Significant Location Entropy",
+                    "Total Flight Time",
+                    "Flight Distance Average",
+                    "Flight Distance Stddev",
+                    "Flight Duration Average",
+                    "Flight Duration Stddev",
+                    "Pause Time",
+                    "Av Pause Duration",
+                    "Sd Pause Duration",
+                ]
+                + pcr_cols
+                + places_of_interest2
+                + places_of_interest3
+            )
+
+        if frequency != Frequency.DAILY:
+            new_column_order = [
+                "Date",
+                "Hour",
+                "Distance From Home",
+                "Distance Traveled",
+                "Flight Distance Average",
+                "Flight Distance Stddev",
+                "Flight Duration Average",
+                "Flight Duration Stddev",
+                "Home Duration",
+                "Pause Time",
+                "Obs Duration",
+                "Total Flight Time",
+                "Av Pause Duration",
+                "Sd Pause Duration",
+            ]
+        else:
+            new_column_order = [
+                "Date",
+                "Distance Diameter",
+                "Distance From Home",
+                "Distance Traveled",
+                "Flight Distance Average",
+                "Flight Distance Stddev",
+                "Flight Duration Average",
+                "Flight Duration Stddev",
+                "Home Duration",
+                "Gyration Radius",
+                "Significant Location Count",
+                "Significant Location Entropy",
+                "Pause Time",
+                "Obs Duration",
+                "Obs Day",
+                "Obs Night",
+                "Total Flight Time",
+                "Av Pause Duration",
+                "Sd Pause Duration",
+                ]
+
+        full_column_order = new_column_order + [
+            col for col in summary_stats_df.columns
+            if col not in new_column_order
+            ]
+        summary_stats_df = summary_stats_df[full_column_order]
         summary_stats_df2 = summary_stats_df
 
     return summary_stats_df2, log_tags
