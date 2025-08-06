@@ -21,6 +21,62 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def get_mean_responsiveness(df: pd.DataFrame, col_with_sent_received: str, 
+                            received_values_list: list, sent_values_list; list):
+    """Calculate the mean time in minutes between recieiving and sending a message
+    
+    Args: 
+        df: The dataframe with calls or texts
+        col_with_sent_received: The column indicating whether a message is sent
+            or received
+        received_values_list: values of col_with_sent_received indicating that
+            a message/call was received
+        sent_values_list: values of col_with_sent_received indicating that a
+            message/call was sent
+            
+    Returns:
+        float: The average time between having a call sent or recieved
+    
+    """
+    cols = ["hashed phone number", "timestamp"]
+    received = df[
+        df[col_with_sent_received].str.isin(received_values_list),
+        cols
+    ]
+    
+    sent = df[df[col_with_sent_received].str.isin(sent_values_list), cols]
+    
+    # Joining the dataframe to itself will filter to only messages that are
+    # received
+    joined = pd.merge(
+        left = sent, right = received, how = "inner", on = "hashed phone number"
+        suffixes = ("_sent", "_received")
+    )
+    if joined.shape[0] == 0:
+        return pd.NA
+    
+    # We only care about instances where a message was sent after being recieved
+    joined = joined.loc[joined["timestamp_sent"] > joined["timestamp_received"]]
+    
+    # Take only the first sent message after each message
+    joined.sort_values(["timestamp_received", "timestamp_sent"], inplace = True)
+    joined.reset_index(drop = True, inplace = True)
+    joined.drop_duplicates(
+        subset = ["hashed phone number", "timestamp_received"],
+        keep = "first"
+    )
+    
+    mean_responsiveness_miliseconds = (
+        joined["timestamp_sent"] - joined["timestamp_received"]
+    ).mean()
+    
+    mean_responsiveness_minutes = mean_responsiveness_miliseconds / 1_000 / 60
+    
+    
+    
+    return mean_responsiveness_minutes
+
+
 def text_analysis(
     df_text: pd.DataFrame, stamp: int, step_size: int, frequency: Frequency
 ) -> tuple:
@@ -55,17 +111,26 @@ def text_analysis(
                 total number of characters in sent SMS
             total_char_r: int
                 total number of characters in received SMS
+            mean_responsiveness_text: float
+                Mean number of minutes between a received text and a sent text
             text_reciprocity_incoming: int
                 number of received SMS without response
             text_reciprocity_outgoing: int
                 number of sent SMS without response
+            
     """
     # filter the data based on the timestamp
     temp_text = df_text[
         (df_text["timestamp"] / 1000 >= stamp)
         & (df_text["timestamp"] / 1000 < stamp + step_size)
     ]
-
+    
+    mean_resposiveness_text = get_mean_responsiveness(
+        df = temp_text, 
+        col_with_sent_received = "sent vs received",
+        received_values_list = ["received SMS", "received MMS"], 
+        sent_values_list = ["sent SMS", "sent MMS"])
+    
     # calculate the number of texts
     message_lengths = np.array(temp_text["message length"])
     for k, mlength in enumerate(message_lengths):
@@ -135,6 +200,7 @@ def text_analysis(
         num_r_tel,
         total_char_s,
         total_char_r,
+        mean_responsiveness_text,
         text_reciprocity_incoming,
         text_reciprocity_outgoing,
     )
@@ -232,12 +298,21 @@ def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
                 total time in minutes of incoming calls
             total_time_out_call: int
                 total time in minutes of outgoing calls
+            mean_responsiveness_call: float
+                Mean number of minutes between a received call and a sent call
     """
     # filter the data based on the timestamp
     temp_call = df_call[
         (df_call["timestamp"] / 1000 >= stamp)
         & (df_call["timestamp"] / 1000 < stamp + step_size)
     ]
+    
+    mean_resposiveness_call = get_mean_responsiveness(
+        df = temp_call, 
+        col_with_sent_received = "call type",
+        received_values_list = ["Incoming Call", "Missed Call"], 
+        sent_values_list = ["Outgoing Call"])
+        
 
     dur_in_sec = np.array(temp_call["duration in seconds"])
     dur_in_sec[np.isnan(dur_in_sec)] = 0
@@ -279,6 +354,7 @@ def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
         num_uniq_mis_call,
         total_time_in_call,
         total_time_out_call,
+        mean_resposiveness_call
     )
 
 
@@ -339,7 +415,7 @@ def comm_logs_summaries(
     step_size = 60 * frequency.value
 
     # for each chunk, calculate the summary statistics (colmean or count)
-    for stamp in range(int(table_start), int(table_end) + 1, int(step_size)):
+    for stamp in np.arange(table_start, table_end + 1, step=step_size):
         year, month, day, hour, _, _ = stamp2datetime(stamp, tz_str)
         # initialize the summary statistics
         newline = []
@@ -348,7 +424,7 @@ def comm_logs_summaries(
             call_stats = call_analysis(df_call, stamp, step_size)
             newline += list(call_stats)
         else:
-            newline += [pd.NA] * 8
+            newline += [pd.NA] * 9
         if df_text.shape[0] > 0 or df_call.shape[0] > 0:
             text_and_call_stats = text_and_call_analysis(
                 df_call, df_text, stamp, step_size
@@ -378,6 +454,7 @@ def comm_logs_summaries(
         "num_mis_caller",
         "total_mins_in_call",
         "total_mins_out_call",
+        "mean_resposiveness_call",
         "num_uniq_individuals_call_or_text",
         "num_s",
         "num_r",
@@ -387,6 +464,7 @@ def comm_logs_summaries(
         "num_r_tel",
         "total_char_s",
         "total_char_r",
+        "mean_responsiveness_text"
     ]
     if frequency == Frequency.DAILY:
         return pd.DataFrame(
