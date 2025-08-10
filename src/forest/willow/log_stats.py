@@ -133,7 +133,7 @@ def text_analysis(
         & (df_text["timestamp"] / 1000 < stamp + step_size)
     ]
     
-    mean_resposiveness_text = get_mean_responsiveness(
+    mean_responsiveness_text = get_mean_responsiveness(
         df = temp_text, 
         col_with_sent_received = "sent vs received",
         received_values_list = ["received SMS", "received MMS"], 
@@ -254,6 +254,7 @@ def text_and_call_analysis(
     else:  # no calls were received, so no unique numbers will be used
         calls_in = np.array([])
         calls_out = np.array([])
+        calls_mis = np.array([])
 
     if df_text.shape[0] > 0:
         temp_text = df_text[
