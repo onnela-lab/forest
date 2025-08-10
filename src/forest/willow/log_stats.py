@@ -22,8 +22,8 @@ logger.setLevel(logging.INFO)
 
 
 def get_mean_responsiveness(df: pd.DataFrame, col_with_sent_received: str, 
-                            received_values_list: list, sent_values_list; list):
-    """Calculate the mean time in minutes between recieiving and sending a message
+                            received_values_list: list, sent_values_list: list):
+    """Calculate the mean time in minutes between recieving and sending a message
     
     Args: 
         df: The dataframe with calls or texts
@@ -39,17 +39,19 @@ def get_mean_responsiveness(df: pd.DataFrame, col_with_sent_received: str,
     
     """
     cols = ["hashed phone number", "timestamp"]
-    received = df[
-        df[col_with_sent_received].str.isin(received_values_list),
+    received = df.loc[
+        df[col_with_sent_received].isin(received_values_list),
         cols
     ]
     
-    sent = df[df[col_with_sent_received].str.isin(sent_values_list), cols]
+    sent = df.loc[df[col_with_sent_received].isin(sent_values_list), cols]
     
     # Joining the dataframe to itself will filter to only messages that are
     # received
+    
+    
     joined = pd.merge(
-        left = sent, right = received, how = "inner", on = "hashed phone number"
+        left = sent, right = received, how = "inner", on = "hashed phone number",
         suffixes = ("_sent", "_received")
     )
     if joined.shape[0] == 0:
@@ -58,12 +60,20 @@ def get_mean_responsiveness(df: pd.DataFrame, col_with_sent_received: str,
     # We only care about instances where a message was sent after being recieved
     joined = joined.loc[joined["timestamp_sent"] > joined["timestamp_received"]]
     
-    # Take only the first sent message after each message
-    joined.sort_values(["timestamp_received", "timestamp_sent"], inplace = True)
+    # Take only the first sent message after each incoming message
+    joined.sort_values(["hashed phone number", "timestamp_received", "timestamp_sent"], inplace = True, ascending = True)
     joined.reset_index(drop = True, inplace = True)
+    ## We only want to take the first row by received timestamp because that will be the earliest possible sent time
     joined.drop_duplicates(
         subset = ["hashed phone number", "timestamp_received"],
-        keep = "first"
+        keep = "first",
+        inplace = True
+    )
+    ## We now want to ensure that no sent timestamps are tied to two received timestamps
+    joined.drop_duplicates(
+        subset = ["hashed phone number", "timestamp_sent"],
+        keep = "first", 
+        inplace = True
     )
     
     mean_responsiveness_miliseconds = (
@@ -71,8 +81,6 @@ def get_mean_responsiveness(df: pd.DataFrame, col_with_sent_received: str,
     ).mean()
     
     mean_responsiveness_minutes = mean_responsiveness_miliseconds / 1_000 / 60
-    
-    
     
     return mean_responsiveness_minutes
 
@@ -94,7 +102,7 @@ def text_analysis(
             determining resolution of the summary stats
 
     Returns:
-        tuple of summary statistics containing:
+        dict of summary statistics containing:
             num_s: int
                 number of sent SMS
             num_r: int
@@ -190,20 +198,21 @@ def text_analysis(
                 index_s
                 * (np.array(temp_text["hashed phone number"]) == tel)
             )
+          
 
-    return (
-        num_s,
-        num_r,
-        num_mms_s,
-        num_mms_r,
-        num_s_tel,
-        num_r_tel,
-        total_char_s,
-        total_char_r,
-        mean_responsiveness_text,
-        text_reciprocity_incoming,
-        text_reciprocity_outgoing,
-    )
+    return {
+        "num_s": num_s,
+        "num_r": num_r,
+        "num_mms_s": num_mms_s,
+        "num_mms_r": num_mms_r,
+        "num_s_tel": num_s_tel,
+        "num_r_tel": num_r_tel,
+        "total_char_s": total_char_s,
+        "total_char_r": total_char_r,
+        "mean_responsiveness_text": mean_responsiveness_text,
+        "text_reciprocity_incoming": text_reciprocity_incoming,
+        "text_reciprocity_outgoing": text_reciprocity_outgoing,
+    }
 
 
 def text_and_call_analysis(
@@ -222,7 +231,7 @@ def text_and_call_analysis(
             ending timestamp of the interval
 
     Returns:
-        tuple of summary statistics containing:
+        dict of summary statistics containing:
             num_uniq_individuals_call_or_text: int
                 number of people making incoming calls or texts to the Beiwe
                 user or who the Beiwe user made outgoing calls or texts to
@@ -263,9 +272,54 @@ def text_and_call_analysis(
     num_uniq_individuals_call_or_text = len(np.unique(np.hstack(
         [calls_in, texts_in, texts_out, calls_out, calls_mis]
     )))
-    return (
-        num_uniq_individuals_call_or_text,
+    return {
+        "num_uniq_individuals_call_or_text": num_uniq_individuals_call_or_text,
+    }
+
+
+def get_call_reciprocity(calls_dict: dict):
+    """
+    Get call reciprocity for an individual. This is defined as 1 - (|incoming - outgoing|) / (incoming + outgoing). A reciprocity of 1 indicates perfect reciprocity--all incoming calls are balanced by an outgoing call. A reciprocity of 0 indicates that an individual had only incoming calls OR that they had only outgoing calls. 
+    
+    Args:
+       calls_dict: a dict with two keys: "incoming" and "outgoing". "incoming" includes a series with incoming phone numbers, and "outgoing" has outgoing phone numbers
+       
+    Returns: Reciprocity index
+        
+    """
+    
+    value_counts = dict()
+    
+    for k in ["incoming", "outgoing"]:
+        value_counts[k] = pd.Series(calls_dict[k]).value_counts().reset_index().rename(
+        {"index": "hashed_phone_number", "count": "num_" + k}, 
+        axis = 1
     )
+    
+    merged_value_counts = pd.merge(left = value_counts["incoming"], 
+                                   right = value_counts["outgoing"], 
+                                   how = "outer", 
+                                   on = "hashed_phone_number").fillna(0)
+    
+    if merged_value_counts.empty:
+        return pd.NA
+    
+    merged_value_counts["weight"] = merged_value_counts["num_incoming"] + merged_value_counts["num_outgoing"]
+    
+    merged_value_counts["reciprocity"] = (
+        
+        1 - (
+            np.abs(merged_value_counts["num_incoming"] - merged_value_counts["num_outgoing"])
+            / (merged_value_counts["num_incoming"] + merged_value_counts["num_outgoing"])
+
+        )
+
+    )
+    
+    return (merged_value_counts["reciprocity"] * merged_value_counts["weight"]).sum() / merged_value_counts["weight"].sum()
+    
+
+
 
 
 def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
@@ -300,6 +354,8 @@ def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
                 total time in minutes of outgoing calls
             mean_responsiveness_call: float
                 Mean number of minutes between a received call and a sent call
+            call_reciprocity: float
+                Reciprocity of calls. 
     """
     # filter the data based on the timestamp
     temp_call = df_call[
@@ -344,18 +400,25 @@ def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
 
     total_time_in_call = sum(dur_in_min[index_in_call])
     total_time_out_call = sum(dur_in_min[index_out_call])
+    
+    call_reciprocity = get_call_reciprocity({
+    "incoming": np.array(temp_call["hashed phone number"])[index_in_call | index_mis_call],
+    "outgoing": np.array(temp_call["hashed phone number"])[index_out_call]
+    })
+    
 
-    return (
-        num_in_call,
-        num_out_call,
-        num_mis_call,
-        num_uniq_in_call,
-        num_uniq_out_call,
-        num_uniq_mis_call,
-        total_time_in_call,
-        total_time_out_call,
-        mean_resposiveness_call
-    )
+    return {
+        "num_in_call": num_in_call,
+        "num_out_call": num_out_call,
+        "num_mis_call": num_mis_call,
+        "num_in_caller": num_uniq_in_call,
+        "num_out_caller": num_uniq_out_call,
+        "num_mis_caller": num_uniq_mis_call,
+        "total_mins_in_call": total_time_in_call,
+        "total_mins_out_call": total_time_out_call,
+        "mean_resposiveness_call": mean_resposiveness_call, 
+        "call_reciprocity": call_reciprocity
+    }
 
 
 def comm_logs_summaries(
@@ -381,7 +444,7 @@ def comm_logs_summaries(
     Returns:
         pandas dataframe of summary stats
     """
-    summary_stats = []
+    all_summary_stats = []
     start_year, start_month, start_day, start_hour, _, _ = stamp2datetime(
         stamp_start, tz_str
     )
@@ -418,34 +481,29 @@ def comm_logs_summaries(
     for stamp in np.arange(table_start, table_end + 1, step=step_size):
         year, month, day, hour, _, _ = stamp2datetime(stamp, tz_str)
         # initialize the summary statistics
-        newline = []
+        current_line = dict()
 
         if df_call.shape[0] > 0:
             call_stats = call_analysis(df_call, stamp, step_size)
-            newline += list(call_stats)
-        else:
-            newline += [pd.NA] * 9
+            current_line.update(call_stats)
         if df_text.shape[0] > 0 or df_call.shape[0] > 0:
             text_and_call_stats = text_and_call_analysis(
                 df_call, df_text, stamp, step_size
             )
-            newline += list(text_and_call_stats)
-        else:
-            newline += [pd.NA]
-
+            current_line.update(text_and_call_stats)
+            
         if df_text.shape[0] > 0:
             text_stats = text_analysis(df_text, stamp, step_size, frequency)
-            newline += list(text_stats)
-        else:
-            newline += [pd.NA] * 10
+            current_line.update(text_stats)
+
         if frequency == Frequency.DAILY:
-            newline = [year, month, day] + newline
+            current_line.update({"year": year, "month": month, "day": day})
         else:
-            newline = [year, month, day, hour] + newline[:17]
+            current_line.update({"year": year, "month": month, "day": day, "hour": hour})
 
-        summary_stats.append(newline)
-
-    columns = [
+        all_summary_stats.append(current_line)
+        
+    call_columns = [
         "num_in_call",
         "num_out_call",
         "num_mis_call",
@@ -453,33 +511,56 @@ def comm_logs_summaries(
         "num_out_caller",
         "num_mis_caller",
         "total_mins_in_call",
-        "total_mins_out_call",
-        "mean_resposiveness_call",
-        "num_uniq_individuals_call_or_text",
-        "num_s",
+        "total_mins_out_call"
+    ]
+    call_columns_daily_only = ["mean_resposiveness_call", "call_reciprocity"]
+    
+    call_and_text_columns = ["num_uniq_individuals_call_or_text"]
+    
+    text_columns = ["num_s",
         "num_r",
         "num_mms_s",
         "num_mms_r",
         "num_s_tel",
         "num_r_tel",
         "total_char_s",
-        "total_char_r",
-        "mean_responsiveness_text"
-    ]
+        "total_char_r"]
+    
+    text_columns_daily_only = [ 
+        "mean_responsiveness_text",
+        "text_reciprocity_incoming", 
+        "text_reciprocity_outgoing",
+        
+                              ]
+    
+
+
     if frequency == Frequency.DAILY:
-        return pd.DataFrame(
-            summary_stats,
-            columns=["year", "month", "day"]
-            + columns
-            + [
-                "text_reciprocity_incoming",
-                "text_reciprocity_outgoing",
-            ],
+        columns_to_output = (["year", "month", "day"]
+            + call_columns 
+            + call_columns_daily_only 
+            + call_and_text_columns
+            + text_columns
+            + text_columns_daily_only
         )
+    elif frequency == Frequency.HOURLY:
+        columns_to_output = (["year", "month", "day", "hour"]
+            + call_columns 
+            + call_and_text_columns
+            + text_columns
+        )
+    else:
+        raise NotImplementedError("Willow only supports hourly and daily aggregation")
+        
+    output_lines = []
+    
+    for line_dict in all_summary_stats:
+        current_line = [line_dict.get(col, pd.NA) for col in columns_to_output]
+        output_lines.append(current_line)
 
     return pd.DataFrame(
-        summary_stats,
-        columns=["year", "month", "day", "hour"] + columns,
+        output_lines,
+        columns=columns_to_output
     )
 
 
