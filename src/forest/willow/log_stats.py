@@ -678,8 +678,8 @@ def log_stats_inner(
         "num_s_tel", "num_r_tel", "num_in_caller",
         "num_out_caller", "num_mis_caller"
     ]:
-        sum_all_set_cols += stats_pdframe[column]
-        if (stats_pdframe[num_uniq_column] < stats_pdframe[column]).any():
+        sum_all_set_cols += pd.to_numeric(stats_pdframe[column]).fillna(0)
+        if (pd.to_numeric(stats_pdframe[num_uniq_column]).fillna(0) < pd.to_numeric(stats_pdframe[column]).fillna(0)).any():
             logger.error(
                 "Error: "
                 "num_uniq_individuals_call_or_text was found to be less than "
@@ -688,7 +688,7 @@ def log_stats_inner(
                 column
             )
 
-    if (stats_pdframe[num_uniq_column] > sum_all_set_cols).any():
+    if (pd.to_numeric(stats_pdframe[num_uniq_column]).fillna(0) > sum_all_set_cols).any():
         logger.error(
             "Error: "
             "num_uniq_individuals_call_or_text was found to be larger than the"
