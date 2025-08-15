@@ -528,9 +528,9 @@ def comm_logs_summaries(
 
         if df_text.shape[0] > 0:
             text_stats = text_analysis(
-                df_text, 
-                int(stamp), 
-                step_size, 
+                df_text,
+                int(stamp),
+                step_size,
                 frequency
             )
             current_line.update(text_stats)
