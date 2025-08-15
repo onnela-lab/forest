@@ -594,10 +594,10 @@ def comm_logs_summaries(
     output_lines = []
 
     for line_dict in all_summary_stats:
-        current_line = [
+        current_line_dict = [
             line_dict.get(col, pd.NA) for col in columns_to_output
         ]
-        output_lines.append(current_line)
+        output_lines.append(current_line_dict)
 
     return pd.DataFrame(output_lines, columns=columns_to_output)
 
