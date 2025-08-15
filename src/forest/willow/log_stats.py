@@ -527,7 +527,12 @@ def comm_logs_summaries(
             current_line.update(text_and_call_stats)
 
         if df_text.shape[0] > 0:
-            text_stats = text_analysis(df_text, int(stamp), step_size, frequency)
+            text_stats = text_analysis(
+                df_text, 
+                int(stamp), 
+                step_size, 
+                frequency
+            )
             current_line.update(text_stats)
 
         if frequency == Frequency.DAILY:
