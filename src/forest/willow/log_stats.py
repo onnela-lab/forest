@@ -27,7 +27,8 @@ def get_mean_responsiveness(
     received_values_list: list,
     sent_values_list: list,
 ):
-    """Calculate the mean time in minutes between recieving and sending a message
+    """Calculate the mean time in minutes between recieving and sending a
+    message
 
     Args:
         df: The dataframe with calls or texts
@@ -75,8 +76,8 @@ def get_mean_responsiveness(
         ascending=True,
     )
     joined.reset_index(drop=True, inplace=True)
-    # We only want to take the first row by received timestamp because that will
-    # be the earliest possible sent time
+    # We only want to take the first row by received timestamp because that
+    # will be the earliest possible sent time
     joined.drop_duplicates(
         subset=["hashed phone number", "timestamp_received"],
         keep="first",
