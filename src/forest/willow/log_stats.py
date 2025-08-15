@@ -26,7 +26,7 @@ def get_mean_responsiveness(
     col_with_sent_received: str,
     received_values_list: list,
     sent_values_list: list,
-):
+) -> float:
     """Calculate the mean time in minutes between recieving and sending a
     message
 
@@ -102,7 +102,7 @@ def get_mean_responsiveness(
 
 def text_analysis(
     df_text: pd.DataFrame, stamp: int, step_size: int, frequency: Frequency
-) -> tuple:
+) -> dict:
     """Calculate the summary statistics for the text data
     in the given time interval.
 
@@ -230,7 +230,7 @@ def text_analysis(
 
 def text_and_call_analysis(
     df_call: pd.DataFrame, df_text: pd.DataFrame, stamp: int, step_size: int
-) -> tuple:
+) -> dict:
     """Calculate the summary statistics for anything requiring both call and
     text data in the given time interval.
     Args:
@@ -293,7 +293,7 @@ def text_and_call_analysis(
     }
 
 
-def get_call_reciprocity(calls_dict: dict):
+def get_call_reciprocity(calls_dict: dict) -> float:
     """
     Get call reciprocity for an individual.
     This is defined as 1 - (|incoming - outgoing|) / (incoming + outgoing).
@@ -353,7 +353,7 @@ def get_call_reciprocity(calls_dict: dict):
     ).sum() / merged_value_counts["weight"].sum()
 
 
-def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
+def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> dict:
     """Calculate the summary statistics for the call data
     in the given time interval.
 
