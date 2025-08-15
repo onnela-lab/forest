@@ -513,21 +513,21 @@ def comm_logs_summaries(
 
     # for each chunk, calculate the summary statistics (colmean or count)
     for stamp in np.arange(table_start, table_end + 1, step=step_size):
-        year, month, day, hour, _, _ = stamp2datetime(stamp, tz_str)
+        year, month, day, hour, _, _ = stamp2datetime(int(stamp), tz_str)
         # initialize the summary statistics
         current_line = dict()
 
         if df_call.shape[0] > 0:
-            call_stats = call_analysis(df_call, stamp, step_size)
+            call_stats = call_analysis(df_call, int(stamp), step_size)
             current_line.update(call_stats)
         if df_text.shape[0] > 0 or df_call.shape[0] > 0:
             text_and_call_stats = text_and_call_analysis(
-                df_call, df_text, stamp, step_size
+                df_call, df_text, int(stamp), step_size
             )
             current_line.update(text_and_call_stats)
 
         if df_text.shape[0] > 0:
-            text_stats = text_analysis(df_text, stamp, step_size, frequency)
+            text_stats = text_analysis(df_text, int(stamp), step_size, frequency)
             current_line.update(text_stats)
 
         if frequency == Frequency.DAILY:
