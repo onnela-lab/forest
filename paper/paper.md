@@ -14,7 +14,7 @@ authors:
   - name: Zachary Clement
     orcid: 0000-0003-2279-5265
     affiliation: 1,7
-  - name: Hassan Dawood
+  - name: Hassan Y. Dawood
     orcid: 0000-0002-2190-5146
     affiliation: 1
   - name: Georgios Efstathiadis
@@ -44,7 +44,7 @@ authors:
   - name: Ilya Sytchev
     orcid: 0009-0003-0647-5613
     affiliation: 1
-  - name: Anna Beukenhorst
+  - name: Anna L. Beukenhorst
     orcid: 0000-0002-1765-4890
     affiliation: 1,5
 affiliations:
