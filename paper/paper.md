@@ -8,9 +8,6 @@ authors:
   - name: Jukka-Pekka Onnela^[Principal Investigator and corresponding author.]
     orcid: 0000-0001-6613-8668
     affiliation: 1
-  - name: Josh Barback
-    orcid: ______________
-    affiliation: 1
   - name: Zachary Clement
     orcid: 0000-0003-2279-5265
     affiliation: 1,7
