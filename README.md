@@ -1,5 +1,7 @@
 [![build](https://github.com/onnela-lab/forest/actions/workflows/build.yml/badge.svg)](https://github.com/onnela-lab/forest/actions/workflows/build.yml)
 [![Documentation Status](https://readthedocs.org/projects/forest-docs/badge/)](https://forest.beiwe.org/en/latest/)
+[![PyPI version](https://img.shields.io/pypi/v/beiwe-forest.svg)](https://pypi.org/project/beiwe-forest/)
+[![status](https://joss.theoj.org/papers/98ea37f95e00c6a3f515b03a3214571b/status.svg)](https://joss.theoj.org/papers/98ea37f95e00c6a3f515b03a3214571b)
 
 <!--- using a URL to display logo on PyPI --->
 <img width="264" height="99" src="https://raw.githubusercontent.com/onnela-lab/forest/main/forest-logo-color.png" alt="Forest logo">
@@ -31,10 +33,9 @@ Output: typically summary files
 
 # Usage
 
-Please note that Forest is tested only against Python 3.11 and 3.12 (preferred). To install, clone this repository to a local directory and then:
-
+Please note that Forest is tested only against Python 3.11 and 3.12 (preferred). To install:
 ```console
-pip install path/to/forest
+pip install beiwe-forest
 ```
 
 Alternatively, [install directly from GitHub](https://pip.pypa.io/en/stable/cli/pip_install/#examples) with `pip`. As the repo is public, it won't prompt you to login. If you've used forest in the past, it might be prudent to do a `pip uninstall forest` first.
