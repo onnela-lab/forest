@@ -241,7 +241,7 @@ def gen_survey_schedule(
             tbl["delivery_time"] = pd.to_datetime(tbl["delivery_time"])
             # add a delivery time a week in the future to capture the last
             # delivery
-            week_after_last = tbl.delivery_time.max() + pd.Timedelta(7, "d")
+            week_after_last = tbl.delivery_time.max() + pd.Timedelta(7, "D")
             tbl = pd.concat(
                 [tbl, pd.DataFrame({"delivery_time": [week_after_last]})],
                 axis=0
