@@ -348,7 +348,7 @@ def survey_submits(
     )["Local time"].transform("first")
     # get rid of answers that were blank responses
     only_real_answers = agg.loc[
-        ~agg.answer.isin(["", np.nan, None, "[]", "NO_ANSWER_SELECTED"]),
+        ~agg.answer.isin(["", np.nan, None, [], "[]", "NO_ANSWER_SELECTED"]),
         ["beiwe_id", "survey id", "surv_inst_flg", "question id"]]
     # Look for the number of unique questions where the answer was a real thing
     only_real_answers["num_questions_answered"] = only_real_answers.groupby(
