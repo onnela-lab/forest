@@ -18,9 +18,9 @@ jobs:
         working-directory: './docs'
     steps:
       - name: Check out Forest code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install documentation build dependencies
