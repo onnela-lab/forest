@@ -21,9 +21,88 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def get_mean_responsiveness(
+    df: pd.DataFrame,
+    col_with_sent_received: str,
+    received_values_list: list,
+    sent_values_list: list,
+) -> float:
+    """Calculate the mean time in minutes between recieving and sending a
+    message
+
+    Args:
+        df: The dataframe with calls or texts
+        col_with_sent_received: The column indicating whether a message is sent
+            or received
+        received_values_list: values of col_with_sent_received indicating that
+            a message/call was received
+        sent_values_list: values of col_with_sent_received indicating that a
+            message/call was sent
+
+    Returns:
+        float: The average time between having a call sent or recieved
+
+    """
+    cols = ["hashed phone number", "timestamp"]
+    received = df.loc[
+        df[col_with_sent_received].isin(received_values_list), cols
+    ]
+
+    sent = df.loc[df[col_with_sent_received].isin(sent_values_list), cols]
+
+    # Joining the dataframe to itself will filter to only messages that are
+    # received
+
+    joined = pd.merge(
+        left=sent,
+        right=received,
+        how="inner",
+        on="hashed phone number",
+        suffixes=("_sent", "_received"),
+    )
+    if joined.shape[0] == 0:
+        return pd.NA
+
+    # We only care about instances where a message was sent after being
+    # recieved
+    joined = joined.loc[
+        joined["timestamp_sent"] > joined["timestamp_received"]
+    ]
+
+    # Take only the first sent message after each incoming message
+    joined.sort_values(
+        ["hashed phone number", "timestamp_received", "timestamp_sent"],
+        inplace=True,
+        ascending=True,
+    )
+    joined.reset_index(drop=True, inplace=True)
+    # We only want to take the first row by received timestamp because that
+    # will be the earliest possible sent time
+    joined.drop_duplicates(
+        subset=["hashed phone number", "timestamp_received"],
+        keep="first",
+        inplace=True,
+    )
+    # We now want to ensure that no sent timestamps are tied to two received
+    # timestamps
+    joined.drop_duplicates(
+        subset=["hashed phone number", "timestamp_sent"],
+        keep="first",
+        inplace=True,
+    )
+
+    mean_responsiveness_miliseconds = (
+        joined["timestamp_sent"] - joined["timestamp_received"]
+    ).mean()
+
+    mean_responsiveness_minutes = mean_responsiveness_miliseconds / 1_000 / 60
+
+    return mean_responsiveness_minutes
+
+
 def text_analysis(
     df_text: pd.DataFrame, stamp: int, step_size: int, frequency: Frequency
-) -> tuple:
+) -> dict:
     """Calculate the summary statistics for the text data
     in the given time interval.
 
@@ -38,7 +117,7 @@ def text_analysis(
             determining resolution of the summary stats
 
     Returns:
-        tuple of summary statistics containing:
+        dict of summary statistics containing:
             num_s: int
                 number of sent SMS
             num_r: int
@@ -55,16 +134,26 @@ def text_analysis(
                 total number of characters in sent SMS
             total_char_r: int
                 total number of characters in received SMS
+            mean_responsiveness_text: float
+                Mean number of minutes between a received text and a sent text
             text_reciprocity_incoming: int
                 number of received SMS without response
             text_reciprocity_outgoing: int
                 number of sent SMS without response
+
     """
     # filter the data based on the timestamp
     temp_text = df_text[
         (df_text["timestamp"] / 1000 >= stamp)
         & (df_text["timestamp"] / 1000 < stamp + step_size)
     ]
+
+    mean_responsiveness_text = get_mean_responsiveness(
+        df=temp_text,
+        col_with_sent_received="sent vs received",
+        received_values_list=["received SMS", "received MMS"],
+        sent_values_list=["sent SMS", "sent MMS"],
+    )
 
     # calculate the number of texts
     message_lengths = np.array(temp_text["message length"])
@@ -115,34 +204,33 @@ def text_analysis(
         text_reciprocity_incoming = 0
         for tel in received_no_response:
             text_reciprocity_incoming += sum(
-                index_r
-                * (np.array(temp_text["hashed phone number"]) == tel)
+                index_r * (np.array(temp_text["hashed phone number"]) == tel)
             )
 
         text_reciprocity_outgoing = 0
         for tel in sent_no_response:
             text_reciprocity_outgoing += sum(
-                index_s
-                * (np.array(temp_text["hashed phone number"]) == tel)
+                index_s * (np.array(temp_text["hashed phone number"]) == tel)
             )
 
-    return (
-        num_s,
-        num_r,
-        num_mms_s,
-        num_mms_r,
-        num_s_tel,
-        num_r_tel,
-        total_char_s,
-        total_char_r,
-        text_reciprocity_incoming,
-        text_reciprocity_outgoing,
-    )
+    return {
+        "num_s": num_s,
+        "num_r": num_r,
+        "num_mms_s": num_mms_s,
+        "num_mms_r": num_mms_r,
+        "num_s_tel": num_s_tel,
+        "num_r_tel": num_r_tel,
+        "total_char_s": total_char_s,
+        "total_char_r": total_char_r,
+        "mean_responsiveness_text": mean_responsiveness_text,
+        "text_reciprocity_incoming": text_reciprocity_incoming,
+        "text_reciprocity_outgoing": text_reciprocity_outgoing,
+    }
 
 
 def text_and_call_analysis(
     df_call: pd.DataFrame, df_text: pd.DataFrame, stamp: int, step_size: int
-) -> tuple:
+) -> dict:
     """Calculate the summary statistics for anything requiring both call and
     text data in the given time interval.
     Args:
@@ -156,7 +244,7 @@ def text_and_call_analysis(
             ending timestamp of the interval
 
     Returns:
-        tuple of summary statistics containing:
+        dict of summary statistics containing:
             num_uniq_individuals_call_or_text: int
                 number of people making incoming calls or texts to the Beiwe
                 user or who the Beiwe user made outgoing calls or texts to
@@ -179,6 +267,7 @@ def text_and_call_analysis(
     else:  # no calls were received, so no unique numbers will be used
         calls_in = np.array([])
         calls_out = np.array([])
+        calls_mis = np.array([])
 
     if df_text.shape[0] > 0:
         temp_text = df_text[
@@ -194,15 +283,77 @@ def text_and_call_analysis(
         texts_in = np.array([])
         texts_out = np.array([])
 
-    num_uniq_individuals_call_or_text = len(np.unique(np.hstack(
-        [calls_in, texts_in, texts_out, calls_out, calls_mis]
-    )))
-    return (
-        num_uniq_individuals_call_or_text,
+    num_uniq_individuals_call_or_text = len(
+        np.unique(
+            np.hstack([calls_in, texts_in, texts_out, calls_out, calls_mis])
+        )
+    )
+    return {
+        "num_uniq_individuals_call_or_text": num_uniq_individuals_call_or_text,
+    }
+
+
+def get_call_reciprocity(calls_dict: dict) -> float:
+    """
+    Get call reciprocity for an individual.
+    This is defined as 1 - (|incoming - outgoing|) / (incoming + outgoing).
+    A reciprocity of 1 indicates perfect reciprocity--all incoming calls are
+    balanced by an outgoing call. A reciprocity of 0 indicates that an
+    individual had only incoming calls OR that they had only outgoing calls.
+
+    Args:
+       calls_dict: a dict with two keys: "incoming" and "outgoing".
+           "incoming" includes a series with incoming phone numbers, and
+           "outgoing" has outgoing phone numbers
+
+    Returns: Reciprocity index
+
+    """
+
+    value_counts = dict()
+
+    for k in ["incoming", "outgoing"]:
+        value_counts[k] = (
+            pd.Series(calls_dict[k])
+            .value_counts()
+            .reset_index()
+            .rename(
+                {"index": "hashed_phone_number", "count": "num_" + k}, axis=1
+            )
+        )
+
+    merged_value_counts = pd.merge(
+        left=value_counts["incoming"],
+        right=value_counts["outgoing"],
+        how="outer",
+        on="hashed_phone_number",
+    ).fillna(0)
+
+    if merged_value_counts.empty:
+        return pd.NA
+
+    merged_value_counts["weight"] = (
+        merged_value_counts["num_incoming"]
+        + merged_value_counts["num_outgoing"]
     )
 
+    merged_value_counts["reciprocity"] = 1 - (
+        np.abs(
+            merged_value_counts["num_incoming"]
+            - merged_value_counts["num_outgoing"]
+        )
+        / (
+            merged_value_counts["num_incoming"]
+            + merged_value_counts["num_outgoing"]
+        )
+    )
 
-def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
+    return (
+        merged_value_counts["reciprocity"] * merged_value_counts["weight"]
+    ).sum() / merged_value_counts["weight"].sum()
+
+
+def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> dict:
     """Calculate the summary statistics for the call data
     in the given time interval.
 
@@ -232,12 +383,23 @@ def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
                 total time in minutes of incoming calls
             total_time_out_call: int
                 total time in minutes of outgoing calls
+            mean_responsiveness_call: float
+                Mean number of minutes between a received call and a sent call
+            call_reciprocity: float
+                Reciprocity of calls.
     """
     # filter the data based on the timestamp
     temp_call = df_call[
         (df_call["timestamp"] / 1000 >= stamp)
         & (df_call["timestamp"] / 1000 < stamp + step_size)
     ]
+
+    mean_resposiveness_call = get_mean_responsiveness(
+        df=temp_call,
+        col_with_sent_received="call type",
+        received_values_list=["Incoming Call", "Missed Call"],
+        sent_values_list=["Outgoing Call"],
+    )
 
     dur_in_sec = np.array(temp_call["duration in seconds"])
     dur_in_sec[np.isnan(dur_in_sec)] = 0
@@ -252,39 +414,50 @@ def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> tuple:
     num_mis_call = sum(index_mis_call)
 
     num_uniq_in_call = len(
-        np.unique(
-            np.array(temp_call["hashed phone number"])[index_in_call]
-        )
+        np.unique(np.array(temp_call["hashed phone number"])[index_in_call])
     )
     num_uniq_out_call = len(
-        np.unique(
-            np.array(temp_call["hashed phone number"])[index_out_call]
-        )
+        np.unique(np.array(temp_call["hashed phone number"])[index_out_call])
     )
     num_uniq_mis_call = len(
-        np.unique(
-            np.array(temp_call["hashed phone number"])[index_mis_call]
-        )
+        np.unique(np.array(temp_call["hashed phone number"])[index_mis_call])
     )
 
     total_time_in_call = sum(dur_in_min[index_in_call])
     total_time_out_call = sum(dur_in_min[index_out_call])
 
-    return (
-        num_in_call,
-        num_out_call,
-        num_mis_call,
-        num_uniq_in_call,
-        num_uniq_out_call,
-        num_uniq_mis_call,
-        total_time_in_call,
-        total_time_out_call,
+    call_reciprocity = get_call_reciprocity(
+        {
+            "incoming": np.array(temp_call["hashed phone number"])[
+                index_in_call | index_mis_call
+            ],
+            "outgoing": np.array(temp_call["hashed phone number"])[
+                index_out_call
+            ],
+        }
     )
+
+    return {
+        "num_in_call": num_in_call,
+        "num_out_call": num_out_call,
+        "num_mis_call": num_mis_call,
+        "num_in_caller": num_uniq_in_call,
+        "num_out_caller": num_uniq_out_call,
+        "num_mis_caller": num_uniq_mis_call,
+        "total_mins_in_call": total_time_in_call,
+        "total_mins_out_call": total_time_out_call,
+        "mean_resposiveness_call": mean_resposiveness_call,
+        "call_reciprocity": call_reciprocity,
+    }
 
 
 def comm_logs_summaries(
-    df_text: pd.DataFrame, df_call: pd.DataFrame, stamp_start: float,
-    stamp_end: float, tz_str: str, frequency: Frequency
+    df_text: pd.DataFrame,
+    df_call: pd.DataFrame,
+    stamp_start: float,
+    stamp_end: float,
+    tz_str: str,
+    frequency: Frequency,
 ) -> pd.DataFrame:
     """Calculate the summary statistics for the communication logs.
 
@@ -305,7 +478,7 @@ def comm_logs_summaries(
     Returns:
         pandas dataframe of summary stats
     """
-    summary_stats = []
+    all_summary_stats = []
     start_year, start_month, start_day, start_hour, _, _ = stamp2datetime(
         stamp_start, tz_str
     )
@@ -339,37 +512,39 @@ def comm_logs_summaries(
     step_size = 60 * frequency.value
 
     # for each chunk, calculate the summary statistics (colmean or count)
-    for stamp in range(int(table_start), int(table_end) + 1, int(step_size)):
-        year, month, day, hour, _, _ = stamp2datetime(stamp, tz_str)
+    for stamp in np.arange(table_start, table_end + 1, step=step_size):
+        year, month, day, hour, _, _ = stamp2datetime(int(stamp), tz_str)
         # initialize the summary statistics
-        newline = []
+        current_line = dict()
 
         if df_call.shape[0] > 0:
-            call_stats = call_analysis(df_call, stamp, step_size)
-            newline += list(call_stats)
-        else:
-            newline += [pd.NA] * 8
+            call_stats = call_analysis(df_call, int(stamp), step_size)
+            current_line.update(call_stats)
         if df_text.shape[0] > 0 or df_call.shape[0] > 0:
             text_and_call_stats = text_and_call_analysis(
-                df_call, df_text, stamp, step_size
+                df_call, df_text, int(stamp), step_size
             )
-            newline += list(text_and_call_stats)
-        else:
-            newline += [pd.NA]
+            current_line.update(text_and_call_stats)
 
         if df_text.shape[0] > 0:
-            text_stats = text_analysis(df_text, stamp, step_size, frequency)
-            newline += list(text_stats)
-        else:
-            newline += [pd.NA] * 10
+            text_stats = text_analysis(
+                df_text,
+                int(stamp),
+                step_size,
+                frequency
+            )
+            current_line.update(text_stats)
+
         if frequency == Frequency.DAILY:
-            newline = [year, month, day] + newline
+            current_line.update({"year": year, "month": month, "day": day})
         else:
-            newline = [year, month, day, hour] + newline[:17]
+            current_line.update(
+                {"year": year, "month": month, "day": day, "hour": hour}
+            )
 
-        summary_stats.append(newline)
+        all_summary_stats.append(current_line)
 
-    columns = [
+    call_columns = [
         "num_in_call",
         "num_out_call",
         "num_mis_call",
@@ -378,7 +553,12 @@ def comm_logs_summaries(
         "num_mis_caller",
         "total_mins_in_call",
         "total_mins_out_call",
-        "num_uniq_individuals_call_or_text",
+    ]
+    call_columns_daily_only = ["mean_resposiveness_call", "call_reciprocity"]
+
+    call_and_text_columns = ["num_uniq_individuals_call_or_text"]
+
+    text_columns = [
         "num_s",
         "num_r",
         "num_mms_s",
@@ -388,21 +568,43 @@ def comm_logs_summaries(
         "total_char_s",
         "total_char_r",
     ]
+
+    text_columns_daily_only = [
+        "mean_responsiveness_text",
+        "text_reciprocity_incoming",
+        "text_reciprocity_outgoing",
+    ]
+
     if frequency == Frequency.DAILY:
-        return pd.DataFrame(
-            summary_stats,
-            columns=["year", "month", "day"]
-            + columns
-            + [
-                "text_reciprocity_incoming",
-                "text_reciprocity_outgoing",
-            ],
+        columns_to_output = (
+            ["year", "month", "day"]
+            + call_columns
+            + call_columns_daily_only
+            + call_and_text_columns
+            + text_columns
+            + text_columns_daily_only
+        )
+    elif frequency == Frequency.HOURLY:
+        columns_to_output = (
+            ["year", "month", "day", "hour"]
+            + call_columns
+            + call_and_text_columns
+            + text_columns
+        )
+    else:
+        raise NotImplementedError(
+            "Willow only supports hourly and daily aggregation"
         )
 
-    return pd.DataFrame(
-        summary_stats,
-        columns=["year", "month", "day", "hour"] + columns,
-    )
+    output_lines = []
+
+    for line_dict in all_summary_stats:
+        current_line_dict = [
+            line_dict.get(col, pd.NA) for col in columns_to_output
+        ]
+        output_lines.append(current_line_dict)
+
+    return pd.DataFrame(output_lines, columns=columns_to_output)
 
 
 # Main function/wrapper should take standard arguments with Beiwe names:
@@ -430,7 +632,9 @@ def log_stats_main(
     """
 
     if frequency not in [
-        Frequency.HOURLY_AND_DAILY, Frequency.DAILY, Frequency.HOURLY
+        Frequency.HOURLY_AND_DAILY,
+        Frequency.DAILY,
+        Frequency.HOURLY,
     ]:
         logger.error(
             "Error: frequency must be one of the following: "
@@ -449,7 +653,8 @@ def log_stats_main(
     # beiwe_id should be a list of str
     if beiwe_ids is None:
         beiwe_ids = [
-            participant_id for participant_id in os.listdir(study_folder)
+            participant_id
+            for participant_id in os.listdir(study_folder)
             if os.path.isdir(f"{study_folder}/{participant_id}")
         ]
 
@@ -466,10 +671,12 @@ def log_stats_main(
                     frequency,
                     tz_str,
                     time_start,
-                    time_end
+                    time_end,
                 )
             except Exception as err:
-                logger.error("An error occurred when processing data: %s", err)
+                logger.error(
+                    "An error occurred when processing data: %s", err
+                )
 
     logger.info("Summary statistics obtained. Finished.")
 
@@ -483,7 +690,7 @@ def log_stats_inner(
     time_start: Optional[List] = None,
     time_end: Optional[List] = None,
 ):
-    """ Inner functionality of log_stats_main """
+    """Inner functionality of log_stats_main"""
     # read data
     text_data, text_stamp_start, text_stamp_end = read_data(
         beiwe_id, study_folder, "texts", tz_str, time_start, time_end
@@ -513,22 +720,31 @@ def log_stats_inner(
     # the sum of the cardinalities of all of the sets. (it may be equal if all
     # the sets are disjoint)
     num_uniq_column = "num_uniq_individuals_call_or_text"  # legibility hax.
-    sum_all_set_cols = pd.Series([0]*stats_pdframe.shape[0])
+    sum_all_set_cols = pd.Series([0] * stats_pdframe.shape[0])
     for column in [
-        "num_s_tel", "num_r_tel", "num_in_caller",
-        "num_out_caller", "num_mis_caller"
+        "num_s_tel",
+        "num_r_tel",
+        "num_in_caller",
+        "num_out_caller",
+        "num_mis_caller",
     ]:
-        sum_all_set_cols += stats_pdframe[column]
-        if (stats_pdframe[num_uniq_column] < stats_pdframe[column]).any():
+        sum_all_set_cols += pd.to_numeric(stats_pdframe[column]).fillna(0)
+        if (
+            pd.to_numeric(stats_pdframe[num_uniq_column]).fillna(0)
+            < pd.to_numeric(stats_pdframe[column]).fillna(0)
+        ).any():
             logger.error(
                 "Error: "
                 "num_uniq_individuals_call_or_text was found to be less than "
                 "%s for at least one time interval. This error comes from an "
                 "issue with the code, not an issue with the input data.",
-                column
+                column,
             )
 
-    if (stats_pdframe[num_uniq_column] > sum_all_set_cols).any():
+    if (
+        pd.to_numeric(stats_pdframe[num_uniq_column]).fillna(0)
+        > sum_all_set_cols
+    ).any():
         logger.error(
             "Error: "
             "num_uniq_individuals_call_or_text was found to be larger than the"
