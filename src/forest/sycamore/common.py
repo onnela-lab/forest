@@ -990,7 +990,9 @@ def fix_radio_answer_choices(
     # remove first and last bracket as well as any nan, then split it by ;
     aggregated_data["question answer options"] = aggregated_data[
         "question answer options"
-    ].astype("str").apply(lambda x: re.sub(r"^\[|\]$|^nan$", "", x).split(";"))
+    ].apply(lambda x: "" if pd.isna(x) else str(x)).apply(
+        lambda x: re.sub(r"^\[|\]$|^nan$", "", x).split(";")
+    )
 
     return aggregated_data
 
