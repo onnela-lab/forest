@@ -3,7 +3,7 @@ import calendar
 from datetime import datetime
 import logging
 import os
-from typing import Optional, Any, List, Union, Tuple
+from typing import Any, Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -82,7 +82,7 @@ def filename2stamp(filename: str) -> int:
     return stamp
 
 
-def get_files_timestamps(folder_path: str) -> Tuple[np.ndarray, np.ndarray]:
+def get_files_timestamps(folder_path: str) -> tuple[np.ndarray, np.ndarray]:
     """Get List of Files and Timestamps in a folder
 
     Args:
@@ -113,9 +113,9 @@ def read_data(
     study_folder: str,
     datastream: str,
     tz_str: str,
-    time_start: Optional[List[int]],
-    time_end: Optional[List[int]],
-) -> Tuple[Any, float, float]:
+    time_start: list[int] | None,
+    time_end: list[int] | None,
+) -> tuple[Any, float, float]:
     """Read data from a user's datastream folder
 
     Args:
@@ -161,7 +161,7 @@ def read_data(
     stamp_end: float = 0.
 
     folder_path = os.path.join(study_folder, beiwe_id, datastream)
-    files_in_range: List[str] = []
+    files_in_range: list[str] = []
     # if text folder exists, call folder must exists
     if not os.path.exists(os.path.join(study_folder, beiwe_id)):
         logger.warning(
@@ -257,7 +257,10 @@ def read_data(
 
 
 def write_all_summaries(
-    beiwe_id: str, stats_pdframe: pd.DataFrame, output_path: str
+    beiwe_id: str,
+    stats_pdframe: pd.DataFrame,
+    output_path: str,
+    columns: Sequence[str] | None = None,
 ):
     """Write out all the summary stats for a user
 
@@ -270,6 +273,14 @@ def write_all_summaries(
             the path to write out the summary stats
     """
     os.makedirs(output_path, exist_ok=True)
+
+    # make sure date column is on the left
+    columns = stats_pdframe.columns.tolist()
+    columns.remove("date")
+    columns.insert(0, "date")
+
     stats_pdframe.to_csv(
-        os.path.join(output_path, f"{beiwe_id}.csv"), index=False
+        os.path.join(output_path, f"{beiwe_id}.csv"),
+        index=False,
+        columns=columns,
     )

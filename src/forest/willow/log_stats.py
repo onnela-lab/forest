@@ -753,4 +753,13 @@ def log_stats_inner(
             "the input data."
         )
 
-    write_all_summaries(beiwe_id, stats_pdframe, output_folder)
+    # merge year, month, day columns to date, and drop them, force left
+    stats_pdframe["date"] = pd.to_datetime(
+        stats_pdframe[["year", "month", "day"]]
+    )
+    stats_pdframe = stats_pdframe.drop(columns=["year", "month", "day"])
+
+    cols = stats_pdframe.columns.tolist()
+    cols.remove("date")
+    cols.insert(0, "date")
+    write_all_summaries(beiwe_id, stats_pdframe, output_folder, columns=cols)
