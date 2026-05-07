@@ -260,7 +260,7 @@ def write_all_summaries(
     beiwe_id: str,
     stats_pdframe: pd.DataFrame,
     output_path: str,
-    columns: Sequence[str] | None = None,
+    columns: list[str] | None = None,
 ):
     """Write out all the summary stats for a user
 
@@ -273,11 +273,6 @@ def write_all_summaries(
             the path to write out the summary stats
     """
     os.makedirs(output_path, exist_ok=True)
-
-    # make sure date column is on the left
-    columns = stats_pdframe.columns.tolist()
-    columns.remove("date")
-    columns.insert(0, "date")
 
     stats_pdframe.to_csv(
         os.path.join(output_path, f"{beiwe_id}.csv"),

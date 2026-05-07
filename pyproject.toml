@@ -75,6 +75,7 @@ dev = [
     "mypy",
     "pytest",
     "pytest-mock",
+    "pytest-xdist",
     "twine",
     "types-python-dateutil",
     "types-pytz",
