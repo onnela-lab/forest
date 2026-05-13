@@ -86,6 +86,10 @@ dev = [
 ]
 
 
+[tool.setuptools.package-data]
+"forest.poplar.raw" = ["noncode/*.csv", "noncode/*.json"]
+
+
 [tool.ruff]
 line-length = 105  # # this is the maximum that should emit a warning, its ok to over sometimes.
 indent-width = 4
@@ -111,6 +115,10 @@ select = [  # (linting directives to enable)
     "A",       # flake8-annotations codes
 ]
 
+extend-ignore = [  # (linting directives to ignore)
+    "W293",  # blank line contains whitespace
+]
+
 exclude = [
     "build",
     ".venv",
@@ -123,11 +131,12 @@ exclude = [
 line-length = 105
 max-line-length = 105
 
+extend-ignore = [
+    "W293",  # blank line contains whitespace
+]
+
 exclude = [
     "build",
     ".venv",
     "venv",
 ]
-
-[tool.setuptools.package-data]
-"forest.poplar.raw" = ["noncode/*.csv", "noncode/*.json"]
