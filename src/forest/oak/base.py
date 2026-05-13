@@ -459,9 +459,9 @@ def preprocess_dates(
             - date_start: datetime of initial date of study
             - date_end: datetime of final date of study
     """
-    # transform all files in folder to datelike format
+    # transform all files in folder to datelike format, strip all file extensions.
     file_dates = [
-        file.replace(".csv", "").replace("+00_00", "") for file in file_list
+        file.replace("+00_00", "").split(".", 1)[0] for file in file_list
     ]
     # process dates
     dates = [datetime.strptime(file, fmt) for file in file_dates]

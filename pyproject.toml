@@ -42,6 +42,7 @@ dependencies = [
     "shapely",
     "ssqueezepy",
     "timezonefinder",
+    "zstandard",
 ]
 keywords = ["digital phenotyping", "smartphone", "statistics", "accelerometer", "GPS"]
 classifiers = [
