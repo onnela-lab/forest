@@ -9,7 +9,6 @@
 """
 import logging
 import math
-from typing import Dict, Tuple
 
 import numpy as np
 
@@ -390,7 +389,7 @@ def calculate_sigma_max(
 def update_system_given_gamma_tol(
     c_mat: np.ndarray, q_mat: np.ndarray, alpha: np.ndarray,
     k: np.ndarray, q: float, gamma: float, sigmax: float
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Update system when gamma is less than tolerance.
 
     Args:
@@ -417,7 +416,7 @@ def update_system_given_gamma_tol(
 def update_system_otherwise(
     c_mat: np.ndarray, q_mat: np.ndarray, alpha: np.ndarray, k: np.ndarray,
     q: float, sigmax: float, gamma: float, e_hat: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Update system when gamma is greater or equal to tolerance.
 
     Args:
@@ -445,7 +444,7 @@ def update_system_otherwise(
 def pruning_bv(
     bv: list, alpha: np.ndarray, q: np.ndarray, c: np.ndarray,
     s: np.ndarray, k: np.ndarray, sigma2: float, d: int, pars: list
-) -> Tuple[list, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[list, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Prune the basis vectors.
 
     Args:
@@ -512,7 +511,7 @@ def sogp(
     c_mat: np.ndarray,
     alpha: np.ndarray,
     bv: list,
-) -> Dict:
+) -> dict:
     """This is the key function of sparse online gaussian process
     (1) If it is the first time to process the data,
          q_mat,c_mat,alpha,bv should be empty,
@@ -607,7 +606,7 @@ def bv_select(
     pars: list,
     memory_dict: dict,
     bv_set: np.ndarray,
-) -> Dict:
+) -> dict:
     """This function is an application of sogp() on GPS data.
      We first treat latitude as y_mat,
      [longitude,timestamp] as x_mat, then we treat longitude as y_mat

@@ -3,7 +3,6 @@
 
 import logging
 import math
-from typing import Tuple, Union, Optional, List
 from itertools import groupby
 
 import numpy as np
@@ -20,10 +19,8 @@ logger.setLevel(logging.INFO)
 
 
 def cartesian(
-    lat: Union[float, np.ndarray], lon: Union[float, np.ndarray]
-) -> Union[
-    Tuple[float, float, float], Tuple[np.ndarray, np.ndarray, np.ndarray]
-]:
+    lat: float | np.ndarray, lon: float | np.ndarray
+) -> tuple[float, float, float] | tuple[np.ndarray, np.ndarray, np.ndarray]:
     """This function converts latitude and longitude to cartesian coordinates.
 
     Args:
@@ -43,8 +40,8 @@ def cartesian(
 
 
 def great_circle_dist(
-    lat1: Union[float, np.ndarray], lon1: Union[float, np.ndarray],
-    lat2: Union[float, np.ndarray], lon2: Union[float, np.ndarray]
+    lat1: float | np.ndarray, lon1: float | np.ndarray,
+    lat2: float | np.ndarray, lon2: float | np.ndarray
 ) -> np.ndarray:
     """This function calculates the great circle distance
      between various pairs of locations.
@@ -131,7 +128,7 @@ def shortest_dist_to_great_circle(
     return d
 
 
-def pairwise_great_circle_dist(latlon_array: np.ndarray) -> List[float]:
+def pairwise_great_circle_dist(latlon_array: np.ndarray) -> list[float]:
     """This function calculates the pairwise great circle distance
         between any pair of locations.
 
@@ -257,7 +254,7 @@ def collapse_data(
 
 def exist_knot(
     avg_mat: np.ndarray, distance_threshold: float
-) -> Tuple[int, Optional[int]]:
+) -> tuple[int, int | None]:
     """This function checks if there is a knot in the observed data chunk.
 
     Args:
@@ -883,7 +880,7 @@ def merge_pauses_and_bridge_gaps(mobmat: np.ndarray) -> np.ndarray:
 
 def correct_missing_intervals(
     mobmat: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Corrects missing intervals in the mobility matrix.
 
     Args:

@@ -9,7 +9,6 @@ from enum import Enum
 import logging
 import os
 import re
-from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import openrouteservice
@@ -66,8 +65,8 @@ class ActionType(Enum):
 
 @ratelimit.sleep_and_retry
 @ratelimit.limits(calls=ORS_API_CALLS_PER_MINUTE, period=60)
-def get_path(start: Tuple[float, float], end: Tuple[float, float],
-             transport: Vehicle, api_key: str) -> Tuple[np.ndarray, float]:
+def get_path(start: tuple[float, float], end: tuple[float, float],
+             transport: Vehicle, api_key: str) -> tuple[np.ndarray, float]:
     """Calculates paths between sets of coordinates
 
     This function takes 2 sets of coordinates and
@@ -178,7 +177,7 @@ def get_basic_path(path: np.ndarray, transport: Vehicle) -> np.ndarray:
     return basic_path
 
 
-def bounding_box(center: Tuple[float, float], radius: int) -> Tuple:
+def bounding_box(center: tuple[float, float], radius: int) -> tuple:
     """A bounding box around a set of coordinates.
 
     Args:
@@ -200,11 +199,11 @@ class Attributes:
     Person class"""
 
     def __init__(self,
-                 vehicle: Optional[str] = None,
-                 main_employment: Optional[str] = None,
-                 active_status: Optional[int] = None,
-                 travelling_status: Optional[int] = None,
-                 preferred_places: Optional[List[str]] = None,
+                 vehicle: str | None = None,
+                 main_employment: str | None = None,
+                 active_status: int | None = None,
+                 travelling_status: int | None = None,
+                 preferred_places: list[str] | None = None,
                  **kwargs):
         """Error check and generate missing data for attributes
 
@@ -281,17 +280,17 @@ class Action:
         preferred_exit: str, exit code
     """
     action: ActionType
-    destination_coordinates: Tuple[float, float]
-    duration: List[float]
+    destination_coordinates: tuple[float, float]
+    duration: list[float]
     preferred_exit: str
 
 
 class Person:
     """This class represents a person whose trajectories we want to simulate"""
     def __init__(self,
-                 home_coordinates: Tuple[float, float],
+                 home_coordinates: tuple[float, float],
                  attributes: Attributes,
-                 local_places: Dict[str, list]):
+                 local_places: dict[str, list]):
         """This function sets the basic attributes and information
         to be used of the person.
 
@@ -309,7 +308,7 @@ class Person:
         self.office_today = False
         # this will hold the coordinates of paths
         # to each location visited
-        self.trips: Dict[str, np.ndarray] = {}
+        self.trips: dict[str, np.ndarray] = {}
 
         # if employed/student find a place nearby to visit
         # for work or studies
@@ -498,7 +497,7 @@ class Person:
 
     def choose_preferred_exit(self, current_time: float,
                               update: bool = True
-                              ) -> Tuple[str, Tuple[float, float]]:
+                              ) -> tuple[str, tuple[float, float]]:
         """This function samples through the possible actions for the person,
         depending on his attributes and the time.
 
@@ -581,9 +580,9 @@ class Person:
         self.preferred_places_today = self.attributes.preferred_places
         self.office_today = False
 
-    def calculate_trip(self, origin: Tuple[float, float],
-                       destination: Tuple[float, float], api_key: str
-                       ) -> Tuple[np.ndarray, Vehicle]:
+    def calculate_trip(self, origin: tuple[float, float],
+                       destination: tuple[float, float], api_key: str
+                       ) -> tuple[np.ndarray, Vehicle]:
         """This function uses the openrouteservice api to produce the path
         from person's house to destination and back.
 
@@ -702,10 +701,10 @@ class Person:
                       preferred_exit)
 
 
-def gen_basic_traj(location_start: Tuple[float, float],
-                   location_end: Tuple[float, float],
+def gen_basic_traj(location_start: tuple[float, float],
+                   location_end: tuple[float, float],
                    vehicle: Vehicle, time_start: float
-                   ) -> Tuple[np.ndarray, float]:
+                   ) -> tuple[np.ndarray, float]:
     """This function generates basic trajectories between 2 points.
 
     Args:
@@ -777,9 +776,9 @@ def gen_basic_traj(location_start: Tuple[float, float],
     return traj_array, distance
 
 
-def gen_basic_pause(location_start: Tuple[float, float], time_start: float,
-                    t_e_range: Union[List[float], None],
-                    t_diff_range: Union[List[float], None]
+def gen_basic_pause(location_start: tuple[float, float], time_start: float,
+                    t_e_range: list[float] | None,
+                    t_diff_range: list[float] | None
                     ) -> np.ndarray:
     """This function generates basic trajectories for a pause.
 
@@ -829,7 +828,7 @@ def gen_basic_pause(location_start: Tuple[float, float], time_start: float,
 
 
 def gen_route_traj(route: list, vehicle: Vehicle,
-                   time_start: float) -> Tuple[np.ndarray, float]:
+                   time_start: float) -> tuple[np.ndarray, float]:
     """This function generates basic trajectories between multiple points.
 
     Args:
@@ -863,9 +862,9 @@ def gen_route_traj(route: list, vehicle: Vehicle,
     return traj[1:, :], total_distance
 
 
-def gen_all_traj(person: Person, switches: Dict[str, int],
+def gen_all_traj(person: Person, switches: dict[str, int],
                  start_date: datetime.date, end_date: datetime.date,
-                 api_key: str) -> Tuple[np.ndarray, List[int], List[float]]:
+                 api_key: str) -> tuple[np.ndarray, list[int], list[float]]:
     """Generates trajectories for a single person.
 
     Args:
@@ -1086,8 +1085,8 @@ def prepare_data(
 
 
 def process_switches(
-    attributes: Dict[str, Dict], key: str,
-) -> Dict[str, int]:
+    attributes: dict[str, dict], key: str,
+) -> dict[str, int]:
     """Preprocesses the attributes of each person.
 
     Args:
@@ -1109,8 +1108,8 @@ def process_switches(
 
 
 def load_attributes(
-    attributes: Dict[str, Dict],
-) -> Tuple[Dict[int, Attributes], Dict[int, Dict[str, int]]]:
+    attributes: dict[str, dict],
+) -> tuple[dict[int, Attributes], dict[int, dict[str, int]]]:
     """Loads the attributes of each person.
 
     Args:
@@ -1125,8 +1124,8 @@ def load_attributes(
         ValueError: if the format of the json file is not correct.
     """
 
-    attributes_dictionary: Dict[int, Attributes] = {}
-    switches_dictionary: Dict[int, Dict[str, int]] = {}
+    attributes_dictionary: dict[int, Attributes] = {}
+    switches_dictionary: dict[int, dict[str, int]] = {}
 
     for key in attributes.keys():
         match = re.search(r"[0-9]*-?[0-9]+", key)
@@ -1187,9 +1186,9 @@ def generate_addresses(country: str, city: str) -> np.ndarray:
 
 
 def generate_nodes(
-    house_address: Tuple[float, float],
+    house_address: tuple[float, float],
     employment: Occupation
-) -> Dict[str, List[Tuple[float, float]]]:
+) -> dict[str, list[tuple[float, float]]]:
     """Generates multiple amenities coordinates.
 
     Args:
@@ -1241,7 +1240,7 @@ def generate_nodes(
 
     res = response.json()
 
-    all_nodes: Dict[str, list] = {}
+    all_nodes: dict[str, list] = {}
     for place in list(PossibleExits):
         all_nodes[place.value] = []
     all_nodes["office"] = []
@@ -1278,7 +1277,7 @@ def sim_gps_data(
     cycle: int,
     percentage: float,
     api_key: str,
-    attributes_dict: Optional[Dict[str, Dict]] = None,
+    attributes_dict: dict[str, dict] | None = None,
 ) -> pd.DataFrame:
     """Generates gps trajectories.
 
@@ -1311,8 +1310,8 @@ def sim_gps_data(
     logger.info("Loading Attributes...")
 
     if attributes_dict is None:
-        attributes_dictionary: Dict[int, Attributes] = {}
-        switches_dictionary: Dict[int, Dict[str, int]] = {}
+        attributes_dictionary: dict[int, Attributes] = {}
+        switches_dictionary: dict[int, dict[str, int]] = {}
     else:
         attributes_dictionary, switches_dictionary = load_attributes(
             attributes_dict

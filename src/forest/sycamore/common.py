@@ -3,7 +3,6 @@ import datetime
 import logging
 import os
 import re
-from typing import Optional, Dict
 
 import glob
 import numpy as np
@@ -43,7 +42,7 @@ def safe_read_csv(filepath: str) -> pd.DataFrame:
 
 
 def standardize_question_type(
-    question: str, lkp: Optional[dict] = None
+    question: str, lkp: dict | None = None
 ) -> str:
     """Standardizes question types using a lookup function
 
@@ -69,7 +68,7 @@ def standardize_question_type(
 def read_and_aggregate(
         study_dir: str, user: str, data_stream: str,
         time_start: str = EARLIEST_DATE,
-        time_end: Optional[str] = None,
+        time_end: str | None = None,
         tz_str: str = "UTC"
 ) -> pd.DataFrame:
     """Read and aggregate data for a user
@@ -132,9 +131,9 @@ def read_and_aggregate(
 
 
 def aggregate_surveys(
-        study_dir: str, users: Optional[list] = None,
+        study_dir: str, users: list | None = None,
         time_start: str = EARLIEST_DATE,
-        time_end: Optional[str] = None, tz_str: str = "UTC"
+        time_end: str | None = None, tz_str: str = "UTC"
 ) -> pd.DataFrame:
     """Aggregate Survey Data
 
@@ -347,9 +346,9 @@ def convert_timezone_df(df_merged: pd.DataFrame, tz_str: str = "UTC",
 
 def aggregate_surveys_config(
         study_dir: str, config_path: str, study_tz: str = "UTC",
-        users: Optional[list] = None, time_start: str = EARLIEST_DATE,
-        time_end: Optional[str] = None, augment_with_answers: bool = True,
-        history_path: Optional[str] = None, include_audio_surveys: bool = True
+        users: list | None = None, time_start: str = EARLIEST_DATE,
+        time_end: str | None = None, augment_with_answers: bool = True,
+        history_path: str | None = None, include_audio_surveys: bool = True
 ) -> pd.DataFrame:
     """Aggregate surveys when config is available
 
@@ -463,8 +462,8 @@ def aggregate_surveys_config(
 
 
 def aggregate_surveys_no_config(
-        study_dir: str, study_tz: str = "UTC", users: Optional[list] = None,
-        time_start: str = EARLIEST_DATE, time_end: Optional[str] = None,
+        study_dir: str, study_tz: str = "UTC", users: list | None = None,
+        time_start: str = EARLIEST_DATE, time_end: str | None = None,
         augment_with_answers: bool = True, include_audio_surveys: bool = True
 ) -> pd.DataFrame:
     """Clean aggregated data
@@ -530,9 +529,9 @@ def aggregate_surveys_no_config(
 
 def append_from_answers(
         agg_data: pd.DataFrame, download_folder: str,
-        users: Optional[list] = None, tz_str: str = "UTC",
-        time_start: str = EARLIEST_DATE, time_end: Optional[str] = None,
-        config_path: Optional[str] = None, history_path: Optional[str] = None
+        users: list | None = None, tz_str: str = "UTC",
+        time_start: str = EARLIEST_DATE, time_end: str | None = None,
+        config_path: str | None = None, history_path: str | None = None
 ) -> pd.DataFrame:
     """Append surveys included in survey_answers to data from survey_timings.
 
@@ -676,7 +675,7 @@ def find_missing_data(user: str, survey_id: str, agg_data: pd.DataFrame,
 
 def read_user_answers_stream(
         download_folder: str, user: str, tz_str: str = "UTC",
-        time_start: str = EARLIEST_DATE, time_end: Optional[str] = None
+        time_start: str = EARLIEST_DATE, time_end: str | None = None
 ) -> pd.DataFrame:
     """Reads in all survey_answers data for a user
 
@@ -780,10 +779,10 @@ def read_user_answers_stream(
 
 
 def read_aggregate_answers_stream(
-        download_folder: str, users: Optional[list] = None,
-        tz_str: str = "UTC", config_path: Optional[str] = None,
-        time_start: str = EARLIEST_DATE, time_end: Optional[str] = None,
-        history_path: Optional[str] = None
+        download_folder: str, users: list | None = None,
+        tz_str: str = "UTC", config_path: str | None = None,
+        time_start: str = EARLIEST_DATE, time_end: str | None = None,
+        history_path: str | None = None
 ) -> pd.DataFrame:
     """Reads in all answers data for many users and fixes Android users to have
     an answer instead of an integer
@@ -895,8 +894,8 @@ def read_aggregate_answers_stream(
 
 
 def fix_radio_answer_choices(
-        aggregated_data: pd.DataFrame, config_path: Optional[str] = None,
-        history_path: Optional[str] = None
+        aggregated_data: pd.DataFrame, config_path: str | None = None,
+        history_path: str | None = None
 ) -> pd.DataFrame:
     """
     Change the "question answer options" column into a list of question answer
@@ -1033,8 +1032,8 @@ def update_qs_with_seps(qs_with_seps: dict, survey_content: list) -> dict:
     return qs_with_seps
 
 
-def get_choices_with_sep_values(config_path: Optional[str] = None,
-                                survey_history_path: Optional[str] = None
+def get_choices_with_sep_values(config_path: str | None = None,
+                                survey_history_path: str | None = None
                                 ) -> dict:
     """
     Create a dict with a key for every question ID and a set of any responses
@@ -1057,7 +1056,7 @@ def get_choices_with_sep_values(config_path: Optional[str] = None,
 
 
     """
-    qs_with_seps: Dict[str, set] = {}
+    qs_with_seps: dict[str, set] = {}
 
     if config_path is not None:
 
@@ -1091,7 +1090,7 @@ def get_choices_with_sep_values(config_path: Optional[str] = None,
 
 
 def write_data_by_user(df_to_write: pd.DataFrame, output_folder: str,
-                       users: Optional[list] = None) -> None:
+                       users: list | None = None) -> None:
     """
     Write a dataframe to csv files, with a csv file corresponding to each user.
 

@@ -3,7 +3,6 @@ trajectories. It is part of the Jasmine package.
 """
 import logging
 import math
-from typing import Optional, Tuple
 
 import numpy as np
 import scipy.stats as stat
@@ -63,7 +62,7 @@ def add_new_place(
 
 def num_sig_places(
     data: np.ndarray, dist_threshold: float
-) -> Tuple[list, list, list, list]:
+) -> tuple[list, list, list, list]:
     """This function is used to find significant places
 
     Args:
@@ -108,7 +107,7 @@ def num_sig_places(
     return loc_x, loc_y, num_xy, t_xy
 
 
-def locate_home(mob_mat: np.ndarray, timezone: str) -> Tuple[float, float]:
+def locate_home(mob_mat: np.ndarray, timezone: str) -> tuple[float, float]:
     """This function is used to locate the home of a user
 
     Args:
@@ -167,7 +166,7 @@ def locate_home(mob_mat: np.ndarray, timezone: str) -> Tuple[float, float]:
 def calculate_k1(
     method: str, timestamp: float, x_coord: float, y_coord: float,
     bv_subset: np.ndarray, parameters: list
-) -> Optional[np.ndarray]:
+) -> np.ndarray | None:
     """Calculate the similarity measure between
      a given point and a set of base vectors,
      using one of three specified methods: 'TL', 'GL', or 'GLC'.
@@ -322,7 +321,7 @@ def adjust_direction(
     linearity: float, delta_x: float, delta_y: float,
     start_x: float, start_y: float, end_x: float, end_y: float,
     origin_x: float, origin_y: float, dest_x: float, dest_y: float
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """
     This function adjusts the trajectory direction based on
      a given linearity parameter.
@@ -459,7 +458,7 @@ def checkbound(
 
 def create_tables(
     mob_mat: np.ndarray, bv_subset: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """This function creates three tables:
         one for observed flights, one for observed pauses,
         and one for missing intervals.
@@ -521,7 +520,7 @@ def create_tables(
 def calculate_delta(
     flight_table: np.ndarray, flight_index: int,
     backwards: bool = False
-) -> Tuple[float, float, float]:
+) -> tuple[float, float, float]:
     """This function calculates the displacement
         and time difference between two points.
 
@@ -547,7 +546,7 @@ def calculate_delta(
 def adjust_delta_if_needed(
     start_t: float, delta_t: float,
     delta_x: float, delta_y: float, end_t: float
-) -> Tuple[float, float, float]:
+) -> tuple[float, float, float]:
     """This function adjusts the displacement and time difference
         between two points if start_t + delta_t > end_t.
 
@@ -610,7 +609,7 @@ def forward_impute(
     mis_row: np.ndarray, pause_table: np.ndarray,
     imp_table: np.ndarray, start_s: int, method: str,
     counter: int
-) -> Tuple[np.ndarray, Tuple[int, float, float, float], int]:
+) -> tuple[np.ndarray, tuple[int, float, float, float], int]:
     """
     This function imputes a missing interval
         from the start point to the end point.
@@ -779,7 +778,7 @@ def backward_impute(
     mis_row: np.ndarray, pause_table: np.ndarray,
     imp_table: np.ndarray, end_s: int, method: str,
     counter: int
-) -> Tuple[np.ndarray, Tuple[int, float, float, float], int]:
+) -> tuple[np.ndarray, tuple[int, float, float, float], int]:
     """
     This function imputes a missing interval
         from the end point to the start point.

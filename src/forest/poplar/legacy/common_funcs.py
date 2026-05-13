@@ -3,7 +3,7 @@ import calendar
 import logging
 import os
 from datetime import datetime
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -12,7 +12,7 @@ from pytz import timezone
 logger = logging.getLogger(__name__)
 
 
-def datetime2stamp(time_list: Union[list, tuple], tz_str: str) -> int:
+def datetime2stamp(time_list: list | tuple, tz_str: str) -> int:
     """Convert a datetime to Unix time
 
     Args:
@@ -38,7 +38,7 @@ def datetime2stamp(time_list: Union[list, tuple], tz_str: str) -> int:
     return timestamp
 
 
-def stamp2datetime(stamp: Union[float, int], tz_str: str) -> list:
+def stamp2datetime(stamp: float | int, tz_str: str) -> list:
     """Convert a Unix time to datetime
 
     Args:

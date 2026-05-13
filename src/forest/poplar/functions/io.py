@@ -4,13 +4,12 @@ import json
 from collections import OrderedDict
 from logging import getLogger
 
-from typing import List, Union
 
 
 logger = getLogger(__name__)
 
 
-def setup_directories(dirpath_list: Union[str, List[str]]) -> None:
+def setup_directories(dirpath_list: str | list[str]) -> None:
     """
     Checks if directories exist; creates them if not.
     Creates intermediate directories if necessary.
@@ -29,9 +28,9 @@ def setup_directories(dirpath_list: Union[str, List[str]]) -> None:
 
 
 def write_json(
-    dictionary: Union[dict, OrderedDict], name: str,
+    dictionary: dict | OrderedDict, name: str,
     dirpath: str, indent: int = 4
-) -> Union[str, None]:
+) -> str | None:
     """Writes a dictionary to a JSON file.
 
     Args:
@@ -53,34 +52,26 @@ def write_json(
         return None
 
 
-def read_json(
-    filepath: str, ordered: bool = False
-) -> Union[dict, OrderedDict, None]:
+def read_json(filepath: str) -> dict | None:
     """
     Read a JSON file into a dictionary.
 
     Args:
         filepath (str):  Path to JSON file.
-        ordered (bool):  Returns an ordered dictionary if True.
 
     Returns:
-        dictionary (dict or OrderedDict): The deserialized contents of
-            the JSON file.
+        dictionary (dict): The deserialized contents of the JSON file.
     """
     try:
-        with open(filepath, "r") as file:
-            if ordered:
-                dictionary = json.load(file, object_pairs_hook=OrderedDict)
-            else:
-                dictionary = json.load(file)
-        return dictionary
+        with open(filepath) as file:
+            return json.load(file)
     except Exception:
         logger.warning("Unable to read JSON file.")
         return None
 
 
 def setup_csv(
-    name: str, dirpath: str, header: List[str]
+    name: str, dirpath: str, header: list[str]
 ) -> str:
     """
     Creates a csv file with the given column labels.
@@ -103,7 +94,7 @@ def setup_csv(
 
 
 def write_to_csv(
-    filepath: str, line: List[str], missing_strings: List[str] = ["nan"]
+    filepath: str, line: list[str], missing_strings: list[str] = ["nan"]
 ) -> None:
     """
     Writes line to a csv file.

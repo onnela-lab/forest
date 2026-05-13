@@ -13,7 +13,6 @@ from datetime import datetime, timedelta
 import logging
 import math
 import os
-from typing import Optional
 
 from datetime import tzinfo
 from dateutil import tz
@@ -435,8 +434,8 @@ def find_continuous_dominant_peaks(valid_peaks: np.ndarray, min_t: int,
 
 
 def preprocess_dates(
-    file_list: list, time_start: Optional[str], time_end: Optional[str],
-    fmt: str, from_zone: Optional[tzinfo], to_zone: Optional[tzinfo]
+    file_list: list, time_start: str | None, time_end: str | None,
+    fmt: str, from_zone: tzinfo | None, to_zone: tzinfo | None
 ) -> tuple:
     """Preprocesses dates of accelerometer files.
 
@@ -547,10 +546,10 @@ def run_hourly(
             cadence_hourly[idx] = steps_hourly[idx] / walkingtime_hourly[idx]
 
 
-def run(study_folder: str, output_folder: str, tz_str: Optional[str] = None,
+def run(study_folder: str, output_folder: str, tz_str: str | None = None,
         frequency: Frequency = Frequency.DAILY,
-        time_start: Optional[str] = None, time_end: Optional[str] = None,
-        users: Optional[list] = None) -> None:
+        time_start: str | None = None, time_end: str | None = None,
+        users: list | None = None) -> None:
     """Runs walking recognition and step counting algorithm over dataset.
 
     Determine paths to input and output folders, set analysis time frames,

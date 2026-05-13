@@ -2,7 +2,6 @@
 import datetime
 import logging
 import math
-from typing import Optional, Dict
 
 import numpy as np
 import pandas as pd
@@ -59,8 +58,8 @@ def convert_time_to_date(submit_time: datetime.datetime,
 
 
 def generate_survey_times(
-        time_start: str, time_end: str, timings: Optional[list] = None,
-        survey_type: str = "weekly", intervention_dict: Optional[dict] = None
+        time_start: str, time_end: str, timings: list | None = None,
+        survey_type: str = "weekly", intervention_dict: dict | None = None
 ) -> list:
     """Get delivery times for a survey
 
@@ -176,7 +175,7 @@ def get_question_ids(survey_dict: dict, audio_survey_id_dict: dict) -> list:
 
 def gen_survey_schedule(
         config_path: str, time_start: str, time_end: str, users: list,
-        all_interventions_dict: dict, history_path: Optional[str] = None
+        all_interventions_dict: dict, history_path: str | None = None
 ) -> pd.DataFrame:
     """Get survey schedule for a number of users
 
@@ -279,8 +278,8 @@ def gen_survey_schedule(
 def survey_submits(
         config_path: str, time_start: str, time_end: str, users: list,
         aggregated_data: pd.DataFrame,
-        interventions_filepath: Optional[str] = None,
-        history_path: Optional[str] = None
+        interventions_filepath: str | None = None,
+        history_path: str | None = None
 ) -> pd.DataFrame:
     """Get survey submits for users
 
@@ -487,7 +486,7 @@ def survey_submits(
 
 
 def summarize_submits(submits_df: pd.DataFrame,
-                      timeunit: Optional[Frequency] = None,
+                      timeunit: Frequency | None = None,
                       summarize_over_survey: bool = True) -> pd.DataFrame:
     """Summarize a survey submits df
 
@@ -619,7 +618,7 @@ def survey_submits_no_config(input_agg: pd.DataFrame) -> pd.DataFrame:
     return agg.sort_values(["beiwe_id", "survey id"])
 
 
-def get_all_interventions_dict(filepath: Optional[str]) -> dict:
+def get_all_interventions_dict(filepath: str | None) -> dict:
     """Read json file into interventions dict
 
     Extracts user intervention information for use in survey_timings.
@@ -636,7 +635,7 @@ def get_all_interventions_dict(filepath: Optional[str]) -> dict:
     if filepath is None:
         return {}
     full_dict = read_json(filepath)
-    output_dict: Dict = {}
+    output_dict: dict = {}
 
     for user in full_dict.keys():
         output_dict[user] = {}

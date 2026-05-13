@@ -8,7 +8,6 @@ import json
 import logging
 import os
 import pickle
-from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -90,9 +89,9 @@ class Hyperparameters:
     method: str = "GLC"
     itrvl: int = 10
     accuracylim: int = 51
-    r: Optional[float] = None
-    w: Optional[float] = None
-    h: Optional[float] = None
+    r: float | None = None
+    w: float | None = None
+    h: float | None = None
 
     # summary statistics hyperparameters
     save_osm_log: bool = False
@@ -138,8 +137,8 @@ def transform_point_to_circle(lat: float, lon: float, radius: float
 
 
 def get_nearby_locations(
-    traj: np.ndarray, osm_tags: Optional[List[OSMTags]] = None
-) -> Tuple[dict, dict, dict]:
+    traj: np.ndarray, osm_tags: list[OSMTags] | None = None
+) -> tuple[dict, dict, dict]:
     """This function returns a dictionary of nearby locations,
     a dictionary of nearby locations' names, and a dictionary of
     nearby locations' coordinates.
@@ -161,8 +160,8 @@ def get_nearby_locations(
     if osm_tags is None:
         osm_tags = [OSMTags.AMENITY, OSMTags.LEISURE]
     pause_vec = traj[traj[:, 0] == 2]
-    latitudes: List[float] = [pause_vec[0, 1]]
-    longitudes: List[float] = [pause_vec[0, 2]]
+    latitudes: list[float] = [pause_vec[0, 1]]
+    longitudes: list[float] = [pause_vec[0, 2]]
     for row in pause_vec:
         minimum_distance = np.min([
             great_circle_dist(row[1], row[2], lat, lon)[0]
@@ -230,9 +229,9 @@ def get_nearby_locations(
         )
 
     res = response.json()
-    ids: Dict[str, List[int]] = {}
-    locations: Dict[int, List[List[float]]] = {}
-    tags: Dict[int, Dict[str, str]] = {}
+    ids: dict[str, list[int]] = {}
+    locations: dict[int, list[list[float]]] = {}
+    tags: dict[int, dict[str, str]] = {}
 
     for element in res["elements"]:
 
@@ -259,7 +258,7 @@ def get_nearby_locations(
 
 
 def avg_mobility_trace_difference(
-    time_range: Tuple[int, int], mobility_trace1: np.ndarray,
+    time_range: tuple[int, int], mobility_trace1: np.ndarray,
     mobility_trace2: np.ndarray
 ) -> float:
     """This function calculates the average mobility trace difference
@@ -313,7 +312,7 @@ def avg_mobility_trace_difference(
 
 
 def routine_index(
-    time_range: Tuple[int, int], mobility_trace: np.ndarray,
+    time_range: tuple[int, int], mobility_trace: np.ndarray,
     pcr_window: int = 14, pcr_sample_rate: int = 30,
     stratified: bool = False, timezone: str = "US/Eastern",
 ) -> float:
@@ -435,8 +434,8 @@ def create_mobility_trace(traj: np.ndarray) -> np.ndarray:
 
 def get_day_night_indices(
     traj: np.ndarray, tz_str: str, index: int, start_time: int, end_time: int,
-    current_time_list: List[int]
-) -> Tuple[np.ndarray, int, int, int, int]:
+    current_time_list: list[int]
+) -> tuple[np.ndarray, int, int, int, int]:
     """This function returns the indices of the rows in the trajectory
      if the trajectory is split into day and night.
 
@@ -650,7 +649,7 @@ def extract_pause_from_row(row: np.ndarray) -> list:
 
 
 def get_polygon(saved_polygons: dict, lat: float, lon: float, label: str,
-                radius: float) -> Tuple[Polygon, dict]:
+                radius: float) -> tuple[Polygon, dict]:
     """This function returns a saved polygon if it exists,
     otherwise it computes a polygon and saves it.
 
@@ -678,7 +677,7 @@ def intersect_with_places_of_interest(
     pause: list, places_of_interest: list, saved_polygons: dict,
     parameters: Hyperparameters, ids: dict, locations: dict,
     ids_keys_list: list
-) -> Tuple[list, bool]:
+) -> tuple[list, bool]:
     """This function computes the intersection between a pause and
     places of interest.
 
@@ -779,9 +778,9 @@ def final_hourly_prep(
     max_dist_home: float, total_flight_time: float, total_pause_time: float,
     flight_pause_stats: list, all_place_times: list,
     all_place_times_adjusted: list, summary_stats: list, log_tags: dict,
-    log_tags_temp: list, datetime_list: List[int],
-    places_of_interest: Optional[List[str]]
-) -> Tuple[list, dict]:
+    log_tags_temp: list, datetime_list: list[int],
+    places_of_interest: list[str] | None
+) -> tuple[list, dict]:
     """This function prepares the final hourly summary statistics.
 
     Args:
@@ -877,9 +876,9 @@ def final_daily_prep(
     total_pause_time: float, flight_pause_stats: list,
     all_place_times: list, all_place_times_adjusted: list,
     summary_stats: list, log_tags: dict, log_tags_temp: list,
-    datetime_list: List[int], places_of_interest: Optional[List[str]],
+    datetime_list: list[int], places_of_interest: list[str] | None,
     parameters: Hyperparameters, pcr: float, pcr_stratified: float, i: int
-) -> Tuple[list, dict]:
+) -> tuple[list, dict]:
     """This function prepares the final daily summary statistics.
 
     Args:
@@ -1063,8 +1062,8 @@ def final_daily_prep(
 
 def format_summary_stats(
     summary_stats: list, log_tags: dict, frequency: Frequency,
-    parameters: Hyperparameters, places_of_interest: Optional[List[str]]
-) -> Tuple[pd.DataFrame, dict]:
+    parameters: Hyperparameters, places_of_interest: list[str] | None
+) -> tuple[pd.DataFrame, dict]:
     """This function formats the summary statistics.
 
     Args:
@@ -1285,9 +1284,9 @@ def gps_summaries(
     tz_str: str,
     frequency: Frequency,
     parameters: Hyperparameters,
-    places_of_interest: Optional[List[str]] = None,
-    osm_tags: Optional[List[OSMTags]] = None,
-) -> Tuple[pd.DataFrame, dict]:
+    places_of_interest: list[str] | None = None,
+    osm_tags: list[OSMTags] | None = None,
+) -> tuple[pd.DataFrame, dict]:
     """This function derives summary statistics from the imputed trajectories
 
     If the frequency is hourly, it returns
@@ -1331,9 +1330,9 @@ def gps_summaries(
     if frequency != Frequency.DAILY:
         parameters.split_day_night = False
 
-    ids: Dict[str, List[int]] = {}
-    locations: Dict[int, List[List[float]]] = {}
-    tags: Dict[int, Dict[str, str]] = {}
+    ids: dict[str, list[int]] = {}
+    locations: dict[int, list[list[float]]] = {}
+    tags: dict[int, dict[str, str]] = {}
     if places_of_interest is not None or parameters.save_osm_log:
         ids, locations, tags = get_nearby_locations(traj, osm_tags)
         ids_keys_list = list(ids.keys())
@@ -1342,9 +1341,9 @@ def gps_summaries(
 
     obs_traj = traj[traj[:, 7] == 1, :]
     home_lat, home_lon = locate_home(obs_traj, tz_str)
-    summary_stats: List[List[float]] = []
-    log_tags: Dict[str, List[dict]] = {}
-    saved_polygons: Dict[str, Polygon] = {}
+    summary_stats: list[list[float]] = []
+    log_tags: dict[str, list[dict]] = {}
+    saved_polygons: dict[str, Polygon] = {}
     if frequency != Frequency.DAILY:
         # find starting and ending time
         logger.info("Calculating the hourly summary stats...")
@@ -1667,7 +1666,7 @@ def split_day_night_cols(summary_stats_df: pd.DataFrame) -> pd.DataFrame:
 def get_time_range(
     traj: np.ndarray, time_reset_indices: list,
     tz_str: str, offset_seconds: int = 0,
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """Computes the starting and ending time stamps
      based on given trajectory and indices.
 
@@ -1697,7 +1696,7 @@ def get_time_range(
 def compute_window_and_count(
     start_stamp: int, end_stamp: int, window_minutes: int,
     split_day_night: bool = False
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """Computes the window and number of windows based on given time stamps.
 
     Args:
@@ -1757,14 +1756,14 @@ def gps_stats_main(
     tz_str: str,
     frequency: Frequency,
     save_traj: bool,
-    places_of_interest: Optional[list] = None,
-    osm_tags: Optional[List[OSMTags]] = None,
-    time_start: Optional[list] = None,
-    time_end: Optional[list] = None,
-    participant_ids: Optional[list] = None,
-    parameters: Optional[Hyperparameters] = None,
-    all_memory_dict: Optional[dict] = None,
-    all_bv_set: Optional[dict] = None,
+    places_of_interest: list | None = None,
+    osm_tags: list[OSMTags] | None = None,
+    time_start: list | None = None,
+    time_end: list | None = None,
+    participant_ids: list | None = None,
+    parameters: Hyperparameters | None = None,
+    all_memory_dict: dict | None = None,
+    all_bv_set: dict | None = None,
 ):
     """This the main function to do the GPS imputation.
     It calls every function defined before.
@@ -2005,8 +2004,8 @@ def gps_stats_generate_summary(
         output_folder: str,
         logs_folder: str,
         parameters: Hyperparameters,
-        places_of_interest: Optional[list] = None,
-        osm_tags: Optional[List[OSMTags]] = None):
+        places_of_interest: list | None = None,
+        osm_tags: list[OSMTags] | None = None):
     """This is simply the inner functionality of gps_stats_main.
     Runs summaries code, writes to disk, saves logs if required. """
     summary_stats, logs = gps_summaries(

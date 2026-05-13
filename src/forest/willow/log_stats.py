@@ -3,7 +3,6 @@ communication logs.
 """
 import logging
 import os
-from typing import List, Optional
 
 import pandas as pd
 import numpy as np
@@ -613,9 +612,9 @@ def log_stats_main(
     output_folder: str,
     tz_str: str,
     frequency: Frequency,
-    time_start: Optional[List] = None,
-    time_end: Optional[List] = None,
-    beiwe_ids: Optional[List[str]] = None,
+    time_start: list | None = None,
+    time_end: list | None = None,
+    beiwe_ids: list[str] | None = None,
 ) -> None:
     """Main function for calculating the summary statistics for the
     communication logs.
@@ -687,8 +686,8 @@ def log_stats_inner(
     study_folder: str,
     frequency: Frequency,
     tz_str: str,
-    time_start: Optional[List] = None,
-    time_end: Optional[List] = None,
+    time_start: list | None = None,
+    time_end: list | None = None,
 ):
     """Inner functionality of log_stats_main"""
     # read data

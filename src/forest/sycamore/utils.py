@@ -21,7 +21,7 @@ def read_json(json_filepath: str) -> dict:
     Returns:
         A dict representation of the json file
     """
-    with open(json_filepath, "r") as file:
+    with open(json_filepath) as file:
         return json.load(file)
 
 

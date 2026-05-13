@@ -1,7 +1,6 @@
 """Base functions for computing survey statistics"""
 import logging
 import os
-from typing import Optional, List
 
 from forest.constants import Frequency
 from forest.utils import get_ids
@@ -22,13 +21,13 @@ logger = logging.getLogger(__name__)
 
 def compute_survey_stats(
         study_folder: str, output_folder: str, tz_str: str = "UTC",
-        users: Optional[List] = None,
-        start_date: str = EARLIEST_DATE, end_date: Optional[str] = None,
-        config_path: Optional[str] = None,
-        interventions_filepath: Optional[str] = None,
+        users: list | None = None,
+        start_date: str = EARLIEST_DATE, end_date: str | None = None,
+        config_path: str | None = None,
+        interventions_filepath: str | None = None,
         augment_with_answers: bool = True,
         submits_timeframe: Frequency = Frequency.HOURLY_AND_DAILY,
-        submits_by_survey_id: bool = True, history_path: Optional[str] = None,
+        submits_by_survey_id: bool = True, history_path: str | None = None,
         include_audio_surveys: bool = True
 ) -> bool:
     """Compute statistics on surveys
@@ -229,11 +228,11 @@ def get_submits_for_tableau(
     config_path: str,
     tz_str: str = "UTC",
     start_date: str = EARLIEST_DATE,
-    end_date: Optional[str] = None,
-    users: Optional[List] = None,
-    interventions_filepath: Optional[str] = None,
+    end_date: str | None = None,
+    users: list | None = None,
+    interventions_filepath: str | None = None,
     submits_timeframe: Frequency = Frequency.DAILY,
-    history_path: Optional[str] = None
+    history_path: str | None = None
 ) -> None:
     """Get survey submissions per day for integration into Tableau WDC
 

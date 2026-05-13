@@ -1,7 +1,6 @@
 """Functions for working with Beiwe time formats."""
 from logging import getLogger
 import datetime
-from typing import Union
 
 import pytz
 
@@ -28,7 +27,7 @@ def local_now(to_format: str = NAIVE_DATETIME_FORMAT) -> str:
     return local
 
 
-def convert_seconds(second_of_day: int) -> Union[str, None]:
+def convert_seconds(second_of_day: int) -> str | None:
     """Convert second of day to clock time.
     Use this function when working with survey schedules.
 
@@ -46,8 +45,8 @@ def convert_seconds(second_of_day: int) -> Union[str, None]:
 
 
 def reformat_datetime(datetime_string: str, from_format: str, to_format: str,
-                      from_tz: Union[str, pytz.BaseTzInfo, None] = None
-                      ) -> Union[str, None]:
+                      from_tz: str | pytz.BaseTzInfo | None = None
+                      ) -> str | None:
     """Change the format of a datetime string.
 
     Args:
@@ -78,8 +77,8 @@ def reformat_datetime(datetime_string: str, from_format: str, to_format: str,
 
 def to_timestamp(
     datetime_string: str, from_format: str,
-    from_tz: Union[str, pytz.BaseTzInfo] = UTC
-) -> Union[int, None]:
+    from_tz: str | pytz.BaseTzInfo = UTC
+) -> int | None:
     """Convert a datetime string to a timestamp.
 
     Args:
@@ -108,7 +107,7 @@ def to_timestamp(
 
 
 def to_readable(timestamp: int, to_format: str,
-                to_tz: Union[str, pytz.BaseTzInfo] = UTC) -> Union[str, None]:
+                to_tz: str | pytz.BaseTzInfo = UTC) -> str | None:
     """Convert a timestamp to a human-readable string localized to a
     particular timezone.
 
