@@ -91,7 +91,7 @@ dev = [
 
 
 [tool.ruff]
-line-length = 105  # # this is the maximum that should emit a warning, its ok to over sometimes.
+line-length = 100  # # this is the maximum that should emit a warning, its ok to over sometimes.
 indent-width = 4
 
 [tool.ruff.lint.pycodestyle]
@@ -128,8 +128,8 @@ exclude = [
 
 
 [tool.flake8]
-line-length = 105
-max-line-length = 105
+line-length = 100
+max-line-length = 100
 
 extend-ignore = [
     "W293",  # blank line contains whitespace
