@@ -85,11 +85,11 @@ dev = [
 
 
 [tool.ruff]
-line-length = 105  # h
+line-length = 105  # # this is the maximum that should emit a warning, its ok to over sometimes.
 indent-width = 4
 
 [tool.ruff.lint.pycodestyle]
-max-line-length = 120  # maximum line length
+max-line-length = 120  # actual maximum line length for python files
 
 
 [tool.ruff.format]
@@ -119,6 +119,7 @@ exclude = [
 
 [tool.flake8]
 line-length = 105
+max-line-length = 105
 
 exclude = [
     "build",

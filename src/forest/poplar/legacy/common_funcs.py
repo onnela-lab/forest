@@ -1,9 +1,9 @@
 """Common functions for the forest package"""
 import calendar
-from datetime import datetime
 import logging
 import os
-from typing import Any, Sequence, Union
+from datetime import datetime
+from typing import Any, Union
 
 import numpy as np
 import pandas as pd

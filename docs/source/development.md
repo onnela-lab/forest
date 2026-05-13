@@ -5,7 +5,7 @@ Information for contributors
 ## Quick start
 * Change current directory to the top level of your local Forest repository
 * Install Forest in editable mode along with development tools: `pip install -e ".[dev]"`
-* Check code style: `flake8`
+* Check code style: `flake8 --toml-config pyproject.toml` (we are moving to `ruff`)
 * Run static type checks: `mypy`
 * Run the test suite: `pytest`
 * Validate the citation file: `cffconvert -i CITATION.cff --validate`
