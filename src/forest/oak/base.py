@@ -39,7 +39,7 @@ def preprocess_bout(
     y_bout: NDArrayFloat,
     z_bout: NDArrayFloat,
     fs: int = 10,
-) -> tuple:
+) -> tuple[NDArrayFloat, NDArrayFloat]:
     """Preprocesses accelerometer bout to a common format.
     
     Resample 3-axial input signal to a predefined sampling rate and compute vector magnitude.
@@ -166,9 +166,10 @@ def compute_interpolate_cwt(
     window = tukey(len(tapered_bout), alpha=0.02, sym=True)
     tapered_bout = np.concatenate((np.zeros(5 * fs), tapered_bout * window, np.zeros(5 * fs)))
     
-    # compute cwt over bout
-    out = ssq_cwt(tapered_bout[:-1], wavelet, fs=10)
+    # compute cwt over bout (wavelet is of an accepted type, pyright doesn't like it)
+    out: NDArrayFloat = ssq_cwt(tapered_bout[:-1], wavelet, fs=10)  # type: ignore
     coefs = out[0]
+    
     coefs = np.append(coefs, coefs[:, -1:], 1)
     coefs = coefs.astype('complex128')
     
