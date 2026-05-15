@@ -1,41 +1,37 @@
 """Common functions for the forest package"""
-import calendar
+
 import logging
 import os
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
 import numpy as np
 import pandas as pd
-from pytz import timezone
+from dateutil.tz import gettz, UTC
 
 logger = logging.getLogger(__name__)
 
 
-def datetime2stamp(time_list: list | tuple, tz_str: str) -> int:
-    """Convert a datetime to Unix time
+def datetime2stamp(time_list: Sequence[int], tz_str: str) -> int:
+    """ Convert a componentized datetime (year, month, day, hour, min, sec, us) to Unix time
     
     Args:
         time_list: list or tuple,
             a list of integers [year, month, day, hour (0-23), min, sec],
         tz_str: str,
             timezone where the study is conducted
-            please use
-            # from pytz import all_timezones
-            # all_timezones
-            to check all timezones
+            
+            To check that a timezone string is valid use:
+            # from dateutil.tz import gettz
+            # assert gettz(tz_str) is not None
     
     Returns:
         Unix time, which is what Beiwe uses
     """
-    loc_tz = timezone(tz_str)
-    loc_dt = loc_tz.localize(datetime(*time_list))
-    
-    utc = timezone("UTC")
-    utc_dt = loc_dt.astimezone(utc)
-    
-    timestamp = calendar.timegm(utc_dt.timetuple())
-    return timestamp
+    loc_dt = datetime(*time_list, tzinfo=gettz(tz_str))
+    # this function used to mess around with the calendar library and returned an int
+    return int(loc_dt.astimezone(UTC).timestamp())
 
 
 def stamp2datetime(stamp: float | int, tz_str: str) -> list:
@@ -46,22 +42,21 @@ def stamp2datetime(stamp: float | int, tz_str: str) -> list:
             Unix time, the timestamp in Beiwe
         tz_str: str,
             timezone where the study is conducted
-            please use
-            # from pytz import all_timezones
-            # all_timezones
-            to check all timezones
+            
+            To check that a timezone string is valid use:
+            # from dateutil.tz import gettz
+            # assert gettz(tz_str) is not None
     
     Returns:
         a list of integers [year, month, day, hour (0-23), min, sec] in the specified tz
     """
-    loc_tz = timezone(tz_str)
-    utc_dt = datetime.fromtimestamp(stamp, timezone("UTC"))
-    loc_dt = utc_dt.astimezone(loc_tz)
+    utc_dt = datetime.fromtimestamp(stamp, UTC)
+    loc_dt = utc_dt.astimezone(gettz(tz_str))
     return [loc_dt.year, loc_dt.month, loc_dt.day, loc_dt.hour, loc_dt.minute, loc_dt.second]
 
 
 def filename2stamp(filename: str) -> int:
-    """Convert a filename to Unix time
+    """Convert a filename to Unix time - Beiwe filenames are of the form "YYYY-MM-DD HH_MM_SS....."
     
     Args:
         filename: str,
@@ -238,7 +233,7 @@ def write_all_summaries(
     columns: list[str] | None = None,
 ):
     """Write out all the summary stats for a user
-
+    
     Args:
         beiwe_id: str,
             beiwe ID
@@ -248,8 +243,4 @@ def write_all_summaries(
             the path to write out the summary stats
     """
     os.makedirs(output_path, exist_ok=True)
-    stats_pdframe.to_csv(
-        os.path.join(output_path, f"{beiwe_id}.csv"),
-        index=False,
-        columns=columns,
-    )
+    stats_pdframe.to_csv(os.path.join(output_path, f"{beiwe_id}.csv"), index=False, columns=columns)
