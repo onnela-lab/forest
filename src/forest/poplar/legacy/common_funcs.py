@@ -29,7 +29,8 @@ def datetime2stamp(time_list: Sequence[int], tz_str: str) -> int:
     Returns:
         Unix time, which is what Beiwe uses
     """
-    loc_dt = datetime(*time_list, tzinfo=gettz(tz_str))
+    t = list(time_list)
+    loc_dt = datetime(t[0], t[1], t[2], t[3], t[4], t[5], t[6], tzinfo=gettz(tz_str))
     # this function used to mess around with the calendar library and returned an int
     return int(loc_dt.astimezone(UTC).timestamp())
 
