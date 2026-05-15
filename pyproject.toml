@@ -75,6 +75,7 @@ dev = [
     "flake8-pytest-style",
     "flake8-pyproject",
     "mypy",
+    "pandas-stubs",
     "pytest",
     "pytest-mock",
     "pytest-xdist",
