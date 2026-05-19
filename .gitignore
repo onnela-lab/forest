@@ -25,3 +25,6 @@ docs/_build/
 
 # any python environment files
 .python-version
+
+# pytest
+.pytest_cache
