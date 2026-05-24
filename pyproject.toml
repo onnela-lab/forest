@@ -42,6 +42,7 @@ dependencies = [
     "shapely",
     "ssqueezepy",
     "timezonefinder",
+    "zstandard",
 ]
 keywords = ["digital phenotyping", "smartphone", "statistics", "accelerometer", "GPS"]
 classifiers = [
@@ -69,16 +70,63 @@ Source = "https://github.com/onnela-lab/forest"
 dev = [
     "build",
     "cffconvert",
+    "ruff",
     "flake8",
     "flake8-pytest-style",
+    "flake8-pyproject",
     "mypy",
     "pytest",
     "pytest-mock",
+    "pytest-xdist",
     "twine",
     "types-python-dateutil",
     "types-pytz",
     "types-requests",
     "types-setuptools",
+]
+
+
+[tool.ruff]
+line-length = 105  # # this is the maximum that should emit a warning, its ok to over sometimes.
+indent-width = 4
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 120  # actual maximum line length for python files
+
+
+[tool.ruff.format]
+indent-style = "space"  # use spaces for indentation
+line-ending = "lf"  # use \n for line endings
+
+
+[tool.ruff.lint]
+future-annotations = true
+
+select = [  # (linting directives to enable)
+    "E",       # pycodestyle errors
+    "W",       # pycodestyle warnings
+    "F",       # pyflakes codes
+    "UP",      # pyupgrade codes
+    "COM818",  # trailing-comma-on-bare-tuple
+    "A",       # flake8-annotations codes
+]
+
+exclude = [
+    "build",
+    ".venv",
+    "venv",
+    "*.ipynb",
+]
+
+
+[tool.flake8]
+line-length = 105
+max-line-length = 105
+
+exclude = [
+    "build",
+    ".venv",
+    "venv",
 ]
 
 [tool.setuptools.package-data]

@@ -394,7 +394,7 @@ def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> dict:
         & (df_call["timestamp"] / 1000 < stamp + step_size)
     ]
 
-    mean_resposiveness_call = get_mean_responsiveness(
+    mean_responsiveness_call = get_mean_responsiveness(
         df=temp_call,
         col_with_sent_received="call type",
         received_values_list=["Incoming Call", "Missed Call"],
@@ -446,7 +446,7 @@ def call_analysis(df_call: pd.DataFrame, stamp: int, step_size: int) -> dict:
         "num_mis_caller": num_uniq_mis_call,
         "total_mins_in_call": total_time_in_call,
         "total_mins_out_call": total_time_out_call,
-        "mean_resposiveness_call": mean_resposiveness_call,
+        "mean_responsiveness_call": mean_responsiveness_call,
         "call_reciprocity": call_reciprocity,
     }
 
@@ -554,7 +554,7 @@ def comm_logs_summaries(
         "total_mins_in_call",
         "total_mins_out_call",
     ]
-    call_columns_daily_only = ["mean_resposiveness_call", "call_reciprocity"]
+    call_columns_daily_only = ["mean_responsiveness_call", "call_reciprocity"]
 
     call_and_text_columns = ["num_uniq_individuals_call_or_text"]
 
@@ -753,4 +753,13 @@ def log_stats_inner(
             "the input data."
         )
 
-    write_all_summaries(beiwe_id, stats_pdframe, output_folder)
+    # merge year, month, day columns to date, and drop them, force left
+    stats_pdframe["date"] = pd.to_datetime(
+        stats_pdframe[["year", "month", "day"]]
+    )
+    stats_pdframe = stats_pdframe.drop(columns=["year", "month", "day"])
+
+    cols = stats_pdframe.columns.tolist()
+    cols.remove("date")
+    cols.insert(0, "date")
+    write_all_summaries(beiwe_id, stats_pdframe, output_folder, columns=cols)

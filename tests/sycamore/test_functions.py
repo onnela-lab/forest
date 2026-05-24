@@ -78,6 +78,25 @@ def test_survey_submits(submits_data):
     assert submits_data.shape[0] == 346
 
 
+def test_survey_submits_string_dtype_answer():
+    """Regression test: survey_submits must not crash when the answer column
+    uses pandas nullable StringDtype (e.g. pandas >= 2 with future_infer_string
+    or explicit astype).  The old code passed [] to Series.isin() which raises
+    'The truth value of an empty array is ambiguous' on StringArray columns."""
+    agg_data = aggregate_surveys_config(
+        SAMPLE_DIR, SURVEY_SETTINGS_PATH_FOR_SUBMITS, study_tz="UTC",
+        users=["16au2moz", "idr8gqdh"]
+    )
+    # Cast answer to nullable StringDtype to reproduce the production scenario
+    agg_data["answer"] = agg_data["answer"].astype("string")
+    result = survey_submits(
+        SURVEY_SETTINGS_PATH_FOR_SUBMITS,
+        "2021-12-01", "2022-04-30", ["idr8gqdh", "16au2moz"],
+        agg_data, INTERVENTIONS_PATH
+    )
+    assert result.shape[0] == 346
+
+
 def test_summarize_submits(submits_data):
     summary = summarize_submits(submits_data)
     assert summary.shape[0] == 2
