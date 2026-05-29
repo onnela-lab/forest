@@ -33,7 +33,7 @@ Output: typically summary files
 
 # Usage
 
-Please note that Forest is tested only against Python 3.11 and 3.12 (preferred). To install:
+Please note that Forest requires Python 3.12. To install:
 ```console
 pip install beiwe-forest
 ```
