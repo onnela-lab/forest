@@ -33,7 +33,7 @@ Output: typically summary files
 
 # Usage
 
-Please note that Forest is tested only against Python 3.11 and 3.12 (preferred). To install:
+Please note that Forest requires Python 3.12. To install:
 ```console
 pip install beiwe-forest
 ```
@@ -152,7 +152,7 @@ log_stats_main(path_to_synthetic_log_data, path_to_log_summary, tz_str, option, 
 ```
 
 ## More info
-* [Beiwe platform for smartphone data collection](https://www.beiwe.org/)
+* [Beiwe platform for smartphone data collection](http://www.beiwe.org/)
 * [Onnela lab](https://www.hsph.harvard.edu/onnela-lab/)
 
 ## Publications
@@ -161,4 +161,4 @@ log_stats_main(path_to_synthetic_log_data, path_to_log_summary, tz_str, option, 
 * Onnela JP, Dixon C, Griffin K, Jaenicke T, Minowada L, Esterkin S, Siu A, Zagorsky J, and Jones E. Beiwe: A data collection platform for high-throughput digital phenotyping. Journal of Open Source Software, 6(68), 3417 (2021) [![DOI](https://joss.theoj.org/papers/10.21105/joss.03417/status.svg)](https://doi.org/10.21105/joss.03417)
 * Liu G and Onnela JP. Bidirectional imputation of spatial GPS trajectories with missingness using sparse online Gaussian Process. Journal of the American Medical Informatics Association 28(8), 1777 (2021) [![DOI](https://img.shields.io/badge/DOI-10.1093%2Fjamia%2Focab069-blue)](https://doi.org/10.1093/jamia/ocab069)
 * Barnett I and Onnela JP. Inferring mobility measures from GPS with missing data. Biostatistics 21:2, e98, 2020 [![DOI](https://img.shields.io/badge/DOI-10.1093%2Fbiostatistics%2Fkxy059-blue)](https://doi.org/10.1093/biostatistics/kxy059) [Open Access](https://academic.oup.com/biostatistics/article/21/2/e98/5145908?guestAccessKey=0e3baa8c-2a80-405e-a7b4-1444099f48a2)
-* Huang E and Onnela JP. Augmented movelet method for activity classification using smartphone gyroscope and accelerometer data. Sensors 20(13), 3706, 2020 [![DOI](https://img.shields.io/badge/DOI-10.3390%2Fs20133706-blue)](https://doi.org/10.3390/s20133706) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3925679.svg)](https://doi.org/10.5281/zenodo.3925679)
+* Huang E and Onnela JP. Augmented movelet method for activity classification using smartphone gyroscope and accelerometer data. Sensors 20(13), 3706, 2020 [![DOI](https://img.shields.io/badge/DOI-10.3390%2Fs20133706-blue)](https://doi.org/10.3390/s20133706) Dataset: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3925679.svg)](https://doi.org/10.5281/zenodo.3925679)
