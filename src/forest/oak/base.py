@@ -659,10 +659,9 @@ def run(
                 t_series = pd.Series(t_datetime)  # transform t to full hours
                 
                 if frequency == Frequency.MINUTE:
-                    t_hours_pd = t_series.dt.floor('T')
+                    t_hours_pd = t_series.dt.floor('min')
                 else:
-                    t_hours_pd = t_series.dt.floor('H')
-                
+                    t_hours_pd = t_series.dt.floor('h')
                 # convert t_hours to correct timezone
                 t_hours_pd = t_hours_pd.dt.tz_localize(from_zone).dt.tz_convert(to_zone)
                 
