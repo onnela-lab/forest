@@ -274,10 +274,13 @@ def gen_survey_schedule(
 
 
 def survey_submits(
-        config_path: str, time_start: str, time_end: str, users: list,
-        aggregated_data: pd.DataFrame,
-        interventions_filepath: str | None = None,
-        history_path: str | None = None
+    config_path: str,
+    time_start: str,
+    time_end: str,
+    users: list,
+    aggregated_data: pd.DataFrame,
+    interventions_filepath: str | None = None,
+    history_path: str | None = None
 ) -> pd.DataFrame:
     """Get survey submits for users
 
