@@ -173,13 +173,12 @@ def aggregate_surveys(
     
     all_data = all_data.drop_duplicates().sort_values(["survey id", "beiwe_id", "timestamp"])
     
-    # FIX EVENT FIELDS
-    # Ensure there is an "event" field (There won't be one if all users are Android)
+    # FIX EVENT COLUMN - Ensure there is an "event" field (missing if all users are Android)
     if "event" not in all_data.columns:
         all_data["event"] = None
     
     # Move Android events from the question id field to the event field
-    all_data.event = all_data.apply(
+    all_data["event"] = all_data.apply(
         lambda row: row["question id"] if row["question id"] in
         ["Survey first rendered and displayed to user", "User hit submit"] else row["event"],
         axis=1
