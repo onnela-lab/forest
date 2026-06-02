@@ -3,7 +3,7 @@ from logging import getLogger
 import datetime
 from typing import Union, Optional
 
-import pytz
+from zoneinfo import ZoneInfo
 from timezonefinder import TimezoneFinder
 
 from ..constants.time import HOUR_S
@@ -21,7 +21,7 @@ def get_timezone(
         latitude, longitude (float): Coordinates.
 
     Returns:
-        timezone (str): Timezone string that can be read by pytz.timezone().
+        timezone (str): Timezone string that can be read by zoneinfo.ZoneInfo.
     """
     tf_obj = TimezoneFinder()
     timezone = tf_obj.timezone_at(lng=longitude, lat=latitude)
@@ -29,20 +29,20 @@ def get_timezone(
 
 
 def get_offset(
-    timestamp: int, timezone: Union[str, pytz.BaseTzInfo]
+    timestamp: int, timezone: Union[str, datetime.tzinfo]
 ) -> Optional[float]:
     """Get UTC offset, given timestamp and timezone.
 
     Args:
         timestamp (int):  Millisecond timestamp.
-        timezone (str or timezone from pytz.tzfile): Timezone for which to
+        timezone (str or datetime.tzinfo): Timezone for which to
             calculate UTC offset.
 
     Returns:
         offset (float):  UTC offset in hours.
     """
     if isinstance(timezone, str):
-        timezone = pytz.timezone(timezone)
+        timezone = ZoneInfo(timezone)
     datetime_date = datetime.datetime.fromtimestamp(timestamp / 1000, timezone)
     offset_utc = datetime_date.utcoffset()
     if offset_utc is None:

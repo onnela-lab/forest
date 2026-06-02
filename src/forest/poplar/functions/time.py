@@ -3,7 +3,7 @@ from logging import getLogger
 import datetime
 from typing import Union
 
-import pytz
+from zoneinfo import ZoneInfo
 
 from ..constants.time import (
     DATE_FORMAT, NAIVE_DATETIME_FORMAT, DAY_S, MIN_MS, UTC
@@ -46,7 +46,7 @@ def convert_seconds(second_of_day: int) -> Union[str, None]:
 
 
 def reformat_datetime(datetime_string: str, from_format: str, to_format: str,
-                      from_tz: Union[str, pytz.BaseTzInfo, None] = None
+                      from_tz: Union[str, datetime.tzinfo, None] = None
                       ) -> Union[str, None]:
     """Change the format of a datetime string.
 
@@ -55,7 +55,7 @@ def reformat_datetime(datetime_string: str, from_format: str, to_format: str,
         from_format (str): The format of time, expressed using directives
             from the datetime package.
         to_format (str): Convert to this time format.
-        from_tz (timezone from pytz.tzfile): Optionally, localize time
+        from_tz (datetime.tzinfo): Optionally, localize time
             before reformatting.
 
     Returns:
@@ -66,7 +66,7 @@ def reformat_datetime(datetime_string: str, from_format: str, to_format: str,
             datetime_string, from_format
         )
         if from_tz is not None and not isinstance(from_tz, str):
-            datetime_date = from_tz.localize(datetime_date)
+            datetime_date = datetime_date.replace(tzinfo=from_tz)
         reformat = datetime_date.strftime(to_format)
         return reformat
     except ValueError:
@@ -78,7 +78,7 @@ def reformat_datetime(datetime_string: str, from_format: str, to_format: str,
 
 def to_timestamp(
     datetime_string: str, from_format: str,
-    from_tz: Union[str, pytz.BaseTzInfo] = UTC
+    from_tz: Union[str, datetime.tzinfo] = UTC
 ) -> Union[int, None]:
     """Convert a datetime string to a timestamp.
 
@@ -86,7 +86,7 @@ def to_timestamp(
         datetime_string (str):  A human-readable datetime string.
         from_format (str):  The format of time, expressed using directives
             from the datetime package.
-        from_tz (timezone from pytz.tzfile):  The timezone of time.
+        from_tz (datetime.tzinfo):  The timezone of time.
 
     Returns:
         timestamp (int): Timestamp in milliseconds.
@@ -96,7 +96,7 @@ def to_timestamp(
             datetime_string, from_format
         )
         if not isinstance(from_tz, str):
-            utc_dt = from_tz.localize(datetime_date)
+            utc_dt = datetime_date.replace(tzinfo=from_tz)
             timestamp = round(utc_dt.timestamp() * 1000)
             return timestamp
         return None
@@ -108,7 +108,7 @@ def to_timestamp(
 
 
 def to_readable(timestamp: int, to_format: str,
-                to_tz: Union[str, pytz.BaseTzInfo] = UTC) -> Union[str, None]:
+                to_tz: Union[str, datetime.tzinfo] = UTC) -> Union[str, None]:
     """Convert a timestamp to a human-readable string localized to a
     particular timezone.
 
@@ -116,15 +116,17 @@ def to_readable(timestamp: int, to_format: str,
         timestamp (int): Timestamp in milliseconds.
         to_format (str): The format of readable, expressed using directives
             from the datetime package.
-        to_tz (str or timezone from pytz.tzfile):  The timezone of readable.
+        to_tz (str or datetime.tzinfo):  The timezone of readable.
 
     Returns:
         readable (str):  A human-readable datetime string.
     """
     try:
         if isinstance(to_tz, str):
-            to_tz = pytz.timezone(to_tz)
-        utc_dt = datetime.datetime.fromtimestamp(timestamp / 1000, tz=pytz.UTC)
+            to_tz = ZoneInfo(to_tz)
+        utc_dt = datetime.datetime.fromtimestamp(
+            timestamp / 1000, tz=datetime.timezone.utc
+        )
         local_dt = utc_dt.astimezone(to_tz)
         readable = local_dt.strftime(to_format)
         return readable

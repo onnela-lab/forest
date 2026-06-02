@@ -1,4 +1,6 @@
+import datetime
 import os
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -6,6 +8,8 @@ import pytest
 from tempfile import TemporaryDirectory
 
 from forest.utils import get_ids
+from forest.poplar.functions.time import to_timestamp, to_readable
+from forest.poplar.functions.timezone import get_offset
 
 from forest.poplar.functions.helpers import (
     clean_dataframe, get_windows, directory_size, sort_by, join_lists,
@@ -203,3 +207,57 @@ def test_sample_var(gps_df):
 def test_get_ids():
     users_list = get_ids(TEST_DATA_DIR)
     assert set(users_list) == {"idr8gqdh"}
+
+
+def test_get_offset_dst_summer():
+    # July: America/New_York observes EDT (UTC-4)
+    summer = datetime.datetime(2021, 7, 1, tzinfo=datetime.timezone.utc)
+    ts_ms = int(summer.timestamp() * 1000)
+    assert get_offset(ts_ms, "America/New_York") == -4.0
+
+
+def test_get_offset_dst_winter():
+    # January: America/New_York observes EST (UTC-5)
+    winter = datetime.datetime(2021, 1, 1, tzinfo=datetime.timezone.utc)
+    ts_ms = int(winter.timestamp() * 1000)
+    assert get_offset(ts_ms, "America/New_York") == -5.0
+
+
+def test_get_offset_utc():
+    assert get_offset(1609459200000, "UTC") == 0.0
+
+
+def test_to_timestamp_dst_summer():
+    # 12:00 New York in summer is EDT (UTC-4) -> 16:00 UTC
+    ts = to_timestamp("2021-07-01 12:00:00", "%Y-%m-%d %H:%M:%S",
+                      from_tz=ZoneInfo("America/New_York"))
+    expected = int(
+        datetime.datetime(
+            2021, 7, 1, 16, 0, 0, tzinfo=datetime.timezone.utc
+        ).timestamp() * 1000
+    )
+    assert ts == expected
+
+
+def test_to_timestamp_dst_winter():
+    # 12:00 New York in winter is EST (UTC-5) -> 17:00 UTC
+    ts = to_timestamp("2021-01-01 12:00:00", "%Y-%m-%d %H:%M:%S",
+                      from_tz=ZoneInfo("America/New_York"))
+    expected = int(
+        datetime.datetime(
+            2021, 1, 1, 17, 0, 0, tzinfo=datetime.timezone.utc
+        ).timestamp() * 1000
+    )
+    assert ts == expected
+
+
+def test_to_readable_localizes_to_timezone():
+    # 16:00 UTC -> 12:00 EDT in New York
+    utc_dt = datetime.datetime(
+        2021, 7, 1, 16, 0, 0, tzinfo=datetime.timezone.utc
+    )
+    ts_ms = int(utc_dt.timestamp() * 1000)
+    readable = to_readable(
+        ts_ms, "%Y-%m-%d %H:%M:%S", to_tz="America/New_York"
+    )
+    assert readable == "2021-07-01 12:00:00"

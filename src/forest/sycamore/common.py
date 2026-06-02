@@ -329,7 +329,7 @@ def convert_timezone_df(df_merged: pd.DataFrame, tz_str: str = "UTC",
         df_merged(DataFrame):
             Dataframe that has a field of dates that are in UTC time
         tz_str(str):
-            Study timezone (this should be a string from the pytz library)
+            Study timezone (this should be a string in the IANA tz database)
         utc_col:
             Name of column in data that has UTC time dates
 

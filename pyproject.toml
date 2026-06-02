@@ -35,7 +35,7 @@ dependencies = [
     "pandas",
     "pyproj",
     "python-dateutil",
-    "pytz",
+    "tzdata",
     "ratelimit",
     "requests",
     "scipy",
@@ -79,7 +79,6 @@ dev = [
     "pytest-xdist",
     "twine",
     "types-python-dateutil",
-    "types-pytz",
     "types-requests",
     "types-setuptools",
 ]

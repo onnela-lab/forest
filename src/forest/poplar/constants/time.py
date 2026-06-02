@@ -1,6 +1,6 @@
 """Constants for working with Beiwe time formats.
 """
-from pytz import timezone
+from zoneinfo import ZoneInfo
 
 # seconds
 MIN_S = 60
@@ -51,4 +51,4 @@ AWARE_DATETIME_FORMAT = " ".join([DATE_FORMAT, TIME_FORMAT, TIMEZONE_FORMAT])
 OFFSET_DATETIME_FORMAT = " ".join([DATE_FORMAT, TIME_FORMAT, OFFSET_FORMAT])
 
 # commonly used time zones
-UTC = timezone("UTC")
+UTC = ZoneInfo("UTC")

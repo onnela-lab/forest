@@ -7,7 +7,7 @@ from typing import Any, Union
 
 import numpy as np
 import pandas as pd
-from pytz import timezone
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
@@ -21,17 +21,17 @@ def datetime2stamp(time_list: Union[list, tuple], tz_str: str) -> int:
         tz_str: str,
             timezone where the study is conducted
             please use
-            # from pytz import all_timezones
-            # all_timezones
+            # import zoneinfo
+            # zoneinfo.available_timezones()
             to check all timezones
 
     Returns:
         Unix time, which is what Beiwe uses
     """
-    loc_tz = timezone(tz_str)
-    loc_dt = loc_tz.localize(datetime(*time_list))
+    loc_tz = ZoneInfo(tz_str)
+    loc_dt = datetime(*time_list).replace(tzinfo=loc_tz)
 
-    utc = timezone("UTC")
+    utc = ZoneInfo("UTC")
     utc_dt = loc_dt.astimezone(utc)
 
     timestamp = calendar.timegm(utc_dt.timetuple())
@@ -47,16 +47,16 @@ def stamp2datetime(stamp: Union[float, int], tz_str: str) -> list:
         tz_str: str,
             timezone where the study is conducted
             please use
-            # from pytz import all_timezones
-            # all_timezones
+            # import zoneinfo
+            # zoneinfo.available_timezones()
             to check all timezones
 
     Returns:
         a list of integers [year, month, day, hour (0-23), min, sec] in the
          specified tz
     """
-    loc_tz = timezone(tz_str)
-    utc_dt = datetime.fromtimestamp(stamp, timezone("UTC"))
+    loc_tz = ZoneInfo(tz_str)
+    utc_dt = datetime.fromtimestamp(stamp, ZoneInfo("UTC"))
     loc_dt = utc_dt.astimezone(loc_tz)
     return [
         loc_dt.year, loc_dt.month, loc_dt.day,
