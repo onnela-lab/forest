@@ -31,7 +31,7 @@ jobs:
       - name: Install Forest dependencies for Windows
         # required by librosa
         if: ${{ startsWith(matrix.os, 'windows') }}
-        run: choco install ffmpeg -y
+        run: choco install ffmpeg -y --no-progress
       - name: Install Forest and optional development dependencies
         run: pip install -e ".[dev]"
       - name: Run code style checking
