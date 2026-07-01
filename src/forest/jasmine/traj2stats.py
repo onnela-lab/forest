@@ -286,17 +286,43 @@ def avg_mobility_trace_difference(
         & (mobility_trace2[:, 2] <= time_range[1])
     )
 
-    # Create a set of common timestamps for efficient lookup
-    common_times = (
-        set(mobility_trace1[mask1, 2]) & set(mobility_trace2[mask2, 2])
+    # Find common timestamps using an optimized array intersection,
+    # to stay in ndarrays. (np.unique is virtually free.)
+    # Original was slower, required more lists again later:
+    #    common_times = list(set(mt1[mask1, 2]) & set(mt2[mask2, 2]))
+    common_times = np.unique(
+        np.intersect1d(
+            mobility_trace1[mask1, 2], mobility_trace2[mask2, 2]
+        )
     )
 
-    # Create masks for the common timestamps
-    mask1_common = np.isin(mobility_trace1[:, 2], list(common_times))
-    mask2_common = np.isin(mobility_trace2[:, 2], list(common_times))
-
-    if not any(mask1_common) or not any(mask2_common):
+    if len(common_times) == 0:  # short circuit on no common times
         return 0
+
+    # Create masks for the common timestamps
+
+    # The unique guarantee allows us to use assume_unique=True, about
+    # 3x faster according to docs. Short circuit on zero matches.
+    mask1_common = np.isin(
+        mobility_trace1[:, 2], common_times, assume_unique=True
+    )
+    if not any(mask1_common):
+        return 0
+
+    mask2_common = np.isin(
+        mobility_trace2[:, 2], common_times, assume_unique=True
+    )
+    if not any(mask2_common):
+        return 0
+
+    # If we also sort we could then use searchsorted, which _is_ faster, but
+    # returns indices, and then requires clamping or padding out common_times
+    # to handle index OoB errors. It ends up within like 1% of the above:
+    #     common.sort()  # the sort is virtually free
+    #     idx1 = np.searchsorted(common, mobility_trace1[:, 2])
+    #     idx1_clamped = np.minimum(idx1, len(common) - 1)
+    #     mask1_common = (idx1 < len(common)) & (
+    #         common[idx1_clamped] == mobility_trace1[:, 2])
 
     # Calculate distances using the common timestamp masks
     dists = great_circle_dist(
