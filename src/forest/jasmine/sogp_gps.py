@@ -17,6 +17,9 @@ import numpy as np
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+SECONDS_PER_DAY_TIMES_PI = 86_400 * math.pi
+SECONDS_PER_WEEK_TIMES_PI = 604_800 * math.pi
+
 
 def calculate_k0(x1: np.ndarray, x2: np.ndarray, pars: list) -> float:
     """This function calculates the similarity between two points
@@ -29,12 +32,11 @@ def calculate_k0(x1: np.ndarray, x2: np.ndarray, pars: list) -> float:
         float, the similarity between x1 and x2
     """
     [l1, l2, l3, a1, a2, b1, b2, b3] = pars
-    k1 = np.exp(-abs(x1[0] - x2[0]) / l1) * np.exp(
-        -((np.sin(abs(x1[0] - x2[0]) / 86400 * math.pi)) ** 2) / a1
-    )
-    k2 = np.exp(-abs(x1[0] - x2[0]) / l2) * np.exp(
-        -((np.sin(abs(x1[0] - x2[0]) / 604800 * math.pi)) ** 2) / a2
-    )
+    dt = abs(x1[0] - x2[0])
+    sin_daily = np.sin(dt / SECONDS_PER_DAY_TIMES_PI) ** 2
+    sin_weekly = np.sin(dt / SECONDS_PER_WEEK_TIMES_PI) ** 2
+    k1 = np.exp(-dt / l1 - sin_daily / a1)
+    k2 = np.exp(-dt / l2 - sin_weekly / a2)
     k3 = np.exp(-abs(x1[1] - x2[1]) / l3)
     return b1 * k1 + b2 * k2 + b3 * k3
 
