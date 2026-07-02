@@ -287,13 +287,11 @@ def avg_mobility_trace_difference(
     )
 
     # Find common timestamps using an optimized array intersection,
-    # to stay in ndarrays. (np.unique is virtually free.)
+    # to stay in ndarrays - return is unique.
     # Original was slower, required more lists again later:
     #    common_times = list(set(mt1[mask1, 2]) & set(mt2[mask2, 2]))
-    common_times = np.unique(
-        np.intersect1d(
-            mobility_trace1[mask1, 2], mobility_trace2[mask2, 2]
-        )
+    common_times = np.intersect1d(
+        mobility_trace1[mask1, 2], mobility_trace2[mask2, 2]
     )
 
     if len(common_times) == 0:  # short circuit on no common times
@@ -306,14 +304,16 @@ def avg_mobility_trace_difference(
     mask1_common = np.isin(
         mobility_trace1[:, 2], common_times, assume_unique=True
     )
-    if not any(mask1_common):
-        return 0
+    # these any() checks are very slow, and on real data are they are not hit much.
+    # The normal code path works fine
+    # if not any(mask1_common):
+    #     return 0
 
     mask2_common = np.isin(
         mobility_trace2[:, 2], common_times, assume_unique=True
     )
-    if not any(mask2_common):
-        return 0
+    # if not any(mask2_common):
+    #     return 0
 
     # If we also sort we could then use searchsorted, which _is_ faster, but
     # returns indices, and then requires clamping or padding out common_times
@@ -411,20 +411,41 @@ def routine_index(
                 ).weekday() < 5
             ]
 
-    res = sum(
-        avg_mobility_trace_difference(
-            time_range, mobility_trace[::pcr_sample_rate],
-            np.column_stack(
-                [
-                    mobility_trace[:, :2],
-                    mobility_trace[:, 2] + i * 24 * 60 * 60
-                ]
-            )
-        )
-        for i in shifts
-    )
+    # original implementation was:
+    # res = sum(
+    #     avg_mobility_trace_difference(
+    #         time_range,
+    #         mobility_trace[::pcr_sample_rate],
+    #         np.column_stack([
+    #             mobility_trace[:, :2],
+    #             mobility_trace[:, 2] + i * 24 * 60 * 60
+    #         ])
+    #     )
+    #     for i in shifts
+    # )
+    # return res / (n1 + n2)
 
-    return res / (n1 + n2)
+    # Pull everything out of the loop, to avoid a call to np.column_stack,
+    # which allocates on every shift. Tested and found fortran arrays
+    # (column-major memory order) also assists, totals 20-30% speedup.
+    average_traces = []
+
+    time_col = np.asfortranarray(mobility_trace[:, 2])
+    tmp = np.asfortranarray(mobility_trace[:, :2])
+    preallocated_array = np.asfortranarray(np.empty((tmp.shape[0], 3)))
+    preallocated_array[:, :2] = tmp
+    sampled_trace = np.asfortranarray(mobility_trace[::pcr_sample_rate])
+
+    for i in shifts:
+        preallocated_array[:, 2] = time_col + i * 24 * 60 * 60  # this is still a copy
+        x = avg_mobility_trace_difference(
+            time_range,
+            sampled_trace,
+            preallocated_array,
+        )
+        average_traces.append(x)
+
+    return sum(average_traces) / (n1 + n2)
 
 
 def create_mobility_trace(traj: np.ndarray) -> np.ndarray:
@@ -438,11 +459,11 @@ def create_mobility_trace(traj: np.ndarray) -> np.ndarray:
             contains 3 columns: [x, y, t]
     """
 
-    pause_vec = traj[traj[:, 0] == 2]
+    pause_vec: np.ndarray = traj[traj[:, 0] == 2]
 
     # Calculate the time ranges for all pauses
-    start_times = pause_vec[:, 3].astype(int)
-    end_times = pause_vec[:, 6].astype(int)
+    start_times: np.ndarray = pause_vec[:, 3].astype(int)
+    end_times: np.ndarray = pause_vec[:, 6].astype(int)
     time_ranges = [np.arange(s, e) for s, e in zip(start_times, end_times)]
 
     # Flatten time_ranges and get the corresponding locations
