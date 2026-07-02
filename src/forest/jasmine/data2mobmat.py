@@ -185,8 +185,12 @@ def collapse_data(
         )
 
     # Get the start and end timestamps in seconds
-    t_start = sorted(np.array(data.timestamp))[0] / 1000
-    t_end = sorted(np.array(data.timestamp))[-1] / 1000
+    timestamps = data.iloc[:, 0].values / 1000
+    lats = data.iloc[:, 2].values
+    lons = data.iloc[:, 3].values
+
+    t_start = timestamps[0]
+    t_end = timestamps[-1]
 
     # Initialize an empty 2D numpy array for the collapsed data
     avgmat = np.empty([int(np.ceil((t_end - t_start) / interval)) + 2, 4])
@@ -201,14 +205,14 @@ def collapse_data(
 
     # Initialize the first row of the output matrix
     # [1, timestamp, latitude, longitude]
-    nextline = [1, t_start + interval / 2, data.iloc[0, 2], data.iloc[0, 3]]
+    nextline = [1, t_start + interval / 2, lats[0], lons[0]]
 
-    for i in np.arange(1, data.shape[0]):
+    for i in range(1, len(timestamps)):
         # If the timestamp of the current row is within the current interval
-        if data.iloc[i, 0] / 1000 < t_start + interval:
+        if timestamps[i] < t_start + interval:
             # Accumulate latitude and longitude for averaging later
-            nextline[2] += data.iloc[i, 2]
-            nextline[3] += data.iloc[i, 3]
+            nextline[2] += lats[i]
+            nextline[3] += lons[i]
             num_interval += 1
         else:
             # When the current row's timestamp exceeds the current interval,
@@ -225,7 +229,7 @@ def collapse_data(
             # Compute the number of missing intervals
             num_miss = int(
                 np.floor(
-                    (data.iloc[i, 0] / 1000 - (t_start + interval)) / interval
+                    (timestamps[i] - (t_start + interval)) / interval
                     )
             )
 
@@ -245,7 +249,7 @@ def collapse_data(
 
             # Initialize the next row of the output matrix
             nextline = [
-                1, t_start + interval / 2, data.iloc[i, 2], data.iloc[i, 3]
+                1, t_start + interval / 2, lats[i], lons[i]
             ]
             num_interval = 1
 
@@ -581,7 +585,7 @@ def gps_to_mobmat(
         w: float, a threshold for distance,
             if the distance to the great circle is greater than
             this threshold, we consider there is a knot
-        h: float, a threshold of distance, if the movemoent
+        h: float, a threshold of distance, if the movement
             between two timestamps is less than h,
             consider it as a pause and a knot
     Returns:
