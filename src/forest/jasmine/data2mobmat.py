@@ -43,9 +43,11 @@ def cartesian(
 
 
 # these imports cause a 10% performance impovement in great_circle_dist(), it avoids a lookup
-from numpy import (sin as np_sin, cos as np_cos, arccos as np_arccos, radians as np_radians,
+from numpy import (float64, sin as np_sin, cos as np_cos, arccos as np_arccos, radians as np_radians,
 array as np_array, dot as np_dot, cross as np_cross, linalg as np_linalg, ndarray as np_ndarray,
 clip as np_clip)
+import numba
+
 
 def great_circle_dist(
     lat1: Union[float, np.ndarray], lon1: Union[float, np.ndarray],
@@ -68,14 +70,16 @@ def great_circle_dist(
     """
 
     # could not get Haversine formula to run faster than this
-    lat1 = np_radians(lat1)
-    lon1 = np_radians(lon1)
-    lat2 = np_radians(lat2)
-    lon2 = np_radians(lon2)
-    temp = (
-        np_cos(lat1) * np_cos(lat2) * np_cos(lon1 - lon2)
-        + np_sin(lat1) * np_sin(lat2)
-    )
+    # lat1 = np_radians(lat1)
+    # lon1 = np_radians(lon1)
+    # lat2 = np_radians(lat2)
+    # lon2 = np_radians(lon2)
+    # temp = (
+    #     np_cos(lat1) * np_cos(lat2) * np_cos(lon1 - lon2)
+    #     + np_sin(lat1) * np_sin(lat2)
+    # )
+
+    temp = _great_circle_dist_compiled(lat1, lon1, lat2, lon2)
 
     # due to measurement errors, temp may be out of the domain of "arccos"
     if not isinstance(temp, np_ndarray):
@@ -85,6 +89,22 @@ def great_circle_dist(
     temp[temp < -1] = -1    # clip(temp, -1, 1, out=temp)
 
     return np_arccos(temp) * EARTH_RADIUS_METERS
+
+
+@numba.jit(cache=True, fastmath=True, nopython=True)
+def _great_circle_dist_compiled(
+    lat1: Union[float, np.ndarray], lon1: Union[float, np.ndarray],
+    lat2: Union[float, np.ndarray], lon2: Union[float, np.ndarray]
+) -> np.ndarray:
+    """ Compiled component of the great_circle_dist function, moderate speedup. """
+    lat1 = np_radians(lat1)
+    lon1 = np_radians(lon1)
+    lat2 = np_radians(lat2)
+    lon2 = np_radians(lon2)
+    return (
+        np_cos(lat1) * np_cos(lat2) * np_cos(lon1 - lon2)
+        + np_sin(lat1) * np_sin(lat2)
+    )
 
 
 def shortest_dist_to_great_circle(
