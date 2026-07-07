@@ -2,6 +2,7 @@
 modules and calculate summary statistics of imputed trajectories.
 """
 from multiprocessing import cpu_count
+from time import perf_counter
 
 import numba
 from dataclasses import dataclass
@@ -295,7 +296,7 @@ def avg_mobility_trace_difference(
     # common_times = np.intersect1d(
     #     mobility_trace1[mask1, 2], mobility_trace2[mask2, 2]
     # )
-    
+
     common_times = _masks_and_common(mobility_trace1, mobility_trace2, time_range)
     if len(common_times) == 0:  # short circuit on no common times
         return 0
@@ -338,7 +339,7 @@ def _isin(ar1: NDArray[np.float64], ar2: NDArray[np.float64]) -> NDArray[np.bool
     order to optimize it. Numba makes multiple parts in here slower and was not workable. """
     # Ravel both arrays, behavior for the first array could be different
     ar1_ref = np.asarray(ar1)
-    
+
     ar1 = np.asarray(ar1).ravel()
     ar2 = np.asarray(ar2).ravel()
 
@@ -351,12 +352,12 @@ def _isin(ar1: NDArray[np.float64], ar2: NDArray[np.float64]) -> NDArray[np.bool
         for a in ar2:
             mask |= (ar1 == a)
         return mask
-    
+
     # ar = np.concatenate((ar1, ar2))  # replacing the concatenate may be slightly faster
     ar = np.empty(ar1.shape[0] + ar2.shape[0], dtype=ar1.dtype)
     ar[:ar1.shape[0]] = ar1
     ar[ar1.shape[0]:] = ar2
-    
+
     # We need this to be a stable sort, so always use 'mergesort'
     # here. The values from the first array should always come before
     # the values from the second array.
@@ -596,8 +597,8 @@ def routine_index2(
 
 
 # @numba.jit(
-    # "list(float64)(float64[:, :], tuple(int64, int64), list(int64), int64, dict[tuple[tuple[int64, int64], int64], float64])",
-        # nopython=True, cache=True, fastmath=True)
+# "list(float64)(float64[:, :], tuple(int64, int64), list(int64), int64, dict[tuple[tuple[int64, int64], int64], float64])",
+# nopython=True, cache=True, fastmath=True)
 def _inner_loop2(
     mobility_trace: NDArray[np.float64],
     time_range: Tuple[int, int],
@@ -688,58 +689,11 @@ def _trace_dif_mask(common: NDArray[np.float64], mobility_trace: NDArray[np.floa
     return mask
 
 
-
-#TODO: Eli - what exactly were the changes made here
-# def create_mobility_trace(traj: NDArray[np.float64]) -> NDArray[np.float64]:
-#     """This function creates a mobility trace from a trajectory
-
-#     Args:
-#         traj: numpy array, trajectory
-#             contains 8 columns: [s,x0,y0,t0,x1,y1,t1,obs]
-#     Returns:
-#         numpy array, mobility trace
-#             contains 3 columns: [x, y, t]
-#     """
-
-#     pause_vec: NDArray[np.float64] = traj[traj[:, 0] == 2]
-
-#     # Calculate the time ranges for all pauses
-#     start_times: NDArray[np.int64] = pause_vec[:, 3].astype(np.int64)
-#     end_times: NDArray[np.int64] = pause_vec[:, 6].astype(np.int64)
-
-#     # Build the flattened time ranges and matching locations without a
-#     # Python list of arrays: numba's nopython mode can't reliably
-#     # type-infer np.concatenate over a (possibly empty) reflected list,
-#     # so expand each pause's [start, end) range with array ops instead.
-#     n_pauses = pause_vec.shape[0]
-#     lengths = end_times - start_times
-#     total_len = lengths.sum()
-
-#     ids = np.repeat(np.arange(n_pauses), lengths)
-#     seg_start = np.cumsum(lengths) - lengths
-#     offset = np.arange(total_len) - np.repeat(seg_start, lengths)
-#     flat_time_ranges = (start_times[ids] + offset).astype(np.float64)
-#     locs = pause_vec[ids][:, 1:3]
-
-#     # Stack locations and time_ranges to get the mobility trace
-#     mobility_trace = np.column_stack((locs, flat_time_ranges))
-
-#     # Deduplicate timestamps, keeping the first occurrence, without
-#     # np.unique(return_index=True) which numba does not support: a stable
-#     # sort groups equal timestamps while preserving original order among
-#     # ties, so the first element of each group is the first occurrence.
-#     order = np.argsort(mobility_trace[:, 2], kind='mergesort')
-#     sorted_times = mobility_trace[order, 2]
-#     keep = np.empty(total_len, dtype=np.bool_)
-#     if total_len > 0:
-#         keep[0] = True
-#         keep[1:] = sorted_times[1:] != sorted_times[:-1]
-#     unique_indices = order[keep]
-
-#     return mobility_trace[unique_indices]
-
-
 def create_mobility_trace(traj: np.ndarray) -> NDArray[np.float64]:
+    return _create_mobility_trace(traj)
+
+
+def _create_mobility_trace(traj: np.ndarray) -> NDArray[np.float64]:
     """This function creates a mobility trace from a trajectory
 
     Args:
@@ -753,26 +707,57 @@ def create_mobility_trace(traj: np.ndarray) -> NDArray[np.float64]:
     pause_vec: np.ndarray = traj[traj[:, 0] == 2]
 
     # Calculate the time ranges for all pauses
-    start_times: np.ndarray = pause_vec[:, 3].astype(int)
-    end_times: np.ndarray = pause_vec[:, 6].astype(int)
+    start_times: np.ndarray = pause_vec[:, 3].astype(np.int_)
+    end_times: np.ndarray = pause_vec[:, 6].astype(np.int_)
     time_ranges = [np.arange(s, e) for s, e in zip(start_times, end_times)]
 
     # Flatten time_ranges and get the corresponding locations
-    flat_time_ranges = np.concatenate(time_ranges)
+
+    flat_time_ranges = np.concatenate(time_ranges, dtype=np.float64)
     repeats = [len(r) for r in time_ranges]
     locs = np.repeat(pause_vec[:, 1:3], repeats, axis=0)
 
+    ## This numba-compatible change to build locs and flat_time_ranges
+    ## ends up being slightly slower by about 20% even with compilation.
+    # l = sum([len(r) for r in time_ranges])  # precompute total length for allocation
+    # flat_time_ranges = np.empty(l, dtype=np.float64)
+    # offset = 0
+    # for r in time_ranges:
+    #     flat_time_ranges[offset:offset+len(r)] = r
+    #     offset += len(r)
+    # locs = np.empty((l, 2), dtype=np.float64)
+    # offset = 0
+    # for i, r in enumerate(time_ranges):
+    #     n = len(r)
+    #     locs[offset:offset+n, 0] = pause_vec[i, 1]
+    #     locs[offset:offset+n, 1] = pause_vec[i, 2]
+    #     offset += n
+
     # Stack locations and time_ranges to get the mobility trace
     # mobility_trace = np.column_stack((locs, flat_time_ranges))
-    mobility_trace = _opt_dual_col_stack(locs, flat_time_ranges)
+    return _opt_dual_col_stack(locs, flat_time_ranges)
 
-    # check if duplicate timestamps exist
-    _, unique_indices = np.unique(mobility_trace[:, 2], return_index=True)
-    return mobility_trace[unique_indices]
+    ## The rest of the original code
+    ## np.unique['s inner sort] + fancy-index gather was 60-70% of the
+    ## runtime; it is always already sorted and unique.
+    # if _is_sorted_unique(mobility_trace[:, 2]):
+    #     print(f"Skipped np.unique in create_mobility_trace, in {t2 - t1:.4f} seconds")
+    #     return mobility_trace
+    # _, unique_indices = np.unique(mobility_trace[:, 2], return_index=True)
+    # return mobility_trace[unique_indices]
+
+
+# @numba.jit(nopython=True, cache=True)
+# def _is_sorted_unique(times: NDArray[np.float64]) -> bool:
+#     for i in range(1, len(times)):
+#         if times[i] <= times[i - 1]:
+#             return False
+#     return True
 
 
 @numba.jit(nopython=True, cache=True, fastmath=True)
 def _opt_dual_col_stack(arr1: NDArray[np.float64], arr2: NDArray[np.float64]) -> NDArray[np.float64]:
+    # np.column_stack always benefits a little from numba
     return np.column_stack((arr1, arr2))
 
 
