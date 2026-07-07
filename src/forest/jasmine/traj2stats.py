@@ -432,9 +432,9 @@ def routine_index(
     """
 
     t_1, t_2 = time_range
-
-    t_init = mobility_trace[:, 2].min()
-    t_fin = mobility_trace[:, 2].max()
+    filtered_trace = mobility_trace[:, 2]
+    t_init = filtered_trace.min()
+    t_fin = filtered_trace.max()
 
     t_1 = max(t_1, t_init)
     t_2 = min(t_2, t_fin)
@@ -735,24 +735,24 @@ def _create_mobility_trace(traj: np.ndarray) -> NDArray[np.float64]:
 
     # Stack locations and time_ranges to get the mobility trace
     # mobility_trace = np.column_stack((locs, flat_time_ranges))
-    return _opt_dual_col_stack(locs, flat_time_ranges)
+    mobility_trace = _opt_dual_col_stack(locs, flat_time_ranges)
 
-    ## The rest of the original code
-    ## np.unique['s inner sort] + fancy-index gather was 60-70% of the
-    ## runtime; it is always already sorted and unique.
-    # if _is_sorted_unique(mobility_trace[:, 2]):
-    #     print(f"Skipped np.unique in create_mobility_trace, in {t2 - t1:.4f} seconds")
-    #     return mobility_trace
-    # _, unique_indices = np.unique(mobility_trace[:, 2], return_index=True)
-    # return mobility_trace[unique_indices]
+    # np.unique's is slow and unjittable. With an optimized O(n)
+    # sort-check we can claw out about a 8% speedup on real data.
+    filtered_trace = mobility_trace[:, 2]
+    if _is_sorted_unique(filtered_trace):
+        return mobility_trace
+
+    _, unique_indices = np.unique(filtered_trace, return_index=True)
+    return mobility_trace[unique_indices]
 
 
-# @numba.jit(nopython=True, cache=True)
-# def _is_sorted_unique(times: NDArray[np.float64]) -> bool:
-#     for i in range(1, len(times)):
-#         if times[i] <= times[i - 1]:
-#             return False
-#     return True
+@numba.jit(nopython=True, cache=True)#, fastmath=True)
+def _is_sorted_unique(times: NDArray[np.float64]) -> bool:
+    for i in range(1, len(times)):
+        if times[i] <= times[i - 1]:
+            return False
+    return True
 
 
 @numba.jit(nopython=True, cache=True, fastmath=True)
@@ -1952,10 +1952,10 @@ def split_day_night_cols(summary_stats_df: pd.DataFrame) -> pd.DataFrame:
         pandas dataframe with summary statistics
          split into daytime and nighttime columns
     """
-
+    
     summary_stats_df_daytime = summary_stats_df[::2].reset_index(drop=True)
     summary_stats_df_nighttime = summary_stats_df[1::2].reset_index(drop=True)
-
+    
     summary_stats_df2 = pd.concat(
         [
             summary_stats_df_daytime,
@@ -1989,7 +1989,7 @@ def split_day_night_cols(summary_stats_df: pd.DataFrame) -> pd.DataFrame:
         summary_stats_df2["obs_duration_daytime"]
         + summary_stats_df2["obs_duration_nighttime"],
     )
-
+    
     return summary_stats_df2
 
 
@@ -2014,12 +2014,12 @@ def get_time_range(
     for idx in time_reset_indices:
         time_list[idx] = 0
     start_stamp = datetime2stamp(time_list, tz_str)
-
+    
     time_list = stamp2datetime(traj[-1, 6], tz_str)
     for idx in time_reset_indices:
         time_list[idx] = 0
     end_stamp = datetime2stamp(time_list, tz_str) + offset_seconds
-
+    
     return start_stamp, end_stamp
 
 
@@ -2039,7 +2039,7 @@ def compute_window_and_count(
             window: int, window in seconds
             num_windows: int, number of windows
     """
-
+    
     window = window_minutes * 60
     num_windows = (end_stamp - start_stamp) // window
     if split_day_night:
@@ -2142,15 +2142,15 @@ def gps_stats_main(
     # no minutely analysis on GPS data
     if frequency == Frequency.MINUTE:
         raise ValueError("Frequency cannot be minutely.")
-
+    
     if parameters is None:
         parameters = Hyperparameters()
-
+    
     if frequency == Frequency.HOURLY_AND_DAILY:
         frequencies = [Frequency.HOURLY, Frequency.DAILY]
     else:
         frequencies = [frequency]
-
+    
     # Ensure that the correct output folder structures exist, centralize folder
     # names. Note that frequencies
     trajectory_folder = f"{output_folder}/trajectory"
@@ -2161,7 +2161,7 @@ def gps_stats_main(
         os.makedirs(f"{output_folder}/{freq.name.lower()}", exist_ok=True)
     if save_traj:
         os.makedirs(trajectory_folder, exist_ok=True)
-
+    
     # pars0 is passed to bv_select, pars1 to impute_gps
     pars0 = [
         parameters.l1, parameters.l2, parameters.l3, parameters.a1,
@@ -2171,11 +2171,11 @@ def gps_stats_main(
         parameters.l1, parameters.l2, parameters.a1, parameters.a2,
         parameters.b1, parameters.b2, parameters.b3, parameters.g
     ]
-
+    
     # participant_ids should be a list of str
     if participant_ids is None:
         participant_ids = get_ids(study_folder)
-
+    
     # Create a record of processed participant_id and starting/ending time.
     # These are updated and saved to disk after each participant is processed.
     all_memory_dict_file = f"{output_folder}/all_memory_dict.pkl"
@@ -2188,7 +2188,7 @@ def gps_stats_main(
         all_bv_set = {}
         for participant_id in participant_ids:
             all_bv_set[str(participant_id)] = None
-
+    
     for participant_id in participant_ids:
         logger.info("User: %s", participant_id)
         # data quality check
@@ -2227,7 +2227,7 @@ def gps_stats_main(
                                    "coordinates were fuzzed, OSM "
                                    "location summaries are meaningless",
                                    participant_id)
-
+            
             if data.shape == (0, 0):
                 logger.info("No data available.")
                 continue
@@ -2243,7 +2243,7 @@ def gps_stats_main(
                 params_w = np.mean(data.accuracy)
             else:
                 params_w = parameters.w
-
+            
             # process data
             mobmat1 = gps_to_mobmat(
                 data, parameters.itrvl, parameters.accuracylim,
@@ -2261,7 +2261,7 @@ def gps_stats_main(
             )
             all_bv_set[str(participant_id)] = bv_set = out_dict["BV_set"]
             all_memory_dict[str(participant_id)] = out_dict["memory_dict"]
-
+            
             # impute_gps can fail, if so we skip this participant.
             try:
                 imp_table = impute_gps(
@@ -2272,7 +2272,7 @@ def gps_stats_main(
             except RuntimeError as e:
                 logger.error("Error: %s", e)
                 continue
-
+            
             traj = imp_to_traj(imp_table, mobmat2, params_w)
             # raise error if traj coordinates are not in the range of
             # [-90, 90] and [-180, 180]
@@ -2304,7 +2304,7 @@ def gps_stats_main(
                     f"{trajectory_folder}/{participant_id}.csv",
                     index=False
                 )
-
+            
             # generate summary stats.
             # (variable "frequency" is already declared in signature)
             for freq in frequencies:
