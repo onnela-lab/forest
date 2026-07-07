@@ -1,15 +1,16 @@
-"""This module contains functions to convert raw GPS data to mobility matrix
-"""
-
 import logging
 import math
-from typing import Tuple, Union, Optional, List
 from itertools import groupby
+from typing import List, Optional, Tuple, Union
 
+import numba
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 
 from forest.constants import EARTH_RADIUS_METERS
+
+"""This module contains functions to convert raw GPS data to mobility matrix"""
 
 # a threshold
 TOLERANCE = 1e-6
@@ -42,16 +43,10 @@ def cartesian(
     return x_coord, y_coord, z_coord
 
 
-# these imports cause a 10% performance impovement in great_circle_dist(), it avoids a lookup
-from numpy import (float64, sin as np_sin, cos as np_cos, arccos as np_arccos, radians as np_radians,
-array as np_array, dot as np_dot, cross as np_cross, linalg as np_linalg, ndarray as np_ndarray,
-clip as np_clip)
-import numba
-
 
 def great_circle_dist(
-    lat1: Union[float, np.ndarray], lon1: Union[float, np.ndarray],
-    lat2: Union[float, np.ndarray], lon2: Union[float, np.ndarray]
+    lat1: Union[float, NDArray[np.float64]], lon1: Union[float, NDArray[np.float64]],
+    lat2: Union[float, NDArray[np.float64]], lon2: Union[float, NDArray[np.float64]]
 ) -> np.ndarray:
     """This function calculates the great circle distance
      between various pairs of locations.
@@ -69,42 +64,104 @@ def great_circle_dist(
         the great circle distance between location1 and location2
     """
 
-    # could not get Haversine formula to run faster than this
-    # lat1 = np_radians(lat1)
-    # lon1 = np_radians(lon1)
-    # lat2 = np_radians(lat2)
-    # lon2 = np_radians(lon2)
-    # temp = (
-    #     np_cos(lat1) * np_cos(lat2) * np_cos(lon1 - lon2)
-    #     + np_sin(lat1) * np_sin(lat2)
-    # )
-
+    # the math component of this equation is much faster when compiled
     temp = _great_circle_dist_compiled(lat1, lon1, lat2, lon2)
 
     # due to measurement errors, temp may be out of the domain of "arccos"
-    if not isinstance(temp, np_ndarray):
-        temp = np_array([temp])
+    if not isinstance(temp, np.ndarray):
+        temp = np.array([temp])
 
+    # this clipping plus the arccos call is also much faster when compiled
+    return _clip_and_arccos(temp)
+
+
+@numba.jit("float64[:](float64, float64, float64, float64)",
+    cache=True, fastmath=True, nopython=True)
+def fp_great_circle_dist(
+    lat1: float, lon1: float, lat2: float, lon2: float
+) -> NDArray[np.float64]:
+    """ A strongly-typed compiled version of great_circle_dist.
+    Call this function when you are passing in all floats. """
+    lat1 = np.radians(lat1)
+    lon1 = np.radians(lon1)
+    lat2 = np.radians(lat2)
+    lon2 = np.radians(lon2)
+    temp = (
+        np.cos(lat1) * np.cos(lat2) * np.cos(lon1 - lon2)
+        + np.sin(lat1) * np.sin(lat2)
+    )
+    temp = np.array([temp])
     temp[temp > 1] = 1      # tends to be faster than
-    temp[temp < -1] = -1    # clip(temp, -1, 1, out=temp)
+    temp[temp < -1] = -1    #    clip(temp, -1, 1, out=temp)
+    return np.arccos(temp) * EARTH_RADIUS_METERS
 
-    return np_arccos(temp) * EARTH_RADIUS_METERS
+
+@numba.jit("float64[:](float64[:], float64[:], float64[:], float64[:])",
+    cache=True, fastmath=True, nopython=True)
+def np_great_circle_dist(
+    lat1: NDArray[np.float64], lon1: NDArray[np.float64],
+    lat2: NDArray[np.float64], lon2: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """ A strongly-typed compiled version of great_circle_dist.
+    Call this function when you are passing in all numpy arrays. """
+    lat1 = np.radians(lat1)
+    lon1 = np.radians(lon1)
+    lat2 = np.radians(lat2)
+    lon2 = np.radians(lon2)
+    temp = (
+        np.cos(lat1) * np.cos(lat2) * np.cos(lon1 - lon2)
+        + np.sin(lat1) * np.sin(lat2)
+    )
+    temp[temp > 1] = 1      # tends to be faster than
+    temp[temp < -1] = -1    #    clip(temp, -1, 1, out=temp)
+    return np.arccos(temp) * EARTH_RADIUS_METERS
+
+
+@numba.jit(cache=True, fastmath=True, nopython=True, inline="always")
+def _great_circle_dist_specialized(
+    mobility_trace1: NDArray[np.float64], mask1_common: NDArray[np.bool_],
+    mobility_trace2: NDArray[np.float64], mask2_common: NDArray[np.bool_]
+) -> np.ndarray:
+    """ A very specific optimized version of great_circle_dist for the
+    inner loop of avg_mobility_trace_difference. This function has specific
+    optimizations and should only be called by that code. """
+    lat1 = np.radians(mobility_trace1[mask1_common, 0])
+    lon1 = np.radians(mobility_trace1[mask1_common, 1])
+    lat2 = np.radians(mobility_trace2[mask2_common, 0])
+    lon2 = np.radians(mobility_trace2[mask2_common, 1])
+    temp = (
+        np.cos(lat1) * np.cos(lat2) * np.cos(lon1 - lon2)
+        + np.sin(lat1) * np.sin(lat2)
+    )
+    temp[temp > 1] = 1      # tends to be faster than
+    temp[temp < -1] = -1    #    clip(temp, -1, 1, out=temp)
+    return np.arccos(temp) * EARTH_RADIUS_METERS
 
 
 @numba.jit(cache=True, fastmath=True, nopython=True)
 def _great_circle_dist_compiled(
-    lat1: Union[float, np.ndarray], lon1: Union[float, np.ndarray],
-    lat2: Union[float, np.ndarray], lon2: Union[float, np.ndarray]
-) -> np.ndarray:
-    """ Compiled component of the great_circle_dist function, moderate speedup. """
-    lat1 = np_radians(lat1)
-    lon1 = np_radians(lon1)
-    lat2 = np_radians(lat2)
-    lon2 = np_radians(lon2)
+    lat1: Union[float, NDArray[np.float64]], lon1: Union[float, NDArray[np.float64]],
+    lat2: Union[float, NDArray[np.float64]], lon2: Union[float, NDArray[np.float64]]
+) -> NDArray[np.float64]:
+    """ A compiled version of the math component of great_circle_dist."""
+    # Solid speedup using numba.jit to compile this function.
+    lat1 = np.radians(lat1)
+    lon1 = np.radians(lon1)
+    lat2 = np.radians(lat2)
+    lon2 = np.radians(lon2)
     return (
-        np_cos(lat1) * np_cos(lat2) * np_cos(lon1 - lon2)
-        + np_sin(lat1) * np_sin(lat2)
+        np.cos(lat1) * np.cos(lat2) * np.cos(lon1 - lon2)
+        + np.sin(lat1) * np.sin(lat2)
     )
+
+@numba.jit(cache=True, fastmath=True, nopython=True)
+def _clip_and_arccos(temp: NDArray[np.float64]) -> NDArray[np.float64]:
+    """ A compiled version of the clipping and arccos component of great_circle_dist."""
+    # Substantial speedup with numba jit, don't have perfect numbers, but
+    # along with _great_circle_dist_compiled it drops from ~8s -> ~5s
+    temp[temp > 1] = 1      # tends to be faster than
+    temp[temp < -1] = -1    #    clip(temp, -1, 1, out=temp)
+    return np.arccos(temp) * EARTH_RADIUS_METERS
 
 
 def shortest_dist_to_great_circle(
@@ -157,7 +214,8 @@ def shortest_dist_to_great_circle(
     return d
 
 
-def pairwise_great_circle_dist(latlon_array: np.ndarray) -> List[float]:
+@numba.jit(cache=True, fastmath=True, nopython=True)
+def pairwise_great_circle_dist(latlon_array: NDArray[np.float64]) -> List[float]:
     """This function calculates the pairwise great circle distance
         between any pair of locations.
 
@@ -169,17 +227,20 @@ def pairwise_great_circle_dist(latlon_array: np.ndarray) -> List[float]:
         a list of length n*(n-1)/2,
             the pairwise great circle distance between any pair of locations
     """
+
+    # using fp_great_circle_dist and compiling this function with numba
+    # provides a HUGE speedup - roughly 5x.
     dist = []
     k = np.shape(latlon_array)[0]
     for i in range(k - 1):
         for j in np.arange(i + 1, k):
-            distance_float = great_circle_dist(
+            distance_float = fp_great_circle_dist(
                 latlon_array[i, 0],
                 latlon_array[i, 1],
                 latlon_array[j, 0],
                 latlon_array[j, 1],
             )[0]
-            dist.append(distance_float)
+            dist.append(float(distance_float))
     return dist
 
 

@@ -1,7 +1,9 @@
 """Module used to impute missing data, by combining functions defined in other
 modules and calculate summary statistics of imputed trajectories.
 """
+from multiprocessing import cpu_count
 
+import numba
 from dataclasses import dataclass
 from datetime import datetime
 import json
@@ -11,6 +13,7 @@ import pickle
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 from pyproj import Transformer
 import requests
@@ -20,8 +23,8 @@ from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
 from forest.constants import Frequency, OSM_OVERPASS_URL, OSMTags
-from forest.jasmine.data2mobmat import (gps_to_mobmat, infer_mobmat,
-                                        great_circle_dist,
+from forest.jasmine.data2mobmat import (gps_to_mobmat, _great_circle_dist_specialized, infer_mobmat,
+                                        great_circle_dist, np_great_circle_dist,
                                         pairwise_great_circle_dist)
 from forest.jasmine.mobmat2traj import (imp_to_traj, impute_gps, locate_home,
                                         num_sig_places)
@@ -165,7 +168,7 @@ def get_nearby_locations(
     longitudes: List[float] = [pause_vec[0, 2]]
     for row in pause_vec:
         minimum_distance = np.min([
-            great_circle_dist(row[1], row[2], lat, lon)[0]
+            np_great_circle_dist(row[1], row[2], lat, lon)[0]
             for lat, lon in zip(latitudes, longitudes)
             ])
         # only add coordinates to the list if they are not too close
@@ -259,8 +262,8 @@ def get_nearby_locations(
 
 
 def avg_mobility_trace_difference(
-    time_range: Tuple[int, int], mobility_trace1: np.ndarray,
-    mobility_trace2: np.ndarray
+    time_range: Tuple[int, int], mobility_trace1: NDArray[np.float64],
+    mobility_trace2: NDArray[np.float64]
 ) -> float:
     """This function calculates the average mobility trace difference
 
@@ -275,73 +278,134 @@ def avg_mobility_trace_difference(
     Raises:
         ValueError: if the calculation fails
     """
-
     # Create masks for timestamps that lie within the specified time range
-    mask1 = (
-        (mobility_trace1[:, 2] >= time_range[0])
-        & (mobility_trace1[:, 2] <= time_range[1])
-    )
-    mask2 = (
-        (mobility_trace2[:, 2] >= time_range[0])
-        & (mobility_trace2[:, 2] <= time_range[1])
-    )
+    # mask1 = (
+    #     (mobility_trace1[:, 2] >= time_range[0])
+    #     & (mobility_trace1[:, 2] <= time_range[1])
+    # )
+    # mask2 = (
+    #     (mobility_trace2[:, 2] >= time_range[0])
+    #     & (mobility_trace2[:, 2] <= time_range[1])
+    # )
 
     # Find common timestamps using an optimized array intersection,
     # to stay in ndarrays - return is unique.
     # Original was slower, required more lists again later:
     #    common_times = list(set(mt1[mask1, 2]) & set(mt2[mask2, 2]))
-    common_times = np.intersect1d(
-        mobility_trace1[mask1, 2], mobility_trace2[mask2, 2]
-    )
-
+    # common_times = np.intersect1d(
+    #     mobility_trace1[mask1, 2], mobility_trace2[mask2, 2]
+    # )
+    
+    common_times = _masks_and_common(mobility_trace1, mobility_trace2, time_range)
     if len(common_times) == 0:  # short circuit on no common times
         return 0
 
     # Create masks for the common timestamps
-
     # The unique guarantee allows us to use assume_unique=True, about
-    # 3x faster according to docs. Short circuit on zero matches.
-    mask1_common = np.isin(
-        mobility_trace1[:, 2], common_times, assume_unique=True
-    )
-    # these any() checks are very slow, and on real data are they are not hit much.
-    # The normal code path works fine
-    # if not any(mask1_common):
-    #     return 0
+    # 3x faster according to docs. (Numba makes isin much slower, v0.66)
+    # mask1_common = np.isin(mobility_trace1[:, 2],
+    #     common_times, assume_unique=True)
+    # mask2_common = np.isin(mobility_trace2[:, 2],
+    #     common_times, assume_unique=True)
+    # We have created _isin() below, which is a reduced-scope copy
+    # of np.isin(), keeping only what we need (~10% boost)
+    # Though these appear independent (shared reads only) threading
+    # did not provide a speedup, despite numpy stating that
+    # it usually releases the GIL. Overhead of the threading
+    # is a slowdown of about 20%.
+    mask2_common = _isin(mobility_trace2[:, 2], common_times)
+    mask1_common = _isin(mobility_trace1[:, 2], common_times)
 
-    mask2_common = np.isin(
-        mobility_trace2[:, 2], common_times, assume_unique=True
-    )
-    # if not any(mask2_common):
-    #     return 0
-
-    # If we also sort we could then use searchsorted, which _is_ faster, but
-    # returns indices, and then requires clamping or padding out common_times
-    # to handle index OoB errors. It ends up within like 1% of the above:
-    #     common.sort()  # the sort is virtually free
-    #     idx1 = np.searchsorted(common, mobility_trace1[:, 2])
-    #     idx1_clamped = np.minimum(idx1, len(common) - 1)
-    #     mask1_common = (idx1 < len(common)) & (
-    #         common[idx1_clamped] == mobility_trace1[:, 2])
-
-    # Calculate distances using the common timestamp masks
-    dists = great_circle_dist(
-        mobility_trace1[mask1_common, 0], mobility_trace1[mask1_common, 1],
-        mobility_trace2[mask2_common, 0], mobility_trace2[mask2_common, 1]
+    # The existitng great circle distance code had several slow spots
+    # and accepted extra input types. Rewriting it with several
+    # different optimizations and merging in the mask operation itself
+    # was a substantial speedup, probably 30%
+    dists = _great_circle_dist_specialized(
+        mobility_trace1, mask1_common, mobility_trace2, mask2_common
     )
 
+    # small function with just enough compute on our inputs
+    #  to be useful to compile.
+    res, is_nan = _dist_flag_compute(dists)
+
+    if is_nan:
+        raise ValueError("PCR calculation failed")
+    return res
+
+
+def _isin(ar1: NDArray[np.float64], ar2: NDArray[np.float64]) -> NDArray[np.bool_]:
+    """ This function was copied out of the numpy source and reduced in scope in
+    order to optimize it. Numba makes multiple parts in here slower and was not workable. """
+    # Ravel both arrays, behavior for the first array could be different
+    ar1_ref = np.asarray(ar1)
+    
+    ar1 = np.asarray(ar1).ravel()
+    ar2 = np.asarray(ar2).ravel()
+
+    # This code is run when
+    # a) the first condition is true, making the code significantly faster
+    # b) the second condition is true (i.e. `ar1` or `ar2` may contain
+    #    arbitrary objects), since then sorting is not guaranteed to work
+    if len(ar2) < 10 * len(ar1) ** 0.145:
+        mask = np.zeros(len(ar1), dtype=np.bool_)
+        for a in ar2:
+            mask |= (ar1 == a)
+        return mask
+    
+    # ar = np.concatenate((ar1, ar2))  # replacing the concatenate may be slightly faster
+    ar = np.empty(ar1.shape[0] + ar2.shape[0], dtype=ar1.dtype)
+    ar[:ar1.shape[0]] = ar1
+    ar[ar1.shape[0]:] = ar2
+    
+    # We need this to be a stable sort, so always use 'mergesort'
+    # here. The values from the first array should always come before
+    # the values from the second array.
+    order = ar.argsort(stable=True)
+    sar = ar[order]
+    bool_ar = (sar[1:] == sar[:-1])
+
+    flag = np.empty(bool_ar.shape[0] + 1, dtype=np.bool_)
+    flag[:-1] = bool_ar
+    flag[-1] = False
+
+    ret = np.empty(ar.shape, dtype=np.bool_)
+    ret[order] = flag
+    r = ret[:len(ar1)]
+    return r.reshape(ar1_ref.shape)
+
+
+@numba.jit(nopython=True, cache=True, fastmath=True)
+def _masks_and_common(
+    trace1: NDArray[np.float64], trace2: NDArray[np.float64], time_range: Tuple[int, int]
+) -> NDArray[np.float64]:
+    # wrapping this with numba jit yields about a 10% speedup overall improvement
+
+    t0 = time_range[0]
+    t1 = time_range[1]
+    tr1 = trace1[:, 2]
+    tr2 = trace2[:, 2]
+    mask1 = (tr1 >= t0) & (tr1 <= t1)
+    mask2 = (tr2 >= t0) & (tr2 <= t1)
+
+    # Find common timestamps using an optimized array intersection,
+    # to stay in ndarrays - return is unique.
+    # Original was slower, required more lists again later:
+    #    common_times = list(set(mt1[mask1, 2]) & set(mt2[mask2, 2]))
+    return np.intersect1d(trace1[mask1, 2], trace2[mask2, 2])
+
+
+@numba.jit(nopython=True, cache=True, fastmath=True)
+def _dist_flag_compute(dists: NDArray[np.float64]) -> Tuple[float, bool]:
     dist_flag = dists <= 10
     res = np.mean(dist_flag)
-    if np.isnan(res):
-        raise ValueError("PCR calculation failed")
-
-    return float(res)
+    return float(res), np.isnan(res)
 
 
 def routine_index(
     time_range: Tuple[int, int], mobility_trace: np.ndarray,
     pcr_window: int = 14, pcr_sample_rate: int = 30,
     stratified: bool = False, timezone: str = "US/Eastern",
+    cache: Optional[dict] = None,
 ) -> float:
     """This function calculates the routine index of a trajectory
 
@@ -411,23 +475,138 @@ def routine_index(
                 ).weekday() < 5
             ]
 
-    # original implementation was:
+    # the inner loop has been substantially rewritten for performance
+    cache = cache if cache is not None else {}
+    average_traces = _inner_loop(mobility_trace, time_range, shifts, pcr_sample_rate, cache)
+    return sum(average_traces) / (n1 + n2)
+
+
+def _inner_loop(
+    mobility_trace: np.ndarray, time_range: Tuple[int, int],
+    shifts: List[int], pcr_sample_rate: int, cache: dict[Tuple[Tuple[int, int], int], float],
+) -> list[float]:
+    """ The original code in here was too slow for use on The Beiwe Platform,
+    taking many hours to run on only a few hundred megabytes of data. """
+
+    # This function is hit twice in a row with calls that repeat work,
+    # we can save a bunch of work by caching answers on the similar queries
+
+    # original code looks like this
     # res = sum(
     #     avg_mobility_trace_difference(
     #         time_range,
     #         mobility_trace[::pcr_sample_rate],
     #         np.column_stack([
     #             mobility_trace[:, :2],
-    #             mobility_trace[:, 2] + i * 24 * 60 * 60
-    #         ])
-    #     )
-    #     for i in shifts
-    # )
-    # return res / (n1 + n2)
+    #             mobility_trace[:, 2] + i * 24 * 60 * 60 ]))
+    #     for i in shifts )
+
+    average_traces = []
 
     # Pull everything out of the loop, to avoid a call to np.column_stack,
     # which allocates on every shift. Tested and found fortran arrays
     # (column-major memory order) also assists, totals 20-30% speedup.
+    # (Numba actually makes this block slower.)
+    time_col = np.asfortranarray(mobility_trace[:, 2])
+    tmp = np.asfortranarray(mobility_trace[:, :2])
+    preallocated_array = np.asfortranarray(np.empty((tmp.shape[0], 3)))
+    preallocated_array[:, :2] = tmp
+    sampled_trace = np.asfortranarray(mobility_trace[::pcr_sample_rate])
+
+    # shifts are the day offsets, integers, populated based on
+    # n1, n2, and whether this is a stratified run.
+    for i in shifts:
+        # this should be the only memory _copy_ in the loop,
+        # (Numba slows this line down.)
+        preallocated_array[:, 2] = time_col + i * 24 * 60 * 60
+        cache_key = (time_range, i)
+
+        if hit := cache.get(cache_key):  # hit the cache
+            average_traces.append(hit)
+            continue
+
+        x: float = avg_mobility_trace_difference(  # run compute
+            time_range,
+            sampled_trace,
+            preallocated_array,
+        )
+        average_traces.append(x)
+        cache[cache_key] = x
+
+    return average_traces
+
+
+def routine_index2(
+    time_range: Tuple[int, int], mobility_trace: np.ndarray,
+    pcr_window: int = 14, pcr_sample_rate: int = 30,
+    stratified: bool = False, timezone: str = "US/Eastern",
+    cache: Optional[dict] = None,
+) -> float:
+    """Same as routine_index, but its inner loop uses maaaaask2's
+    two-pointer merge instead of a binary search."""
+
+    t_1, t_2 = time_range
+
+    t_init = mobility_trace[:, 2].min()
+    t_fin = mobility_trace[:, 2].max()
+
+    t_1 = max(t_1, t_init)
+    t_2 = min(t_2, t_fin)
+
+    # n1, n2 are the number of days before and after the time range
+    n1 = int(round((t_1 - t_init) / (24 * 60 * 60)))
+    n2 = int(round((t_fin - t_2) / (24 * 60 * 60)))
+
+    # to avoid long computational times
+    # only look at the last window days and next window days
+    n1 = min(n1, pcr_window)
+    n2 = min(n2, pcr_window)
+
+    if max(n1, n2) == 0:
+        return 0
+
+    shifts = list(range(1, n1 + 1)) + list(range(-n2, 0))
+    if stratified:
+        time_mid = int((t_1 + t_2) / 2)
+        weekend_today = datetime(
+            *stamp2datetime(time_mid, timezone)
+        ).weekday() >= 5
+        if weekend_today:
+            shifts = [
+                s for s in shifts
+                if datetime(
+                    *stamp2datetime(
+                        time_mid - s * 24 * 60 * 60, timezone
+                    )
+                ).weekday() >= 5
+            ]
+        else:
+            shifts = [
+                s for s in shifts
+                if datetime(
+                    *stamp2datetime(
+                        time_mid - s * 24 * 60 * 60, timezone
+                    )
+                ).weekday() < 5
+            ]
+
+    cache = cache if cache is not None else {}
+    average_traces = _inner_loop2(mobility_trace, time_range, shifts, pcr_sample_rate, cache)
+    return sum(average_traces) / (n1 + n2)
+
+
+# @numba.jit(
+    # "list(float64)(float64[:, :], tuple(int64, int64), list(int64), int64, dict[tuple[tuple[int64, int64], int64], float64])",
+        # nopython=True, cache=True, fastmath=True)
+def _inner_loop2(
+    mobility_trace: NDArray[np.float64],
+    time_range: Tuple[int, int],
+    shifts: List[int],
+    pcr_sample_rate: int,
+    cache: dict[tuple[tuple[int, int], int], float],
+) -> list[float]:
+    """Same as _inner_loop, but calls avg_mobility_trace_difference2."""
+
     average_traces = []
 
     time_col = np.asfortranarray(mobility_trace[:, 2])
@@ -437,18 +616,130 @@ def routine_index(
     sampled_trace = np.asfortranarray(mobility_trace[::pcr_sample_rate])
 
     for i in shifts:
-        preallocated_array[:, 2] = time_col + i * 24 * 60 * 60  # this is still a copy
-        x = avg_mobility_trace_difference(
+        preallocated_array[:, 2] = time_col + i * 24 * 60 * 60
+        cache_key = (time_range, i)
+
+        if hit := cache.get(cache_key):
+            average_traces.append(hit)
+            continue
+
+        x: float = avg_mobility_trace_difference2(
             time_range,
             sampled_trace,
             preallocated_array,
         )
         average_traces.append(x)
+        cache[cache_key] = x
 
-    return sum(average_traces) / (n1 + n2)
+    return average_traces
 
 
-def create_mobility_trace(traj: np.ndarray) -> np.ndarray:
+@numba.jit(nopython=True, cache=True, fastmath=True)
+def avg_mobility_trace_difference2(
+    time_range: Tuple[int, int], mobility_trace1: NDArray[np.float64],
+    mobility_trace2: NDArray[np.float64]
+) -> float:
+    """Same as avg_mobility_trace_difference, but using maaaaask2's
+    two-pointer merge instead of a binary search."""
+
+    common_times = _masks_and_common(mobility_trace1, mobility_trace2, time_range)
+    if len(common_times) == 0:
+        return 0
+
+    mask2_common = _trace_dif_mask(common_times, mobility_trace2)
+    mask1_common = _trace_dif_mask(common_times, mobility_trace1)
+
+    dists = _great_circle_dist_specialized(
+        mobility_trace1, mask1_common, mobility_trace2, mask2_common
+    )
+
+    res, is_nan = _dist_flag_compute(dists)
+
+    if is_nan:
+        raise ValueError("PCR calculation failed")
+    return res
+
+
+# def maaaaask(common: NDArray[np.float64], mobility_trace: NDArray[np.float64]) -> NDArray[np.bool_]:
+#     # This was the original np.searchsorted code before ultra-max claude went through it
+#     idx1 = np.searchsorted(common, mobility_trace[:, 2])
+#     idx1_clamped = np.minimum(idx1, len(common) - 1)
+#     mask1_common = (idx1 < len(common)) & (
+#         common[idx1_clamped] == mobility_trace[:, 2])
+#     return mask1_common
+
+
+
+@numba.jit(nopython=True, cache=True, fastmath=True, inline="always", parallel=True)
+def _trace_dif_mask(common: NDArray[np.float64], mobility_trace: NDArray[np.float64]) -> NDArray[np.bool_]:
+    # Two-pointer merge: requires mobility_trace[:, 2] sorted ascending,
+    # guaranteed by create_mobility_trace's np.unique dedup/sort.
+    n = mobility_trace.shape[0]
+    m = common.shape[0]
+    times = mobility_trace[:, 2]
+    mask = np.zeros(n, dtype=np.bool_)
+    j = 0
+    for i in range(n):
+        t = times[i]
+        while j < m and common[j] < t:
+            j += 1
+        if j < m and common[j] == t:
+            mask[i] = True
+    return mask
+
+
+
+#TODO: Eli - what exactly were the changes made here
+# def create_mobility_trace(traj: NDArray[np.float64]) -> NDArray[np.float64]:
+#     """This function creates a mobility trace from a trajectory
+
+#     Args:
+#         traj: numpy array, trajectory
+#             contains 8 columns: [s,x0,y0,t0,x1,y1,t1,obs]
+#     Returns:
+#         numpy array, mobility trace
+#             contains 3 columns: [x, y, t]
+#     """
+
+#     pause_vec: NDArray[np.float64] = traj[traj[:, 0] == 2]
+
+#     # Calculate the time ranges for all pauses
+#     start_times: NDArray[np.int64] = pause_vec[:, 3].astype(np.int64)
+#     end_times: NDArray[np.int64] = pause_vec[:, 6].astype(np.int64)
+
+#     # Build the flattened time ranges and matching locations without a
+#     # Python list of arrays: numba's nopython mode can't reliably
+#     # type-infer np.concatenate over a (possibly empty) reflected list,
+#     # so expand each pause's [start, end) range with array ops instead.
+#     n_pauses = pause_vec.shape[0]
+#     lengths = end_times - start_times
+#     total_len = lengths.sum()
+
+#     ids = np.repeat(np.arange(n_pauses), lengths)
+#     seg_start = np.cumsum(lengths) - lengths
+#     offset = np.arange(total_len) - np.repeat(seg_start, lengths)
+#     flat_time_ranges = (start_times[ids] + offset).astype(np.float64)
+#     locs = pause_vec[ids][:, 1:3]
+
+#     # Stack locations and time_ranges to get the mobility trace
+#     mobility_trace = np.column_stack((locs, flat_time_ranges))
+
+#     # Deduplicate timestamps, keeping the first occurrence, without
+#     # np.unique(return_index=True) which numba does not support: a stable
+#     # sort groups equal timestamps while preserving original order among
+#     # ties, so the first element of each group is the first occurrence.
+#     order = np.argsort(mobility_trace[:, 2], kind='mergesort')
+#     sorted_times = mobility_trace[order, 2]
+#     keep = np.empty(total_len, dtype=np.bool_)
+#     if total_len > 0:
+#         keep[0] = True
+#         keep[1:] = sorted_times[1:] != sorted_times[:-1]
+#     unique_indices = order[keep]
+
+#     return mobility_trace[unique_indices]
+
+
+def create_mobility_trace(traj: np.ndarray) -> NDArray[np.float64]:
     """This function creates a mobility trace from a trajectory
 
     Args:
@@ -472,12 +763,17 @@ def create_mobility_trace(traj: np.ndarray) -> np.ndarray:
     locs = np.repeat(pause_vec[:, 1:3], repeats, axis=0)
 
     # Stack locations and time_ranges to get the mobility trace
-    mobility_trace = np.column_stack([locs, flat_time_ranges])
+    # mobility_trace = np.column_stack((locs, flat_time_ranges))
+    mobility_trace = _opt_dual_col_stack(locs, flat_time_ranges)
 
     # check if duplicate timestamps exist
     _, unique_indices = np.unique(mobility_trace[:, 2], return_index=True)
-
     return mobility_trace[unique_indices]
+
+
+@numba.jit(nopython=True, cache=True, fastmath=True)
+def _opt_dual_col_stack(arr1: NDArray[np.float64], arr2: NDArray[np.float64]) -> NDArray[np.float64]:
+    return np.column_stack((arr1, arr2))
 
 
 def get_day_night_indices(
@@ -1619,14 +1915,15 @@ def gps_summaries(
             # physical circadian rhythm
             if obs_dur != 0 and parameters.pcr_bool:
                 mobility_trace = create_mobility_trace(traj)
-                pcr = routine_index(
+                cache = {}
+                pcr = routine_index2(
                     (start_time, end_time), mobility_trace,
-                    parameters.pcr_window, parameters.pcr_sample_rate
+                    parameters.pcr_window, parameters.pcr_sample_rate, cache=cache
                 )
-                pcr_stratified = routine_index(
+                pcr_stratified = routine_index2(
                     (start_time, end_time), mobility_trace,
                     parameters.pcr_window, parameters.pcr_sample_rate,
-                    True, tz_str
+                    True, tz_str, cache=cache
                 )
             else:
                 pcr = pd.NA
