@@ -8,7 +8,7 @@ import numpy as np
 import scipy.stats as stat
 
 from ..poplar.legacy.common_funcs import stamp2datetime
-from .data2mobmat import exist_knot, great_circle_dist
+from .data2mobmat import exist_knot, great_circle_dist, fp_great_circle_dist, mix1_great_circle_dist
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -156,9 +156,9 @@ def locate_home(mob_mat: np.ndarray, timezone: str) -> tuple[float, float]:
 
 
 def calculate_k1(
-    method: str, timestamp: float, x_coord: float, y_coord: float,
-    bv_subset: np.ndarray, parameters: list
-) -> np.ndarray | None:
+    method: str, timestamp: float, x_coord: float, y_coord: float, bv_subset: np.ndarray,
+    parameters: list
+) -> np.ndarray:
     """ Calculate the similarity measure between a given point and a set of base vectors, using one
         of three specified methods: 'TL', 'GL', or 'GLC'.
     
@@ -184,16 +184,12 @@ def calculate_k1(
         ValueError: If an invalid method is specified.
     """
     [
-        length_1, length_2, amplitude_1, amplitude_2,
-        weight_1, weight_2, weight_3, spatial_scale
+        length_1, length_2, amplitude_1, amplitude_2, weight_1, weight_2, weight_3, spatial_scale
     ] = parameters
-    
+
     mean_x = ((bv_subset[:, 1] + bv_subset[:, 4]) / 2).astype(float)
     mean_y = ((bv_subset[:, 2] + bv_subset[:, 5]) / 2).astype(float)
     mean_t = ((bv_subset[:, 3] + bv_subset[:, 6]) / 2).astype(float)
-    
-    if method not in ["TL", "GL", "GLC"]:
-        raise ValueError(f"Invalid method: {method}. Expected 'TL', 'GL', or 'GLC'.")
     
     # 'TL' method
     if method == "TL":
@@ -206,22 +202,22 @@ def calculate_k1(
         return (weight_1 / (weight_1 + weight_2) * k1 + weight_2 / (weight_1 + weight_2) * k2)
     
     # 'GL' method
-    if method == "GL":
-        distance = great_circle_dist(x_coord, y_coord, mean_x, mean_y)
+    elif method == "GL":
+        distance = mix1_great_circle_dist(x_coord, y_coord, mean_x, mean_y)
         return np.exp(-distance / spatial_scale)
     
     # 'GLC' method
-    if method == "GLC":
+    elif method == "GLC":
         k1 = np.exp(-abs(timestamp - mean_t) / length_1) * np.exp(
             -((np.sin(abs(timestamp - mean_t) / 86400 * math.pi))**2) / amplitude_1
         )
         k2 = np.exp(-abs(timestamp - mean_t) / length_2) * np.exp(
             -((np.sin(abs(timestamp - mean_t) / 604800 * math.pi))**2) / amplitude_2
         )
-        distance = great_circle_dist(x_coord, y_coord, mean_x, mean_y)
+        distance = mix1_great_circle_dist(x_coord, y_coord, mean_x, mean_y)
         k3 = np.exp(-distance / spatial_scale)
         return weight_1 * k1 + weight_2 * k2 + weight_3 * k3
-    return None
+    raise ValueError(f"Invalid method: {method}. Expected 'TL', 'GL', or 'GLC'.")
 
 
 def indicate_flight(
@@ -285,7 +281,7 @@ def indicate_flight(
     )
     
     # Calculate the great circle distance to the destination and the required speed
-    distance_to_destination = great_circle_dist(current_x, current_y, dest_x, dest_y)[0]
+    distance_to_destination = fp_great_circle_dist(current_x, current_y, dest_x, dest_y)[0]
     speed_to_destination = distance_to_destination / (dest_t - current_t + 0.0001)
     
     # Adjust the probability based on the required speed to reach the destination

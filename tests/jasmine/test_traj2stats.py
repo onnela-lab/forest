@@ -44,13 +44,13 @@ def test_transform_point_to_circle_radius(coords1):
     """Testing creating a circle from a center point
     in coordinates and checking radius is approximately correct
     """
-
+    
     circle1 = transform_point_to_circle(*coords1, 5)
     point_in_edge = [
         circle1.exterior.coords.xy[0][2],
         circle1.exterior.coords.xy[1][2],
     ]
-
+    
     distance = great_circle_dist(*coords1, *point_in_edge)[0]
     assert 4 <= distance <= 5
 
@@ -277,10 +277,10 @@ def test_gps_summaries_shape(
         return_value=sample_nearby_locations,
     )
     mocker.patch("forest.jasmine.traj2stats.locate_home", return_value=coords1)
-
+    
     parameters = Hyperparameters()
     parameters.save_osm_log = True
-
+    
     summary, _ = gps_summaries(
         traj=sample_trajectory,
         tz_str="Europe/London",
@@ -301,10 +301,10 @@ def test_gps_summaries_places_of_interest(
         return_value=sample_nearby_locations,
     )
     mocker.patch("forest.jasmine.traj2stats.locate_home", return_value=coords1)
-
+    
     parameters = Hyperparameters()
     parameters.save_osm_log = True
-
+    
     summary, _ = gps_summaries(
         traj=sample_trajectory,
         tz_str="Europe/London",
@@ -333,10 +333,10 @@ def test_gps_summaries_obs_day_night(
         return_value=sample_nearby_locations,
     )
     mocker.patch("forest.jasmine.traj2stats.locate_home", return_value=coords1)
-
+    
     parameters = Hyperparameters()
     parameters.save_osm_log = True
-
+    
     summary, _ = gps_summaries(
         traj=sample_trajectory,
         tz_str="Europe/London",
@@ -364,11 +364,11 @@ def test_gps_summaries_datetime_nighttime_shape(
         return_value=sample_nearby_locations,
     )
     mocker.patch("forest.jasmine.traj2stats.locate_home", return_value=coords1)
-
+    
     parameters = Hyperparameters()
     parameters.save_osm_log = True
     parameters.split_day_night = True
-
+    
     summary, _ = gps_summaries(
         traj=sample_trajectory,
         tz_str="Europe/London",
@@ -390,10 +390,10 @@ def test_gps_summaries_log_format(
         return_value=sample_nearby_locations,
     )
     mocker.patch("forest.jasmine.traj2stats.locate_home", return_value=coords1)
-
+    
     parameters = Hyperparameters()
     parameters.save_osm_log = True
-
+    
     summary, log = gps_summaries(
         traj=sample_trajectory,
         tz_str="Europe/London",
@@ -432,20 +432,20 @@ def test_gps_summaries_summary_vals(
         return_value=sample_nearby_locations,
     )
     mocker.patch("forest.jasmine.traj2stats.locate_home", return_value=coords1)
-
+    
     parameters = Hyperparameters()
-
+    
     summary, _ = gps_summaries(
         traj=sample_trajectory,
         tz_str="Europe/London",
         frequency=Frequency.DAILY,
         parameters=parameters,
     )
-
+    
     # Handle both new and old column names
     def col(name, alt):
         return name if name in summary.columns else alt
-
+    
     assert summary[col("Obs Duration", "obs_duration")].iloc[0] == 24
     assert summary[col("Obs Day", "obs_day")].iloc[0] == 10
     assert summary[col("Obs Night", "obs_night")].iloc[0] == 14
@@ -490,10 +490,10 @@ def test_gps_summaries_pcr(
         return_value=sample_nearby_locations,
     )
     mocker.patch("forest.jasmine.traj2stats.locate_home", return_value=coords1)
-
+    
     parameters = Hyperparameters()
     parameters.pcr_bool = True
-
+    
     summary, _ = gps_summaries(
         traj=sample_trajectory,
         tz_str="Europe/London",
@@ -560,12 +560,8 @@ def test_avg_mobility_trace_difference_common_timestamps(
     """Testing avg mobility trace difference
     when there are common timestamps and all points are close
     """
-
-    time_range = (3, 5)
-    res = avg_mobility_trace_difference(
-        time_range, mobmat1, mobmat2
-    )
-
+    
+    res = avg_mobility_trace_difference(3, 5, mobmat1, mobmat2)
     assert res == 1
 
 
@@ -575,148 +571,139 @@ def test_avg_mobility_trace_difference_common_timestamps2(
     """Testing avg mobility trace difference
     when there are common timestamps and some points are close
     """
-
-    time_range = (1, 5)
-    res = avg_mobility_trace_difference(
-        time_range, mobmat1, mobmat2
-    )
-
+    
+    res = avg_mobility_trace_difference(1, 5, mobmat1, mobmat2)
     assert res == 0.6
 
 
 def test_avg_mobility_trace_difference_no_common_timestamps(
     mobmat1, mobmat3
 ):
-    """Testing avg mobility trace difference
-    when there are no common timestamps
-    """
-
+    """ Testing avg mobility trace difference when there are no common timestamps """
+    
     time_range = (1, 5)
-    res = avg_mobility_trace_difference(
-        time_range, mobmat1, mobmat3
-    )
-
+    res = avg_mobility_trace_difference(1, 5, mobmat1, mobmat3)
     assert res == 0
 
 
 def test_create_mobility_trace_shape(sample_trajectory):
     """Testing shape of mobility trace"""
-
+    
     res = create_mobility_trace(sample_trajectory)
-
+    
     assert res.shape == (81200, 3)
 
 
 def test_create_mobility_trace_start_end_times(sample_trajectory):
     """Testing start and end times of mobility trace"""
-
+    
     res = create_mobility_trace(sample_trajectory)
-
+    
     assert res[0, 2] == 1633042800.0
     assert res[-1, 2] == 1633129499.0
 
 
 def test_get_pause_array_shape(sample_trajectory, coords2):
     """Testing shape of pause array"""
-
+    
     parameters = Hyperparameters()
-
+    
     pause_array = get_pause_array(
         sample_trajectory[sample_trajectory[:, 0] == 2, :],
         *coords2,
         parameters
     )
-
+    
     assert pause_array.shape == (3, 3)
 
 
 def test_get_pause_array_times(sample_trajectory, coords2):
     """Testing times spent in places of pause array"""
-
+    
     parameters = Hyperparameters()
-
+    
     pause_array = get_pause_array(
         sample_trajectory[sample_trajectory[:, 0] == 2, :],
         *coords2,
         parameters
     )
-
+    
     assert pause_array[0, 2] == 1113.3333333333333
     assert pause_array[-1, 2] == 180
 
 
 def test_get_pause_array_house(sample_trajectory):
     """Testing case where house is in pause array"""
-
+    
     house_coords = (51.45435654, -2.58555554)
     parameters = Hyperparameters()
-
+    
     pause_array = get_pause_array(
         sample_trajectory[sample_trajectory[:, 0] == 2, :],
         *house_coords,
         parameters
     )
-
+    
     assert pause_array.shape == (2, 3)
 
 
 def test_extract_pause_from_row_shape(sample_trajectory):
     """Testing shape of pause array"""
-
+    
     pause_list = extract_pause_from_row(
         sample_trajectory[0, :]
     )
-
+    
     assert len(pause_list) == 3
 
 
 def test_extract_pause_from_row_time(sample_trajectory):
     """Testing pause time of row"""
-
+    
     pause_list = extract_pause_from_row(
         sample_trajectory[0, :]
     )
-
+    
     true_val = sample_trajectory[0, 6] - sample_trajectory[0, 3]
-
+    
     assert pause_list[2] == true_val / 60
 
 
 def test_compute_window_size(sample_trajectory):
     """Testing window size is correct"""
-
+    
     window, _ = compute_window_and_count(
         sample_trajectory[0, 3], sample_trajectory[-1, 6], 60
     )
-
+    
     assert window == 3600
 
 
 def test_compute_window_count(sample_trajectory):
     """Testing number of windows is correct"""
-
+    
     _, num_windows = compute_window_and_count(
         sample_trajectory[0, 3], sample_trajectory[-1, 6], 60
     )
-
+    
     assert num_windows == 24
 
 
 def test_compute_window_size_6_hour(sample_trajectory):
     """Testing window size is correct 6 hour window"""
-
+    
     window, _ = compute_window_and_count(
         sample_trajectory[0, 3], sample_trajectory[-1, 6], 360
     )
-
+    
     assert window == 3600 * 6
 
 
 def test_compute_window_count_6_hour(sample_trajectory):
     """Testing number of windows is correct 6 hour window"""
-
+    
     _, num_windows = compute_window_and_count(
         sample_trajectory[0, 3], sample_trajectory[-1, 6], 360
     )
-
+    
     assert num_windows == 4
