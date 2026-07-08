@@ -170,7 +170,7 @@ def _great_circle_dist_specialized(
     return np.arccos(temp) * EARTH_RADIUS_METERS
 
 
-## End numba great_circle_dist functions
+## (end numba great_circle_dist functions)
 
 
 def shortest_dist_to_great_circle(
@@ -185,30 +185,27 @@ def shortest_dist_to_great_circle(
         location2: np.ndarray, latitude and longitude of location 2
         location3: np.ndarray, latitude and longitude of location 3
     Returns:
-        the shortest distance from location 1 to the great circle
-            determined by location 2 and 3
+        the shortest distance from location 1 to the great circle determined by location 2 and 3.
             (the path which is perpendicular to the great circle)
             unit is meter, data type matches the input
     """
     lat_start, lon_start = location2
     lat_end, lon_end = location3
     lat, lon = location1[:, 0], location1[:, 1]
+    
     # if loc2 and 3 are too close to determine a great circle, return 0
-    if (
-        abs(lat_start - lat_end) < TOLERANCE
-        and abs(lon_start - lon_end) < TOLERANCE
-    ):
+    if (abs(lat_start - lat_end) < TOLERANCE and abs(lon_start - lon_end) < TOLERANCE):
         return np.zeros(len(lat))
+    
     x_coord, y_coord, z_coord = cartesian(lat, lon)
     x_start, y_start, z_start = cartesian(lat_start, lon_start)
     x_end, y_end, z_end = cartesian(lat_end, lon_end)
-    cross_product = np.cross(
-        np.array([x_start, y_start, z_start]),
-        np.array([x_end, y_end, z_end])
-    )
+    cross_product = np.cross(np.array([x_start, y_start, z_start]), np.array([x_end, y_end, z_end]))
+    
     N = cross_product / (np.linalg.norm(cross_product) + TOLERANCE)
     C = np.array([x_coord, y_coord, z_coord]) / EARTH_RADIUS_METERS
     temp = np.dot(N, C)
+    
     # make temp fall into the domain of "arccos"
     if isinstance(temp, np.ndarray):
         temp[temp > 1] = 1
@@ -230,8 +227,7 @@ def pairwise_great_circle_dist(latlon_array: FP64Array) -> list[float]:
             The first column is latitude and the second is longitude. each element should be within
             [-180, 180]
     Returns:
-        a list of length n*(n-1)/2,
-            the pairwise great circle distance between any pair of locations
+        a list of length n*(n-1)/2, the pairwise great circle distance between any pair of locations
     """
     
     # using fp_great_circle_dist and compiling this function with numba
@@ -346,9 +342,7 @@ def collapse_data(data: pd.DataFrame, interval: float, accuracy_limit: float) ->
     return avgmat
 
 
-def exist_knot(
-    avg_mat: np.ndarray, distance_threshold: float
-) -> tuple[int, int | None]:
+def exist_knot(avg_mat: np.ndarray, distance_threshold: float) -> tuple[int, int | None]:
     """This function checks if there is a knot in the observed data chunk.
 
     Args:
@@ -397,9 +391,7 @@ def exist_knot(
     return 0, None
 
 
-def mark_single_measure(
-    input_matrix: np.ndarray, interval: float
-) -> np.ndarray:
+def mark_single_measure(input_matrix: np.ndarray, interval: float) -> np.ndarray:
     """Marks a single measure as status "3" (unknown).
 
     Args:
@@ -421,9 +413,7 @@ def mark_single_measure(
     )
 
 
-def mark_complete_pause(
-    input_matrix: np.ndarray, interval: float, nrows: int,
-) -> np.ndarray:
+def mark_complete_pause(input_matrix: np.ndarray, interval: float, nrows: int) -> np.ndarray:
     """Marks a complete pause as status "2" (pause) if
      all points are within the maximum pause radius.
 
@@ -453,9 +443,7 @@ def mark_complete_pause(
     )
 
 
-def detect_knots(
-    input_matrix: np.ndarray, nrows: int, w: float, h: float
-) -> list:
+def detect_knots(input_matrix: np.ndarray, nrows: int, w: float, h: float) -> list:
     """Detects knots in the data.
 
     Args:
@@ -476,14 +464,14 @@ def detect_knots(
     movement_distances = np.array(
         [
             great_circle_dist(
-                input_matrix[i, 2], input_matrix[i, 3],
-                input_matrix[i + 1, 2], input_matrix[i + 1, 3]
-            )[0]
-            for i in range(nrows - 1)
+                input_matrix[i, 2],
+                input_matrix[i, 3],
+                input_matrix[i + 1, 2],
+                input_matrix[i + 1, 3],
+            )[0] for i in range(nrows - 1)
         ]
     )
-    # Indices where the movement is less than the pause threshold,
-    # considered as pauses
+    # Indices where the movement is less than the pause threshold, considered as pauses
     pause_indices = np.arange(0, nrows - 1)[movement_distances < h]
     
     temp_indices = []
@@ -491,17 +479,14 @@ def detect_knots(
         if pause_indices[j + 1] - pause_indices[j] == 1:
             temp_indices.extend([pause_indices[j], pause_indices[j + 1]])
     
-    # all the consequential numbers in between are inserted twice,
-    # but start and end are inserted once
+    # all consequential numbers in between are inserted twice, but start and end are inserted once
     long_pause_indices = np.unique(temp_indices)[
-        np.array(
-            [len(list(group)) for key, group in groupby(temp_indices)]
-        ) == 1
-    ]
-    # pause 0,1,2, correspond to point [0,1,2,3],
-    # so the end number should plus 1
+        np.array([len(list(group)) for _key, group in groupby(temp_indices)]) == 1]
+    
+    # pause 0,1,2, correspond to point [0,1,2,3], so the end number should plus 1.
     # Adjust pause indices to represent points, not movements
     long_pause_indices[np.arange(1, len(long_pause_indices), 2)] += 1
+    
     # the key is to update the knot list and sort them
     knot_indices.extend(long_pause_indices.tolist())
     knot_indices.sort()
@@ -514,9 +499,7 @@ def detect_knots(
         for i in range(len(knot_indices) - 1):
             knot_start = knot_indices[i]
             knot_end = min(knot_indices[i + 1] + 1, nrows - 1)
-            sub_matrices.append(
-                input_matrix[knot_start:knot_end, :]
-            )
+            sub_matrices.append(input_matrix[knot_start:knot_end, :])
         
         knot_exists = np.empty(len(sub_matrices))
         knot_position = np.empty(len(sub_matrices))
@@ -529,16 +512,12 @@ def detect_knots(
         else:
             for i, sub_matrix in enumerate(sub_matrices):
                 if knot_exists[i] == 1:
-                    knot_indices.append(
-                        int(sub_matrix[int(knot_position[i]), 4])
-                    )
+                    knot_indices.append(int(sub_matrix[int(knot_position[i]), 4]))
             knot_indices.sort()
     return knot_indices
 
 
-def prepare_output_data(
-    input_matrix: np.ndarray, knot_indices: list, h: float
-) -> np.ndarray:
+def prepare_output_data(input_matrix: np.ndarray, knot_indices: list, h: float) -> np.ndarray:
     """Prepares the output data by detecting flights and pauses.
 
     Args:
@@ -652,8 +631,7 @@ def extract_flights(
 
 
 def gps_to_mobmat(
-    raw_gps_data: pd.DataFrame, interval: float, accuracy_limit: float,
-    r: float, w: float, h: float
+    raw_gps_data: pd.DataFrame, interval: float, accuracy_limit: float, r: float, w: float, h: float
 ) -> np.ndarray:
     """This function transforms raw GPS data
      to a matrix of first-step trajectories.
@@ -725,9 +703,7 @@ def force_valid_longitude(longitude: float) -> float:
     return (longitude + 180) % 360 - 180
 
 
-def compute_flight_positions(
-    index: int, mobmat: np.ndarray, interval: float
-) -> np.ndarray:
+def compute_flight_positions(index: int, mobmat: np.ndarray, interval: float) -> np.ndarray:
     """Computes the flight positions of the given index in the trajectory.
 
     Args:
@@ -772,9 +748,7 @@ def compute_flight_positions(
     return mobmat
 
 
-def compute_future_flight_positions(
-    index: int, mobmat: np.ndarray, interval: float
-) -> np.ndarray:
+def compute_future_flight_positions(index: int, mobmat: np.ndarray, interval: float) -> np.ndarray:
     """Computes the flight positions of the given index in the trajectory.
      using the next point instead of the previous point
 
@@ -821,8 +795,7 @@ def compute_future_flight_positions(
 
 
 def infer_status_and_positions(
-    index: int, mobmat: np.ndarray,
-    interval: float, r: float
+    index: int, mobmat: np.ndarray, interval: float, r: float
 ) -> np.ndarray:
     """Infers the status and positions of the given index in the trajectory.
 
@@ -939,12 +912,7 @@ def merge_pauses_and_bridge_gaps(mobmat: np.ndarray) -> np.ndarray:
     # Find unique indices where start and end of pauses occur
     # These indices are those that are inserted only once in the list
     pause_boundaries = np.unique(consecutive_pause_indices)[
-        np.array(
-            [
-                len(list(group)) for key, group
-                in groupby(consecutive_pause_indices)
-            ]
-        ) == 1
+        np.array([len(list(group)) for key, group in groupby(consecutive_pause_indices)]) == 1
     ]
     
     # Iterate over each pair of start and end indices
@@ -956,12 +924,8 @@ def merge_pauses_and_bridge_gaps(mobmat: np.ndarray) -> np.ndarray:
         mean_x = np.mean(mobmat[start:(end+1), 1])
         mean_y = np.mean(mobmat[start:(end+1), 2])
         
-        # Replace the start of the pause interval
-        # with mean coordinates and appropriate times
-        mobmat[start, :] = [
-            2, mean_x, mean_y, mobmat[start, 3],
-            mean_x, mean_y, mobmat[end, 6]
-        ]
+        # Replace the start of the pause interval with mean coordinates and appropriate times
+        mobmat[start, :] = [2, mean_x, mean_y, mobmat[start, 3], mean_x, mean_y, mobmat[end, 6]]
         
         # Set status of bridged gaps to 5
         mobmat[(start + 1):(end + 1), 0] = 5
@@ -972,9 +936,7 @@ def merge_pauses_and_bridge_gaps(mobmat: np.ndarray) -> np.ndarray:
     return mobmat
 
 
-def correct_missing_intervals(
-    mobmat: np.ndarray
-) -> tuple[np.ndarray, np.ndarray]:
+def correct_missing_intervals(mobmat: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Corrects missing intervals in the mobility matrix.
 
     Args:
@@ -994,7 +956,10 @@ def correct_missing_intervals(
             
             # Compute the distance between current and previous positions
             distance = great_circle_dist(
-                mobmat[j, 1], mobmat[j, 2], mobmat[j - 1, 4], mobmat[j - 1, 5]
+                mobmat[j,  1],
+                mobmat[j,  2],
+                mobmat[j - 1, 4],
+                mobmat[j - 1, 5],
             )[0]
             
             # If the distance is less than 10 units, start correcting positions
@@ -1005,18 +970,15 @@ def correct_missing_intervals(
                     initial_x = mobmat[j - 1, 4]
                     initial_y = mobmat[j - 1, 5]
                     
-                    # Make sure both pause positions
-                    # re at the same coordinates
+                    # Make sure both pause positions are at the same coordinates
                     mobmat[j, [1, 4]] = mobmat[j - 1, [1, 4]] = initial_x
                     mobmat[j, [2, 5]] = mobmat[j - 1, [2, 5]] = initial_y
                 
-                # If moving state follows a pause,
-                # make it start from where the pause ended
+                # If moving state follows a pause, make it start from where the pause ended
                 if mobmat[j, 0] == 1 and mobmat[j - 1, 0] == 2:
                     mobmat[j, [1, 2]] = mobmat[j - 1, [4, 5]]
                 
-                # If pause follows a moving state,
-                # make the movement end where the pause starts
+                # If pause follows a moving state, make the movement end where the pause starts
                 if mobmat[j, 0] == 2 and mobmat[j - 1, 0] == 1:
                     mobmat[j - 1, [4, 5]] = mobmat[j, [1, 2]]
                 
@@ -1030,12 +992,12 @@ def correct_missing_intervals(
                 # Add the corrected interval as a new pause
                 new_pause = [
                     2,
-                    mobmat[j, 1],
-                    mobmat[j, 2],
+                    mobmat[j,  1],
+                    mobmat[j,  2],
                     mobmat[j - 1, 6],
-                    mobmat[j, 1],
-                    mobmat[j, 2],
-                    mobmat[j, 3],
+                    mobmat[j,  1],
+                    mobmat[j,  2],
+                    mobmat[j,  3],
                     0,
                 ]
                 new_pauses.append(new_pause)
@@ -1068,10 +1030,8 @@ def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
     """
     logger.info("Infer unclassified windows ...")
     
-    # Infer unknown status
-    # The 'unknown' status (code 3)
-    # is inferred based on neighbouring data points
-    # and specific conditions about time intervals and distances.
+    # Infer unknown status. The 'unknown' status (code 3) is inferred based on neighbouring data
+    # points and specific conditions about time intervals and distances.
     for i, status in enumerate(mobmat[:, 0]):
         if status == 3:
             mobmat = infer_status_and_positions(i, mobmat, interval, r)
@@ -1087,11 +1047,9 @@ def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
     
     # connect flights and pauses
     for j in np.arange(1, n_rows):
-        # If the current and previous states form a flight-pause pair
-        # and their times are contiguous
-        # (their end and start times are the same),
-        # then we need to make sure the position
-        # of the flight and pause match up.
+        # If the current and previous states form a flight-pause pair and their times are contiguous
+        # (their end and start times are the same), then we need to make sure the position of the
+        # flight and pause match up.
         if (mobmat[j, 0] * mobmat[j - 1, 0] == 2 and mobmat[j, 3] == mobmat[j - 1, 6]):
             # If the current state is a flight, update its starting position
             # to be the same as the ending position of the preceding pause.
@@ -1104,10 +1062,11 @@ def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
     
     # Add a column of 1s to indicate that all observations are observed
     mobmat = np.hstack((mobmat, np.ones(n_rows).reshape(n_rows, 1)))
+    
     # Append new pauses to the trajectory matrix
     if new_pauses_array.shape[0] > 0:
         mobmat = np.vstack((mobmat, new_pauses_array))
-    # Sort the matrix by start time
-    mobmat = mobmat[mobmat[:, 3].argsort()].astype(float)
+    
+    mobmat = mobmat[mobmat[:, 3].argsort()].astype(float)  # Sort the matrix by start time
     
     return mobmat
