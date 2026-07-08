@@ -467,13 +467,10 @@ def _inner_loop(
     # we can save a bunch of work by caching answers on the similar queries
     
     # original code looks like this
-    # res = sum(
-    #     avg_mobility_trace_difference(
-    #         time_range,
-    #         mobility_trace[::pcr_sample_rate],
-    #         np.column_stack([
-    #             mobility_trace[:, :2],
-    #             mobility_trace[:, 2] + i * 24 * 60 * 60 ]))
+    # res = sum(avg_mobility_trace_difference(
+    #           time_range,
+    #           mobility_trace[::pcr_sample_rate],
+    #           np.column_stack([mobility_trace[:, :2], mobility_trace[:, 2] + i * 24 * 60 * 60 ]))
     #     for i in shifts )
     
     average_traces = []
@@ -484,7 +481,7 @@ def _inner_loop(
     # (Numba actually makes this block slower.)
     time_col = np.asfortranarray(mobility_trace[:, 2])
     tmp = np.asfortranarray(mobility_trace[:, :2])
-    preallocated_array = np.asfortranarray(np.empty((tmp.shape[0], 3)))
+    preallocated_array = np.empty((tmp.shape[0], 3), order="F")
     preallocated_array[:, :2] = tmp
     sampled_trace = np.asfortranarray(mobility_trace[::pcr_sample_rate])
     
