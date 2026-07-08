@@ -2,7 +2,6 @@
 
 import logging
 import os
-from typing import Dict, Optional
 
 import librosa
 import numpy as np
@@ -17,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 def get_audio_survey_id_dict(
-        history_path: Optional[str] = None
-) -> Dict[str, str]:
+        history_path: str | None = None
+) -> dict[str, str]:
     """Create a dict that has most recent prompt corresponding to an audio
     survey as keys and the survey ID as the corresponding value.
 
@@ -30,7 +29,7 @@ def get_audio_survey_id_dict(
         dictionary with keys for each prompt (for example a prompt could be
             "Describe your day today", and values with survey IDs
     """
-    output_dict: Dict[str, str] = {}
+    output_dict: dict[str, str] = {}
     if history_path is None:
         return output_dict
     history_dict = read_json(history_path)
@@ -49,7 +48,7 @@ def get_audio_survey_id_dict(
     return output_dict
 
 
-def get_config_id_dict(config_path: Optional[str] = None) -> Dict[str, int]:
+def get_config_id_dict(config_path: str | None = None) -> dict[str, int]:
     """Get a dict with question prompts as keys and the config IDs as values
 
     Args:
@@ -60,7 +59,7 @@ def get_config_id_dict(config_path: Optional[str] = None) -> Dict[str, int]:
         of the question in the config file) as values
 
     """
-    output_dict: Dict[str, int] = {}
+    output_dict: dict[str, int] = {}
     if config_path is None:
         return output_dict
     surveys = read_json(config_path)["surveys"]
@@ -80,8 +79,8 @@ def get_config_id_dict(config_path: Optional[str] = None) -> Dict[str, int]:
 
 def read_user_audio_recordings_stream(
         download_folder: str, user: str, tz_str: str = "UTC",
-        time_start: str = EARLIEST_DATE, time_end: Optional[str] = None,
-        history_path: Optional[str] = None
+        time_start: str = EARLIEST_DATE, time_end: str | None = None,
+        history_path: str | None = None
 ) -> pd.DataFrame:
     """Reads in all audio_recordings data for a user
 
@@ -202,10 +201,10 @@ def read_user_audio_recordings_stream(
 
 
 def read_aggregate_audio_recordings_stream(
-        download_folder: str, users: Optional[list] = None,
-        tz_str: str = "UTC", config_path: Optional[str] = None,
-        time_start: str = EARLIEST_DATE, time_end: Optional[str] = None,
-        history_path: Optional[str] = None
+        download_folder: str, users: list | None = None,
+        tz_str: str = "UTC", config_path: str | None = None,
+        time_start: str = EARLIEST_DATE, time_end: str | None = None,
+        history_path: str | None = None
 ) -> pd.DataFrame:
     """Reads in all answers data for many users and fixes Android users to have
     an answer instead of an integer

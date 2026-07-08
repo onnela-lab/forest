@@ -17,7 +17,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Forest'
-copyright = '2022, The President and Fellows of Harvard College'
+copyright = '2022, The President and Fellows of Harvard College'  # noqa - shadows built-in
 author = 'Greyson Liu, Josh Barback, and Nellie Ponarul'
 
 # The full version, including alpha/beta/rc tags

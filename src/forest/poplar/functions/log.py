@@ -5,7 +5,6 @@
 
 """
 import logging
-from typing import List
 
 from .io import setup_csv
 
@@ -121,7 +120,7 @@ def log_to_csv(
     level: int = logging.DEBUG,
     log_name: str = "log",
     log_format: str = BASIC_CSV_LOG.attributes,
-    header: List[str] = BASIC_CSV_LOG.header,
+    header: list[str] = BASIC_CSV_LOG.header,
 ) -> None:
     """
     Configure the logging system to write messages to a csv.

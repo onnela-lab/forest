@@ -1,20 +1,15 @@
 import os
+from tempfile import TemporaryDirectory
 
 import numpy as np
 import pandas as pd
 import pytest
-from tempfile import TemporaryDirectory
 
+from forest.poplar.functions.helpers import (clean_dataframe, directory_size, get_windows, iqr,
+    join_lists, sample_range, sample_std, sample_var, sort_by)
+from forest.poplar.legacy.common_funcs import (datetime2stamp, filename2stamp, get_files_timestamps,
+    read_data, stamp2datetime, write_all_summaries)
 from forest.utils import get_ids
-
-from forest.poplar.functions.helpers import (
-    clean_dataframe, get_windows, directory_size, sort_by, join_lists,
-    sample_range, iqr, sample_std, sample_var
-)
-from forest.poplar.legacy.common_funcs import (
-    read_data, datetime2stamp, stamp2datetime, write_all_summaries,
-    get_files_timestamps, filename2stamp
-)
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 TEST_DATA_DIR = os.path.join(CURRENT_DIR, "test_data")
@@ -22,40 +17,33 @@ TEST_DATA_DIR = os.path.join(CURRENT_DIR, "test_data")
 
 def test_datetime2stamp():
     time_list = [2020, 11, 1, 12, 9, 50]
-    assert datetime2stamp(time_list=time_list,
-                          tz_str="America/New_York") == 1604250590
-    assert datetime2stamp(time_list=time_list,
-                          tz_str="America/Chicago") == 1604254190
+    assert datetime2stamp(time_list=time_list, tz_str="America/New_York") == 1604250590
+    assert datetime2stamp(time_list=time_list, tz_str="America/Chicago") == 1604254190
 
 
 def test_datetime2stamp_bad_seconds():
     with pytest.raises(ValueError, match="second must be in 0..59"):
-        datetime2stamp(time_list=[2020, 11, 1, 12, 9, 150],
-                       tz_str="America/New_York")
+        datetime2stamp(time_list=[2020, 11, 1, 12, 9, 150], tz_str="America/New_York")
 
 
 def test_datetime2stamp_bad_minutes():
     with pytest.raises(ValueError, match="minute must be in 0..59"):
-        datetime2stamp(time_list=[2020, 11, 1, 12, 209, 50],
-                       tz_str="America/New_York")
+        datetime2stamp(time_list=[2020, 11, 1, 12, 209, 50], tz_str="America/New_York")
 
 
 def test_datetime2stamp_bad_hours():
     with pytest.raises(ValueError, match="hour must be in 0..23"):
-        datetime2stamp(time_list=[2020, 11, 1, 35, 20, 50],
-                       tz_str="America/New_York")
+        datetime2stamp(time_list=[2020, 11, 1, 35, 20, 50], tz_str="America/New_York")
 
 
 def test_datetime2stamp_bad_days():
     with pytest.raises(ValueError, match="day is out of range for month"):
-        datetime2stamp(time_list=[2020, 11, 35, 5, 20, 50],
-                       tz_str="America/New_York")
+        datetime2stamp(time_list=[2020, 11, 35, 5, 20, 50], tz_str="America/New_York")
 
 
 def test_datetime2stamp_bad_months():
     with pytest.raises(ValueError, match="month must be in 1..12"):
-        datetime2stamp(time_list=[2020, 15, 20, 5, 20, 50],
-                       tz_str="America/New_York")
+        datetime2stamp(time_list=[2020, 15, 20, 5, 20, 50], tz_str="America/New_York")
 
 
 def test_stamp2datetime():
@@ -76,10 +64,14 @@ def test_filename2stamp():
 
 
 def test_read_data():
-    output_data = read_data("idr8gqdh", TEST_DATA_DIR, "gps",
-                            "America/New_York",
-                            time_start=[2020, 11, 1, 20, 9, 50],
-                            time_end=[2022, 11, 1, 20, 9, 50])
+    output_data = read_data(
+        "idr8gqdh",
+        TEST_DATA_DIR,
+        "gps",
+        "America/New_York",
+        time_start=[2020, 11, 1, 20, 9, 50],
+        time_end=[2022, 11, 1, 20, 9, 50]
+    )
     assert output_data[0].shape[0] == 23
     assert output_data[0].shape[1] == 6
     assert output_data[1] == 1639530000
@@ -87,10 +79,14 @@ def test_read_data():
 
 
 def test_read_data_restriction_front():
-    output_data = read_data("idr8gqdh", TEST_DATA_DIR, "gps",
-                            "America/New_York",
-                            time_start=[2021, 12, 15, 20, 9, 50],
-                            time_end=[2022, 11, 1, 20, 9, 50])
+    output_data = read_data(
+        "idr8gqdh",
+        TEST_DATA_DIR,
+        "gps",
+        "America/New_York",
+        time_start=[2021, 12, 15, 20, 9, 50],
+        time_end=[2022, 11, 1, 20, 9, 50]
+    )
     assert output_data[0].shape[0] == 14
     assert output_data[0].shape[1] == 6
     assert output_data[1] == 1639616990
@@ -98,10 +94,14 @@ def test_read_data_restriction_front():
 
 
 def test_read_data_restriction_back():
-    output_data = read_data("idr8gqdh", TEST_DATA_DIR, "gps",
-                            "America/New_York",
-                            time_start=[2020, 11, 1, 20, 9, 50],
-                            time_end=[2021, 12, 15, 20, 9, 50])
+    output_data = read_data(
+        "idr8gqdh",
+        TEST_DATA_DIR,
+        "gps",
+        "America/New_York",
+        time_start=[2020, 11, 1, 20, 9, 50],
+        time_end=[2021, 12, 15, 20, 9, 50]
+    )
     assert output_data[0].shape[0] == 9
     assert output_data[0].shape[1] == 6
     assert output_data[1] == 1639530000
@@ -112,30 +112,32 @@ def test_write_all_summaries():
     df_to_write = pd.DataFrame({"x": [5, 8], "y": [4, 9]})
     with TemporaryDirectory() as tempdir:
         write_all_summaries("test_id", df_to_write, tempdir)
-        assert os.listdir(tempdir) == ['test_id.csv']
+        assert os.listdir(tempdir) == ["test_id.csv"]
 
 
 def test_get_files_timestamps():
-    file_list, timestamp_list = get_files_timestamps(
-        os.path.join(TEST_DATA_DIR, "idr8gqdh", "gps")
-    )
+    file_list, timestamp_list = get_files_timestamps(os.path.join(TEST_DATA_DIR, "idr8gqdh", "gps"))
     assert np.array_equal(
-        file_list, np.array(['2021-12-15 01_00_00+00_00.csv',
-                             '2021-12-16 21_00_00+00_00.csv',
-                             '2021-12-17 00_00_00+00_00.csv'])
+        file_list, np.array(["2021-12-15 01_00_00+00_00.csv",
+                             "2021-12-16 21_00_00+00_00.csv",
+                             "2021-12-17 00_00_00+00_00.csv"])
     )
-    assert np.array_equal(
-        timestamp_list, np.array([1639530000, 1639688400, 1639699200])
-    )
+    assert np.array_equal(timestamp_list, np.array([1639530000, 1639688400, 1639699200]))
+
 
 # Testing functions in forest.poplar.functions.helpers
 
 
 @pytest.fixture
 def gps_df():
-    return read_data("idr8gqdh", TEST_DATA_DIR, "gps", "America/New_York",
-                     time_start=[2021, 12, 15, 20, 9, 50],
-                     time_end=[2022, 11, 1, 20, 9, 50])[0]
+    return read_data(
+        "idr8gqdh",
+        TEST_DATA_DIR,
+        "gps",
+        "America/New_York",
+        time_start=[2021, 12, 15, 20, 9, 50],
+        time_end=[2022, 11, 1, 20, 9, 50]
+    )[0]
 
 
 def test_clean_dataframe(gps_df):
@@ -162,10 +164,8 @@ def test_clean_dataframe_update_index(gps_df):
 
 
 def test_get_windows(gps_df):
-    windows = get_windows(gps_df, start=1639688600000, end=1639688800000,
-                          window_length_ms=50000)
-    assert set(windows.keys()) == {1639688600000, 1639688650000, 1639688700000,
-                                   1639688750000}
+    windows = get_windows(gps_df, start=1639688600000, end=1639688800000, window_length_ms=50000)
+    assert set(windows.keys()) == {1639688600000, 1639688650000, 1639688700000, 1639688750000}
 
 
 def test_directory_size():

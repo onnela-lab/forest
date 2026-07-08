@@ -1,7 +1,6 @@
 """Tools for extracting timezone information from GPS data."""
 from logging import getLogger
 import datetime
-from typing import Union, Optional
 
 import pytz
 from timezonefinder import TimezoneFinder
@@ -14,7 +13,7 @@ logger = getLogger(__name__)
 
 def get_timezone(
     latitude: float, longitude: float,
-) -> Optional[str]:
+) -> str | None:
     """Get timezone from latitude and longitude.
 
     Args:
@@ -29,8 +28,8 @@ def get_timezone(
 
 
 def get_offset(
-    timestamp: int, timezone: Union[str, pytz.BaseTzInfo]
-) -> Optional[float]:
+    timestamp: int, timezone: str | pytz.BaseTzInfo
+) -> float | None:
     """Get UTC offset, given timestamp and timezone.
 
     Args:

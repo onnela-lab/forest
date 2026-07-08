@@ -74,6 +74,7 @@ dev = [
     "flake8-pytest-style",
     "flake8-pyproject",
     "mypy",
+    "pandas-stubs",
     "pytest",
     "pytest-mock",
     "pytest-xdist",
@@ -85,12 +86,55 @@ dev = [
 ]
 
 
+[tool.setuptools.package-data]
+"forest.poplar.raw" = ["noncode/*.csv", "noncode/*.json"]
+
+
 [tool.ruff]
-line-length = 105  # # this is the maximum that should emit a warning, its ok to over sometimes.
+line-length = 100  # # this is the maximum that should emit a warning, its ok to over sometimes.
 indent-width = 4
+
 
 [tool.ruff.lint.pycodestyle]
 max-line-length = 120  # actual maximum line length for python files
+
+
+[tool.mypy]
+mypy_path = "src"
+packages = ["forest"]
+python_version = "3.12"
+
+
+[[tool.mypy.overrides]]
+module = [
+    "holidays",
+    "librosa",
+    "openrouteservice",
+    "pandas",
+    "ratelimit",
+    "scipy.*",
+    "shapely.*",
+    "ssqueezepy",
+    "timezonefinder",
+]
+ignore_missing_imports = true
+
+
+[tool.pytest.ini_options]
+# addopts = "--import-mode=importlib"  # this does not seem to be necessary anymore
+
+testpaths = ["tests"]
+
+filterwarnings = [
+    # # Ignore specific DeprecationWarnings from librosa.core.intervals
+    "ignore:path is deprecated.*:DeprecationWarning:librosa\\.core\\.intervals",
+    # # Ignore FutureWarning in forest.sycamore.read_audio
+    "ignore:PySoundFile failed. Trying audioread instead.*:FutureWarning:forest\\.sycamore\\.read_audio",
+    # Ignore specific DeprecationWarnings from audioread.rawread for aifc, audioop, and sunau
+    "ignore:'aifc' is deprecated and slated for removal in Python 3.13.*:DeprecationWarning:audioread\\.rawread",
+    "ignore:'audioop' is deprecated and slated for removal in Python 3.13.*:DeprecationWarning:audioread\\.rawread",
+    "ignore:'sunau' is deprecated and slated for removal in Python 3.13.*:DeprecationWarning:audioread\\.rawread",
+]
 
 
 [tool.ruff.format]
@@ -110,6 +154,10 @@ select = [  # (linting directives to enable)
     "A",       # flake8-annotations codes
 ]
 
+extend-ignore = [  # (linting directives to ignore)
+    "W293",  # blank line contains whitespace
+]
+
 exclude = [
     "build",
     ".venv",
@@ -119,14 +167,15 @@ exclude = [
 
 
 [tool.flake8]
-line-length = 105
-max-line-length = 105
+line-length = 100
+max-line-length = 100
+
+extend-ignore = [
+    "W293",  # blank line contains whitespace
+]
 
 exclude = [
     "build",
     ".venv",
     "venv",
 ]
-
-[tool.setuptools.package-data]
-"forest.poplar.raw" = ["noncode/*.csv", "noncode/*.json"]

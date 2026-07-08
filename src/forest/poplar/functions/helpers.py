@@ -2,7 +2,6 @@
 import os
 from logging import getLogger
 from collections import OrderedDict
-from typing import List, Union
 
 import numpy as np
 import pandas as pd
@@ -149,7 +148,7 @@ def sort_by(list_to_sort: list, list_to_sort_by: list) -> list:
     return list_to_sort
 
 
-def join_lists(list_of_lists: List[list]) -> List:
+def join_lists(list_of_lists: list[list]) -> list:
     """
     Join all lists in a list of lists.
 
@@ -168,7 +167,7 @@ def join_lists(list_of_lists: List[list]) -> List:
 
 
 # Dictionary of some summary statistics:
-def sample_range(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
+def sample_range(a: pd.DataFrame | np.ndarray | pd.Series | list) -> float:
     """Range of a sample.
 
     Args:
@@ -180,7 +179,7 @@ def sample_range(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
     return np.max(a) - np.min(a)
 
 
-def iqr(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
+def iqr(a: pd.DataFrame | np.ndarray | pd.Series | list) -> float:
     """Interquartile range of a sample.
 
     Args:
@@ -192,7 +191,7 @@ def iqr(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
     return np.percentile(a, 75) - np.percentile(a, 25)
 
 
-def sample_std(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
+def sample_std(a: pd.DataFrame | np.ndarray | pd.Series | list) -> float:
     """Standard deviation of a sample.
 
     Args:
@@ -204,7 +203,7 @@ def sample_std(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
     return np.std(a, ddof=1)
 
 
-def sample_var(a: Union[pd.DataFrame, np.ndarray, pd.Series, list]) -> float:
+def sample_var(a: pd.DataFrame | np.ndarray | pd.Series | list) -> float:
     """Variance of a sample.
 
     Args:
