@@ -505,3 +505,18 @@ def test_gen_survey_schedule_with_audio():
         pd.Index(["delivery_time", "next_delivery_time", "id", "beiwe_id",
                   "question_id"])
     ) == 1.0
+
+
+def test_summarize_submits_empty_schedule():
+    """Regression test: summarize_submits must not crash when survey_submits
+    returns an empty frame from the no-schedule branch (issue #319).
+
+    The empty-schedule branch of survey_submits historically returned a
+    DataFrame built with a nested column list, which produced a MultiIndex on
+    the columns and no 'delivery_time' column, crashing summarize_submits with
+    KeyError: 'delivery_time'. An empty frame with flat columns should instead
+    summarize to an empty result.
+    """
+    empty_submits = pd.DataFrame(columns=["survey id", "beiwe_id"])
+    summary = summarize_submits(empty_submits)
+    assert summary.shape[0] == 0

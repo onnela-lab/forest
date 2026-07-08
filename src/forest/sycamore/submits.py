@@ -316,7 +316,7 @@ def survey_submits(
                                 all_interventions_dict, history_path)
     if sched.shape[0] == 0:  # return empty dataframe
         logger.error("Error: No survey schedules found")
-        return pd.DataFrame(columns=[["survey id", "beiwe_id"]])
+        return pd.DataFrame(columns=["survey id", "beiwe_id"])
 
     # First, figure out if they opened the survey (if there are any lines
     # related to the survey).
@@ -521,6 +521,20 @@ def summarize_submits(submits_df: pd.DataFrame,
     summary_cols = ["beiwe_id"]
     if summarize_over_survey:
         summary_cols = summary_cols + ["survey id"]
+    # If there is no submit data (e.g. no survey schedule was found upstream),
+    # there is nothing to summarize. Return an empty frame with the columns the
+    # non-empty path would produce, so callers can rely on a consistent shape.
+    if submits.shape[0] == 0 or "delivery_time" not in submits.columns:
+        empty_summary_cols = list(summary_cols)
+        if timeunit in (Frequency.HOURLY_AND_DAILY, Frequency.DAILY,
+                        Frequency.HOURLY):
+            empty_summary_cols = empty_summary_cols + ["year", "month", "day"]
+        if timeunit == Frequency.HOURLY:
+            empty_summary_cols = empty_summary_cols + ["hour"]
+        return pd.DataFrame(columns=empty_summary_cols + [
+            "num_surveys", "num_complete_surveys", "num_opened_surveys",
+            "avg_time_to_submit", "avg_time_to_open", "avg_duration"
+        ])
     submits["delivery_time"] = pd.to_datetime(submits["delivery_time"])
     if timeunit == Frequency.HOURLY_AND_DAILY:
         logger.warning("Error: summarize_submits cannot calculate both daily"
