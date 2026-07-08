@@ -302,65 +302,57 @@ def collapse_data(data: pd.DataFrame, interval: float, accuracy_limit: float) ->
     count: int = 0
     num_interval: int = 1
     
-    # Initialize the first row of the output matrix
-    # [1, timestamp, latitude, longitude]
+    # Initialize the first row of the output matrix: [1, timestamp, latitude, longitude]
     nextline = [1, t_start + interval / 2, lats[0], lons[0]]
     
     for i in range(1, len(timestamps)):
+        
         # If the timestamp of the current row is within the current interval
         if timestamps[i] < t_start + interval:
-            # Accumulate latitude and longitude for averaging later
-            nextline[2] += lats[i]
+            nextline[2] += lats[i]  # Accumulate latitude and longitude for averaging later
             nextline[3] += lons[i]
             num_interval += 1
         else:
-            # When the current row's timestamp exceeds the current interval,
-            # we compute the average for latitude and longitude
-            nextline[2] /= num_interval
-            nextline[3] /= num_interval
+            nextline[2] /= num_interval  # When the current row's timestamp exceeds the interval,
+            nextline[3] /= num_interval  # we compute the average for latitude and longitude.
             
-            # Store the averaged data in the output matrix
-            avgmat[idx_avgmat, :] = nextline
+            avgmat[idx_avgmat, :] = nextline  # Store the averaged data in the output matrix
             
             count += 1
             idx_avgmat += 1
             
             # Compute the number of missing intervals
-            num_miss = int(
-                np.floor((timestamps[i] - (t_start + interval)) / interval))
+            num_miss = int(np.floor((timestamps[i] - (t_start + interval)) / interval))
             
             # If there are missing intervals
             if num_miss > 0:
-                # Insert a row of missing interval into the output matrix
-                avgmat[idx_avgmat, :] = [
-                    4, t_start + interval,
+                avgmat[idx_avgmat, :] = [  # Insert a row of missing interval into the output matrix
+                    4,
+                    t_start + interval,
                     t_start + interval * (num_miss + 1),
-                    None,
+                    None
                 ]
                 count += 1
                 idx_avgmat += 1
             
-            # Move the start time to the end
-            # of the last missing interval or the current interval
+            # Move the start time to the end of the last missing interval or the current interval
             t_start += interval * (num_miss + 1)
             
             # Initialize the next row of the output matrix
-            nextline = [
-                1, t_start + interval / 2, lats[i], lons[i]
-            ]
+            nextline = [1, t_start + interval / 2, lats[i], lons[i]]
             num_interval = 1
     
-    # Trim the output matrix to remove unused rows
-    avgmat = avgmat[0:count, :]
+    avgmat = avgmat[0:count, :]  # Trim the output matrix to remove unused rows
     
     return avgmat
 
 
 def exist_knot(avg_mat: np.ndarray, distance_threshold: float) -> tuple[int, int | None]:
-    """This function checks if there is a knot in the observed data chunk.
+    """ This function checks if there is a knot in the observed data chunk.
 
     Args:
         avg_mat: np.ndarray, avgmat from collapse_data()
+        
         distance_threshold : float,
             The distance threshold for detecting a knot.
             If the distance to the great circle is greater than
@@ -368,10 +360,8 @@ def exist_knot(avg_mat: np.ndarray, distance_threshold: float) -> tuple[int, int
 
     Returns:
         Tuple[int, Optional[int]]: A tuple containing two elements:
-            - The first element is an indicator,
-             which is 1 if a knot is found, otherwise 0.
-            - The second element is the index of the knot
-             if it exists, otherwise None.
+            - The first element is an indicator, which is 1 if a knot is found, otherwise 0.
+            - The second element is the index of the knot if it exists, otherwise None.
     """
     # Get the number of rows in the observed_data array
     num_rows = avg_mat.shape[0]
@@ -388,9 +378,7 @@ def exist_knot(avg_mat: np.ndarray, distance_threshold: float) -> tuple[int, int
         
         # Calculate the shortest distance from each point
         # to the great circle defined by the start and end points
-        shortest_distances = shortest_dist_to_great_circle(
-            location1, location2, location3
-        )
+        shortest_distances = shortest_dist_to_great_circle(location1, location2, location3)
         
         # If the maximum distance is less than the threshold,
         # return 0 and None (indicating no knot found)
@@ -400,9 +388,7 @@ def exist_knot(avg_mat: np.ndarray, distance_threshold: float) -> tuple[int, int
         # If a knot was found, return 1 and the index of the knot
         return 1, int(np.argmax(shortest_distances))
     
-    # If there is only one row of data, return 0 and None
-    # (indicating no knot found)
-    return 0, None
+    return 0, None  # If there is only one row of data, return 0 and None (indicating no knot found)
 
 
 def mark_single_measure(input_matrix: np.ndarray, interval: float) -> np.ndarray:
@@ -478,8 +464,8 @@ def detect_knots(input_matrix: np.ndarray, nrows: int, w: float, h: float) -> li
     movement_distances = np.array(
         [
             great_circle_dist(
-                input_matrix[i, 2],
-                input_matrix[i, 3],
+                input_matrix[i,  2],
+                input_matrix[i,  3],
                 input_matrix[i + 1, 2],
                 input_matrix[i + 1, 3],
             )[0] for i in range(nrows - 1)
@@ -563,12 +549,8 @@ def prepare_output_data(input_matrix: np.ndarray, knot_indices: list, h: float) 
         )
         # if there is no movement, consider it as a pause
         if sum(movement_distances >= h) == 0:
-            mean_lon = (
-                input_matrix[start_index, 2] + input_matrix[end_index, 2]
-            ) / 2
-            mean_lat = (
-                input_matrix[start_index, 3] + input_matrix[end_index, 3]
-            ) / 2
+            mean_lon = (input_matrix[start_index, 2] + input_matrix[end_index, 2]) / 2
+            mean_lat = (input_matrix[start_index, 3] + input_matrix[end_index, 3]) / 2
             flight_and_pause_data.append([
                 2,
                 mean_lon,
@@ -629,12 +611,9 @@ def extract_flights(
     
     nrows = input_matrix.shape[0]
     # Add a new column for indices
-    input_matrix = np.hstack(
-        (input_matrix, np.arange(nrows).reshape((nrows, 1)))
-    )
+    input_matrix = np.hstack((input_matrix, np.arange(nrows).reshape((nrows, 1))))
     
-    # Check if all points are within the maximum pause radius
-    # indicating a pause
+    # Check if all points are within the maximum pause radius indicating a pause
     if nrows > 1 and max(pairwise_great_circle_dist(input_matrix[:, 2:4])) < r:
         return mark_complete_pause(input_matrix, interval, nrows)
     
@@ -678,8 +657,7 @@ def gps_to_mobmat(
     logger.info("Extract flights and pauses ...")
     
     for i in range(avgmat.shape[0]):
-        # if the status of the data is 4 (missing data)
-        # divide the continuous data
+        # if the status of the data is 4 (missing data) divide the continuous data
         # into chunks and extract flights and pauses from each observed chunk
         if avgmat[i, 0] == 4:
             temp = extract_flights(
@@ -834,9 +812,8 @@ def infer_status_and_positions(
     elif index == 0:
         status = 2
         mobmat[index, [4, 5]] = mobmat[index, [1, 2]]
-    # If the status is unknown and it's not the first index,
-    # infer the status based on its distance to the previous
-    # point and the time interval
+    # If the status is unknown and it's not the first index, infer the status based on its distance
+    # to the previous point and the time interval
     else:
         # calculate the distance to the previous point
         distance = great_circle_dist(
@@ -856,8 +833,7 @@ def infer_status_and_positions(
             else:
                 status = 1  # flight
                 mobmat = compute_flight_positions(index, mobmat, interval)
-        # if the time difference to the previous point
-        # is more than 3 times the time interval
+        # if the time difference to the previous point is more than 3 times the time interval
         else:
             # if there is a next point
             if (index + 1) < mobmat.shape[0]:
@@ -869,28 +845,22 @@ def infer_status_and_positions(
                 # if the time difference to the next point is
                 # less than or equal to 3 times the time interval
                 if mobmat[index + 1, 3] - mobmat[index, 6] <= interval * 3:
-                    # if the distance is less than
-                    # the maximum radius of a pause
+                    # if the distance is less than the maximum radius of a pause
                     # assign the status as 'pause' (status code 2)
                     if future_distance < r:
                         status = 2  # pause
                         mobmat[index, [4, 5]] = mobmat[index, [1, 2]]
-                    # if the distance is greater
-                    # than the maximum radius of a pause
+                    # if the distance is greater than the maximum radius of a pause
                     # assign the status as 'flight' (status code 1)
                     else:
                         status = 1  # flight
-                        mobmat = compute_future_flight_positions(
-                            index, mobmat, interval
-                        )
-                # if the time difference to the next point is
-                # more than 3 times the time interval
+                        mobmat = compute_future_flight_positions(index, mobmat, interval)
+                # if the time difference to the next point is more than 3 times the time interval
                 # assign the status as 'pause' (status code 2)
                 else:
                     status = 2  # pause
                     mobmat[index, [4, 5]] = mobmat[index, [1, 2]]
-            # if there is no next point
-            # assign the status as 'pause' (status code 2)
+            # if there is no next point assign the status as 'pause' (status code 2)
             else:
                 status = 2  # pause
                 mobmat[index, [4, 5]] = mobmat[index, [1, 2]]
