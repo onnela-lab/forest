@@ -442,15 +442,16 @@ def _trace_diff_and_mask(
     create_mobility_trace's np.unique dedup/sort. """
     
     mask_size = mobility_trace.shape[0]
-    m = common.shape[0]
+    common_size = common.shape[0]
     mask = np.zeros(mask_size, dtype=np.bool_)
-    j = 0
-    for i in range(mask_size):
-        t = times[i]
-        while j < m and common[j] < t:
-            j += 1
-        if j < m and common[j] == t:
-            mask[i] = True
+
+    common_idx = 0
+    for times_idx in range(mask_size):
+        t = times[times_idx]
+        while common_idx < common_size and common[common_idx] < t:
+            common_idx += 1
+        if common_idx < common_size and common[common_idx] == t:
+            mask[times_idx] = True
     return mask
 
 
