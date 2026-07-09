@@ -6,6 +6,7 @@ bonsai.md
 jasmine.md
 oak.md
 poplar.md
+quality.md
 poplar-example-code.md
 sycamore.md
 willow.md
