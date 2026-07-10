@@ -520,7 +520,7 @@ def create_mobility_trace(traj: np.ndarray) -> FP64Array:
     return mobility_trace[unique_indices]
 
 
-@numba.jit(nopython=True, cache=True)#, fastmath=True)
+@numba.jit(nopython=True, cache=True, fastmath=True)
 def _is_sorted_unique(times: NDArray[np.float64]) -> bool:
     for i in range(1, len(times)):
         if times[i] <= times[i - 1]:
