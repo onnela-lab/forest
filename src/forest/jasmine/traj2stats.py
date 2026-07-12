@@ -1892,6 +1892,15 @@ def gps_stats_main(
         os.makedirs(f"{output_folder}/{freq.name.lower()}", exist_ok=True)
     if save_traj:
         os.makedirs(trajectory_folder, exist_ok=True)
+
+    pars0: PARS0 = (
+        parameters.l1, parameters.l2, parameters.l3, parameters.a1, parameters.a2, parameters.b1,
+        parameters.b2, parameters.b3
+    )
+    pars1: PARS1 = (
+        parameters.l1, parameters.l2, parameters.a1, parameters.a2, parameters.b1, parameters.b2,
+        parameters.b3, parameters.g
+    )
     
     # participant_ids should be a list of str
     participant_ids = participant_ids or get_ids(study_folder)
