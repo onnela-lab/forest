@@ -257,7 +257,7 @@ def get_nearby_locations(
     
     return ids, locations, tags
 
-## THE NEW ONE
+
 def routine_index(
     time_range: tuple[int, int],
     mobility_trace: np.ndarray,
@@ -265,7 +265,7 @@ def routine_index(
     pcr_sample_rate: int = 30,
     stratified: bool = False,
     timezone: str = "US/Eastern",
-    cache: dict | None = None,
+    cache: dict[tuple[int, int, int], float] | None = None,
 ) -> float:
     """ This function calculates the routine index of a trajectory
     
@@ -292,10 +292,7 @@ def routine_index(
     """
     
     t_1, t_2 = time_range
-    
-    tmp = mobility_trace[:, 2]
-    t_init = tmp.min()
-    t_fin = tmp.max()
+    t_init, t_fin = _t_init_and_t_fin(mobility_trace)
     
     t_1 = max(t_1, t_init)
     t_2 = min(t_2, t_fin)
@@ -326,29 +323,32 @@ def routine_index(
                 if datetime(*stamp2datetime(time_mid - s * SECONDS_IN_DAY, timezone)).weekday() < 5
             ]
     
-    cache = cache if cache is not None else {}
     # !FIXME: TODO: I'm using the MUTATED t_1 and t_2 here, the old code used the time_range tuple. Is this going to change results?
-    average_traces_sum = _inner_loop(t_1, t_2, mobility_trace, shifts, pcr_sample_rate, cache)
+    average_traces_sum = innermost_loop(
+        t_1, t_2, shifts, cache, *get_inner_params(mobility_trace, pcr_sample_rate)
+    )
     return average_traces_sum / (n1 + n2)
 
 
-def _inner_loop(
-    time_start: int,
-    time_end: int,
+@numba.njit(cache=True, fastmath=True)
+def _t_init_and_t_fin(mobility_trace):
+    tmp = mobility_trace[:, 2]
+    t_init = tmp.min()
+    t_fin = tmp.max()
+    return t_init, t_fin
+
+
+_CACHE = {}
+def get_inner_params(
     mobility_trace: FP64Array,
-    shifts: list[int],
-    pcr_sample_rate: int,
-    cache: dict[tuple[int, int, int], float],
-) -> float:
-    """ The original code in here was too slow for use on The Beiwe Platform,
-    taking many hours to run on only a few hundred megabytes of data. """
+    pcr_sample_rate: int
+) -> tuple[FP64Array, FP64Array, FP64Array]:
+    # These items are memory heavy, but are based on the value of an invariant - the mobility trace.
+    # caching them instead of recomputing them is a 20% overall speedup.
+    if params := _CACHE.get(id(mobility_trace)):
+        return params
     
-    # This function is hit twice with calls that repeat work, we can save on that by caching answers
-    # on the similar queries.
-    
-    # This whole function runs substantially slower when compiled with numba.jit. The fortran arrays
-    # declaration gets cranky, compilation emits errors, when typed correctly the cache causes
-    # overhead. Its just slow no matter what.
+    # This code runs substantially slower when compiled with numba.
     time_col = np.asfortranarray(mobility_trace[:, 2])  # much more performant as fortran array.
     
     # minutely better to declare with order F
@@ -358,24 +358,33 @@ def _inner_loop(
     # minutely but consistently better as fortran array
     sampled_trace = np.asfortranarray(mobility_trace[::pcr_sample_rate])
     
-    # Jitting just the loop causes about a runs ~1.5x __slower__.
-    # Caching may scale better with larger pcr_windows due to more frequent overlaps.
+    _CACHE[id(mobility_trace)] = time_col, sampled_trace, preallocated_array  # cache and return
+    return time_col, sampled_trace, preallocated_array
+
+
+def innermost_loop(
+    time_start: int,
+    time_end: int,
+    shifts: list[int],
+    cache: dict[tuple[int, int, int], float],
+    time_col: FP64Array,
+    sampled_trace: FP64Array,
+    preallocated_array: FP64Array,
+) -> float:
+    # This function is hit twice with calls that repeat work, we can save on that by caching answers
+    # on the already known parameters. There is virtually no overhead, performance gain depends on
+    # the number of shifts per call, which changes with pcl_window (I think).
     the_sum = 0.0
     for i in shifts:
-        preallocated_array[:, 2] = time_col + i * SECONDS_IN_DAY
+        preallocated_array[:, 2] = time_col + i * SECONDS_IN_DAY  # numba chokes on this operation.
         cache_key = (time_start, time_end, i)
         
         if hit := cache.get(cache_key):  # there is _no_ overhead to updating this cache
             the_sum += hit
             continue
         
-        avg = avg_mobility_trace_difference(
-            time_start,
-            time_end,
-            sampled_trace,
-            preallocated_array,
-        )
-        
+        # time for the real math
+        avg = avg_mobility_trace_difference(time_start, time_end, sampled_trace, preallocated_array)
         cache[cache_key] = avg
         the_sum += avg
     
@@ -383,7 +392,7 @@ def _inner_loop(
 
 
 # "float64(float64, float64, float64[:,:], float64[:,:])"
-@numba.jit(nopython=True, cache=True, fastmath=True)
+@numba.njit(cache=True, fastmath=True)
 def avg_mobility_trace_difference(
     time_start: int, time_end: int, mobility_trace1: FP64Array, mobility_trace2: FP64Array
 ) -> float:
@@ -414,14 +423,13 @@ def avg_mobility_trace_difference(
     )
     
     res, is_nan = _dist_flag_compute(dists)
-    
     if is_nan:
         raise ValueError("PCR calculation failed")
     return res
 
 
 # "Tuple((float64[:], float64[:], float64[:]))(int64, int64, float64[:,:], float64[:,:])"
-@numba.jit(nopython=True, cache=True, fastmath=True)
+@numba.njit(cache=True, fastmath=True)
 def _masks_and_common(
     time_start: int, time_end: int, trace1: FP64Array, trace2: FP64Array,
 ) -> tuple[FP64Array, np.ndarray, np.ndarray]:
@@ -439,7 +447,7 @@ def _masks_and_common(
 
 
 # "boolean[:](float64[:], float64[:,:], float64[:])"
-@numba.jit(nopython=True, cache=True, fastmath=True)
+@numba.njit(cache=True, fastmath=True)
 def _trace_diff_and_mask(
     common: FP64Array, mobility_trace: FP64Array, times: FP64Array
 ) -> BoolArray:
@@ -461,7 +469,7 @@ def _trace_diff_and_mask(
 
 
 # "Tuple((float64, boolean))(float64[:])",
-@numba.jit(nopython=True, cache=True, fastmath=True)
+@numba.njit(cache=True, fastmath=True)
 def _dist_flag_compute(dists: FP64Array) -> tuple[float, bool]:
     # gets a moderate speedup from numba
     dist_flag = dists <= 10
@@ -525,7 +533,7 @@ def create_mobility_trace(traj: np.ndarray) -> FP64Array:
     return mobility_trace[unique_indices]
 
 
-@numba.jit(nopython=True, cache=True, fastmath=True)
+@numba.njit(cache=True, fastmath=True)
 def _is_sorted_unique(times: NDArray[np.float64]) -> bool:
     for i in range(1, len(times)):
         if times[i] <= times[i - 1]:
@@ -537,15 +545,19 @@ def _is_sorted_unique(times: NDArray[np.float64]) -> bool:
 
 
 
-@numba.jit(nopython=True, cache=True, fastmath=True)
+@numba.njit(cache=True, fastmath=True)
 def _optimized_column_stack(arr1: NDArray[np.float64], arr2: NDArray[np.float64]) -> NDArray[np.float64]:
     # np.column_stack always benefits a little from numba
     return np.column_stack((arr1, arr2))
 
 
 def get_day_night_indices(
-    traj: np.ndarray, tz_str: str, index: int, start_time: int, end_time: int,
-    current_time_list: list[int]
+    traj: np.ndarray,
+    tz_str: str,
+    index: int,
+    start_time: int,
+    end_time: int,
+    current_time_list: list[int],
 ) -> tuple[np.ndarray, int, int, int, int]:
     """ This function returns the indices of the rows in the trajectory
      if the trajectory is split into day and night.
@@ -1608,14 +1620,16 @@ def gps_summaries(
             p = t_sig / sum(t_sig)
             
             entropy = -sum(p * np.log(p + 0.00001))
+            
             # physical circadian rhythm
             if obs_dur != 0 and parameters.pcr_bool:
-                mobility_trace = create_mobility_trace(traj)
+                
+                if "mobility_trace" not in locals():
+                    mobility_trace = create_mobility_trace(traj)
+                    cache = {}
                 
                 # using a cache on these sequential calls drops a benchmark where I ran 100 of these
                 # on live data from 30s to 26s
-                cache = {}
-                
                 pcr = routine_index(
                     (start_time, end_time),
                     mobility_trace,
@@ -1678,7 +1692,7 @@ def gps_summaries(
     summary_stats_df2, log_tags = format_summary_stats(
         summary_stats, log_tags, frequency, parameters, places_of_interest
     )
-    
+    _CACHE.clear()
     return summary_stats_df2, log_tags
 
 
@@ -1892,7 +1906,7 @@ def gps_stats_main(
         os.makedirs(f"{output_folder}/{freq.name.lower()}", exist_ok=True)
     if save_traj:
         os.makedirs(trajectory_folder, exist_ok=True)
-
+    
     pars0: PARS0 = (
         parameters.l1, parameters.l2, parameters.l3, parameters.a1, parameters.a2, parameters.b1,
         parameters.b2, parameters.b3
@@ -1909,10 +1923,10 @@ def gps_stats_main(
     # These are updated and saved to disk after each participant is processed.
     all_memory_dict_file = f"{output_folder}/all_memory_dict.pkl"
     all_bv_set_file = f"{output_folder}/all_bv_set.pkl"
-
+    
     all_memory_dict = all_memory_dict or {p_id: None for p_id in participant_ids}
     all_bv_set = all_bv_set or {p_id: None for p_id in participant_ids}
-
+    
     for participant_id in participant_ids:
         logger.info("User: %s", participant_id)
         
@@ -1997,7 +2011,7 @@ def gps_stats_main(
                 np.max(traj[:, 5]) > 180 or np.min(traj[:, 5]) < -180
             ):
                 raise ValueError(COORDS_OUT_OF_RANGE)
-            
+        
         # save all_memory_dict and all_bv_set
         with open(all_memory_dict_file, "wb") as f1, open(all_bv_set_file, "wb") as f2:
             pickle.dump(all_memory_dict, f1)

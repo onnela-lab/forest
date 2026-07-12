@@ -15,14 +15,15 @@ import numba
 import numpy as np
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+# logger.setLevel(logging.INFO)
 
 
 SECONDS_PER_DAY_TIMES_PI = 86_400 * math.pi
 SECONDS_PER_WEEK_TIMES_PI = 604_800 * math.pi
 
 
-def calculate_k0(x1: np.ndarray, x2: np.ndarray, pars: list) -> float:
+@numba.njit(cache=True, fastmath=True)
+def calculate_k0(x1: np.ndarray, x2: np.ndarray, pars: tuple) -> float:
     """ This function calculates the similarity between two points
     
     Args:
@@ -35,12 +36,8 @@ def calculate_k0(x1: np.ndarray, x2: np.ndarray, pars: list) -> float:
     Returns:
         float, the similarity between x1 and x2
     """
-    [l1, l2, l3, a1, a2, b1, b2, b3] = pars
-    return _calculate_k0(x1, x2, l1, l2, l3, a1, a2, b1, b2, b3)
+    l1, l2, l3, a1, a2, b1, b2, b3 = pars
 
-
-@numba.jit(cache=True, fastmath=True, nopython=True)
-def _calculate_k0(x1: np.ndarray, x2: np.ndarray, l1, l2, l3, a1, a2, b1, b2, b3) -> float:
     """ inner heavy-math function of calculate_k0, compiled for a moderate speedup. """
     dt = abs(x1[0] - x2[0])
     sin_daily = np.sin(dt / SECONDS_PER_DAY_TIMES_PI) ** 2
@@ -664,6 +661,7 @@ def bv_select(
         a dictionary with bv [trajectory], bv_index, and an updated memory_dict
     """
     logger.info("Selecting basis vectors ...")
+    
     flight_index = mob_mat[:, 0] == 1
     pause_index = mob_mat[:, 0] == 2
     

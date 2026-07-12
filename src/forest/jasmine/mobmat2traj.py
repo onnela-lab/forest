@@ -1,14 +1,16 @@
 """ This module contains functions to convert the mobility matrix into
-trajectories. It is part of the Jasmine package.
-"""
+trajectories. It is part of the Jasmine package. """
 import logging
 import math
 
+import numba
 import numpy as np
 import scipy.stats as stat
 
-from ..poplar.legacy.common_funcs import stamp2datetime
-from .data2mobmat import exist_knot, great_circle_dist, fp_great_circle_dist, mix1_great_circle_dist
+from forest.jasmine.data2mobmat import (exist_knot, fp_great_circle_dist, great_circle_dist,
+    mix1_great_circle_dist, np_great_circle_dist)
+from forest.poplar.legacy.common_funcs import stamp2datetime
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -34,12 +36,9 @@ def update_existing_place(
         index: int
             index of the existing significant place
     """
-    loc_x[index] = (
-        loc_x[index] * num_xy[index] + data[1]
-    ) / (num_xy[index] + 1)
-    loc_y[index] = (
-        loc_y[index] * num_xy[index] + data[2]
-    ) / (num_xy[index] + 1)
+    # numba slows down on this function because it has to run type checks on every list element
+    loc_x[index] = (loc_x[index] * num_xy[index] + data[1]) / (num_xy[index] + 1)
+    loc_y[index] = (loc_y[index] * num_xy[index] + data[2]) / (num_xy[index] + 1)
     num_xy[index] += 1
     t_xy[index] += data[6] - data[3]
 
@@ -93,7 +92,7 @@ def num_sig_places(data: np.ndarray, dist_threshold: float) -> tuple[list, list,
             add_new_place(loc_x, loc_y, num_xy, t_xy, data[i])
             continue
         
-        distances = great_circle_dist(
+        distances = np_great_circle_dist(
             np.full(len(loc_x), data[i, 1]),
             np.full(len(loc_x), data[i, 2]),
             np.array(loc_x),
@@ -155,9 +154,14 @@ def locate_home(mob_mat: np.ndarray, timezone: str) -> tuple[float, float]:
     return home_x, home_y
 
 
+@numba.jit(cache=True, fastmath=True, nopython=True)
 def calculate_k1(
-    method: str, timestamp: float, x_coord: float, y_coord: float, bv_subset: np.ndarray,
-    parameters: list
+    method: str,
+    timestamp: float,
+    x_coord: float,
+    y_coord: float,
+    bv_subset: np.ndarray,
+    parameters: list,
 ) -> np.ndarray:
     """ Calculate the similarity measure between a given point and a set of base vectors, using one
         of three specified methods: 'TL', 'GL', or 'GLC'.
@@ -183,23 +187,14 @@ def calculate_k1(
     Raises:
         ValueError: If an invalid method is specified.
     """
-    [
-        length_1, length_2, amplitude_1, amplitude_2, weight_1, weight_2, weight_3, spatial_scale
-    ] = parameters
-
-    mean_x = ((bv_subset[:, 1] + bv_subset[:, 4]) / 2).astype(float)
-    mean_y = ((bv_subset[:, 2] + bv_subset[:, 5]) / 2).astype(float)
-    mean_t = ((bv_subset[:, 3] + bv_subset[:, 6]) / 2).astype(float)
+    len1, len2, amplitude1, amplitude2, weight1, weight2, weight3, spatial_scale = parameters
+    mean_x, mean_y, mean_t = _means_xyz(bv_subset)
     
     # 'TL' method
     if method == "TL":
-        k1 = np.exp(-abs(timestamp - mean_t) / length_1) * np.exp(
-            -((np.sin(abs(timestamp - mean_t) / 86400 * math.pi))**2) / amplitude_1
-        )
-        k2 = np.exp(-abs(timestamp - mean_t) / length_2) * np.exp(
-            -((np.sin(abs(timestamp - mean_t) / 604800 * math.pi))**2) / amplitude_2
-        )
-        return (weight_1 / (weight_1 + weight_2) * k1 + weight_2 / (weight_1 + weight_2) * k2)
+        k1 = _k1(timestamp, mean_t, len1, amplitude1)
+        k2 = _k2(timestamp, mean_t, len2, amplitude2)
+        return (weight1 / (weight1 + weight2) * k1 + weight2 / (weight1 + weight2) * k2)
     
     # 'GL' method
     elif method == "GL":
@@ -208,16 +203,35 @@ def calculate_k1(
     
     # 'GLC' method
     elif method == "GLC":
-        k1 = np.exp(-abs(timestamp - mean_t) / length_1) * np.exp(
-            -((np.sin(abs(timestamp - mean_t) / 86400 * math.pi))**2) / amplitude_1
-        )
-        k2 = np.exp(-abs(timestamp - mean_t) / length_2) * np.exp(
-            -((np.sin(abs(timestamp - mean_t) / 604800 * math.pi))**2) / amplitude_2
-        )
+        k1 = _k1(timestamp, mean_t, len1, amplitude1)
+        k2 = _k2(timestamp, mean_t, len2, amplitude2)
         distance = mix1_great_circle_dist(x_coord, y_coord, mean_x, mean_y)
         k3 = np.exp(-distance / spatial_scale)
-        return weight_1 * k1 + weight_2 * k2 + weight_3 * k3
+        return weight1 * k1 + weight2 * k2 + weight3 * k3
     raise ValueError(f"Invalid method: {method}. Expected 'TL', 'GL', or 'GLC'.")
+
+
+# Separating out these 3 functions for calculate_k1 is does run very slightly faster in testing.
+# The only code change for numba is the use of np.abs instead of the python abs.
+
+@numba.jit(cache=True, fastmath=True, nopython=True)
+def _k1(timestamp, mean_t, length, amplitude):
+    return np.exp(-np.abs(timestamp - mean_t) / length) * np.exp(
+        -((np.sin(np.abs(timestamp - mean_t) / 86400 * math.pi))**2) / amplitude
+    )
+
+@numba.jit(cache=True, fastmath=True, nopython=True)
+def _k2(timestamp, mean_t, length, amplitude):
+    return np.exp(-np.abs(timestamp - mean_t) / length) * np.exp(
+        -((np.sin(np.abs(timestamp - mean_t) / 604800 * math.pi))**2) / amplitude
+    )
+
+@numba.jit(cache=True, fastmath=True, nopython=True)
+def _means_xyz(bv_subset):
+    mean_x = ((bv_subset[:, 1] + bv_subset[:, 4]) / 2).astype(np.float64)
+    mean_y = ((bv_subset[:, 2] + bv_subset[:, 5]) / 2).astype(np.float64)
+    mean_t = ((bv_subset[:, 3] + bv_subset[:, 6]) / 2).astype(np.float64)
+    return mean_x, mean_y, mean_t
 
 
 def indicate_flight(
@@ -250,7 +264,7 @@ def indicate_flight(
         dest_y: float
             the latitudinal position of the destination.
         bv_subset: np.ndarray,
-           the subset of output from the BV_select() function. It is a 2D array.
+            the subset of output from the BV_select() function. It is a 2D array.
         switch: int
             the number of binary variables to be generated.
         num: int
@@ -262,14 +276,38 @@ def indicate_flight(
     Returns:
         numpy.ndarray: A 1D array of 0 and 1, indicating the status of an incoming flight.
     """
+    p1 = _indicate_flight(
+        method, current_t, current_x, current_y, dest_t, dest_x, dest_y, bv_subset, num, pars
+    )
+    
+    # Generate the binary variables
+    movement_indicator = stat.bernoulli.rvs(p1, size=switch)
+    return movement_indicator
+
+
+@numba.jit(cache=True, fastmath=True, nopython=True)
+def _indicate_flight(
+    method: str,
+    current_t: float,
+    current_x: float,
+    current_y: float,
+    dest_t: float,
+    dest_x: float,
+    dest_y: float,
+    bv_subset: np.ndarray,
+    num: int,
+    pars: list,
+) -> np.ndarray:
+    """ The bulk of indicate_flight can be optimized with numba. """
     # Calculate k1 using the specified method
     k1 = calculate_k1(method, current_t, current_x, current_y, bv_subset, pars)
     if k1 is None:
         raise ValueError("Invalid method for calculate_k1.")
     
     # Select flight and pause indicators from the bv_subset
-    flight_k = k1[bv_subset[:, 0] == 1]
-    pause_k = k1[bv_subset[:, 0] == 2]
+    tmp = bv_subset[:, 0]
+    flight_k = k1[tmp == 1]
+    pause_k = k1[tmp == 2]
     
     # Sort the flight and pause indicators
     sorted_flight = np.sort(flight_k)[::-1]
@@ -291,11 +329,7 @@ def indicate_flight(
     p0 = min(p0, 1 - 1e-5)
     s = -12 / np.log(p0)
     p1 = min(1, p0 * np.exp(min(max(0, speed_to_destination - 2) / s, 1e2)))
-    
-    # Generate the binary variables
-    movement_indicator = stat.bernoulli.rvs(p1, size=switch)
-    
-    return movement_indicator
+    return p1
 
 
 def adjust_direction(
