@@ -20,7 +20,7 @@ from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
-from forest.constants import Frequency, OSM_OVERPASS_URL, OSMTags
+from forest.constants import Frequency, Frequency as Freq, OSM_OVERPASS_URL, OSMTags
 from forest.jasmine.data2mobmat import (great_circle_dist_specialized, gps_to_mobmat,
     great_circle_dist, infer_mobmat, np_great_circle_dist, pairwise_great_circle_dist)
 from forest.jasmine.mobmat2traj import imp_to_traj, impute_gps, locate_home, num_sig_places
@@ -32,11 +32,16 @@ from forest.utils import get_ids
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+PD_TRAJ_COLUMNS = ("status", "x0", "y0", "t0", "x1", "y1", "t1", "obs")
 
 FP64Array = NDArray[np.float64]
 BoolArray = NDArray[np.bool_]
 SECONDS_IN_DAY = 60 * 60 * 24
 
+PARS0 = tuple[int, int, float, int, int, float, float, float]
+PARS1 = tuple[int, int, int, int, float, float, float, int]
+
+COORDS_OUT_OF_RANGE = "Trajectory coordinates are not in the range of [-90, 90] and [-180, 180]."
 
 @dataclass
 class Hyperparameters:
@@ -444,7 +449,7 @@ def _trace_diff_and_mask(
     mask_size = mobility_trace.shape[0]
     common_size = common.shape[0]
     mask = np.zeros(mask_size, dtype=np.bool_)
-
+    
     common_idx = 0
     for times_idx in range(mask_size):
         t = times[times_idx]
@@ -1314,37 +1319,64 @@ def gps_summaries(
     """ This function derives summary statistics from the imputed trajectories
     
     If the frequency is hourly, it returns
-    
-    ["year","month","day","hour","obs_duration","pause_time","flight_time","home_time",
-    "max_dist_home", "dist_traveled","av_flight_length","sd_flight_length",
-    "av_flight_duration","sd_flight_duration"]
+    [
+     "year", "month", "day", "hour",
+     "obs_duration",
+     "pause_time",
+     "flight_time",
+     "home_time",
+     "max_dist_home",
+     "dist_traveled",
+     "av_flight_length",
+     "sd_flight_length",
+     "av_flight_duration"
+     "sd_flight_duration"
+    ]
     
     if the frequency is daily, it additionally returns
-    ["obs_day","obs_night","radius","diameter""num_sig_places","entropy",
-    "physical_circadian_rhythm","physical_circadian_rhythm_stratified"]
+    [
+      "obs_day",
+      "obs_night",
+      "radius",
+      "diameter",
+      "num_sig_places",
+      "entropy",
+      "physical_circadian_rhythm",
+      "physical_circadian_rhythm_stratified",
+    ]
     
     Args:
-        traj: 2d array, output from imp_to_traj(), which is a n by 8 mat,
-            with headers as [s,x0,y0,t0,x1,y1,t1,obs]
-            where s means status (1 as flight and 0 as pause),
-            x0,y0,t0: starting lat,lon,timestamp,
-            x1,y1,t1: ending lat,lon,timestamp,
-            obs (1 as observed and 0 as imputed)
-        tz_str: timezone
-        frequency: Frequency, the time windows of the summary statistics
-        parameters: Hyperparameters, hyperparameters in functions
-            recommend to set it to default
-        places_of_interest: list of "osm_tags" places to watch,
-            keywords as used in openstreetmaps
+        traj: 2d array, output from imp_to_traj(), which is an N by 8 matrix with headers as
+            `[s, x0, y0, t0, x1, y1, t1, obs]`
+            where
+            - s means status (1 as flight and 0 as pause).
+            - x0, y0, t0: starting latitude, longitude, and timestamp
+            - x1, y1, t1: ending latitude, longitude, and timestamp
+            - obs: observation flag (1 as observed and 0 as imputed)
+        
+        tz_str: timezone string
+        
+        frequency: forest.constants.Frequency
+            The time windows of the summary statistics
+        
+        parameters: Hyperparameters
+            Hyperparameter settings passed in to further functions, see the Hyperparameters class.
+            Note that enabling pcr_bool can be very computationally intensive.
+        
+        places_of_interest: list
+            list of "osm_tags" places to watch, keywords as used in openstreetmaps
             e.g. ["cafe", "hospital", "restaurant"]
-        osm_tags: list of tags to search for in openstreetmaps
-            avoid using a lot of them if large area is covered
+        
+        osm_tags: list
+            list of tags to search for in openstreetmaps
+            (may be computationally intensive, particularly in large areas)
+        
     Returns:
         A tuple of:
-         a pd dataframe, with each row as an hour/day,
-            and each col as a feature/stat
-         a dictionary, contains log of tags of all locations visited
-            from openstreetmap
+         a pd dataframe, with each row as an hour/day, and each col as a feature/stat
+         
+         a dictionary, contains log of tags of all locations visited from openstreetmap
+    
     Raises:
         RuntimeError: if the query to Overpass API fails
         ValueError: Frequency is not valid
@@ -1846,158 +1878,140 @@ def gps_stats_main(
     if frequency == Frequency.MINUTE:
         raise ValueError("Frequency cannot be minutely.")
     
-    if parameters is None:
-        parameters = Hyperparameters()
+    parameters = parameters or Hyperparameters()
+    frequencies = [Freq.HOURLY, Freq.DAILY] if frequency == Freq.HOURLY_AND_DAILY else [frequency]
     
-    if frequency == Frequency.HOURLY_AND_DAILY:
-        frequencies = [Frequency.HOURLY, Frequency.DAILY]
-    else:
-        frequencies = [frequency]
-    
-    # Ensure that the correct output folder structures exist, centralize folder
-    # names. Note that frequencies
+    # Ensure that the correct output folder structures exist, centralize folder names
     trajectory_folder = f"{output_folder}/trajectory"
     logs_folder = f"{output_folder}/logs"
     os.makedirs(output_folder, exist_ok=True)
     os.makedirs(logs_folder, exist_ok=True)
+    
+    # Do the same for frequencies and optional trajectory output
     for freq in frequencies:
         os.makedirs(f"{output_folder}/{freq.name.lower()}", exist_ok=True)
     if save_traj:
         os.makedirs(trajectory_folder, exist_ok=True)
     
-    # pars0 is passed to bv_select, pars1 to impute_gps
-    pars0 = [
-        parameters.l1, parameters.l2, parameters.l3, parameters.a1, parameters.a2, parameters.b1,
-        parameters.b2, parameters.b3
-    ]
-    pars1 = [
-        parameters.l1, parameters.l2, parameters.a1, parameters.a2, parameters.b1, parameters.b2,
-        parameters.b3, parameters.g
-    ]
-    
     # participant_ids should be a list of str
-    if participant_ids is None:
-        participant_ids = get_ids(study_folder)
+    participant_ids = participant_ids or get_ids(study_folder)
     
     # Create a record of processed participant_id and starting/ending time.
     # These are updated and saved to disk after each participant is processed.
     all_memory_dict_file = f"{output_folder}/all_memory_dict.pkl"
     all_bv_set_file = f"{output_folder}/all_bv_set.pkl"
-    if all_memory_dict is None:
-        all_memory_dict = {}
-        for participant_id in participant_ids:
-            all_memory_dict[str(participant_id)] = None
-    if all_bv_set is None:
-        all_bv_set = {}
-        for participant_id in participant_ids:
-            all_bv_set[str(participant_id)] = None
-    
+
+    all_memory_dict = all_memory_dict or {p_id: None for p_id in participant_ids}
+    all_bv_set = all_bv_set or {p_id: None for p_id in participant_ids}
+
     for participant_id in participant_ids:
         logger.info("User: %s", participant_id)
+        
         # data quality check...
         quality = gps_quality_check(study_folder, participant_id)
-        if quality > parameters.quality_threshold:
-            # read data...
-            logger.info("Read in the csv files ...")
-            data, _, _ = read_data(
-                participant_id,
-                study_folder,
-                "gps",
-                tz_str,
-                time_start,
-                time_end,
-            )
-            # If the data comes from a study thata hada GPS fuzzing, and the study was prior to
-            # March 2023, the longitude coordinates may be outside of the required range of (-180,
-            # 180). This chunk of code wraps out of range coordinates to be in that range
-            if (
-                ("longitude" in data.columns) and
-                ((data["longitude"].max() > 180) or (data["longitude"].min() < -180))
-            ):
-                logger.info("Reconciled bad longitude data for user %s", participant_id)
-                data["longitude"] = (data["longitude"] + 180) % 360 - 180
-                
-                if ((places_of_interest is not None) or (osm_tags is not None)):
-                    logger.warning(
-                        "Warning: user %s had longitude values outside the valid range [-180, 180] "
-                        "but OSM location summaries were requested. Longitude values outside the "
-                        "valid range may signify that GPS fuzzing was directed to be used in the "
-                        "study setup file. If GPS coordinates were fuzzed, OSM location summaries "
-                        "are meaningless", participant_id
-                    )
-            
-            if data.shape == (0, 0):
-                logger.info("No data available.")
-                continue
-            
-            params_r = float(parameters.itrvl) if parameters.r is None else parameters.r
-            params_h = params_r if parameters.h is None else parameters.h
-            params_w = np.mean(data.accuracy) if parameters.w is None else parameters.w
-            
-            # process data
-            mobmat1 = gps_to_mobmat(
-                data, parameters.itrvl, parameters.accuracylim, params_r, params_w, params_h
-            )
-            mobmat2 = infer_mobmat(mobmat1, parameters.itrvl, params_r)
-            out_dict = bv_select(
-                mobmat2,
-                parameters.sigma2,
-                parameters.tol,
-                parameters.d,
-                pars0,
-                all_memory_dict[str(participant_id)],
-                all_bv_set[str(participant_id)],
-            )
-            all_bv_set[str(participant_id)] = bv_set = out_dict["BV_set"]
-            all_memory_dict[str(participant_id)] = out_dict["memory_dict"]
-            
-            # impute_gps can fail, if so we skip this participant.
-            try:
-                imp_table = impute_gps(
-                    mobmat2, bv_set, parameters.method, parameters.switch, parameters.num,
-                    parameters.linearity, tz_str, pars1
-                )
-            except RuntimeError as e:
-                logger.error("Error: %s", e)
-                continue
-            
-            traj = imp_to_traj(imp_table, mobmat2, params_w)
-            # raise error if traj coordinates are not in the range of [-90, 90] and [-180, 180]
-            if traj.shape[0] > 0:
-                if (
-                    np.max(traj[:, 1]) > 90 or np.min(traj[:, 1]) < -90 or
-                    np.max(traj[:, 2]) > 180 or np.min(traj[:, 2]) < -180 or
-                    np.max(traj[:, 4]) > 90 or np.min(traj[:, 4]) < -90 or
-                    np.max(traj[:, 5]) > 180 or np.min(traj[:, 5]) < -180
-                ):
-                    raise ValueError(
-                        "Trajectory coordinates are not in the range of [-90, 90] and [-180, 180]."
-                    )
-            # save all_memory_dict and all_bv_set
-            with open(all_memory_dict_file, "wb") as f:
-                pickle.dump(all_memory_dict, f)
-            with open(all_bv_set_file, "wb") as f:
-                pickle.dump(all_bv_set, f)
-            if save_traj is True:
-                pd_traj = pd.DataFrame(traj)
-                pd_traj.columns = ["status", "x0", "y0", "t0", "x1", "y1", "t1", "obs"]
-                pd_traj.to_csv(f"{trajectory_folder}/{participant_id}.csv", index=False)
-            
-            # generate summary stats. (variable "frequency" is already declared in signature)
-            for freq in frequencies:
-                gps_stats_generate_summary(
-                    traj=traj,
-                    tz_str=tz_str,
-                    frequency=freq,
-                    participant_id=participant_id,
-                    output_folder=f"{output_folder}/{freq.name.lower()}",
-                    logs_folder=logs_folder,
-                    parameters=parameters,
-                    places_of_interest=places_of_interest,
-                    osm_tags=osm_tags,
-                )
-        else:
+        if quality <= parameters.quality_threshold:
             logger.info("GPS data are not collected or the data quality is too low")
+            continue
+        
+        logger.info("Read in the csv files ...")  # read data...
+        data, _, _ = read_data(
+            participant_id,
+            study_folder,
+            "gps",
+            tz_str,
+            time_start,
+            time_end,
+        )
+        # If the data comes from a study thata hada GPS fuzzing, and the study was prior to March
+        # 2023, the longitude coordinates may be outside of the required range of (-180, 180). This
+        # chunk of code wraps out of range coordinates to be in that range
+        if (
+            ("longitude" in data.columns) and
+            ((data["longitude"].max() > 180) or (data["longitude"].min() < -180))
+        ):
+            logger.info("Reconciled bad longitude data for user %s", participant_id)
+            data["longitude"] = (data["longitude"] + 180) % 360 - 180
+            
+            if ((places_of_interest is not None) or (osm_tags is not None)):
+                logger.warning(
+                    "Warning: user %s had longitude values outside the valid range [-180, 180] "
+                    "but OSM location summaries were requested. Longitude values outside the "
+                    "valid range may signify that GPS fuzzing was directed to be used in the "
+                    "study setup file. If GPS coordinates were fuzzed, OSM location summaries "
+                    "are meaningless", participant_id
+                )
+        
+        if data.shape == (0, 0):
+            logger.info("No data available.")
+            continue
+        
+        # finally done with most checks and setup
+        params_r = float(parameters.itrvl) if parameters.r is None else parameters.r
+        params_h = params_r if parameters.h is None else parameters.h
+        params_w = np.mean(data.accuracy) if parameters.w is None else parameters.w
+        
+        # process data
+        mobmat1 = gps_to_mobmat(
+            data, parameters.itrvl, parameters.accuracylim, params_r, params_w, params_h
+        )
+        mobmat2 = infer_mobmat(mobmat1, parameters.itrvl, params_r)
+        out_dict = bv_select(
+            mobmat2,
+            parameters.sigma2,
+            parameters.tol,
+            parameters.d,
+            pars0,
+            all_memory_dict[str(participant_id)],
+            all_bv_set[str(participant_id)],
+        )
+        all_bv_set[str(participant_id)] = bv_set = out_dict["BV_set"]
+        all_memory_dict[str(participant_id)] = out_dict["memory_dict"]
+        
+        # impute_gps can fail, if so we skip this participant.
+        try:
+            imp_table = impute_gps(
+                mobmat2, bv_set, parameters.method, parameters.switch, parameters.num,
+                parameters.linearity, tz_str, pars1
+            )
+        except RuntimeError as e:
+            logger.error("Error: %s", e)
+            continue
+        
+        traj = imp_to_traj(imp_table, mobmat2, params_w)
+        
+        # raise error if traj coordinates are not in the range of [-90, 90] and [-180, 180]
+        if traj.shape[0] > 0:
+            if (
+                np.max(traj[:, 1]) > 90  or np.min(traj[:, 1]) < -90  or
+                np.max(traj[:, 2]) > 180 or np.min(traj[:, 2]) < -180 or
+                np.max(traj[:, 4]) > 90  or np.min(traj[:, 4]) < -90  or
+                np.max(traj[:, 5]) > 180 or np.min(traj[:, 5]) < -180
+            ):
+                raise ValueError(COORDS_OUT_OF_RANGE)
+            
+        # save all_memory_dict and all_bv_set
+        with open(all_memory_dict_file, "wb") as f1, open(all_bv_set_file, "wb") as f2:
+            pickle.dump(all_memory_dict, f1)
+            pickle.dump(all_bv_set, f2)
+        
+        if save_traj is True:
+            pd_traj = pd.DataFrame(traj)
+            pd_traj.columns = ["status", "x0", "y0", "t0", "x1", "y1", "t1", "obs"]
+            pd_traj.to_csv(f"{trajectory_folder}/{participant_id}.csv", index=False)
+        
+        # generate summary stats. (variable "frequency" is already declared in signature)
+        for freq in frequencies:
+            gps_stats_generate_summary(
+                traj=traj,
+                tz_str=tz_str,
+                frequency=freq,
+                participant_id=participant_id,
+                output_folder=f"{output_folder}/{freq.name.lower()}",
+                logs_folder=logs_folder,
+                parameters=parameters,
+                places_of_interest=places_of_interest,
+                osm_tags=osm_tags,
+            )
 
 
 def gps_stats_generate_summary(
@@ -2020,7 +2034,7 @@ def gps_stats_generate_summary(
         frequency,
         parameters,
         places_of_interest,
-        osm_tags,
+        osm_tags
     )
     
     write_all_summaries(participant_id, summary_stats, output_folder)
@@ -2030,8 +2044,34 @@ def gps_stats_generate_summary(
             json.dump(logs, loc, indent=4)
 
 
+def handle_out_of_range_coodinate_bug(
+    data: pd.DataFrame,
+    participant_id: str,
+    places_of_interest: list | None,
+    osm_tags: list[OSMTags] | None,
+):
+    """ If the data comes from a study thata had a GPS fuzzing enabled, and the study was prior to
+    March 2023 (and probably just iOS devices), the longitude coordinates may be outside of the
+    required range of (-180, 180). This chunk of code wraps out of range coordinates to be in that
+    range. """
+    if (
+        ("longitude" in data.columns) and
+        ((data["longitude"].max() > 180) or (data["longitude"].min() < -180))
+    ):
+        logger.info("Reconciled bad longitude data for user %s", participant_id)
+        data["longitude"] = (data["longitude"] + 180) % 360 - 180
+        
+        if ((places_of_interest is not None) or (osm_tags is not None)):
+            logger.warning(
+                "Warning: user %s had longitude values outside the valid range [-180, 180] "
+                "but OSM location summaries were requested. Longitude values outside the "
+                "valid range may signify that GPS fuzzing was directed to be used in the "
+                "study setup file. If GPS coordinates were fuzzed, OSM location summaries "
+                "are meaningless", participant_id
+            )
+
 ##
-## OLD VERSIONS OF CODE, preserved for future analysis
+## OLD VERSIONS OF CODE, preserved for referency analysis
 ##
 
 # def old_avg_mobility_trace_difference(
