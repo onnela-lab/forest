@@ -4,6 +4,8 @@ import logging
 import os
 from collections.abc import Sequence
 from datetime import datetime
+from os import listdir, makedirs
+from os.path import exists as pathexists, isdir as pathisdir, join as pathjoin
 from typing import Any
 
 import numpy as np
@@ -66,11 +68,15 @@ def filename2stamp(filename: str) -> int:
     Returns:
         UNIX time (int)
     """
-    [d_str, h_str] = filename.split(" ")
-    [year, month, day] = np.array(d_str.split("-"), dtype=int)
-    hour = int(h_str.split("_")[0])
-    
-    return datetime2stamp((year, month, day, hour, 0, 0), "UTC")
+    # this function was excessively slow, mostly because it used datetime2stamp, which is/was slow.
+    d_str, h_str = filename.split(" ")
+    year, month, day = d_str.split("-")
+    hour = h_str.split("_", 1)[0]
+
+    # this is much faster than going through datetime2stamp
+    return int(datetime(
+        int(year), int(month), int(day), int(hour), 0, 0, tzinfo=UTC
+    ).timestamp())
 
 
 def get_files_timestamps(folder_path: str) -> tuple[np.ndarray, np.ndarray]:
@@ -87,12 +93,13 @@ def get_files_timestamps(folder_path: str) -> tuple[np.ndarray, np.ndarray]:
             directory, in the same order as those in filenames
     """
     # get list of all files in path
-    filenames = np.sort(np.array([f for f in os.listdir(folder_path) if not f.startswith(".")]))
+    filenames = [f for f in listdir(folder_path) if not f.startswith(".")]
+    filenames.sort()
     
     # create a list to convert all filenames to UNIX time
-    filestamps = np.array([filename2stamp(filename) for filename in filenames])
+    filestamps = [filename2stamp(filename) for filename in filenames]
     
-    return filenames, filestamps
+    return np.asarray(filenames), np.asarray(filestamps)
 
 
 def read_data(
@@ -145,27 +152,27 @@ def read_data(
     stamp_start: float = 1e12
     stamp_end: float = 0.
     
-    folder_path = os.path.join(study_folder, beiwe_id, datastream)
+    folder_path = pathjoin(study_folder, beiwe_id, datastream)
     files_in_range: list[str] = []
     # if text folder exists, call folder must exists
-    if not os.path.exists(os.path.join(study_folder, beiwe_id)):
+    if not pathexists(pathjoin(study_folder, beiwe_id)):
         logger.warning("User %s does not exist, please check the ID again.", beiwe_id)
-    elif not os.path.exists(folder_path):
+    elif not pathexists(folder_path):
         logger.warning("User %s: %s data are not collected.", beiwe_id, datastream)
     else:
         filenames, filestamps = get_files_timestamps(folder_path)
         
         # find the timestamp in the identifier (when the user was enrolled)
-        if os.path.exists(os.path.join(study_folder, beiwe_id, "identifiers")):
+        if pathexists(pathjoin(study_folder, beiwe_id, "identifiers")):
             identifier_files, _ = get_files_timestamps(
-                os.path.join(study_folder, beiwe_id, "identifiers")
+                pathjoin(study_folder, beiwe_id, "identifiers")
             )
+            # there's usually only a very small number of identifier files.
             identifiers = pd.read_csv(
-                os.path.join(study_folder, beiwe_id, "identifiers", identifier_files[0]),
+                pathjoin(study_folder, beiwe_id, "identifiers", identifier_files[0]),
                 sep=",",
             )
-            # now determine the starting and ending time according to the
-            # Docstring
+            # now determine the starting and ending time according to the Docstring
             if identifiers.index[0] > 10**10:
                 # sometimes the identifier has mismatched colnames and columns
                 stamp_start1 = identifiers.index[0] / 1000
@@ -173,6 +180,7 @@ def read_data(
                 stamp_start1 = identifiers["timestamp"][0] / 1000
         else:
             stamp_start1 = sorted(filestamps)[0]
+
         # now determine the starting and ending time according to the Docstring
         if time_start is None:
             stamp_start = stamp_start1
@@ -181,11 +189,12 @@ def read_data(
             # only allow data after the participant registered (this condition may be violated under
             # test conditions of the beiwe backend.)
             stamp_start = max(stamp_start1, stamp_start2)
+
         # Last hour: look at all the subject's directories (except survey) and find the latest date
         # for each directory
         directories = [
-            directory for directory in os.listdir(os.path.join(study_folder, beiwe_id))
-            if os.path.isdir(os.path.join(study_folder, beiwe_id, directory))
+            directory for directory in listdir(pathjoin(study_folder, beiwe_id))
+            if pathisdir(pathjoin(study_folder, beiwe_id, directory))
         ]
         
         directories = list(
@@ -212,14 +221,13 @@ def read_data(
             logger.warning("User %s: There are no %s data in range.", beiwe_id, datastream)
         else:
             if datastream != "accelerometer":
-                # read in the data one by one file and stack them
-                for data_file in files_in_range:
-                    dest_path = os.path.join(folder_path, data_file)
-                    hour_data = pd.read_csv(dest_path)
-                    if res.shape[0] == 0:
-                        res = hour_data
-                    else:
-                        res = pd.concat([res, hour_data], ignore_index=True)
+                # Without knowing the size and shape of the data beforehand it is not possible to
+                # implement this code in a more memory efficient way. Reading in data and passing
+                # all of them to concatenate is optimal.
+                res = pd.concat(
+                    [pd.read_csv(pathjoin(folder_path, the_csv)) for the_csv in files_in_range],
+                    ignore_index=True,
+                )
     
     if datastream == "accelerometer":
         return files_in_range, stamp_start, stamp_end
@@ -243,5 +251,5 @@ def write_all_summaries(
         output_path: str,
             the path to write out the summary stats
     """
-    os.makedirs(output_path, exist_ok=True)
-    stats_pdframe.to_csv(os.path.join(output_path, f"{beiwe_id}.csv"), index=False, columns=columns)
+    makedirs(output_path, exist_ok=True)
+    stats_pdframe.to_csv(pathjoin(output_path, f"{beiwe_id}.csv"), index=False, columns=columns)
