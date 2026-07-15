@@ -581,7 +581,6 @@ def test_avg_mobility_trace_difference_no_common_timestamps(
 ):
     """ Testing avg mobility trace difference when there are no common timestamps """
     
-    time_range = (1, 5)
     res = avg_mobility_trace_difference(1, 5, mobmat1, mobmat3)
     assert res == 0
 

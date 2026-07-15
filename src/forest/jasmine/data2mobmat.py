@@ -1,7 +1,6 @@
 import logging
 import math
 from itertools import groupby
-from typing import List, Optional, Tuple, Union
 
 import numba
 import numpy as np
