@@ -1407,6 +1407,9 @@ def gps_summaries(
     log_tags: dict[str, list[dict]] = {}
     saved_polygons: dict[str, Polygon] = {}
     
+    mobility_trace = None
+    cache = {}
+    
     for i in range(num_windows):
         start_time2 = 0
         end_time2 = 0
@@ -1426,7 +1429,7 @@ def gps_summaries(
             index_rows, stop1, stop2, start_time2, end_time2 = (
                 get_day_night_indices(traj, tz_str, i, start_time, end_time, current_time_list)
             )
-
+        
         # if there is an empty row move on to the next window
         if not gps_handle_empty_rows(
             index_rows, frequency, parameters, places_of_interest, current_time_list, summary_stats
@@ -1446,6 +1449,38 @@ def gps_summaries(
         )
         
         obs_dur = sum((temp[:, 6] - temp[:, 3])[temp[:, 7] == 1])
+
+        # physical circadian rhythm  -  only logically compatible with daily
+        if obs_dur != 0 and parameters.pcr_bool and frequency == Frequency.DAILY:
+                
+            if mobility_trace is None:
+                # traj never mutates, we only need to calculate the mobility trace once
+                mobility_trace = create_mobility_trace(traj)
+            
+            # using a cache on these sequential calls drops a benchmark where I ran 100 of these
+            # on live data from 30s to 26s
+            pcr = routine_index(
+                (start_time, end_time),
+                mobility_trace,
+                parameters.pcr_window,
+                parameters.pcr_sample_rate,
+                # False,
+                # tz_str,
+                cache=cache,
+            )
+            pcr_stratified = routine_index(
+                (start_time, end_time),
+                mobility_trace,
+                parameters.pcr_window,
+                parameters.pcr_sample_rate,
+                True,
+                tz_str,
+                cache=cache,
+            )
+        else:
+            pcr = pd.NA
+            pcr_stratified = pd.NA
+        
         d_home_1 = great_circle_dist(home_lat, home_lon, temp[:, 1], temp[:, 2])
         d_home_2 = great_circle_dist(home_lat, home_lon, temp[:, 4], temp[:, 5])
         d_home = (d_home_1 + d_home_2) / 2
@@ -1548,12 +1583,10 @@ def gps_summaries(
             temp_pause = temp[temp[:, 0] == 2, :]
             
             centroid_x = np.dot(
-                (temp_pause[:, 6] - temp_pause[:, 3]) / total_pause_time,
-                temp_pause[:, 1],
+                (temp_pause[:, 6] - temp_pause[:, 3]) / total_pause_time, temp_pause[:, 1]
             )
             centroid_y = np.dot(
-                (temp_pause[:, 6] - temp_pause[:, 3]) / total_pause_time,
-                temp_pause[:, 2],
+                (temp_pause[:, 6] - temp_pause[:, 3]) / total_pause_time, temp_pause[:, 2]
             )
             
             r_vec = great_circle_dist(centroid_x, centroid_y, temp_pause[:, 1], temp_pause[:, 2])
@@ -1564,38 +1597,6 @@ def gps_summaries(
             p = t_sig / sum(t_sig)
             
             entropy = -sum(p * np.log(p + 0.00001))
-            
-            # physical circadian rhythm
-            if obs_dur != 0 and parameters.pcr_bool:
-                
-                if "mobility_trace" not in locals():
-                    mobility_trace = create_mobility_trace(traj)
-                    cache = {}
-                
-                # using a cache on these sequential calls drops a benchmark where I ran 100 of these
-                # on live data from 30s to 26s
-                pcr = routine_index(
-                    (start_time, end_time),
-                    mobility_trace,
-                    parameters.pcr_window,
-                    parameters.pcr_sample_rate,
-                    # False,
-                    # tz_str,
-                    cache=cache,
-                )
-                pcr_stratified = routine_index(
-                    (start_time, end_time),
-                    mobility_trace,
-                    parameters.pcr_window,
-                    parameters.pcr_sample_rate,
-                    True,
-                    tz_str,
-                    cache=cache
-                )
-            else:
-                pcr = pd.NA
-                pcr_stratified = pd.NA
-            
             # if there is only one significant place, the entropy is zero but here it is
             # -log(1.00001) < 0 but the small value is added to avoid log(0)
             if num_sig == 1:
@@ -1603,8 +1604,7 @@ def gps_summaries(
             if temp.shape[0] == 1:
                 diameter = 0.
             else:
-                diameters = pairwise_great_circle_dist(temp[:, [1, 2]])
-                diameter = max(diameters)
+                diameter = max(pairwise_great_circle_dist(temp[:, [1, 2]]))
             
             summary_stats, log_tags = final_daily_prep(
                 obs_dur,
@@ -1710,7 +1710,7 @@ def gps_handle_empty_rows(
         else:
             # TODO: there is no test for this case
             row += [current_time_list[4], 0] + [pd.NA] * 11  # lead with the hour...
-
+    
     if parameters.pcr_bool and frequency == Frequency.DAILY:  # Frequency.DAILY is implied True...
         row += [pd.NA] * 2  # circadian rhythm columns
     
