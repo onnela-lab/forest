@@ -148,7 +148,7 @@ def transform_point_to_circle(lat: float, lon: float, radius: float) -> Polygon:
 def get_nearby_locations(
     traj: np.ndarray,
     osm_tags: list[OSMTags] | None = None,
-) -> tuple[dict, dict, dict]:
+) -> tuple[dict[str, list[int]], dict[int, list[list[float]]], dict[int, dict[str, str]]]:
     """ This function returns a dictionary of nearby locations, a dictionary of nearby locations'
     names, and a dictionary of nearby locations' coordinates.
     
@@ -174,8 +174,7 @@ def get_nearby_locations(
             np_great_circle_dist(row[1], row[2], lat, lon)[0]
             for lat, lon in zip(latitudes, longitudes)
         ])
-        # only add coordinates to the list if they are not too close
-        # with the other coordinates in the list
+        # only add to the list if they are not too close with the other coordinates in the list
         if minimum_distance > 1000:
             latitudes.append(row[1])
             longitudes.append(row[2])
@@ -189,33 +188,33 @@ def get_nearby_locations(
             if tag == OSMTags.BUILDING:
                 query += f"""
                 \tnode{bbox}['building'='residential'];
-                \tway{bbox}['building'='residential'];
+                \tway{bbox}[ 'building'='residential'];
                 \tnode{bbox}['building'='office'];
-                \tway{bbox}['building'='office'];
+                \tway{bbox}[ 'building'='office'];
                 \tnode{bbox}['building'='commercial'];
-                \tway{bbox}['building'='commercial'];
+                \tway{bbox}[ 'building'='commercial'];
                 \tnode{bbox}['building'='supermarket'];
-                \tway{bbox}['building'='supermarket'];
+                \tway{bbox}[ 'building'='supermarket'];
                 \tnode{bbox}['building'='stadium'];
-                \tway{bbox}['building'='stadium'];"""
+                \tway{bbox}[ 'building'='stadium'];"""
             elif tag == OSMTags.HIGHWAY:
                 query += f"""
                 \tnode{bbox}['highway'='motorway'];
-                \tway{bbox}['highway'='motorway'];
+                \tway{bbox}[ 'highway'='motorway'];
                 \tnode{bbox}['highway'='trunk'];
-                \tway{bbox}['highway'='trunk'];
+                \tway{bbox}[ 'highway'='trunk'];
                 \tnode{bbox}['highway'='primary'];
-                \tway{bbox}['highway'='primary'];
+                \tway{bbox}[ 'highway'='primary'];
                 \tnode{bbox}['highway'='secondary'];
-                \tway{bbox}['highway'='secondary'];
+                \tway{bbox}[ 'highway'='secondary'];
                 \tnode{bbox}['highway'='tertiary'];
-                \tway{bbox}['highway'='tertiary'];
+                \tway{bbox}[ 'highway'='tertiary'];
                 \tnode{bbox}['highway'='road'];
-                \tway{bbox}['highway'='road'];"""
+                \tway{bbox}[ 'highway'='road'];"""
             else:
                 query += f"""
                 \tnode{bbox}['{tag.value}'];
-                \tway{bbox}['{tag.value}'];"""
+                \tway{bbox}[ '{tag.value}'];"""
     
     query += "\n);\nout geom qt;"
     
@@ -1319,6 +1318,7 @@ def format_summary_stats(
     
     return summary_stats_df2, log_tags
 
+## GPS Summaries
 
 def gps_summaries(
     traj: np.ndarray,
@@ -1394,59 +1394,31 @@ def gps_summaries(
         ValueError: Frequency is not valid
     """
     
-    if frequency in [Frequency.HOURLY_AND_DAILY, Frequency.MINUTE]:
-        raise ValueError(f"Frequency cannot be {frequency.name.lower()}.")
+    window, num_windows, start_stamp = gps_frequency_init(traj, tz_str, frequency, parameters)
     
-    if frequency != Frequency.DAILY:
-        parameters.split_day_night = False
-    
-    ids: dict[str, list[int]] = {}
-    locations: dict[int, list[list[float]]] = {}
-    tags: dict[int, dict[str, str]] = {}
-    
-    if places_of_interest is not None or parameters.save_osm_log:
-        ids, locations, tags = get_nearby_locations(traj, osm_tags)
-        ids_keys_list = list(ids.keys())
-    else:
-        ids_keys_list = []
+    ids, ids_keys_list, locations, tags = gps_ids_locations_and_tags(
+        traj, parameters, places_of_interest, osm_tags
+    )
     
     obs_traj = traj[traj[:, 7] == 1, :]
     home_lat, home_lon = locate_home(obs_traj, tz_str)
+    
     summary_stats: list[list[float]] = []
     log_tags: dict[str, list[dict]] = {}
     saved_polygons: dict[str, Polygon] = {}
     
-    if frequency != Frequency.DAILY:
-        # find starting and ending time
-        logger.info("Calculating the hourly summary stats...")
-        start_stamp, end_stamp = get_time_range(traj, [4, 5], tz_str)
-        window, num_windows = compute_window_and_count(start_stamp, end_stamp, frequency.value)
-    else:
-        # find starting and ending time
-        logger.info("Calculating the daily summary stats...")
-        start_stamp, end_stamp = get_time_range(traj, [3, 4, 5], tz_str, 3600 * 24)
-        window, num_windows = compute_window_and_count(
-            start_stamp, end_stamp, 24 * 60, parameters.split_day_night
-        )
-    
-    if num_windows <= 0:
-        raise ValueError("start time and end time are not correct")
-    
     for i in range(num_windows):
-        if parameters.split_day_night:
-            i2 = i // 2
-        else:
-            i2 = i
-        start_time = start_stamp + i2 * window
-        end_time = start_stamp + (i2 + 1) * window
         start_time2 = 0
         end_time2 = 0
+        i2 = i // 2 if parameters.split_day_night else i
+        start_time = start_stamp + i2 * window
+        end_time = start_stamp + (i2 + 1) * window
         
         current_time_list = stamp2datetime(start_time, tz_str)
-        year, month, day, hour = current_time_list[:4]
+        
         # take a subset, the starting point of the last traj <end_time and the ending point of the
         # first traj >start_time
-        index_rows = (traj[:, 3] < end_time) * (traj[:, 6] > start_time)
+        index_rows: BoolArray = (traj[:, 3] < end_time) * (traj[:, 6] > start_time)
         
         stop1 = 0
         stop2 = 0
@@ -1454,36 +1426,11 @@ def gps_summaries(
             index_rows, stop1, stop2, start_time2, end_time2 = (
                 get_day_night_indices(traj, tz_str, i, start_time, end_time, current_time_list)
             )
-        
-        if sum(index_rows) == 0 and parameters.split_day_night:
-            # if there is no data in the day, then we need to to add empty rows to the dataframe
-            # with 21 columns
-            res = [year, month, day] + [0] * 18
-            
-            if parameters.pcr_bool:
-                res += [pd.NA] * 2
-            if places_of_interest is not None:
-                # add empty data for places of interest for daytime/nighttime + other
-                res += [0] * (2 * len(places_of_interest) + 1)
-            summary_stats.append(res)
-            continue
-        
-        elif sum(index_rows) == 0 and not parameters.split_day_night:
-            # There is no data and it is daily data, so we need to add empty rows
-            if frequency == Frequency.DAILY:
-                res = [year, month, day] + [0] * 3 + [pd.NA] * 15
-                
-                if parameters.pcr_bool:
-                    res += [pd.NA] * 2
-            else:
-                # if there is no data in the day, then we need to add empty rows to the dataframe
-                # with 21 columns
-                res = [year, month, day, hour] + [0] + [pd.NA] * 11
-            
-            if places_of_interest is not None:
-                # add empty data for places of interest for daytime/nighttime + other
-                res += [0] * (2 * len(places_of_interest) + 1)
-            summary_stats.append(res)
+
+        # if there is an empty row move on to the next window
+        if not gps_handle_empty_rows(
+            index_rows, frequency, parameters, places_of_interest, current_time_list, summary_stats
+        ):
             continue
         
         temp = traj[index_rows, :]
@@ -1566,7 +1513,7 @@ def gps_summaries(
                                     log_tags_temp.append(tags[place_id])
         
         flight_pause_stats = compute_flight_pause_stats(flight_d_vec, flight_t_vec, pause_t_vec)
-        datetime_list = [year, month, day, hour, 0, 0]
+        datetime_list = current_time_list[:4] + [0, 0]
         
         if frequency != Frequency.DAILY:
             summary_stats, log_tags = final_hourly_prep(
@@ -1588,10 +1535,7 @@ def gps_summaries(
         else:
             hours = []
             for j in range(temp.shape[0]):
-                time_list = stamp2datetime(
-                    (temp[j, 3] + temp[j, 6]) / 2,
-                    tz_str,
-                )
+                time_list = stamp2datetime((temp[j, 3] + temp[j, 6]) / 2, tz_str)
                 hours.append(time_list[3])
             
             hours_array = np.array(hours)
@@ -1694,6 +1638,91 @@ def gps_summaries(
     )
     _CACHE.clear()
     return summary_stats_df2, log_tags
+
+
+def gps_ids_locations_and_tags(
+    traj: np.ndarray,
+    parameters: Hyperparameters,
+    places_of_interest: list[str] | None = None,
+    osm_tags: list[OSMTags] | None = None,
+) -> tuple[dict[str, list[int]], list[str], dict[int, list[list[float]]], dict[int, dict[str, str]]]:
+    
+    if places_of_interest is not None or parameters.save_osm_log:
+        ids, locations, tags = get_nearby_locations(traj, osm_tags)
+        return ids, list(ids.keys()), locations, tags
+    
+    return {}, [], {}, {}
+
+
+def gps_frequency_init(
+    traj: np.ndarray,
+    tz_str: str,
+    frequency: Frequency,
+    parameters: Hyperparameters,
+)   -> tuple[int, int, int]:
+    
+    if frequency in [Frequency.HOURLY_AND_DAILY, Frequency.MINUTE]:
+        raise ValueError(f"Frequency cannot be {frequency.name.lower()}.")
+    
+    if frequency != Frequency.DAILY:
+        parameters.split_day_night = False  # force valid configuration
+    
+    if frequency != Frequency.DAILY:
+        # find starting and ending time
+        logger.info("Calculating the hourly summary stats...")
+        start_stamp, end_stamp = get_time_range(traj, [4, 5], tz_str)
+        window, num_windows = compute_window_and_count(start_stamp, end_stamp, frequency.value)
+    else:
+        # find starting and ending time
+        logger.info("Calculating the daily summary stats...")
+        start_stamp, end_stamp = get_time_range(traj, [3, 4, 5], tz_str, 3600 * 24)
+        window, num_windows = compute_window_and_count(
+            start_stamp, end_stamp, 24 * 60, parameters.split_day_night
+        )
+    
+    if num_windows <= 0:
+        raise ValueError("start time and end time are not correct")
+    
+    return window, num_windows, start_stamp
+
+
+def gps_handle_empty_rows(
+    index_rows: BoolArray,
+    frequency: Frequency,
+    parameters: Hyperparameters,
+    places_of_interest: list[str] | None,
+    current_time_list: list[int],
+    summary_stats: list[list[float]],
+):
+    """ Helper function to handle inserting the correct empty row values"""
+    if sum(index_rows) != 0:
+        return True
+    
+    row = current_time_list[:3]  # year, month, day
+    
+    # cases with no data in the day
+    if parameters.split_day_night:
+        # if there is no data in the day add empty rows to the dataframe with 21 columns
+        row += [0]*18
+    else:
+        if frequency == Frequency.DAILY:
+            row += [0]*3 + [pd.NA]*15  # pad it out
+        else:
+            # TODO: there is no test for this case
+            row += [current_time_list[4], 0] + [pd.NA] * 11  # lead with the hour...
+
+    if parameters.pcr_bool and frequency == Frequency.DAILY:  # Frequency.DAILY is implied True...
+        row += [pd.NA] * 2  # circadian rhythm columns
+    
+    # add columns for places of interest...
+    if places_of_interest is not None:
+        row += [0] * (2 * len(places_of_interest) + 1)
+    
+    summary_stats.append(row)
+    return False
+
+
+## End GPS Summaries
 
 
 def split_day_night_cols(summary_stats_df: pd.DataFrame) -> pd.DataFrame:
