@@ -31,18 +31,18 @@ def datetime2stamp(time_list: Sequence[int], tz_str: str) -> int:
     Returns:
         Unix time, which is what Beiwe uses
     """
-    t = list(time_list) + [0, 0, 0, 0, 0, 0, 0, 0]
+    t = [*time_list, 0, 0, 0, 0, 0, 0, 0, 0]  # this tests as the most optimal list construction
     loc_dt = datetime(t[0], t[1], t[2], t[3], t[4], t[5], t[6], tzinfo=gettz(tz_str))
     # this function used to mess around with the calendar library and returned an int
     return int(loc_dt.astimezone(UTC).timestamp())
 
 
-def stamp2datetime(stamp: float | int, tz_str: str) -> list:
+def stamp2datetime(unix_timestamp: float | int, tz_str: str) -> list:
     """Convert a Unix time to datetime
     
     Args:
         stamp: int or float,
-            Unix time, the timestamp in Beiwe
+            Unix time, the timestamp (sourced from Beiwe data), by definition it is in UTC time.
         tz_str: str,
             timezone where the study is conducted
             
@@ -53,8 +53,7 @@ def stamp2datetime(stamp: float | int, tz_str: str) -> list:
     Returns:
         a list of integers [year, month, day, hour (0-23), min, sec] in the specified tz
     """
-    utc_dt = datetime.fromtimestamp(stamp, UTC)
-    loc_dt = utc_dt.astimezone(gettz(tz_str))
+    loc_dt = datetime.fromtimestamp(unix_timestamp, gettz(tz_str))
     return [loc_dt.year, loc_dt.month, loc_dt.day, loc_dt.hour, loc_dt.minute, loc_dt.second]
 
 

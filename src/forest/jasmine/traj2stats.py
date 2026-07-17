@@ -1,5 +1,5 @@
-"""Module used to impute missing data, by combining functions defined in other
-modules and calculate summary statistics of imputed trajectories.
+""" Module used to impute missing data, by combining functions defined in other modules and
+calculate summary statistics of imputed trajectories.
 """
 
 import json
@@ -21,8 +21,9 @@ from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
 from forest.constants import Frequency, Frequency as Freq, OSM_OVERPASS_URL, OSMTags
-from forest.jasmine.data2mobmat import (great_circle_dist_specialized, gps_to_mobmat,
-    great_circle_dist, infer_mobmat, np_great_circle_dist, pairwise_great_circle_dist)
+from forest.jasmine.data2mobmat import (gps_to_mobmat, great_circle_dist,
+    great_circle_dist_specialized, infer_mobmat, mix1_great_circle_dist, np_great_circle_dist,
+    pairwise_great_circle_dist)
 from forest.jasmine.mobmat2traj import imp_to_traj, impute_gps, locate_home, num_sig_places
 from forest.jasmine.sogp_gps import bv_select
 from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data, stamp2datetime,
@@ -257,14 +258,17 @@ def get_nearby_locations(
     return ids, locations, tags
 
 
+## Routine Index
+
+
 def routine_index(
     time_range: tuple[int, int],
     mobility_trace: np.ndarray,
+    cache: dict[tuple[int, int, int], float],
     pcr_window: int = 14,
     pcr_sample_rate: int = 30,
     stratified: bool = False,
     timezone: str = "US/Eastern",
-    cache: dict[tuple[int, int, int], float] | None = None,
 ) -> float:
     """ This function calculates the routine index of a trajectory
     
@@ -290,24 +294,15 @@ def routine_index(
         float, routine index
     """
     
-    t_1, t_2 = time_range
-    t_init, t_fin = _t_init_and_t_fin(mobility_trace)
+    # We have several variables that we can save a bunch of computation on through caching
+    time_col, sampled_trace, prealloc_array = _get_inner_params(mobility_trace, pcr_sample_rate, cache)
     
-    t_1 = max(t_1, t_init)
-    t_2 = min(t_2, t_fin)
+    t_1, t_2, n_days_1, n_days_2 = _get_time_components(time_range, time_col, pcr_window)
     
-    # n1, n2 are the number of days before and after the time range
-    n1 = int(round((t_1 - t_init) / (SECONDS_IN_DAY)))
-    n2 = int(round((t_fin - t_2) / (SECONDS_IN_DAY)))
-    
-    # to avoid long computational times only look at the last window days and next window days
-    n1 = min(n1, pcr_window)
-    n2 = min(n2, pcr_window)
-    
-    if max(n1, n2) == 0:
+    if max(n_days_1, n_days_2) == 0:
         return 0
     
-    shifts = list(range(1, n1 + 1)) + list(range(-n2, 0))
+    shifts = list(range(1, n_days_1 + 1)) + list(range(-n_days_2, 0))
     if stratified:
         time_mid = int((t_1 + t_2) / 2)
         weekend_today = datetime(*stamp2datetime(time_mid, timezone)).weekday() >= 5
@@ -323,28 +318,40 @@ def routine_index(
             ]
     
     # !FIXME: TODO: I'm using the MUTATED t_1 and t_2 here, the old code used the time_range tuple. Is this going to change results?
-    average_traces_sum = innermost_loop(
-        t_1, t_2, shifts, cache, *get_inner_params(mobility_trace, pcr_sample_rate)
+    average_traces_sum = _innermost_loop(
+        t_1, t_2, shifts, cache, time_col, sampled_trace, prealloc_array
     )
-    return average_traces_sum / (n1 + n2)
+    return average_traces_sum / (n_days_1 + n_days_2)
 
 
 @numba.njit(cache=True, fastmath=True)
-def _t_init_and_t_fin(mobility_trace):
-    tmp = mobility_trace[:, 2]
-    t_init = tmp.min()
-    t_fin = tmp.max()
-    return t_init, t_fin
+def _get_time_components(time_range, time_col, pcr_window):
+    """ There are some very small performance wins if we compile this, reduces mess. """
+    
+    t_1, t_2 = time_range
+    t_init = time_col.min()
+    t_fin = time_col.max()
+    t_1 = max(t_1, t_init)
+    t_2 = min(t_2, t_fin)
+    
+    # n1, n2 are the number of days before and after the time range
+    n1 = int(round((t_1 - t_init) / (SECONDS_IN_DAY)))
+    n2 = int(round((t_fin - t_2) / (SECONDS_IN_DAY)))
+    
+    # to avoid long computational times only look at the last window days and next window days
+    n1 = min(n1, pcr_window)
+    n2 = min(n2, pcr_window)
+    return t_1, t_2, n1, n2
 
 
-_CACHE = {}
-def get_inner_params(
+def _get_inner_params(
     mobility_trace: FP64Array,
-    pcr_sample_rate: int
+    pcr_sample_rate: int,
+    cache: dict
 ) -> tuple[FP64Array, FP64Array, FP64Array]:
     # These items are memory heavy, but are based on the value of an invariant - the mobility trace.
     # caching them instead of recomputing them is a 20% overall speedup.
-    if params := _CACHE.get(id(mobility_trace)):
+    if params := cache.get("mobility_trace"):
         return params
     
     # This code runs substantially slower when compiled with numba.
@@ -357,11 +364,11 @@ def get_inner_params(
     # minutely but consistently better as fortran array
     sampled_trace = np.asfortranarray(mobility_trace[::pcr_sample_rate])
     
-    _CACHE[id(mobility_trace)] = time_col, sampled_trace, preallocated_array  # cache and return
+    cache["mobility_trace"] = time_col, sampled_trace, preallocated_array  # cache and return
     return time_col, sampled_trace, preallocated_array
 
 
-def innermost_loop(
+def _innermost_loop(
     time_start: int,
     time_end: int,
     shifts: list[int],
@@ -373,9 +380,15 @@ def innermost_loop(
     # This function is hit twice with calls that repeat work, we can save on that by caching answers
     # on the already known parameters. There is virtually no overhead, performance gain depends on
     # the number of shifts per call, which changes with pcl_window (I think).
+    
+    prealloc_view = preallocated_array.view()[:, 2]  # using views directly is also slightly faster
+    time_col = time_col.view()
+    
     the_sum = 0.0
     for i in shifts:
-        preallocated_array[:, 2] = time_col + i * SECONDS_IN_DAY  # numba chokes on this operation.
+        # preallocated_array[:, 2] = time_col + i * SECONDS_IN_DAY  # numba chokes on this operation
+        # This construction at least avoids creating an intermediate array, numba still chokes.
+        np.add(time_col, i * SECONDS_IN_DAY, out=prealloc_view)
         cache_key = (time_start, time_end, i)
         
         if hit := cache.get(cache_key):  # there is _no_ overhead to updating this cache
@@ -475,6 +488,8 @@ def _dist_flag_compute(dists: FP64Array) -> tuple[float, bool]:
     res = np.mean(dist_flag)
     return float(res), np.isnan(res)
 
+
+## End Routine Index
 
 ## create_mobility_trace
 
@@ -1394,9 +1409,9 @@ def gps_summaries(
         ValueError: Frequency is not valid
     """
     
-    window, num_windows, start_stamp = gps_frequency_init(traj, tz_str, frequency, parameters)
+    window, num_windows, start_stamp = _gps_frequency_init(traj, tz_str, frequency, parameters)
     
-    ids, ids_keys_list, locations, tags = gps_ids_locations_and_tags(
+    ids, ids_keys_list, locations, tags = _gps_ids_locations_and_tags(
         traj, parameters, places_of_interest, osm_tags
     )
     
@@ -1413,6 +1428,9 @@ def gps_summaries(
     for i in range(num_windows):
         start_time2 = 0
         end_time2 = 0
+        stop1 = 0
+        stop2 = 0
+        
         i2 = i // 2 if parameters.split_day_night else i
         start_time = start_stamp + i2 * window
         end_time = start_stamp + (i2 + 1) * window
@@ -1423,15 +1441,13 @@ def gps_summaries(
         # first traj >start_time
         index_rows: BoolArray = (traj[:, 3] < end_time) * (traj[:, 6] > start_time)
         
-        stop1 = 0
-        stop2 = 0
         if parameters.split_day_night:
             index_rows, stop1, stop2, start_time2, end_time2 = (
                 get_day_night_indices(traj, tz_str, i, start_time, end_time, current_time_list)
             )
         
         # if there is an empty row move on to the next window
-        if not gps_handle_empty_rows(
+        if not _gps_handle_empty_rows(
             index_rows, frequency, parameters, places_of_interest, current_time_list, summary_stats
         ):
             continue
@@ -1449,10 +1465,10 @@ def gps_summaries(
         )
         
         obs_dur = sum((temp[:, 6] - temp[:, 3])[temp[:, 7] == 1])
-
+        
         # physical circadian rhythm  -  only logically compatible with daily
         if obs_dur != 0 and parameters.pcr_bool and frequency == Frequency.DAILY:
-                
+            
             if mobility_trace is None:
                 # traj never mutates, we only need to calculate the mobility trace once
                 mobility_trace = create_mobility_trace(traj)
@@ -1462,40 +1478,24 @@ def gps_summaries(
             pcr = routine_index(
                 (start_time, end_time),
                 mobility_trace,
+                cache,
                 parameters.pcr_window,
                 parameters.pcr_sample_rate,
                 # False,
                 # tz_str,
-                cache=cache,
             )
             pcr_stratified = routine_index(
                 (start_time, end_time),
                 mobility_trace,
+                cache,
                 parameters.pcr_window,
                 parameters.pcr_sample_rate,
                 True,
                 tz_str,
-                cache=cache,
             )
         else:
             pcr = pd.NA
             pcr_stratified = pd.NA
-        
-        d_home_1 = great_circle_dist(home_lat, home_lon, temp[:, 1], temp[:, 2])
-        d_home_2 = great_circle_dist(home_lat, home_lon, temp[:, 4], temp[:, 5])
-        d_home = (d_home_1 + d_home_2) / 2
-        max_dist_home = max(np.concatenate((d_home_1, d_home_2)))
-        time_at_home = sum((temp[:, 6] - temp[:, 3])[d_home <= 50])
-        mov_vec = np.round(
-            great_circle_dist(temp[:, 4], temp[:, 5], temp[:, 1], temp[:, 2]),
-            0,
-        )
-        flight_d_vec = mov_vec[temp[:, 0] == 1]
-        flight_t_vec = (temp[:, 6] - temp[:, 3])[temp[:, 0] == 1]
-        pause_t_vec = (temp[:, 6] - temp[:, 3])[temp[:, 0] == 2]
-        total_pause_time = sum(pause_t_vec)
-        total_flight_time = sum(flight_t_vec)
-        dist_traveled = sum(mov_vec)
         
         # Locations of importance
         all_place_times = []
@@ -1528,25 +1528,34 @@ def gps_summaries(
                         for h, prob in enumerate(all_place_probs2):
                             all_place_times_adjusted[h] += (prob * pause[2] / 60)
                 
-                if parameters.save_osm_log:
-                    if pause[2] >= parameters.log_threshold:
-                        for place_id, place_coordinates in locations.items():
-                            if len(place_coordinates) == 1:
-                                if (
-                                    great_circle_dist(
-                                        pause[0],
-                                        pause[1],
-                                        place_coordinates[0][0],
-                                        place_coordinates[0][1],
-                                    )[0] < parameters.place_point_radius
-                                ):
-                                    log_tags_temp.append(tags[place_id])
-                            elif len(place_coordinates) >= 3:
-                                polygon = Polygon(place_coordinates)
-                                point = Point(pause[0], pause[1])
-                                if polygon.contains(point):
-                                    log_tags_temp.append(tags[place_id])
+                if parameters.save_osm_log and pause[2] >= parameters.log_threshold:
+                    for place_id, place_coordinates in locations.items():
+                        
+                        if len(place_coordinates) == 1:
+                            if great_circle_dist(
+                                pause[0], pause[1], place_coordinates[0][0], place_coordinates[0][1]
+                            )[0] < parameters.place_point_radius:
+                                log_tags_temp.append(tags[place_id])
+                        
+                        elif len(place_coordinates) >= 3:
+                            polygon = Polygon(place_coordinates)
+                            point = Point(pause[0], pause[1])
+                            if polygon.contains(point):
+                                log_tags_temp.append(tags[place_id])
         
+        # distances etc
+        d_home_1 = mix1_great_circle_dist(home_lat, home_lon, temp[:, 1], temp[:, 2])
+        d_home_2 = mix1_great_circle_dist(home_lat, home_lon, temp[:, 4], temp[:, 5])
+        d_home = (d_home_1 + d_home_2) / 2
+        max_dist_home = max(np.concatenate((d_home_1, d_home_2)))
+        time_at_home = sum((temp[:, 6] - temp[:, 3])[d_home <= 50])
+        mov_vec = np.round(np_great_circle_dist(temp[:, 4], temp[:, 5], temp[:, 1], temp[:, 2]), 0)
+        flight_d_vec = mov_vec[temp[:, 0] == 1]
+        flight_t_vec = (temp[:, 6] - temp[:, 3])[temp[:, 0] == 1]
+        pause_t_vec = (temp[:, 6] - temp[:, 3])[temp[:, 0] == 2]
+        total_pause_time = sum(pause_t_vec)
+        total_flight_time = sum(flight_t_vec)
+        dist_traveled = sum(mov_vec)
         flight_pause_stats = compute_flight_pause_stats(flight_d_vec, flight_t_vec, pause_t_vec)
         datetime_list = current_time_list[:4] + [0, 0]
         
@@ -1636,16 +1645,16 @@ def gps_summaries(
     summary_stats_df2, log_tags = format_summary_stats(
         summary_stats, log_tags, frequency, parameters, places_of_interest
     )
-    _CACHE.clear()
     return summary_stats_df2, log_tags
 
 
-def gps_ids_locations_and_tags(
+def _gps_ids_locations_and_tags(
     traj: np.ndarray,
     parameters: Hyperparameters,
-    places_of_interest: list[str] | None = None,
-    osm_tags: list[OSMTags] | None = None,
+    places_of_interest: list[str] | None,
+    osm_tags: list[OSMTags] | None,
 ) -> tuple[dict[str, list[int]], list[str], dict[int, list[list[float]]], dict[int, dict[str, str]]]:
+    """ Helper function for gps_summaries, handles osm tags and places of interest variables. """
     
     if places_of_interest is not None or parameters.save_osm_log:
         ids, locations, tags = get_nearby_locations(traj, osm_tags)
@@ -1654,12 +1663,10 @@ def gps_ids_locations_and_tags(
     return {}, [], {}, {}
 
 
-def gps_frequency_init(
-    traj: np.ndarray,
-    tz_str: str,
-    frequency: Frequency,
-    parameters: Hyperparameters,
-)   -> tuple[int, int, int]:
+def _gps_frequency_init(
+    traj: np.ndarray, tz_str: str, frequency: Frequency, parameters: Hyperparameters
+) -> tuple[int, int, int]:
+    """ Helper function for gps_summaries, handles frequency related initializations. """
     
     if frequency in [Frequency.HOURLY_AND_DAILY, Frequency.MINUTE]:
         raise ValueError(f"Frequency cannot be {frequency.name.lower()}.")
@@ -1681,20 +1688,21 @@ def gps_frequency_init(
         )
     
     if num_windows <= 0:
-        raise ValueError("start time and end time are not correct")
+        raise ValueError(f"start time {start_stamp} and end time {end_stamp} are not correct.")
     
     return window, num_windows, start_stamp
 
 
-def gps_handle_empty_rows(
+def _gps_handle_empty_rows(
     index_rows: BoolArray,
     frequency: Frequency,
     parameters: Hyperparameters,
     places_of_interest: list[str] | None,
     current_time_list: list[int],
     summary_stats: list[list[float]],
-):
-    """ Helper function to handle inserting the correct empty row values"""
+) -> bool:
+    """ Helper function for gps_summaries, handles empty row values. """
+    
     if sum(index_rows) != 0:
         return True
     
