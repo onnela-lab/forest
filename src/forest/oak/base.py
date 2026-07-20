@@ -483,7 +483,7 @@ def preprocess_dates(
 
 def run_hourly(
     t_hours_pd: pd.Series,
-    t_ind_pydate: list,
+    t_ind_pydate: list | np.ndarray,
     cadence_bout: NDArrayFloat,
     steps_hourly: NDArrayFloat,
     walkingtime_hourly: NDArrayFloat,
@@ -601,7 +601,7 @@ def run(
         steps_hourly = np.full((1, 1), np.nan)
         cadence_hourly = np.full((1, 1), np.nan)
         walkingtime_hourly = np.full((1, 1), np.nan)
-        t_ind_pydate = pd.Series([], dtype='datetime64[ns]')
+        t_ind_pydate = np.ndarray([], dtype='datetime64[ns]')
         t_ind_pydate_str = None
         
         if frequency != Frequency.DAILY:

@@ -285,9 +285,9 @@ def collapse_data(data: pd.DataFrame, interval: float, accuracy_limit: float) ->
         )
     
     # Get the start and end timestamps in seconds
-    timestamps = data.iloc[:, 0].values / 1000
-    lats = data.iloc[:, 2].values
-    lons = data.iloc[:, 3].values
+    timestamps = data.iloc[:, 0].to_numpy() / 1000
+    lats = data.iloc[:, 2].to_numpy()
+    lons = data.iloc[:, 3].to_numpy()
     
     t_start = timestamps[0]
     t_end = timestamps[-1]

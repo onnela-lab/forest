@@ -30,7 +30,7 @@ def calculate_k0(x1: np.ndarray, x2: np.ndarray, pars: tuple) -> float:
         x1, x2: np.ndarrays with length 2
             x1 = [a,b], with a as timestamp and b as latitude or longitude
         
-        pars: list
+        pars: tuple
             a list of parameters used in the similarity function
     
     Returns:
@@ -48,7 +48,7 @@ def calculate_k0(x1: np.ndarray, x2: np.ndarray, pars: tuple) -> float:
     return b1 * k1 + b2 * k2 + b3 * k3
 
 
-def update_similarity(bv: list, k_mat: np.ndarray, pars: list) -> np.ndarray:
+def update_similarity(bv: list, k_mat: np.ndarray, pars: tuple) -> np.ndarray:
     """ Update the similarity matrix between basis vectors.
     
     Args:
@@ -57,7 +57,7 @@ def update_similarity(bv: list, k_mat: np.ndarray, pars: list) -> np.ndarray:
         
         k_mat: np.ndarray, a 2D array.
         
-        pars: list
+        pars: tuple
             a list of parameters used in the similarity function.
     
     Returns:
@@ -77,7 +77,7 @@ def update_similarity(bv: list, k_mat: np.ndarray, pars: list) -> np.ndarray:
     return np.hstack([np.vstack([k_mat, row]), column])
 
 
-def update_similarity_all(bv: list, x1: np.ndarray, pars: list) -> np.ndarray:
+def update_similarity_all(bv: list, x1: np.ndarray, pars: tuple) -> np.ndarray:
     """ Compute the similarity vector between
         the current input and all basis vectors.
     
@@ -86,7 +86,7 @@ def update_similarity_all(bv: list, x1: np.ndarray, pars: list) -> np.ndarray:
             a list of basis vectors.
         x1: np.ndarray
             the current input, which is a 1D array.
-        pars: list
+        pars: tuple
             a list of parameters used in the similarity function.
     
     Returns:
@@ -448,7 +448,7 @@ def pruning_bv(
     k: np.ndarray,
     sigma2: float,
     d: int,
-    pars: list,
+    pars: tuple,
 ) -> tuple[list, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """ Prune the basis vectors.
     
@@ -461,7 +461,7 @@ def pruning_bv(
         k: np.ndarray, a 2D array.
         sigma2: float, a scalar.
         d: int, a scalar.
-        pars: list,
+        pars: tuple,
             a list of parameters used in the similarity function.
     
     Returns:
@@ -512,7 +512,7 @@ def sogp(
     sigma2: float,
     tol: float,
     d: int,
-    pars: list,
+    pars: tuple,
     q_mat: np.ndarray,
     c_mat: np.ndarray,
     alpha: np.ndarray,
@@ -537,7 +537,7 @@ def sogp(
         sigma2: scalar, hyperparameter
         tol: scalar, hyperparameter
         d: scalar, hyperparameter
-        pars: list
+        pars: tuple
             a list of parameters used in the similarity function
         q_mat: 2d array (d*d)
             a summary of previous processed data
@@ -633,7 +633,7 @@ def bv_select(
     sigma2: float,
     tol: float,
     d: int,
-    pars: list,
+    pars: tuple,
     memory_dict: dict | None,
     bv_set: np.ndarray,
 ) -> dict:
@@ -651,7 +651,7 @@ def bv_select(
         sigma2: scalar, hyperparameter
         tol: scalar, hyperparameter
         d: scalar, hyperparameter
-        pars: list
+        pars: tuple
             a list of parameters used in the similarity function
         memory_dict: dict
             a dictionary of dictionaries from sogp()

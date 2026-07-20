@@ -108,7 +108,7 @@ def read_data(
     tz_str: str,
     time_start: list[int] | None,
     time_end: list[int] | None,
-) -> tuple[Any, float, float]:
+) -> tuple[pd.DataFrame | list[str], float, float]:
     """Read data from a user's datastream folder
 
     Args:
