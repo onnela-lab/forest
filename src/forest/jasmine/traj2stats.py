@@ -317,7 +317,8 @@ def routine_index(
                 if datetime(*stamp2datetime(time_mid - s * SECONDS_IN_DAY, timezone)).weekday() < 5
             ]
     
-    # !FIXME: TODO: I'm using the MUTATED t_1 and t_2 here, the old code used the time_range tuple. Is this going to change results?
+    # !FIXME: I changed this to use the MUTATED values for t_1 and t_2 here. Confirm correctness.
+    #   The old code used the time_range tuple. Is this going to change results?
     average_traces_sum = _innermost_loop(
         t_1, t_2, shifts, cache, time_col, sampled_trace, prealloc_array
     )
