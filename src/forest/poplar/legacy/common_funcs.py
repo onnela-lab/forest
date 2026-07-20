@@ -6,7 +6,6 @@ from collections.abc import Sequence
 from datetime import datetime
 from os import listdir, makedirs
 from os.path import exists as pathexists, isdir as pathisdir, join as pathjoin
-from typing import Any
 
 import numpy as np
 import pandas as pd
