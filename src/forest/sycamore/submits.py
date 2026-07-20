@@ -1,4 +1,4 @@
-"""Module for survey submits and survey schedule generation"""
+""" Module for survey submits and survey schedule generation """
 import datetime
 import logging
 import math
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def convert_time_to_date(submit_time: datetime.datetime, day: int, time_list: list) -> list:
-    """Convert an array of times to date
+    """ Convert an array of times to date
     
     Takes a single array of timings and a single day
     
@@ -33,8 +33,7 @@ def convert_time_to_date(submit_time: datetime.datetime, day: int, time_list: li
     day %= 7
     # Get the days of the given week using the dow of the given submit day
     dow = submit_time.weekday()
-    days = [submit_time + datetime.timedelta(days=i)
-            for i in range(0 - dow, 7 - dow)]
+    days = [submit_time + datetime.timedelta(days=i) for i in range(0 - dow, 7 - dow)]
     
     time_list = [str(datetime.timedelta(seconds=time)) for time in time_list]
     time_list = [time.split(":") for time in time_list]
@@ -249,14 +248,14 @@ def gen_survey_schedule(
             # (mypy doesn't know what to do with the loose typing of pandas dataframes, so these
             # uses of the square brackets ("__getitem__") just overwhelms it.)
             tbl = tbl.loc[tbl["delivery_time"] != week_after_last, ]  # type: ignore
-
+            
             # remove any rows outside our time interval
             # (its the createion of this series that mypy barfs on, not the use of it)
             time_filter: pd.Series[bool] = (
                 (pd.to_datetime(time_start) < tbl["delivery_time"]) &  # type: ignore
                 (tbl["delivery_time"] < pd.to_datetime(time_end)),
             )
-
+            
             tbl = tbl.loc[time_filter]
             tbl["id"] = i
             tbl["beiwe_id"] = user
