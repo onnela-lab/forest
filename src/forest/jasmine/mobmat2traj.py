@@ -161,7 +161,7 @@ def calculate_k1(
     x_coord: float,
     y_coord: float,
     bv_subset: np.ndarray,
-    parameters: list,
+    parameters: tuple,
 ) -> np.ndarray:
     """ Calculate the similarity measure between a given point and a set of base vectors, using one
         of three specified methods: 'TL', 'GL', or 'GLC'.
@@ -177,7 +177,7 @@ def calculate_k1(
             The y-coordinate (e.g. lattitude) of the point to compare.
         bv_subset: np.ndarray,
             A set of base vectors to compare with, typically a subset of output from BV_select().
-        parameters: list,
+        parameters: tuple,
             A list of parameters to use for the calculation.
     
     Returns:
@@ -245,7 +245,7 @@ def indicate_flight(
     bv_subset: np.ndarray,
     switch: int,
     num: int,
-    pars: list,
+    pars: tuple,
 ) -> np.ndarray:
     """ This function generates a binary variable to indicate whether a person is moving or not.
 
@@ -270,7 +270,7 @@ def indicate_flight(
         num: int
             checks the top k similarities.
             This helps to avoid the cumulative effect of many low probability trajectories.
-        pars: list
+        pars: tuple
             the parameters that are required for the calculate_k1 function.
     
     Returns:
@@ -296,7 +296,7 @@ def _indicate_flight(
     dest_y: float,
     bv_subset: np.ndarray,
     num: int,
-    pars: list,
+    pars: tuple,
 ) -> np.ndarray:
     """ The bulk of indicate_flight can be optimized with numba. """
     # Calculate k1 using the specified method
@@ -604,7 +604,7 @@ def forward_impute(
     bv_subset: np.ndarray,
     switch: int,
     num: int,
-    pars: list,
+    pars: tuple,
     flight_table: np.ndarray,
     linearity: float,
     mis_row: np.ndarray,
@@ -631,7 +631,7 @@ def forward_impute(
             the number of binary variables to be generated
         num: int
             checks the top k similarities
-        pars: list
+        pars: tuple
             the parameters that are required for the calculate_k1 function
         flight_table: np.ndarray
             output from create_tables()
@@ -768,7 +768,7 @@ def backward_impute(
     bv_subset: np.ndarray,
     switch: int,
     num: int,
-    pars: list,
+    pars: tuple,
     flight_table: np.ndarray,
     linearity: float,
     mis_row: np.ndarray,
@@ -797,7 +797,7 @@ def backward_impute(
             the number of binary variables to be generated
         num: int
             checks the top k similarities
-        pars: list
+        pars: tuple
             the parameters that are required for the calculate_k1 function
         flight_table: np.ndarray
             output from create_tables()
@@ -931,7 +931,7 @@ def impute_gps(
     num: int,
     linearity: float,
     tz_str: str,
-    pars: list,
+    pars: tuple,
 ) -> np.ndarray:
     """
     This is the algorithm for the bi-directional imputation in the paper
@@ -951,7 +951,7 @@ def impute_gps(
             controls the smoothness of a trajectory
         tz_str: str
             time zone
-        pars: list
+        pars: tuple
             the parameters that are required for the calculate_k1 function
 
     Returns:

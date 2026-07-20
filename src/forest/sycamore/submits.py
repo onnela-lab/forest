@@ -228,7 +228,7 @@ def gen_survey_schedule(
                 else:
                     logger.warning(f"error: no intervention time found for {user}")
             
-            tbl = pd.DataFrame({"delivery_time": s_times})
+            tbl: pd.DataFrame = pd.DataFrame({"delivery_time": s_times})
             
             # May not be necessary, but I"m leaving this in case timestamps are in different formats
             tbl["delivery_time"] = pd.to_datetime(tbl["delivery_time"])
@@ -246,13 +246,18 @@ def gen_survey_schedule(
             
             # Remove the placeholder delivery times which were only necessary
             # for calculating the next_delivery_time column
-            tbl = tbl.loc[tbl["delivery_time"] != week_after_last, ]
-            
+            # (mypy doesn't know what to do with the loose typing of pandas dataframes, so these
+            # uses of the square brackets ("__getitem__") just overwhelms it.)
+            tbl = tbl.loc[tbl["delivery_time"] != week_after_last, ]  # type: ignore
+
             # remove any rows outside our time interval
-            tbl = tbl.loc[
-                (pd.to_datetime(time_start) < tbl["delivery_time"]) &
+            # (its the createion of this series that mypy barfs on, not the use of it)
+            time_filter: pd.Series[bool] = (
+                (pd.to_datetime(time_start) < tbl["delivery_time"]) &  # type: ignore
                 (tbl["delivery_time"] < pd.to_datetime(time_end)),
-            ]
+            )
+
+            tbl = tbl.loc[time_filter]
             tbl["id"] = i
             tbl["beiwe_id"] = user
             

@@ -1,7 +1,6 @@
 """ Module used to impute missing data, by combining functions defined in other modules and
 calculate summary statistics of imputed trajectories.
 """
-
 import json
 import logging
 import os
@@ -14,6 +13,7 @@ import numpy as np
 import pandas as pd
 import requests
 from numpy.typing import NDArray
+from pandas._libs.missing import NAType
 from pyproj import Transformer
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
@@ -41,6 +41,8 @@ SECONDS_IN_DAY = 60 * 60 * 24
 
 PARS0 = tuple[int, int, float, int, int, float, float, float]
 PARS1 = tuple[int, int, int, int, float, float, float, int]
+
+TRACE_CACHE = dict[tuple[int, int, int] | str, tuple[FP64Array, FP64Array, FP64Array] | float]
 
 COORDS_OUT_OF_RANGE = "Trajectory coordinates are not in the range of [-90, 90] and [-180, 180]."
 
@@ -172,7 +174,7 @@ def get_nearby_locations(
     longitudes: list[float] = [pause_vec[0, 2]]
     for row in pause_vec:
         minimum_distance = np.min([
-            np_great_circle_dist(row[1], row[2], lat, lon)[0]
+            great_circle_dist(row[1], row[2], lat, lon)[0]
             for lat, lon in zip(latitudes, longitudes)
         ])
         # only add to the list if they are not too close with the other coordinates in the list
@@ -264,12 +266,12 @@ def get_nearby_locations(
 def routine_index(
     time_range: tuple[int, int],
     mobility_trace: np.ndarray,
-    cache: dict[tuple[int, int, int], float],
+    cache: TRACE_CACHE,
     pcr_window: int = 14,
     pcr_sample_rate: int = 30,
     stratified: bool = False,
     timezone: str = "US/Eastern",
-) -> float:
+) -> np.float64:
     """ This function calculates the routine index of a trajectory
     
     Description of routine index can be found in the paper:
@@ -300,7 +302,7 @@ def routine_index(
     t_1, t_2, n_days_1, n_days_2 = _get_time_components(time_range, time_col, pcr_window)
     
     if max(n_days_1, n_days_2) == 0:
-        return 0
+        return np.float64(0.0)
     
     shifts = list(range(1, n_days_1 + 1)) + list(range(-n_days_2, 0))
     if stratified:
@@ -348,12 +350,13 @@ def _get_time_components(time_range, time_col, pcr_window):
 def _get_inner_params(
     mobility_trace: FP64Array,
     pcr_sample_rate: int,
-    cache: dict
+    cache: TRACE_CACHE
 ) -> tuple[FP64Array, FP64Array, FP64Array]:
     # These items are memory heavy, but are based on the value of an invariant - the mobility trace.
     # caching them instead of recomputing them is a 20% overall speedup.
     if params := cache.get("mobility_trace"):
-        return params
+        # this is a critical code fast path, this object type is correct, ignore the type warning.
+        return params  # type: ignore
     
     # This code runs substantially slower when compiled with numba.
     time_col = np.asfortranarray(mobility_trace[:, 2])  # much more performant as fortran array.
@@ -373,7 +376,7 @@ def _innermost_loop(
     time_start: int,
     time_end: int,
     shifts: list[int],
-    cache: dict[tuple[int, int, int], float],
+    cache: TRACE_CACHE,
     time_col: FP64Array,
     sampled_trace: FP64Array,
     preallocated_array: FP64Array,
@@ -393,7 +396,8 @@ def _innermost_loop(
         cache_key = (time_start, time_end, i)
         
         if hit := cache.get(cache_key):  # there is _no_ overhead to updating this cache
-            the_sum += hit
+            # this is a critical fast path, this object type is correct, ignore the type warning.
+            the_sum += hit  # type: ignore
             continue
         
         # time for the real math
@@ -1419,12 +1423,12 @@ def gps_summaries(
     obs_traj = traj[traj[:, 7] == 1, :]
     home_lat, home_lon = locate_home(obs_traj, tz_str)
     
-    summary_stats: list[list[float]] = []
+    summary_stats: list[list[float | NAType]] = []
     log_tags: dict[str, list[dict]] = {}
     saved_polygons: dict[str, Polygon] = {}
     
     mobility_trace = None
-    cache = {}
+    cache: TRACE_CACHE = {}
     
     for i in range(num_windows):
         start_time2 = 0
@@ -1495,8 +1499,9 @@ def gps_summaries(
                 tz_str,
             )
         else:
-            pcr = pd.NA
-            pcr_stratified = pd.NA
+            # pd.NAType is a duck-typed object compatible with float/float64. Ignore type warning
+            pcr = pd.NA  # type: ignore
+            pcr_stratified = pd.NA  # type: ignore
         
         # Locations of importance
         all_place_times = []
@@ -1699,15 +1704,16 @@ def _gps_handle_empty_rows(
     frequency: Frequency,
     parameters: Hyperparameters,
     places_of_interest: list[str] | None,
-    current_time_list: list[int],
-    summary_stats: list[list[float]],
+    current_time_list: list[int | float | NAType],
+    summary_stats: list[list[int | float | NAType]],
 ) -> bool:
     """ Helper function for gps_summaries, handles empty row values. """
     
     if sum(index_rows) != 0:
         return True
-    
-    row = current_time_list[:3]  # year, month, day
+
+    # year, month, day  --  mypy doesn't like lists with multiple types
+    row= current_time_list[:3]
     
     # cases with no data in the day
     if parameters.split_day_night:
@@ -1983,6 +1989,8 @@ def gps_stats_main(
             time_start,
             time_end,
         )
+        assert isinstance(data, pd.DataFrame), "Data should be a pandas dataframe."
+        
         # If the data comes from a study thata hada GPS fuzzing, and the study was prior to March
         # 2023, the longitude coordinates may be outside of the required range of (-180, 180). This
         # chunk of code wraps out of range coordinates to be in that range

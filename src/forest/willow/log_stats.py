@@ -577,6 +577,8 @@ def log_stats_inner(
     call_data, call_stamp_start, call_stamp_end = read_data(
         beiwe_id, study_folder, "calls", tz_str, time_start, time_end
     )
+    assert isinstance(text_data, pd.DataFrame), "Text data should be a pandas dataframe."
+    assert isinstance(call_data, pd.DataFrame), "Call data should be a pandas dataframe."
     
     # give up early if there is no data
     if text_data.shape[0] <= 0 and call_data.shape[0] <= 0:
