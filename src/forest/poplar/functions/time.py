@@ -1,13 +1,10 @@
 """Functions for working with Beiwe time formats."""
-from logging import getLogger
 import datetime
+from logging import getLogger
 
 import pytz
 
-from ..constants.time import (
-    DATE_FORMAT, NAIVE_DATETIME_FORMAT, DAY_S, MIN_MS, UTC
-)
-
+from ..constants.time import DATE_FORMAT, DAY_S, MIN_MS, NAIVE_DATETIME_FORMAT, UTC
 
 logger = getLogger(__name__)
 
@@ -16,15 +13,13 @@ def local_now(to_format: str = NAIVE_DATETIME_FORMAT) -> str:
     """Get the current local time.
 
     Args:
-        to_format (str):  Time format, expressed using directives from
-            the datetime package.
+        to_format (str):  Time format, expressed using directives from the datetime package.
 
     Returns:
         local (str):  Formatted local time now.
     """
     now = datetime.datetime.now().astimezone()
-    local = now.strftime(to_format)
-    return local
+    return now.strftime(to_format)
 
 
 def convert_seconds(second_of_day: int) -> str | None:
@@ -40,64 +35,64 @@ def convert_seconds(second_of_day: int) -> str | None:
     if second_of_day > DAY_S:
         logger.warning("Input must be less than 86400.")
         return None
-    time = to_readable(second_of_day * 1000, to_format="%H:%M", to_tz=UTC)
-    return time
+    return to_readable(second_of_day * 1000, to_format="%H:%M", to_tz=UTC)
 
 
-def reformat_datetime(datetime_string: str, from_format: str, to_format: str,
-                      from_tz: str | pytz.BaseTzInfo | None = None
-                      ) -> str | None:
+def reformat_datetime(
+    datetime_string: str,
+    from_format: str,
+    to_format: str,
+    from_tz: str | pytz.BaseTzInfo | None = None,
+) -> str | None:
     """Change the format of a datetime string.
 
     Args:
         datetime_string (str): A human-readable datetime string.
-        from_format (str): The format of time, expressed using directives
-            from the datetime package.
+
+        from_format (str): The format of time, expressed using directives from the datetime package.
+        
         to_format (str): Convert to this time format.
-        from_tz (timezone from pytz.tzfile): Optionally, localize time
-            before reformatting.
+        
+        from_tz (timezone from pytz.tzfile): Optionally, localize time before reformatting.
 
     Returns:
         reformat (str): Datetime string in to_format.
     """
     try:
-        datetime_date = datetime.datetime.strptime(
-            datetime_string, from_format
-        )
+        datetime_date = datetime.datetime.strptime(datetime_string, from_format)
+        
         if from_tz is not None and not isinstance(from_tz, str):
             datetime_date = from_tz.localize(datetime_date)
-        reformat = datetime_date.strftime(to_format)
-        return reformat
+        
+        return datetime_date.strftime(to_format)
     except ValueError:
-        logger.warning(
-            "Unable to reformat datetime string: %s.", datetime_string
-        )
+        logger.warning("Unable to reformat datetime string: %s.", datetime_string)
         return None
 
 
 def to_timestamp(
-    datetime_string: str, from_format: str,
-    from_tz: str | pytz.BaseTzInfo = UTC
+    datetime_string: str, from_format: str, from_tz: str | pytz.BaseTzInfo = UTC
 ) -> int | None:
     """Convert a datetime string to a timestamp.
 
     Args:
         datetime_string (str):  A human-readable datetime string.
-        from_format (str):  The format of time, expressed using directives
-            from the datetime package.
+        
+        from_format (str): The format of time, expressed using directives from the datetime package.
+        
         from_tz (timezone from pytz.tzfile):  The timezone of time.
 
     Returns:
         timestamp (int): Timestamp in milliseconds.
     """
     try:
-        datetime_date = datetime.datetime.strptime(
-            datetime_string, from_format
-        )
+        datetime_date = datetime.datetime.strptime(datetime_string, from_format)
+        
         if not isinstance(from_tz, str):
             utc_dt = from_tz.localize(datetime_date)
             timestamp = round(utc_dt.timestamp() * 1000)
             return timestamp
+        
         return None
     except ValueError:
         logger.warning(
@@ -106,15 +101,15 @@ def to_timestamp(
         return None
 
 
-def to_readable(timestamp: int, to_format: str,
-                to_tz: str | pytz.BaseTzInfo = UTC) -> str | None:
-    """Convert a timestamp to a human-readable string localized to a
-    particular timezone.
+def to_readable(timestamp: int, to_format: str, to_tz: str | pytz.BaseTzInfo = UTC) -> str | None:
+    """ Convert a timestamp to a human-readable string localized to a particular timezone.
 
     Args:
         timestamp (int): Timestamp in milliseconds.
+        
         to_format (str): The format of readable, expressed using directives
             from the datetime package.
+        
         to_tz (str or timezone from pytz.tzfile):  The timezone of readable.
 
     Returns:
@@ -143,8 +138,7 @@ def next_day(date: str) -> str:
     """
     datetime_date = datetime.datetime.strptime(date, DATE_FORMAT)
     next_dt = datetime_date + datetime.timedelta(days=1)
-    next_date = next_dt.strftime(DATE_FORMAT)
-    return next_date
+    return next_dt.strftime(DATE_FORMAT)
 
 
 def between_days(start_date: str, end_date: str) -> list:
@@ -160,12 +154,11 @@ def between_days(start_date: str, end_date: str) -> list:
     datetime0 = datetime.datetime.strptime(start_date, DATE_FORMAT)
     datetime1 = datetime.datetime.strptime(end_date, DATE_FORMAT)
     dt_list = [datetime0]
+    
     while dt_list[-1] < datetime1:
         dt_list.append(dt_list[-1] + datetime.timedelta(days=1))
-    date_list = [
-        datetime_date.strftime(DATE_FORMAT) for datetime_date in dt_list
-    ]
-    return date_list
+    
+    return [datetime_date.strftime(DATE_FORMAT) for datetime_date in dt_list]
 
 
 def round_timestamp(timestamp: int, unit: int = MIN_MS) -> tuple:
@@ -183,5 +176,4 @@ def round_timestamp(timestamp: int, unit: int = MIN_MS) -> tuple:
     """
     previous = timestamp - (timestamp % unit)
     following = previous + unit
-    rounded = (previous, following)
-    return rounded
+    return (previous, following)

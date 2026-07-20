@@ -1,12 +1,11 @@
-"""Tools for extracting timezone information from GPS data."""
-from logging import getLogger
+""" Tools for extracting timezone information from GPS data. """
 import datetime
+from logging import getLogger
 
 import pytz
 from timezonefinder import TimezoneFinder
 
 from ..constants.time import HOUR_S
-
 
 logger = getLogger(__name__)
 
@@ -34,18 +33,20 @@ def get_offset(
 
     Args:
         timestamp (int):  Millisecond timestamp.
-        timezone (str or timezone from pytz.tzfile): Timezone for which to
-            calculate UTC offset.
+        timezone (str or timezone from pytz.tzfile): Timezone for which to calculate UTC offset.
 
     Returns:
         offset (float):  UTC offset in hours.
     """
     if isinstance(timezone, str):
         timezone = pytz.timezone(timezone)
+    
     datetime_date = datetime.datetime.fromtimestamp(timestamp / 1000, timezone)
     offset_utc = datetime_date.utcoffset()
+
     if offset_utc is None:
         return None
+
     offset_s = offset_utc.total_seconds()
     offset = offset_s / HOUR_S
     return offset

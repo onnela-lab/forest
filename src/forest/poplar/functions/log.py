@@ -46,12 +46,9 @@ class ExtendedLogFormat:
         """
         Args:
             attribute_list (list): List of keys from available_attributes.
-            available_attributes (dict): Dictionary of available log record
-                attributes (see above).
+            available_attributes (dict): Dictionary of available log record attributes (see above).
         """
-        self.attributes = ",".join(
-            [available_attributes[attr] for attr in attribute_list]
-        )
+        self.attributes = ",".join([available_attributes[attr] for attr in attribute_list])
         self.header = []
         for attr in attribute_list:
             if "," in attr:
@@ -75,15 +72,11 @@ def attributes_to_csv(attribute_list: list) -> ExtendedLogFormat:
 
     """
     try:
-        extended_format = ExtendedLogFormat(
-            attribute_list, AVAILABLE_ATTRIBUTES
-        )
+        extended_format = ExtendedLogFormat(attribute_list, AVAILABLE_ATTRIBUTES)
         return extended_format
     except Exception:
         logger.warning("Unable to assemble logging format and header.")
-        return ExtendedLogFormat(
-            [], AVAILABLE_ATTRIBUTES
-        )
+        return ExtendedLogFormat([], AVAILABLE_ATTRIBUTES)
 
 
 BASIC_CSV_LOG = attributes_to_csv(
@@ -143,9 +136,7 @@ def log_to_csv(
         # initialize csv
         filepath = setup_csv(name=log_name, dirpath=log_dir, header=header)
         # configure logging output
-        logging.basicConfig(
-            format=log_format, filename=filepath, level=level, force=True
-        )
+        logging.basicConfig(format=log_format, filename=filepath, level=level, force=True)
         # success message
         logger.info("Writing log messages to %s.csv...", log_name)
     except Exception:
