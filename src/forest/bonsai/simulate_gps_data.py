@@ -1324,11 +1324,10 @@ def sim_gps_data(
 
 def gps_to_csv(data: pd.DataFrame, path: str, start_date: datetime.date,
                end_date: datetime.date) -> None:
-    """Writes gps trajectories to csv files.
+    """ Writes gps trajectories to csv files.
 
     Args:
-        data: (pandas.DataFrame) contains gps trajectories
-            for each person
+        data: (pandas.DataFrame) contains gps trajectories for each person
         path: (str) path to save csv files
         start_date: (datetime.date) start date of trajectories
         end_date: (datetime.date) end date of trajectories,
