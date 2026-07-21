@@ -1231,7 +1231,7 @@ def imp_to_traj(
                         mat_list = []
                         for i in range(len(knots) - 1):
                             mat_list.append(
-                                mat[knots[i]:min(knots[i + 1] + 1,  mat.shape[0] - 1),  :]
+                                mat[knots[i]:min(knots[i + 1] + 1, mat.shape[0] - 1), :]
                             )
                         
                         knot_yes = np.empty(len(mat_list))
