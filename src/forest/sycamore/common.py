@@ -101,8 +101,9 @@ def read_and_aggregate(
         time_end = get_month_from_today()
     st_path = os.path.join(study_dir, user, data_stream)
     if os.path.isdir(st_path):
-        # get all survey timings files
-        all_files = glob.glob(os.path.join(st_path, "*/*.csv"))
+        # get all survey timings files, including compressed files
+        all_files = glob.glob(os.path.join(st_path, "*/*.csv")) \
+              + glob.glob(os.path.join(st_path, "*/*.csv.zst"))
         # Sort file paths for when they're read in
         all_files = sorted(all_files)
         # Read in all files
