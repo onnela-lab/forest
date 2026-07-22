@@ -1,17 +1,22 @@
+# pycache
 __pycache__/
+
+# pypi/setup distribution folders
 dist/
 beiwe_forest.egg-info/
 
+# general common files and folders
 .vagrant/
 .venv/
 venv/
 .DS_Store
+private/
 
 # IntelliJ, VsCode project files
 .idea/
 .vscode/
 
-#We don't want to add data to github
+# We don't want to add data to github
 /tutorials/data/
 /tutorials/comm_output/
 /tutorials/gps_output/
@@ -23,8 +28,9 @@ venv/
 #sphinx build
 docs/_build/
 
-# any python environment files
+# any python environment and tooling files
 .python-version
+.ruff_cache
 
 # pytest
 .pytest_cache
