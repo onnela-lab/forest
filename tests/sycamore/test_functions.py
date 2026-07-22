@@ -1,4 +1,6 @@
 import os
+import subprocess
+import sys
 
 import numpy as np
 import pandas as pd
@@ -503,3 +505,21 @@ def test_gen_survey_schedule_with_audio():
         sample_schedule.columns ==
         pd.Index(["delivery_time", "next_delivery_time", "id", "beiwe_id", "question_id"])
     ) == 1.0
+
+
+def test_sycamore_cli_missing_output_dir_prints_help(tmp_path):
+    """Regression test: running the sycamore CLI with --study_folder but no
+    --output_dir should print help and exit cleanly, not raise AttributeError.
+
+    The missing-argument guard previously referenced args.output_folder while
+    the argument is --output_dir, so this path raised
+    AttributeError: 'Namespace' object has no attribute 'output_folder'.
+    """
+    result = subprocess.run(
+        [sys.executable, "-m", "forest.sycamore",
+         "--study_folder", str(tmp_path)],
+        capture_output=True, text=True
+    )
+    assert result.returncode == 0
+    assert "usage:" in result.stdout
+    assert "AttributeError" not in result.stderr

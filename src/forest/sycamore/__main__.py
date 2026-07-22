@@ -67,7 +67,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-if args.study_folder is None or args.output_folder is None:
+if args.study_folder is None or args.output_dir is None:
     parser.print_help()
     sys.exit()
 
