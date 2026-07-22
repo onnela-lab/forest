@@ -1,19 +1,16 @@
 """Functions for input/output tasks."""
-import os
 import json
+import os
 from collections import OrderedDict
 from logging import getLogger
-
-from typing import List, Union
 
 
 logger = getLogger(__name__)
 
 
-def setup_directories(dirpath_list: Union[str, List[str]]) -> None:
+def setup_directories(dirpath_list: str | list[str]) -> None:
     """
-    Checks if directories exist; creates them if not.
-    Creates intermediate directories if necessary.
+    Checks if directories exist; creates them if not. Creates intermediate directories if necessary.
 
     Args:
         dirpath_list (str or list): List of directory paths (str) to create.
@@ -29,15 +26,17 @@ def setup_directories(dirpath_list: Union[str, List[str]]) -> None:
 
 
 def write_json(
-    dictionary: Union[dict, OrderedDict], name: str,
-    dirpath: str, indent: int = 4
-) -> Union[str, None]:
-    """Writes a dictionary to a JSON file.
+    dictionary: dict | OrderedDict, name: str, dirpath: str, indent: int = 4
+) -> str | None:
+    """ Writes a dictionary to a JSON file.
 
     Args:
         dictionary (dict or OrderedDict):  Dictionary to write.
+        
         name (str):  Name for the file to create, without extension.
+        
         dirpath (str):  Path to location for the JSON file.
+        
         indent (int):  Indentation for pretty printing.
 
     Returns:
@@ -53,38 +52,28 @@ def write_json(
         return None
 
 
-def read_json(
-    filepath: str, ordered: bool = False
-) -> Union[dict, OrderedDict, None]:
-    """
-    Read a JSON file into a dictionary.
+def read_json(filepath: str) -> dict | None:
+    """ Read a JSON file into a dictionary.
 
     Args:
         filepath (str):  Path to JSON file.
-        ordered (bool):  Returns an ordered dictionary if True.
 
     Returns:
-        dictionary (dict or OrderedDict): The deserialized contents of
-            the JSON file.
+        dictionary (dict): The deserialized contents of the JSON file.
     """
     try:
-        with open(filepath, "r") as file:
-            if ordered:
-                dictionary = json.load(file, object_pairs_hook=OrderedDict)
-            else:
-                dictionary = json.load(file)
-        return dictionary
+        with open(filepath) as file:
+            return json.load(file)
     except Exception:
         logger.warning("Unable to read JSON file.")
         return None
 
 
 def setup_csv(
-    name: str, dirpath: str, header: List[str]
+    name: str, dirpath: str, header: list[str]
 ) -> str:
     """
-    Creates a csv file with the given column labels.
-    Overwrites a file with the same name.
+    Creates a csv file with the given column labels. Overwrites a file with the same name.
 
     Args:
         name (str):  Name of csv file to create, without extension.
@@ -102,16 +91,15 @@ def setup_csv(
     return filepath
 
 
-def write_to_csv(
-    filepath: str, line: List[str], missing_strings: List[str] = ["nan"]
-) -> None:
-    """
-    Writes line to a csv file.
+def write_to_csv(filepath: str, line: list[str], missing_strings: list[str] = ["nan"]) -> None:
+    """ Writes line to a csv file.
 
     Args:
         filepath (str): Path to a text file.
+        
         line (list): Line of items to add to the csv.  Line items are
             converted to strings, joined with ',' and terminated with '\n'.
+        
         missing_strings (list): List of strings to replace with ''.  Note that
             'nan' covers both float('NaN') and np.nan.
 
@@ -119,14 +107,12 @@ def write_to_csv(
         None
     """
     try:
-        # Replace None with ''
-        line = ["" if i is None else i for i in line]
-        # Make sure everything is a string
-        line = [str(i) for i in line]
-        # Replace missing values with ''
-        line = ["" if i in missing_strings else i for i in line]
-        # Write to file
+        line = ["" if i is None else i for i in line]             # Replace None with ''
+        line = [str(i) for i in line]                             # Make sure everything is a string
+        line = ["" if i in missing_strings else i for i in line]  # Replace missing values with ''
+        
         with open(filepath, "a") as file:
             file.write(",".join(line) + "\n")
+
     except Exception:
         logger.warning("Unable to append line to CSV.")

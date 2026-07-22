@@ -1,5 +1,4 @@
-"""Utility functions used by multiple trees
-"""
+""" Utility functions used by multiple trees """
 
 import os
 

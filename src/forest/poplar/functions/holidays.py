@@ -12,8 +12,7 @@ US_HOLIDAYS = holidays.UnitedStates()  # type: ignore[attr-defined]
 
 
 def is_us_holiday(date, date_format=DATE_FORMAT):
-    """Identify dates that are US holidays.
-    There is probably a better way to do this with pandas.
+    """Identify dates that are US holidays. There is probably a better way to do this with pandas.
 
     Args:
         date (str): Date string.

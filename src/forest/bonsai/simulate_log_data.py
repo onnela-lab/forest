@@ -1,6 +1,4 @@
-"""
-Module to simulate realistic call/text data.
-"""
+""" Module to simulate realistic call/text data. """
 
 import os
 import random
@@ -14,14 +12,18 @@ from ..poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
 ORIG_TIME = datetime2stamp([2020, 8, 24, 0, 0, 0], "America/New_York")
 
+CALL_COLS = ["timestamp", "UTC time", "hashed phone number", "call type", "duration in seconds"]
+TEXT_COLS = [
+   "timestamp", "UTC time", "hashed phone number", "sent vs received", "message length", "time sent"
+]
+
 
 def gen_status() -> str:
     """
     Generates a random status based on a probability distribution.
 
-    This function generates a status for a user activity.
-    With probability 80%, the function returns "inactive",
-    and with probability 20%,the function returns "active".
+    This function generates a status for a user activity. With probability 80%, the function returns
+    "inactive", and with probability 20%,the function returns "active".
 
     Returns:
         str: The status, either "active" or "inactive".
@@ -35,10 +37,9 @@ def exist_text_call(hour: int, status: str) -> int:
     """
     Determines whether a text or call exists.
 
-    Given an hour and a status (active or inactive), this function determines
-    the probability of a text or call existing. Different hours have different
-    base probabilities, and if the status is active,
-    the base probability is tripled.
+    Given an hour and a status (active or inactive), this function determines the probability of a
+    text or call existing. Different hours have different base probabilities, and if the status is
+    active, the base probability is tripled.
 
     Args:
         hour (int): The hour at which the function checks for a text or call.
@@ -82,9 +83,8 @@ def number_of_distinct_inds(stream: str) -> int:
     """
     Determines the number of distinct individuals in a stream.
 
-    This function generates a random number and based on that, it determines
-    the number of distinct individuals in the given stream
-    (either "texts" or "calls").
+    This function generates a random number and based on that, it determines the number of distinct
+    individuals in the given stream (either "texts" or "calls").
 
     Args:
         stream (str): The type of stream, either "texts" or "calls".
@@ -116,8 +116,8 @@ def gen_round(stream: str) -> int:
     """
     Generates a round number for a given stream.
 
-    This function generates a random number and based on that, it determines
-    the round number for the given stream (either "texts" or "calls").
+    This function generates a random number and based on that, it determines the round number for
+    the given stream (either "texts" or "calls").
 
     Args:
         stream (str): The type of stream, either "texts" or "calls".
@@ -151,8 +151,8 @@ def gen_dir(round_num: int) -> list:
     """
     Generates a list of direction values.
 
-    This function generates a list of round_num direction values
-    (either 1 or 0) based on a certain probability distribution.
+    This function generates a list of round_num direction values (either 1 or 0) based on a certain
+    probability distribution.
 
     Args:
         round_num (int): The number of direction values to generate.
@@ -241,8 +241,7 @@ def gen_timestamp_text(round_num: int) -> list:
     """
     Generates timestamps for a text.
 
-    Given a round number, this function generates a list of timestamps
-    for a text.
+    Given a round number, this function generates a list of timestamps for a text.
 
     Args:
         round_num (int): The round number.
@@ -259,8 +258,8 @@ def gen_text_files(output_folder: str):
     """
     Generates text files.
 
-    Given an output folder, this function generates text files containing
-    simulated data for two users over 14 days.
+    Given an output folder, this function generates text files containing simulated data for two
+    users over 14 days.
 
     Args:
         output_folder (str): The directory in which to create the text files.
@@ -269,62 +268,54 @@ def gen_text_files(output_folder: str):
         OSError: If the directory cannot be created.
     """
     os.makedirs(output_folder, exist_ok=True)
+    
     for idx in ["user_1", "user_2"]:
         os.makedirs(f"{output_folder}/{idx}/texts", exist_ok=True)
+        
         phone_nums = gen_random_id(20)
         for i in range(14):
+            
             status = gen_status()
             for j in range(24):
-                if exist_text_call(j, status) == 1:
-                    start_t = ORIG_TIME + i * 3600 * 24 + j * 3600
-                    [y, m, d, h, _, _] = stamp2datetime(start_t, "UTC")
-                    filename = f"{y}-{m:02d}-{d:02d} {h:02d}_00_00.csv"
-                    num = number_of_distinct_inds("texts")
-                    contacts = np.random.choice(phone_nums, num, replace=False)
-                    data = []
-                    for g in range(num):
-                        round_num = gen_round("texts")
-                        directions = gen_dir(round_num)
-                        stamps = gen_timestamp_text(round_num)
-                        for k in range(round_num):
-                            if directions[k] == 1:
-                                sms = "sent SMS"
-                            else:
-                                sms = "received SMS"
-                            new_line = [
-                                (start_t + stamps[k]) * 1000,
-                                "-",
-                                contacts[g],
-                                sms,
-                                gen_text_len(),
-                                (
-                                  start_t + stamps[k] - np.random.randint(10)
-                                ) * 1000,
-                            ]
-                            data.append(new_line)
-                    data2 = pd.DataFrame(
-                        data,
-                        columns=[
-                            "timestamp",
-                            "UTC time",
-                            "hashed phone number",
-                            "sent vs received",
-                            "message length",
-                            "time sent",
-                        ],
-                    )
-                    data2.to_csv(
-                        f"{output_folder}/{idx}/texts/{filename}",
-                        index=False
-                    )
+                if exist_text_call(j, status) != 1:
+                    continue
+                
+                start_t = ORIG_TIME + i * 3600 * 24 + j * 3600
+                y, m, d, h, _, _ = stamp2datetime(start_t, "UTC")
+                filename = f"{y}-{m:02d}-{d:02d} {h:02d}_00_00.csv"
+                
+                num = number_of_distinct_inds("texts")
+                contacts = np.random.choice(phone_nums, num, replace=False)
+                data = []
+                
+                for g in range(num):
+                    round_num = gen_round("texts")
+                    directions = gen_dir(round_num)
+                    stamps = gen_timestamp_text(round_num)
+                    
+                    for k in range(round_num):
+                        sms = "sent SMS" if directions[k] == 1 else "received SMS"
+                        
+                        new_line = [
+                            (start_t + stamps[k]) * 1000,
+                            "-",
+                            contacts[g],
+                            sms,
+                            gen_text_len(),
+                            (start_t + stamps[k] - np.random.randint(10)) * 1000,
+                        ]
+                        data.append(new_line)
+                
+                data2 = pd.DataFrame(data, columns=TEXT_COLS)
+                data2.to_csv(f"{output_folder}/{idx}/texts/{filename}", index=False)
 
 
 def gen_call_files(output_folder: str):
     """
     Generates call files.
 
-    Given an output folder, this function generates call files containing
-    simulated data for two users over 14 days.
+    Given an output folder, this function generates call files containing simulated data for two
+    users over 14 days.
 
     Args:
         output_folder (str): The directory in which to create the call files.
@@ -336,19 +327,22 @@ def gen_call_files(output_folder: str):
     for idx in ["user_1", "user_2"]:
         os.makedirs(f"{output_folder}/{idx}/calls", exist_ok=True)
         phone_nums = gen_random_id(20)
+        
         for i in range(14):
             status = gen_status()
             for j in range(24):
                 if exist_text_call(j, status) == 1:
                     start_t = ORIG_TIME + i * 3600 * 24 + j * 3600
-                    [y, m, d, h, _, _] = stamp2datetime(start_t, "UTC")
+                    y, m, d, h, _, _ = stamp2datetime(start_t, "UTC")
                     filename = f"{y}-{m:02d}-{d:02d} {h:02d}_00_00.csv"
+                    
                     num = number_of_distinct_inds("texts")
                     contacts = np.random.choice(phone_nums, num, replace=False)
                     data = []
                     all_dur = []
                     all_dir = []
                     all_phone = []
+                    
                     for g in range(num):
                         round_num = gen_round("calls")
                         directions = gen_dir(round_num)
@@ -356,17 +350,15 @@ def gen_call_files(output_folder: str):
                             all_dur.append(gen_call_dur())
                             all_dir.append(directions[k])
                             all_phone.append(contacts[g])
-
-                    all_dur, all_stamps = gen_timestamp_call(
-                        np.array(all_dur)
-                    )
+                    
+                    all_dur, all_stamps = gen_timestamp_call(np.array(all_dur))
+                    
                     for z in range(len(all_dur)):
-                        if all_dir[z] == 1:
-                            call_type = "Outgoing Call"
-                        else:
-                            call_type = "Incoming Call"
+                        call_type = "Outgoing Call" if all_dir[z] == 1 else "Incoming Call"
+                        
                         if all_dur[z] == 0:
                             call_type = "Missed Call"
+                        
                         new_line = [
                             start_t * 1000 + all_stamps[z] * 1000,
                             "-",
@@ -375,28 +367,18 @@ def gen_call_files(output_folder: str):
                             all_dur[z],
                         ]
                         data.append(new_line)
-                    data2 = pd.DataFrame(
-                        data,
-                        columns=[
-                            "timestamp",
-                            "UTC time",
-                            "hashed phone number",
-                            "call type",
-                            "duration in seconds",
-                        ],
-                    )
-                    data2.to_csv(
-                        f"{output_folder}/{idx}/calls/{filename}",
-                        index=False
-                    )
+                    
+                    data2 = pd.DataFrame(data, columns=CALL_COLS)
+                    data2.to_csv(f"{output_folder}/{idx}/calls/{filename}", index=False)
+
 
 
 def sim_log_data(output_folder: str):
     """
     Simulates log data.
 
-    Given an output folder, this function generates text and call files
-    containing simulated data for two users over 14 days.
+    Given an output folder, this function generates text and call files containing simulated data
+    for two users over 14 days.
 
     Args:
         output_folder (str): The directory in which to create the log files.
