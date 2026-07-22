@@ -91,12 +91,12 @@ dev = [
 
 
 [tool.ruff]
-line-length = 100  # # this is the maximum that should emit a warning, its ok to over sometimes.
+line-length = 100  # this is the maximum that should emit a warning, it is sometimes ok to go over.
 indent-width = 4
 
 
 [tool.ruff.lint.pycodestyle]
-max-line-length = 120  # actual maximum line length for python files
+max-line-length = 120  # strict maximum line length for python files. Don't get to this point, use 100.
 
 
 [tool.mypy]
@@ -163,6 +163,7 @@ exclude = [
     ".venv",
     "venv",
     "*.ipynb",
+    "private",
 ]
 
 
