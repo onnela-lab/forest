@@ -91,6 +91,8 @@ def to_timestamp(datetime_string: str, from_format: str, from_tz: str | tzinfo =
     except ValueError:
         logger.warning("Unable to get timestamp for datetime string: %s.", datetime_string)
 
+    return None
+
 
 def to_readable(timestamp: int, to_format: str, to_tz: str | tzinfo = UTC) -> str | None:
     """ Convert a timestamp to a human-readable string localized to a particular timezone.
