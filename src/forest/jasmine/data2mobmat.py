@@ -224,8 +224,7 @@ def shortest_dist_to_great_circle(
     if isinstance(temp, np.ndarray):
         np.clip(temp, -1, 1, out=temp)
     else:
-        temp = min(temp, 1)
-        temp = max(temp, -1)
+        temp = max(min(temp, 1), -1)
     noc = np.arccos(temp)
     d = abs(math.pi / 2 - noc) * EARTH_RADIUS_METERS
     return d

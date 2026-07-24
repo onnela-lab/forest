@@ -72,11 +72,9 @@ def filename2stamp(filename: str) -> int:
     d_str, h_str = filename.split(" ")
     year, month, day = d_str.split("-")
     hour = h_str.split("_", 1)[0]
-
+    
     # this is much faster than going through datetime2stamp
-    return int(datetime(
-        int(year), int(month), int(day), int(hour), 0, 0, tzinfo=UTC
-    ).timestamp())
+    return int(datetime(int(year), int(month), int(day), int(hour), 0, 0, tzinfo=UTC).timestamp())
 
 
 def get_files_timestamps(folder_path: str) -> tuple[np.ndarray, np.ndarray]:
