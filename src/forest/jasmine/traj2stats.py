@@ -319,10 +319,11 @@ def routine_index(
                 if datetime(*stamp2datetime(time_mid - s * SECONDS_IN_DAY, timezone)).weekday() < 5
             ]
     
-    # !FIXME: I changed this to use the MUTATED values for t_1 and t_2 here. Confirm correctness.
-    #   The old code used the time_range tuple. Is this going to change results?
+    # The original code used these un-mutated time_range values. It seems to me that t_1 and t_2
+    # are slightly more constrained and probably cause no changes in the output, but the difference
+    # is well below something I can benchmark, so we will keep the original values.
     average_traces_sum = _innermost_loop(
-        t_1, t_2, shifts, cache, time_col, sampled_trace, prealloc_array
+        time_range[0], time_range[1], shifts, cache, time_col, sampled_trace, prealloc_array
     )
     return average_traces_sum / (n_days_1 + n_days_2)
 
