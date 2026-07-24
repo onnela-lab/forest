@@ -1,7 +1,6 @@
 """Common functions for the forest package"""
 
 import logging
-import os
 from collections.abc import Sequence
 from datetime import datetime
 from os import listdir, makedirs

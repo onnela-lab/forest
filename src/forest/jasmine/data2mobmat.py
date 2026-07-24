@@ -10,7 +10,7 @@ from numpy.typing import NDArray
 from forest.constants import EARTH_RADIUS_METERS
 
 
-""" This module contains functions to convert raw GPS data to mobility matrix. """
+""" This module contains functions to convert raw GPS data to a mobility matrix. """
 
 
 TOLERANCE = 1e-6  # a minimum threshold
@@ -50,20 +50,15 @@ def great_circle_dist(
 ) -> np.ndarray:
     """ This function calculates the great circle distance between various pairs of locations.
     
-    INTERNALLY DEPRECATED: use fp_great_circle_dist or np_great_circle_dist instead.
-    
     Args:
-        lat1: Union[float, np.ndarray], latitude of location1,
-            range[-180, 180]
-        lon1: Union[float, np.ndarray], longitude of location1,
-            range[-180, 180]
-        lat2: Union[float, np.ndarray], latitude of location2,
-            range[-180, 180]
-        lon2: Union[float, np.ndarray], longitude of location2,
-            range[-180, 180]
+        lat1: Union[float, np.ndarray], latitude of location1, range[-180, 180]
+        lon1: Union[float, np.ndarray], longitude of location1, range[-180, 180]
+        lat2: Union[float, np.ndarray], latitude of location2, range[-180, 180]
+        lon2: Union[float, np.ndarray], longitude of location2, range[-180, 180]
     Returns:
         the great circle distance between location1 and location2
     """
+    # INTERNALLY DEPRECATED: use fp_great_circle_dist or np_great_circle_dist instead.
     
     # the math component of this equation is much faster when compiled
     temp = _great_circle_dist_compiled(lat1, lon1, lat2, lon2)
@@ -96,7 +91,7 @@ def _great_circle_dist_compiled(
     lat1: float | FP64Array,
     lon1: float | FP64Array,
     lat2: float | FP64Array,
-    lon2: float | FP64Array,
+    lon2: float | FP64Array
 ) -> FP64Array:
     """ A compiled version of the math component of great_circle_dist."""
     # Solid speedup using numba.jit to compile this function.
@@ -194,8 +189,7 @@ def shortest_dist_to_great_circle(
         to the great circle determined by location 2 and 3.
 
     Args:
-        location1: 2d np.array with latitudes and longitudes
-         of locations, range[-180, 180]
+        location1: 2d np.array with latitudes and longitudes of locations, range[-180, 180]
         location2: np.ndarray, latitude and longitude of location 2
         location3: np.ndarray, latitude and longitude of location 3
     Returns:
@@ -259,14 +253,15 @@ def pairwise_great_circle_dist(latlon_array: FP64Array) -> list[float]:
 
 
 def collapse_data(data: pd.DataFrame, interval: float, accuracy_limit: float) -> np.ndarray:
-    """ This function collapses the raw data into a 2d numpy array,
-        with each row as a chunk of data.
+    """ This function collapses the raw data into a 2d numpy array with each row as a chunk of data.
 
     Args:
-        data: pd.DataFrame, the pd dataframe from read_data()
-        interval: float, the window size of moving average in seconds
-        accuracy_limit: float, a threshold to filter out GPS record
-            with accuracy higher than this limit.
+        data: pd.DataFrame
+            the pd dataframe from read_data()
+        interval: float
+            the window size of moving average in seconds
+        accuracy_limit: float
+            a threshold to filter out GPS record with accuracy higher than this limit.
     Returns:
         a 2d numpy array, average over the measures every interval seconds
             with first column as an indicator:
@@ -279,9 +274,7 @@ def collapse_data(data: pd.DataFrame, interval: float, accuracy_limit: float) ->
     # the provided accuracy_limit
     data = data[data.accuracy < accuracy_limit]
     if data.shape[0] == 0:
-        raise ValueError(
-            f"No GPS record with accuracy less than {accuracy_limit}."
-        )
+        raise ValueError(f"No GPS record with accuracy less than {accuracy_limit}.")
     
     # Get the start and end timestamps in seconds
     timestamps = data.iloc[:, 0].to_numpy() / 1000
@@ -293,12 +286,11 @@ def collapse_data(data: pd.DataFrame, interval: float, accuracy_limit: float) ->
     
     # Initialize an empty 2D numpy array for the collapsed data
     avgmat = np.empty([int(np.ceil((t_end - t_start) / interval)) + 2, 4])
-    
-    logger.info("Collapse data within %s second intervals ...", interval)
-    
     idx_avgmat: int = 0
     count: int = 0
     num_interval: int = 1
+    
+    logger.info("Collapse data within %s second intervals ...", interval)
     
     # Initialize the first row of the output matrix: [1, timestamp, latitude, longitude]
     nextline = [1, t_start + interval / 2, lats[0], lons[0]]
@@ -349,20 +341,19 @@ def exist_knot(avg_mat: np.ndarray, distance_threshold: float) -> tuple[int, int
     """ This function checks if there is a knot in the observed data chunk.
 
     Args:
-        avg_mat: np.ndarray, avgmat from collapse_data()
+        avg_mat: np.ndarray
+            avgmat from collapse_data()
         
         distance_threshold : float,
-            The distance threshold for detecting a knot.
-            If the distance to the great circle is greater than
-            this threshold, it is considered a knot.
+            The distance threshold for detecting a knot. If the distance to the great circle is
+            greater than this threshold, it is considered a knot.
 
     Returns:
         Tuple[int, Optional[int]]: A tuple containing two elements:
             - The first element is an indicator, which is 1 if a knot is found, otherwise 0.
             - The second element is the index of the knot if it exists, otherwise None.
     """
-    # Get the number of rows in the observed_data array
-    num_rows = avg_mat.shape[0]
+    num_rows = avg_mat.shape[0]  # Get the number of rows in the observed_data array
     
     # If there is more than one row of data
     if num_rows > 1:
@@ -371,8 +362,7 @@ def exist_knot(avg_mat: np.ndarray, distance_threshold: float) -> tuple[int, int
         location2 = avg_mat[0, [2, 3]]
         location3 = avg_mat[num_rows - 1, [2, 3]]
         
-        # Get the entire latitude and longitude data columns
-        location1 = avg_mat[:, [2, 3]]
+        location1 = avg_mat[:, [2, 3]]  # Get the entire latitude and longitude data columns
         
         # Calculate the shortest distance from each point
         # to the great circle defined by the start and end points
@@ -393,14 +383,14 @@ def mark_single_measure(input_matrix: np.ndarray, interval: float) -> np.ndarray
     """Marks a single measure as status "3" (unknown).
 
     Args:
-        input_matrix: np.array, avgmat from collapse_data(),
-            just one observed chunk without missing intervals
-        interval: float, the window size of moving average,  unit is second
+        input_matrix: np.array
+            avgmat from collapse_data(), just one observed chunk without missing intervals
+        interval: float
+            the window size of moving average,  unit is second
 
     Returns:
         a 2d numpy array of trajectories, with structure as
-        [status, lat_start, lon_start,
-        stamp_start, lat_end, lon_end, stamp_end]
+        [status, lat_start, lon_start, stamp_start, lat_end, lon_end, stamp_end]
     """
     return np.array(
         [
@@ -416,10 +406,12 @@ def mark_complete_pause(input_matrix: np.ndarray, interval: float, nrows: int) -
      all points are within the maximum pause radius.
 
     Args:
-        input_matrix: np.array, avgmat from collapse_data(),
-            just one observed chunk without missing intervals
-        interval: float, the window size of moving average,  unit is second
-        nrows: int, the number of rows in the input_matrix
+        input_matrix: np.array
+            avgmat from collapse_data(), just one observed chunk without missing intervals
+        interval: float
+            the window size of moving average,  unit is second
+        nrows: int
+            the number of rows in the input_matrix
 
     Returns:
         a 2d numpy array of trajectories, with structure as
@@ -445,15 +437,15 @@ def detect_knots(input_matrix: np.ndarray, nrows: int, w: float, h: float) -> li
     """Detects knots in the data.
 
     Args:
-        input_matrix: np.array, avgmat from collapse_data(),
-            just one observed chunk without missing intervals
+        input_matrix: np.array
+            avgmat from collapse_data(), just one observed chunk without missing intervals
         nrows: int, the number of rows in the input_matrix
-        w: float, a threshold for distance,
-            if the distance to the great circle is greater than
-            this threshold, we consider there is a knot
-        h: float, a threshold of distance, if the movement
-            between two timestamps is less than h,
-            consider it as a pause and a knot
+        w: float
+            a threshold for distance, if the distance to the great circle is greater than this
+            threshold, we consider there is a knot
+        h: float
+            a threshold of distance, if the movement between two timestamps is less than h, consider
+            it as a pause and a knot
 
     Returns:
         a list of indices of knots
@@ -519,11 +511,11 @@ def prepare_output_data(input_matrix: np.ndarray, knot_indices: list, h: float) 
     """Prepares the output data by detecting flights and pauses.
 
     Args:
-        input_matrix: np.array, avgmat from collapse_data(),
-            just one observed chunk without missing intervals
+        input_matrix: np.array
+            avgmat from collapse_data(), just one observed chunk without missing intervals
         knot_indices: list, a list of indices of knots
-        h: float, a threshold of distance, if the movement
-            between two timestamps is less than h,
+        h: float,
+            a threshold of distance, if the movement between two timestamps is less than h,
             consider it as a pause and a knot
 
     Returns:
@@ -615,8 +607,7 @@ def extract_flights(
     if nrows > 1 and max(pairwise_great_circle_dist(input_matrix[:, 2:4])) < r:
         return mark_complete_pause(input_matrix, interval, nrows)
     
-    # Not a simple pause, contains at least one flight
-    # Detect knots in the data
+    # Not a simple pause, contains at least one flight Detect knots in the data
     knot_indices = detect_knots(input_matrix, nrows, w, h)
     return prepare_output_data(input_matrix, knot_indices, h)
 
@@ -681,9 +672,8 @@ def gps_to_mobmat(
 def force_valid_longitude(longitude: float) -> float:
     """Forces a longitude coordinate to be within -180 and 180
 
-    In some cases, the imputation code seems to yield out-of-range
-    GPS coordinates. This function wrps longitude coordinates to be back
-    in the correct range so an error isn't thrown.
+    In some cases, the imputation code seems to yield out-of-range GPS coordinates. This function
+    wrps longitude coordinates to be back in the correct range so an error isn't thrown.
 
     For example, 190 would get transformed into -170.
 
@@ -706,12 +696,10 @@ def compute_flight_positions(index: int, mobmat: np.ndarray, interval: float) ->
         The updated mobility matrix.
     """
     
-    # Calculate the time difference between
-    # the current point and the previous point
+    # Calculate the time difference between the current point and the previous point
     time_diff = mobmat[index, 3] - mobmat[index - 1, 6]
     
-    # Calculate the change in x and y positions between
-    # the current point and the previous point
+    # Calculate the change in x and y positions between the current point and the previous point
     delta_x = mobmat[index, 1] - mobmat[index - 1, 4]
     delta_y = mobmat[index, 2] - mobmat[index - 1, 5]
     
@@ -752,12 +740,10 @@ def compute_future_flight_positions(index: int, mobmat: np.ndarray, interval: fl
         The updated mobility matrix.
     """
     
-    # Calculate the time difference between
-    # the current point and the next point
+    # Calculate the time difference between the current point and the next point
     time_diff = mobmat[index + 1, 3] - mobmat[index, 6]
     
-    # Calculate the change in x and y positions between
-    # the current point and the next point
+    # Calculate the change in x and y positions between the current point and the next point
     delta_x = mobmat[index + 1, 1] - mobmat[index, 1]
     delta_y = mobmat[index + 1, 2] - mobmat[index, 2]
     
