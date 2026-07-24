@@ -150,84 +150,75 @@ def read_data(
     res = pd.DataFrame()
     
     stamp_start: float = 1e12
-    stamp_end: float = 0.
+    stamp_end: float = 0.0
     
-    folder_path = pathjoin(study_folder, beiwe_id, datastream)
-    files_in_range: list[str] = []
+    base_path = pathjoin(study_folder, beiwe_id)
+    datastream_path = pathjoin(base_path, datastream)
+    
     # if text folder exists, call folder must exists
-    if not pathexists(pathjoin(study_folder, beiwe_id)):
+    if not pathexists(base_path):
         logger.warning("User %s does not exist, please check the ID again.", beiwe_id)
-    elif not pathexists(folder_path):
+        return res, stamp_start, stamp_end
+    if not pathexists(datastream_path):
         logger.warning("User %s: %s data are not collected.", beiwe_id, datastream)
-    else:
-        filenames, filestamps = get_files_timestamps(folder_path)
+        return res, stamp_start, stamp_end
+    
+    filenames, filestamps = get_files_timestamps(datastream_path)
+    
+    # find the timestamp in the identifier (when the user was enrolled)
+    if pathexists(pathjoin(base_path, "identifiers")):
+        id_files, _ = get_files_timestamps(pathjoin(base_path, "identifiers"))
+        # there's usually only a very small number of identifier files.
+        identifiers = pd.read_csv(pathjoin(base_path, "identifiers", id_files[0]), sep=",")
         
-        # find the timestamp in the identifier (when the user was enrolled)
-        if pathexists(pathjoin(study_folder, beiwe_id, "identifiers")):
-            identifier_files, _ = get_files_timestamps(
-                pathjoin(study_folder, beiwe_id, "identifiers")
-            )
-            # there's usually only a very small number of identifier files.
-            identifiers = pd.read_csv(
-                pathjoin(study_folder, beiwe_id, "identifiers", identifier_files[0]),
-                sep=",",
-            )
-            # now determine the starting and ending time according to the Docstring
-            if identifiers.index[0] > 10**10:
-                # sometimes the identifier has mismatched colnames and columns
-                stamp_start1 = identifiers.index[0] / 1000
-            else:
-                stamp_start1 = identifiers["timestamp"][0] / 1000
-        else:
-            stamp_start1 = sorted(filestamps)[0]
-
         # now determine the starting and ending time according to the Docstring
-        if time_start is None:
-            stamp_start = stamp_start1
+        if identifiers.index[0] > 10**10:
+            # sometimes the identifier has mismatched colnames and columns
+            stamp_start1 = identifiers.index[0] / 1000
         else:
-            stamp_start2 = datetime2stamp(time_start, tz_str)
-            # only allow data after the participant registered (this condition may be violated under
-            # test conditions of the beiwe backend.)
-            stamp_start = max(stamp_start1, stamp_start2)
-
-        # Last hour: look at all the subject's directories (except survey) and find the latest date
-        # for each directory
-        directories = [
-            directory for directory in listdir(pathjoin(study_folder, beiwe_id))
-            if pathisdir(pathjoin(study_folder, beiwe_id, directory))
-        ]
-        
-        directories = list(
-            set(directories) - {"survey_answers", "survey_timings", "audio_recordings"}
-        )
-        
-        all_timestamps: list = []
-        for i in directories:
-            _, directory_filestamps = get_files_timestamps(os.path.join(study_folder, beiwe_id, i))
-            all_timestamps += directory_filestamps.tolist()
-        
-        ordered_timestamps = sorted(all_timestamps)
-        stamp_end1 = ordered_timestamps[-1]
-        
-        if time_end is None:
-            stamp_end = stamp_end1
-        else:
-            stamp_end2 = datetime2stamp(time_end, tz_str)
-            stamp_end = min(stamp_end1, stamp_end2)
-        
-        # extract the filenames in range
-        files_in_range = list(filenames[(filestamps >= stamp_start) * (filestamps < stamp_end)])
-        if len(files_in_range) == 0:
-            logger.warning("User %s: There are no %s data in range.", beiwe_id, datastream)
-        else:
-            if datastream != "accelerometer":
-                # Without knowing the size and shape of the data beforehand it is not possible to
-                # implement this code in a more memory efficient way. Reading in data and passing
-                # all of them to concatenate is optimal.
-                res = pd.concat(
-                    [pd.read_csv(pathjoin(folder_path, the_csv)) for the_csv in files_in_range],
-                    ignore_index=True,
-                )
+            stamp_start1 = identifiers["timestamp"][0] / 1000
+    else:
+        stamp_start1 = sorted(filestamps)[0]
+    
+    # now determine the starting and ending time according to the Docstring
+    if time_start is None:
+        stamp_start = stamp_start1
+    else:
+        # only allow data after the participant registered (this condition may be violated under
+        # test conditions of the beiwe backend.)
+        stamp_start = max(stamp_start1, datetime2stamp(time_start, tz_str))
+    
+    # Last hour: look through non-survey directories and find the latest date for each directory
+    directories = [
+        directory for directory in listdir(base_path)
+        if pathisdir(pathjoin(base_path, directory)) and
+        directory not in {"survey_answers", "survey_timings", "audio_recordings"}
+    ]
+    
+    all_timestamps = []
+    for i in directories:
+        _, directory_filestamps = get_files_timestamps(pathjoin(base_path, i))
+        all_timestamps += directory_filestamps.tolist()
+    
+    stamp_end1 = sorted(all_timestamps)[-1]
+    if time_end is None:
+        stamp_end = stamp_end1
+    else:
+        stamp_end = min(stamp_end1, datetime2stamp(time_end, tz_str))
+    
+    # extract the filenames in range
+    files_in_range = list(filenames[(filestamps >= stamp_start) * (filestamps < stamp_end)])
+    if len(files_in_range) == 0:
+        logger.warning("User %s: There are no %s data in range.", beiwe_id, datastream)
+    else:
+        if datastream != "accelerometer":
+            # Without knowing the size and shape of the data beforehand it is not possible to
+            # implement this code in a more memory efficient way. Reading in data and passing all of
+            # them to concatenate is optimal.
+            res = pd.concat(
+                [pd.read_csv(pathjoin(datastream_path, the_csv)) for the_csv in files_in_range],
+                ignore_index=True,
+            )
     
     if datastream == "accelerometer":
         return files_in_range, stamp_start, stamp_end
