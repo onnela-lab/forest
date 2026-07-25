@@ -488,6 +488,10 @@ def run(
                 index=False,
             )
     summary = pd.DataFrame(rows)
+    if summary.empty:
+        # No participant met the coverage threshold; still return a frame
+        # with the identifier column so callers can rely on its presence.
+        summary = pd.DataFrame(columns=["backend_id"])
     summary.to_csv(
         os.path.join(output_folder, "rar_summary.csv"), index=False
     )

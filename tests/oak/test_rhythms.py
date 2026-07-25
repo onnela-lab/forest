@@ -142,3 +142,74 @@ def test_run_end_to_end(tmp_path, rng):
     daily = pd.read_csv(out_dir / "participantA_rar_daily.csv")
     assert len(daily) == days
     assert "IS" not in daily.columns  # IS is recording-level only
+
+
+def _write_participant(acc_dir, start_local, n_days, fs, rng):
+    """Write n_days of synthetic accelerometer CSVs for one participant."""
+    acc_dir.mkdir(parents=True)
+    start = pd.Timestamp(start_local, tz="America/New_York").tz_convert("UTC")
+    count = fs * 86400 * n_days
+    times = start + pd.to_timedelta(np.arange(count) / fs, unit="s")
+    local_hour = (
+        times.tz_convert("America/New_York").hour
+        + times.tz_convert("America/New_York").minute / 60
+    ).to_numpy()
+    amp = 0.05 + 0.6 * np.clip(
+        np.cos(2 * np.pi * (local_hour - 14) / 24), 0, None
+    )
+    frame = pd.DataFrame({
+        "timestamp": times.astype("int64") // 1_000_000,
+        "x": rng.normal(0, amp),
+        "y": rng.normal(0, amp),
+        "z": 1 + rng.normal(0, amp),
+    })
+    per_day = fs * 86400
+    for day in range(n_days):
+        chunk = frame.iloc[day * per_day:(day + 1) * per_day]
+        fname = f"2026-03-{day + 1:02d} 00_00_00.csv"
+        chunk.to_csv(acc_dir / fname, index=False)
+
+
+def test_run_skips_participants_below_min_valid_days(tmp_path, rng):
+    """min_valid_days must exclude participants with too little data."""
+    study = tmp_path / "study"
+    _write_participant(
+        study / "rich" / "accelerometer",
+        "2026-03-01 00:00:00", 5, 2, rng,
+    )
+    _write_participant(
+        study / "sparse" / "accelerometer",
+        "2026-03-01 00:00:00", 1, 2, rng,
+    )
+    summary = run(
+        str(study), str(tmp_path / "out"), "America/New_York",
+        frequency=Frequency.DAILY, epoch_seconds=60, min_valid_days=3.0,
+    )
+    ids = set(summary["backend_id"])
+    assert "rich" in ids
+    assert "sparse" not in ids
+
+
+def test_run_time_bounds_clip_data(tmp_path, rng):
+    """time_start/time_end restrict the window; clipping below
+    min_valid_days then skips the participant."""
+    study = tmp_path / "study"
+    _write_participant(
+        study / "rich" / "accelerometer",
+        "2026-03-01 00:00:00", 5, 2, rng,
+    )
+    unbounded = run(
+        str(study), str(tmp_path / "out_all"), "America/New_York",
+        frequency=Frequency.DAILY, epoch_seconds=60, min_valid_days=3.0,
+    )
+    assert "rich" in set(unbounded["backend_id"])
+    bounded = run(
+        str(study), str(tmp_path / "out_clip"), "America/New_York",
+        frequency=Frequency.DAILY, epoch_seconds=60, min_valid_days=3.0,
+        time_start="2026-03-01 00_00_00", time_end="2026-03-02 12_00_00",
+    )
+    bounded_ids = (
+        set(bounded["backend_id"]) if "backend_id" in bounded.columns
+        else set()
+    )
+    assert "rich" not in bounded_ids
