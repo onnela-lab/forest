@@ -75,7 +75,7 @@ def to_timestamp(datetime_string: str, from_format: str, from_tz: str | tzinfo =
         
         from_format (str): The format of time, expressed using directives from the datetime package.
         
-        from_tz (timezone from pytz.tzfile):  The timezone of time.
+        from_tz (timezone shortname or tzinfo object):  The timezone of time.
 
     Returns:
         timestamp (int): Timestamp in milliseconds.
