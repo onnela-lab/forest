@@ -28,8 +28,8 @@ readme = "README.md"
 license = {text = "BSD-3-Clause"}
 requires-python = "==3.12.*"
 dependencies = [
+    "audioread",
     "holidays",
-    "librosa",
     "numpy",
     "openrouteservice",
     "pandas",
@@ -40,6 +40,7 @@ dependencies = [
     "requests",
     "scipy",
     "shapely",
+    "soundfile",
     "ssqueezepy",
     "timezonefinder",
     "zstandard",
@@ -106,13 +107,15 @@ python_version = "3.12"
 
 [[tool.mypy.overrides]]
 module = [
+    "audioread",
+    "audioread.*",
     "holidays",
-    "librosa",
     "openrouteservice",
     "pandas",
     "ratelimit",
     "scipy.*",
     "shapely.*",
+    "soundfile",
     "ssqueezepy",
     "timezonefinder",
 ]
@@ -123,17 +126,6 @@ ignore_missing_imports = true
 # addopts = "--import-mode=importlib"  # this does not seem to be necessary anymore
 
 testpaths = ["tests"]
-
-filterwarnings = [
-    # # Ignore specific DeprecationWarnings from librosa.core.intervals
-    "ignore:path is deprecated.*:DeprecationWarning:librosa\\.core\\.intervals",
-    # # Ignore FutureWarning in forest.sycamore.read_audio
-    "ignore:PySoundFile failed. Trying audioread instead.*:FutureWarning:forest\\.sycamore\\.read_audio",
-    # Ignore specific DeprecationWarnings from audioread.rawread for aifc, audioop, and sunau
-    "ignore:'aifc' is deprecated and slated for removal in Python 3.13.*:DeprecationWarning:audioread\\.rawread",
-    "ignore:'audioop' is deprecated and slated for removal in Python 3.13.*:DeprecationWarning:audioread\\.rawread",
-    "ignore:'sunau' is deprecated and slated for removal in Python 3.13.*:DeprecationWarning:audioread\\.rawread",
-]
 
 
 [tool.ruff.format]

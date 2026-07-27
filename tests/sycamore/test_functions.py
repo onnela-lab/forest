@@ -172,8 +172,9 @@ def test_gen_survey_schedule_cutoff_relative():
 
 
 def test_aggregate_surveys_no_config():
-    agg_data = aggregate_surveys_no_config(SAMPLE_DIR, study_tz="UTC",
-                                           users=["16au2moz", "idr8gqdh"])
+    agg_data = aggregate_surveys_no_config(
+        SAMPLE_DIR, study_tz="UTC", users=["16au2moz", "idr8gqdh"]
+    )
     assert agg_data.shape[0] == 50
     assert len(agg_data.DOW.unique()) == 4
 
@@ -398,6 +399,7 @@ def test_get_config_id_dict():
     assert config_id_dict['prompt3'] == 6
 
 
+# one .mp4 file was converted to a .wav file that is now read in by these tests
 def test_read_user_audio_recordings_stream():
     df = read_user_audio_recordings_stream(
         SAMPLE_DIR, "audioqdz", history_path=AUDIO_SURVEY_HISTORY

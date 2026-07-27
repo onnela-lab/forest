@@ -6,12 +6,10 @@ Use `sycamore` to process and analyze Beiwe survey data.
 
 ## Installation
 
-Before using sycamore, dependencies for librosa (ffmpeg and libsndfile1) must be installed first in order to enable processing of audio survey files.  
+Before using sycamore, system dependencies for audioread and soundfile (ffmpeg and libsndfile1) must be installed first in order to enable processing of audio survey files.  
 
 To install these dependencies on ubuntu, simply run:  
-`sudo apt-get install -y ffmpeg libsndfile1`  
-
-For more information, see the [librosa documentation](https://librosa.org/doc/latest/install.html)
+`sudo apt install -y ffmpeg libsndfile1`
 
 ## Import
 
