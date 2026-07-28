@@ -22,7 +22,8 @@ authors = [
     {name = "Anna Beukenhorst"},
 ]
 maintainers = [
-    {name = "Onnela Lab", email = "onnela.lab@gmail.com"}
+    {name = "Onnela Lab", email = "onnela.lab@gmail.com"},
+    {name = "Eli Jones", email = "biblicabeebli@gmail.com"},
 ]
 readme = "README.md"
 license = {text = "BSD-3-Clause"}

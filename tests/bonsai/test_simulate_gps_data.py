@@ -1,16 +1,14 @@
-"""Tests for simulate_gps_data module"""
+""" Tests for simulate_gps_data module """
 
 import datetime
 
 import numpy as np
 import pytest
 
-from forest.bonsai.simulate_gps_data import (
-    bounding_box, get_basic_path, get_path, PossibleExits, Vehicle, Occupation,
-    ActionType, Attributes, Person, gen_basic_traj, gen_basic_pause,
-    gen_route_traj, gen_all_traj, remove_data, prepare_data,
-    process_switches, load_attributes, sim_gps_data
-)
+from forest.bonsai.simulate_gps_data import (ActionType, Attributes, bounding_box, gen_all_traj,
+    gen_basic_pause, gen_basic_traj, gen_route_traj, get_basic_path, get_path, load_attributes,
+    Occupation, Person, PossibleExits, prepare_data, process_switches, remove_data, sim_gps_data,
+    Vehicle)
 from forest.jasmine.data2mobmat import great_circle_dist
 
 

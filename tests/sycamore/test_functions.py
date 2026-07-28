@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+from os.path import join as pathjoin
 
 import numpy as np
 import pandas as pd
@@ -16,19 +17,20 @@ from forest.sycamore.responses import agg_changed_answers_summary, format_respon
 from forest.sycamore.submits import (gen_survey_schedule, get_all_interventions_dict,
     get_question_ids, summarize_submits, survey_submits, survey_submits_no_config)
 from forest.sycamore.utils import filename_to_timestamp, read_json
+from tests.conftest import src_root
 
 TEST_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
-SAMPLE_DIR = os.path.join(TEST_DATA_DIR, "sample_dir")
-SEP_QS_DIR = os.path.join(TEST_DATA_DIR, "dir_with_seps_in_qs")
+SAMPLE_DIR = pathjoin(TEST_DATA_DIR, "sample_dir")
+SEP_QS_DIR = pathjoin(TEST_DATA_DIR, "dir_with_seps_in_qs")
 
-AUDIO_SURVEY_CONFIG = os.path.join(TEST_DATA_DIR, "audio_survey_config.json")
-AUDIO_SURVEY_HISTORY = os.path.join(TEST_DATA_DIR, "audio_survey_history.json")
-CONFIG_WITH_SEPS = os.path.join(TEST_DATA_DIR, "config_file_with_commas_and_semicolons.json")
-HISTORY_WITH_SEPS = os.path.join(TEST_DATA_DIR, "history_file_with_commas_and_semicolons.json")
-INTERVENTIONS_PATH = os.path.join(TEST_DATA_DIR, "sample_intervention_data.json")
-SURVEY_SETTINGS_PATH = os.path.join(TEST_DATA_DIR, "sample_study_surveys_and_settings.json")
-SURVEY_SETTINGS_PATH_FOR_SUBMITS = os.path.join(TEST_DATA_DIR, "config_file_for_submits.json")
+AUDIO_SURVEY_CONFIG = pathjoin(TEST_DATA_DIR, "audio_survey_config.json")
+AUDIO_SURVEY_HISTORY = pathjoin(TEST_DATA_DIR, "audio_survey_history.json")
+CONFIG_WITH_SEPS = pathjoin(TEST_DATA_DIR, "config_file_with_commas_and_semicolons.json")
+HISTORY_WITH_SEPS = pathjoin(TEST_DATA_DIR, "history_file_with_commas_and_semicolons.json")
+INTERVENTIONS_PATH = pathjoin(TEST_DATA_DIR, "sample_intervention_data.json")
+SURVEY_SETTINGS_PATH = pathjoin(TEST_DATA_DIR, "sample_study_surveys_and_settings.json")
+SURVEY_SETTINGS_PATH_FOR_SUBMITS = pathjoin(TEST_DATA_DIR, "config_file_for_submits.json")
 
 
 @pytest.fixture
@@ -105,7 +107,7 @@ def test_summarize_submits_day(submits_data):
 
 
 def test_get_empty_intervention():
-    empty_path = os.path.join(TEST_DATA_DIR, "empty_intervention_data.json")
+    empty_path = pathjoin(TEST_DATA_DIR, "empty_intervention_data.json")
     empty_dict = get_all_interventions_dict(empty_path)
     assert empty_dict == {}
 
@@ -142,7 +144,7 @@ def test_gen_survey_schedule():
 def test_gen_survey_schedule_one_weekly():
     interventions_dict = get_all_interventions_dict(INTERVENTIONS_PATH)
     sample_schedule = gen_survey_schedule(
-        os.path.join(TEST_DATA_DIR, "one_weekly_survey.json"),
+        pathjoin(TEST_DATA_DIR, "one_weekly_survey.json"),
         time_start=pd.to_datetime("2021-12-01"),
         time_end=pd.to_datetime("2021-12-08"),
         users=["idr8gqdh"],
@@ -157,7 +159,7 @@ def test_gen_survey_schedule_one_weekly():
 def test_gen_survey_schedule_cutoff_relative():
     interventions_dict = get_all_interventions_dict(INTERVENTIONS_PATH)
     sample_schedule = gen_survey_schedule(
-        os.path.join(TEST_DATA_DIR, "far_relative_survey.json"),
+        pathjoin(TEST_DATA_DIR, "far_relative_survey.json"),
         time_start=pd.to_datetime("2021-12-01"),
         time_end=pd.to_datetime("2021-12-08"),
         users=["idr8gqdh"],
@@ -253,7 +255,7 @@ def test_format_responses_by_submission_adc(agg_data_config):
 
 
 def test_aggregate_surveys_config_empty_dir():
-    empty_dir = os.path.join(TEST_DATA_DIR, "empty_dir")
+    empty_dir = pathjoin(TEST_DATA_DIR, "empty_dir")
     agg_data = aggregate_surveys_config(
         empty_dir, SURVEY_SETTINGS_PATH, "UTC", users=["16au2moz", "idr8gqdh"]
     )
@@ -261,7 +263,7 @@ def test_aggregate_surveys_config_empty_dir():
 
 
 def test_aggregate_surveys_no_config_empty_dir():
-    empty_dir = os.path.join(TEST_DATA_DIR, "empty_dir")
+    empty_dir = pathjoin(TEST_DATA_DIR, "empty_dir")
     agg_data_no_config = aggregate_surveys_no_config(
         empty_dir, "UTC", users=["16au2moz", "idr8gqdh"]
     )
@@ -518,9 +520,10 @@ def test_sycamore_cli_missing_output_dir_prints_help(tmp_path):
     AttributeError: 'Namespace' object has no attribute 'output_folder'.
     """
     result = subprocess.run(
-        [sys.executable, "-m", "forest.sycamore",
-         "--study_folder", str(tmp_path)],
-        capture_output=True, text=True
+        [sys.executable, "-m", "forest.sycamore", "--study_folder", str(tmp_path)],
+        capture_output=True,
+        text=True,
+        cwd=src_root,
     )
     assert result.returncode == 0
     assert "usage:" in result.stdout
