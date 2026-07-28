@@ -23,15 +23,19 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Forest dependencies for Linux
-        # required by librosa
+        # required for media interaction
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg libsndfile1
+          sudo apt update
+          sudo apt install -y ffmpeg libsndfile1
       - name: Install Forest dependencies for Windows
-        # required by librosa
+        # required for media interaction
         if: ${{ startsWith(matrix.os, 'windows') }}
         run: choco install ffmpeg -y --no-progress
+      - name: Install Forest dependencies for macOS
+        # required for media interaction
+        if: ${{ startsWith(matrix.os, 'macos') }}
+        run: brew install ffmpeg libsndfile
       - name: Install Forest and optional development dependencies
         run: pip install -e ".[dev]"
       - name: Run code style checking

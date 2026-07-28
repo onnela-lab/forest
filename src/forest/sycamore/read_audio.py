@@ -1,19 +1,40 @@
-"""Functions associated with reading audio surveys"""
+""" Functions associated with reading audio surveys """
 
 import logging
 import os
-
-import librosa
-import numpy as np
-import pandas as pd
-
-from forest.sycamore.constants import EARLIEST_DATE
-from forest.sycamore.utils import (read_json, get_month_from_today,
-                                   filename_to_timestamp)
-from forest.utils import get_ids
 from os.path import join as pathjoin
 
+import audioread
+import numpy as np
+import pandas as pd
+import soundfile
+
+from forest.sycamore.constants import EARLIEST_DATE
+from forest.sycamore.utils import filename_to_timestamp, get_month_from_today, read_json
+from forest.utils import get_ids
+
 logger = logging.getLogger(__name__)
+
+
+def get_audio_duration(path: str) -> float:
+    """
+    Use libsndfile (used by soundfile) can read .wav directly, but not .mp4/.m4a. For those, fall
+    back to audioread's ffmpeg backend explicitly.
+    (Replaces previous use of deprecated librosa.get_duration and audioread.audio_open.)
+    
+    Args:
+        path: path to an audio file
+
+    Returns:
+        duration of the audio file, in seconds
+    """
+    
+    if path.lower().endswith(".wav"):
+        # this value has very high precision we want to match the 1 digit of precision for audioread
+        return round(soundfile.info(path).duration, 1)
+    else:
+        with audioread.audio_open(path, backends=[audioread.ffdec.FFmpegAudioFile]) as fdesc:
+            return fdesc.duration
 
 
 def get_audio_survey_id_dict(history_path: str | None = None) -> dict[str, str]:
@@ -136,20 +157,16 @@ def read_user_audio_recordings_stream(
         all_durations = []
         for filename in os.listdir(pathjoin(audio_dir, survey)):
             valid_file = (
-                filename.endswith(".wav") or filename.endswith(".mp4") and
+                (filename.endswith(".wav") or filename.endswith(".mp4")) and
                 (timestamp_start < filename_to_timestamp(filename, tz_str) < timestamp_end)
             )
             if valid_file:
                 all_files.append(filename)
-                all_durations.append(
-                    librosa.get_duration(path=pathjoin(audio_dir, survey, filename))
-                )
+                all_durations.append(get_audio_duration(pathjoin(audio_dir, survey, filename)))
         
         if len(all_files) == 0:
-            logger.info("No audio_recordings for user %s in given time "
-                        "frames.", user)
-            return pd.DataFrame(columns=["Local time"],
-                                dtype="datetime64[ns]")
+            logger.info("No audio_recordings for user %s in given time frames.", user)
+            return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
         
         survey_dfs = []
         survey_prompt = "UNKNOWN"
