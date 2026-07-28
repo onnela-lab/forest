@@ -44,6 +44,14 @@ Alternatively, [install directly from GitHub](https://pip.pypa.io/en/stable/cli/
 pip install git+https://github.com/onnela-lab/forest
 ```
 
+If you want to have make edits to or develop the codebase, clone the repository and install like this:
+
+```
+pip install --editable .[dev]
+```
+_(This creates links mapping your copy into your python environment so that any edits you make are reflected live in your Python environment.)_
+
+
 To immediately test out forest, adapt the filepaths in the code below and run:
 
 ```python
