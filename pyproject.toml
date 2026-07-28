@@ -21,13 +21,14 @@ authors = [
     {name = "Ilya Sytchev"},
     {name = "Anna Beukenhorst"},
 ]
+
 maintainers = [
     {name = "Onnela Lab", email = "onnela.lab@gmail.com"},
     {name = "Eli Jones", email = "biblicabeebli@gmail.com"},
 ]
 readme = "README.md"
 license = {text = "BSD-3-Clause"}
-requires-python = "==3.12.*"
+requires-python = ">=3.12, <3.15"
 dependencies = [
     "audioread",
     "holidays",

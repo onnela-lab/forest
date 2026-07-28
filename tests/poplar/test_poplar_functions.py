@@ -42,7 +42,8 @@ def test_datetime2stamp_bad_hours():
 
 
 def test_datetime2stamp_bad_days():
-    with pytest.raises(ValueError, match="day is out of range for month"):
+    # message changed in python 3.13, just match the word range...
+    with pytest.raises(ValueError, match=".*range.*"):
         datetime2stamp(time_list=[2020, 11, 35, 5, 20, 50], tz_str="America/New_York")
 
 
