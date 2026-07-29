@@ -6,8 +6,9 @@
     - power_events.csv
 
 """
-from logging import getLogger
 from importlib.resources import files
+from logging import getLogger
+
 from ..functions.io import read_json
 
 

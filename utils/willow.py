@@ -8,6 +8,7 @@ import os
 
 from forest.willow.log_stats import log_stats_main
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument("raw_data_path", help="path to the folder with raw data", type=str)
 parser.add_argument("summary_data_path", help="path to the output folder", type=str)

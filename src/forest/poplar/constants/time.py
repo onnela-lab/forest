@@ -2,6 +2,7 @@
 """
 from zoneinfo import ZoneInfo
 
+
 # seconds
 MIN_S = 60
 HOUR_S = 60 * MIN_S

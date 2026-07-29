@@ -4,11 +4,11 @@ from datetime import datetime
 from itertools import islice
 from pathlib import Path
 
+import mano
+import mano.sync as msync
 import pandas as pd
 import requests
 
-import mano
-import mano.sync as msync
 
 # Branches for tree function
 SPACE, BRANCH, TEE, LAST = "    ", "│   ", "├── ", "└── "

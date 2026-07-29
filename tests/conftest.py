@@ -1,4 +1,3 @@
-import os
 import sys
 from datetime import datetime
 from os.path import abspath, dirname, join as pathjoin
@@ -6,6 +5,7 @@ from os.path import abspath, dirname, join as pathjoin
 import numpy as np
 import pandas as pd
 import pytest
+
 
 # insert the root of the repo folder into the python path so we can just import the codebase without
 # relative import issues or needing to install the beiwe-forest package.

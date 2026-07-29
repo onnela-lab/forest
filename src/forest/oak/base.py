@@ -15,6 +15,7 @@ from ssqueezepy import ssq_cwt
 from forest.constants import Frequency
 from forest.utils import get_ids
 
+
 logger = logging.getLogger(__name__)
 
 NDArrayFloat = npt.NDArray[np.float64]

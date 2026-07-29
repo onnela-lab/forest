@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-from forest.oak.base import preprocess_bout, compute_interpolate_cwt
+from forest.oak.base import compute_interpolate_cwt, preprocess_bout
 
 
 def test_compute_interpolate_cwt(signal_bout, fs, wavelet):

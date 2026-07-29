@@ -1,7 +1,6 @@
 import numpy as np
 
-
-from forest.oak.base import preprocess_bout, find_walking
+from forest.oak.base import find_walking, preprocess_bout
 
 
 def test_find_walking(signal_bout, fs, min_amp, step_freq, alpha, beta,

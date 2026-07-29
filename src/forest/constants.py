@@ -3,6 +3,7 @@
 import os
 from enum import Enum
 
+
 # Earth radius in meters
 EARTH_RADIUS_METERS = 6.371*10**6
 

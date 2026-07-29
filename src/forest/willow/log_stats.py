@@ -11,6 +11,7 @@ from forest.constants import Frequency
 from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data, stamp2datetime,
     write_all_summaries)
 
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 

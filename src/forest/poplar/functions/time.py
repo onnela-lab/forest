@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 from ..constants.time import DATE_FORMAT, DAY_S, MIN_MS, NAIVE_DATETIME_FORMAT, UTC
 
+
 logger = getLogger(__name__)
 
 

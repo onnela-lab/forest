@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from forest.oak.base import run_hourly
 from forest.constants import Frequency
+from forest.oak.base import run_hourly
 
 
 @pytest.fixture

@@ -16,6 +16,7 @@ from forest.poplar.legacy.common_funcs import (datetime2stamp, filename2stamp, g
     read_data, stamp2datetime, write_all_summaries)
 from forest.utils import get_ids
 
+
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 TEST_DATA_DIR = os.path.join(CURRENT_DIR, "test_data")
 

@@ -3,6 +3,7 @@ import sys
 
 from forest.sycamore.base import compute_survey_stats
 
+
 parser = argparse.ArgumentParser(description='Run Sycamore Locally')
 
 parser.add_argument(

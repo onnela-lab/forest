@@ -1,6 +1,7 @@
 """Constants used throughout the Sycamore tree."""
 import pandas as pd
 
+
 # We want our default date to be farther in the past than any Beiwe data could have been collected,
 # so we never cut off data by default. But, if we set our default date too far in the past, we would
 # generate too many weekly survey timings

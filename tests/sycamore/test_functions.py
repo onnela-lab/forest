@@ -19,6 +19,7 @@ from forest.sycamore.submits import (gen_survey_schedule, get_all_interventions_
 from forest.sycamore.utils import filename_to_timestamp, read_json
 from tests.conftest import src_root
 
+
 TEST_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
 SAMPLE_DIR = pathjoin(TEST_DATA_DIR, "sample_dir")

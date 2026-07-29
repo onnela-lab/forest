@@ -9,6 +9,7 @@ import os
 
 from forest.jasmine.traj2stats import Frequency, gps_stats_main
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument("raw_data_path", type=str, help="path to the folder with raw data")
 parser.add_argument("summary_data_path", type=str, help="path to the output folder")

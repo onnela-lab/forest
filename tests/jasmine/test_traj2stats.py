@@ -1,16 +1,14 @@
 """Tests for traj2stats summary statistics in Jasmine"""
 
 import numpy as np
+import pandas as pd
 import pytest
 from shapely.geometry import Point
-import pandas as pd
 
 from forest.jasmine.data2mobmat import great_circle_dist
-from forest.jasmine.traj2stats import (
-    Frequency, gps_summaries, Hyperparameters, transform_point_to_circle,
-    avg_mobility_trace_difference, create_mobility_trace, get_pause_array,
-    extract_pause_from_row, compute_window_and_count
-)
+from forest.jasmine.traj2stats import (avg_mobility_trace_difference, compute_window_and_count,
+    create_mobility_trace, extract_pause_from_row, Frequency, get_pause_array, gps_summaries,
+    Hyperparameters, transform_point_to_circle)
 
 
 @pytest.fixture

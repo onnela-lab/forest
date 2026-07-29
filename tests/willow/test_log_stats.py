@@ -1,12 +1,10 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from forest.constants import Frequency
-from forest.willow.log_stats import (
-    comm_logs_summaries,
-    get_call_reciprocity,
-    get_mean_responsiveness,
-)
+from forest.willow.log_stats import (comm_logs_summaries, get_call_reciprocity,
+    get_mean_responsiveness)
+
 
 STAMP_START = 1453837206
 STAMP_END = 1454634000
@@ -17,19 +15,17 @@ OPTION = Frequency.DAILY
 def test_comm_log_summaries_with_empty_data():
     text_data = pd.DataFrame.from_dict({})
     call_data = pd.DataFrame.from_dict({})
-    stats_pdframe = comm_logs_summaries(
-        text_data, call_data, STAMP_START, STAMP_END, TZ_STR, OPTION
-    )
-    assert isinstance(stats_pdframe, pd.DataFrame)
+    stats_frame = comm_logs_summaries(text_data, call_data, STAMP_START, STAMP_END, TZ_STR, OPTION)
+    assert isinstance(stats_frame, pd.DataFrame)
 
 
 def test_comm_log_summaries_with_empty_data_hourly():
     text_data = pd.DataFrame.from_dict({})
     call_data = pd.DataFrame.from_dict({})
-    stats_pdframe = comm_logs_summaries(
+    stats_frame = comm_logs_summaries(
         text_data, call_data, STAMP_START, STAMP_END, TZ_STR, Frequency.HOURLY
     )
-    assert isinstance(stats_pdframe, pd.DataFrame)
+    assert isinstance(stats_frame, pd.DataFrame)
 
 
 def test_comm_log_summaries_with_empty_text_data():
@@ -38,51 +34,30 @@ def test_comm_log_summaries_with_empty_text_data():
         {
             "timestamp": {0: 1454428647649},
             "UTC time": {0: "2016-02-02T15:57:27.649"},
-            "hashed phone number": {
-                0: "ZlGtb-SRRIgOcHLBD02d2_F049naF0YZbCx_CeP7jss="
-            },
+            "hashed phone number": {0: "ZlGtb-SRRIgOcHLBD02d2_F049naF0YZbCx_CeP7jss="},
             "call type": {0: "Missed Call"},
             "duration in seconds": {0: 0},
         }
     )
-    stats_pdframe = comm_logs_summaries(
-        text_data, call_data, STAMP_START, STAMP_END, TZ_STR, OPTION
-    )
-    assert isinstance(stats_pdframe, pd.DataFrame)
+    stats_frame = comm_logs_summaries(text_data, call_data, STAMP_START, STAMP_END, TZ_STR, OPTION)
+    assert isinstance(stats_frame, pd.DataFrame)
 
 
 def test_get_call_reciprocity():
     full_reciprocity = get_call_reciprocity(
-        {
-            "incoming": ["a", "a", "b", "c"],
-            "outgoing": ["a", "a", "b", "c"],
-        }
+        {"incoming": ["a", "a", "b", "c"], "outgoing": ["a", "a", "b", "c"]}
     )
     assert np.abs(full_reciprocity - 1) < 1e-10
-
-    half_reciprocity = get_call_reciprocity(
-        {
-            "incoming": ["a", "a", "a"],
-            "outgoing": ["a"],
-        }
-    )
-
+    
+    half_reciprocity = get_call_reciprocity({"incoming": ["a", "a", "a"], "outgoing": ["a"]})
     assert np.abs(half_reciprocity - 0.5) < 1e-10
-
-    no_reciprocity = get_call_reciprocity(
-        {
-            "incoming": ["a", "a", "b", "c"],
-            "outgoing": [],
-        }
-    )
-
+    
+    no_reciprocity = get_call_reciprocity({"incoming": ["a", "a", "b", "c"], "outgoing": []})
     assert np.abs(no_reciprocity - 0) < 1e-10
 
 
 def test_no_data_returns_na():
-    df = pd.DataFrame(
-        columns=["hashed phone number", "timestamp", "direction"]
-    )
+    df = pd.DataFrame(columns=["hashed phone number", "timestamp", "direction"])
     result = get_mean_responsiveness(df, "direction", ["received"], ["sent"])
     assert pd.isna(result)
 
@@ -134,10 +109,9 @@ def test_multiple_received_and_sent():
             "direction": ["received", "received", "sent", "sent"],
         }
     )
-
+    
     result = get_mean_responsiveness(df, "direction", ["received"], ["sent"])
-    # Each sent message is 1000 ms after a received message, so the result
-    # should be 1 second
+    # Each sent message is 1000 ms after a received message, so the result should be 1 second
     assert np.isclose(result, 1 / 60, atol=0.001)
 
 
