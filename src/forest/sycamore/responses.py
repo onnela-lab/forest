@@ -1,4 +1,9 @@
-""" Module for processing survey responses """
+"""
+Module for processing survey responses
+
+Original Authors: Nellie Ponarul, Zachary Clement, Georgios Efstathiadis
+"""
+
 import logging
 from typing import Any
 
@@ -82,9 +87,7 @@ def agg_changed_answers(agg: pd.DataFrame) -> pd.DataFrame:
     return agg.reset_index(drop=True)
 
 
-def agg_changed_answers_summary(
-        config_path: str, agg: pd.DataFrame
-) -> tuple[Any, pd.DataFrame]:
+def agg_changed_answers_summary(config_path: str, agg: pd.DataFrame) -> tuple[Any, pd.DataFrame]:
     """ Create Summary File with survey, beiwe id, question id, average number of changed answers,
     average time spent answering question
 
