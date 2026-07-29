@@ -1,5 +1,10 @@
-""" This module contains functions to convert the mobility matrix into
-trajectories. It is part of the Jasmine package. """
+"""
+This module contains functions to convert the mobility matrix into trajectories.
+
+Original Authors: Georgios Efstathiadis, Josh Barback, Greyson Liu
+Optimization work: Eli Jones
+"""
+
 import logging
 import math
 
