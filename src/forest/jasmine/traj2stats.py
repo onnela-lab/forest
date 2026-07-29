@@ -2,7 +2,7 @@
 Module used to impute missing data, by combining functions defined in other modules and
 calculate summary statistics of imputed trajectories.
 
-Original Authors: Georgios Efstathiadis, Zachary Clement
+Original Authors: Georgios Efstathiadis, Zachary Clement, Josh Barback
 Optimization work: Eli Jones
 
 """
