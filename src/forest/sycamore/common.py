@@ -1,9 +1,15 @@
-"""Common functions for sycamore module"""
+"""
+Common functions for sycamore module
+
+Original Authors: Nellie Ponarul, Zachary Clement, Georgios Efstathiadis
+"""
+
 import datetime
-import glob
 import logging
-import os
 import re
+from glob import glob
+from os import listdir, makedirs
+from os.path import basename, isdir as isdirectory, join as pathjoin
 
 import numpy as np
 import pandas as pd
@@ -16,6 +22,10 @@ from forest.utils import get_ids
 
 
 logger = logging.getLogger(__name__)
+
+NO_SURVEY_HISTORY_MSG = "No survey history path included. If you have changed radio survey " \
+    "answer choices since starting your study, and if you used semicolons or commas in those " \
+    "answer choices, incorrect survey responses may be output for android devices"
 
 
 def safe_read_csv(filepath: str) -> pd.DataFrame:
@@ -95,19 +105,17 @@ def read_and_aggregate(
     """
     if time_end is None:
         time_end = get_month_from_today()
-    st_path = os.path.join(study_dir, user, data_stream)
-    if os.path.isdir(st_path):
-
+    st_path = pathjoin(study_dir, user, data_stream)
+    if isdirectory(st_path):
         # get, sort, read in all survey timings files
-        all_files = glob.glob(os.path.join(st_path, "*/*.csv")) \
-                  + glob.glob(os.path.join(st_path, "*/*.csv.zst"))
+        all_files = glob(pathjoin(st_path, "*/*.csv")) + glob(pathjoin(st_path, "*/*.csv.zst"))
         all_files.sort()
         timestamp_start = pd.to_datetime(time_start)
         timestamp_end = pd.to_datetime(time_end)
         
         survey_data_list = []
         for file in all_files:
-            filename = os.path.basename(file)
+            filename = basename(file)
             if (timestamp_start < filename_to_timestamp(filename, tz_str) < timestamp_end):
                 survey_data_list.append(safe_read_csv(file))
         
@@ -126,9 +134,11 @@ def read_and_aggregate(
 
 
 def aggregate_surveys(
-        study_dir: str, users: list | None = None,
-        time_start: str = EARLIEST_DATE,
-        time_end: str | None = None, tz_str: str = "UTC"
+    study_dir: str,
+    users: list | None = None,
+    time_start: str = EARLIEST_DATE,
+    time_end: str | None = None,
+    tz_str: str = "UTC",
 ) -> pd.DataFrame:
     """Aggregate Survey Data
     
@@ -427,9 +437,13 @@ def aggregate_surveys_config(
 
 
 def aggregate_surveys_no_config(
-        study_dir: str, study_tz: str = "UTC", users: list | None = None,
-        time_start: str = EARLIEST_DATE, time_end: str | None = None,
-        augment_with_answers: bool = True, include_audio_surveys: bool = True
+    study_dir: str,
+    study_tz: str = "UTC",
+    users: list | None = None,
+    time_start: str = EARLIEST_DATE,
+    time_end: str | None = None,
+    augment_with_answers: bool = True,
+    include_audio_surveys: bool = True
 ) -> pd.DataFrame:
     """Clean aggregated data
     
@@ -567,13 +581,11 @@ def find_missing_data(user: str, survey_id: str, agg_data: pd.DataFrame,
             answers_data but missing in agg_data
     """
     known_timings_submits = agg_data.loc[
-        (agg_data["beiwe_id"] == user) & (agg_data["survey id"] == survey_id),
-        "Local time",
+        (agg_data["beiwe_id"] == user) & (agg_data["survey id"] == survey_id), "Local time",
     ].unique()
     
     known_answers_submits = answers_data.loc[
-        (answers_data["beiwe_id"] == user) & (answers_data["survey id"] == survey_id),
-        "Local time",
+        (answers_data["beiwe_id"] == user) & (answers_data["survey id"] == survey_id), "Local time"
     ].unique()
     
     missing_times = []
@@ -649,9 +661,9 @@ def read_user_answers_stream(
         with the time in the filename.
     """
     time_end = time_end or get_month_from_today()
-    ans_dir = os.path.join(download_folder, user, "survey_answers")
+    ans_dir = pathjoin(download_folder, user, "survey_answers")
     
-    if os.path.isdir(ans_dir):
+    if isdirectory(ans_dir):
         # get all survey IDs included for this user (data will have one folder per survey)
         survey_ids = get_ids(ans_dir)
         all_surveys = []
@@ -661,8 +673,8 @@ def read_user_answers_stream(
         for survey in survey_ids:
             # get all csv files in the survey subdirectory
             all_files = []
-            for filepath in os.listdir(os.path.join(ans_dir, survey)):
-                filename = os.path.basename(filepath)
+            for filepath in listdir(pathjoin(ans_dir, survey)):
+                filename = basename(filepath)
                 valid_file = (
                     filepath.endswith(".csv") and
                     (timestamp_start < filename_to_timestamp(filename, tz_str) < timestamp_end)
@@ -677,7 +689,7 @@ def read_user_answers_stream(
             survey_dfs = []
             # We need to enumerate to tell different survey occasions apart
             for i, file in enumerate(all_files):
-                current_df = safe_read_csv(os.path.join(ans_dir, survey, file))
+                current_df = safe_read_csv(pathjoin(ans_dir, survey, file))
                 if current_df.shape[0] == 0:
                     continue
                 # Add a submission line if they at least saw all of the questions
@@ -690,7 +702,7 @@ def read_user_answers_stream(
                 
                 # Now, add column values that should apply to all rows
                 current_df["survey id"] = survey
-                filename = os.path.basename(file)
+                filename = basename(file)
                 current_df["UTC time"] = filename_to_timestamp(filename, "UTC")
                 current_df["surv_inst_flg"] = i
                 
@@ -726,10 +738,13 @@ def read_user_answers_stream(
 
 
 def read_aggregate_answers_stream(
-        download_folder: str, users: list | None = None,
-        tz_str: str = "UTC", config_path: str | None = None,
-        time_start: str = EARLIEST_DATE, time_end: str | None = None,
-        history_path: str | None = None
+    download_folder: str,
+    users: list | None = None,
+    tz_str: str = "UTC",
+    config_path: str | None = None,
+    time_start: str = EARLIEST_DATE,
+    time_end: str | None = None,
+    history_path: str | None = None
 ) -> pd.DataFrame:
     """Reads in all answers data for many users and fixes Android users to have
     an answer instead of an integer
@@ -775,8 +790,7 @@ def read_aggregate_answers_stream(
         logger.info("No survey_answers data found")
         return pd.DataFrame(columns=["Local time"], dtype="datetime64[ns]")
     
-    aggregated_data = fix_radio_answer_choices(aggregated_data, config_path,
-                                               history_path)
+    aggregated_data = fix_radio_answer_choices(aggregated_data, config_path, history_path)
     
     # Now, we will locate the indices of Android radio button questions that have integers instead
     # of strings.
@@ -827,9 +841,7 @@ def read_aggregate_answers_stream(
 
 
 def fix_radio_answer_choices(
-    aggregated_data: pd.DataFrame,
-    config_path: str | None = None,
-    history_path: str | None = None,
+    aggregated_data: pd.DataFrame, config_path: str | None = None, history_path: str | None = None
 ) -> pd.DataFrame:
     """
     Change the "question answer options" column into a list of question answer
@@ -954,9 +966,9 @@ def update_qs_with_seps(qs_with_seps: dict, survey_content: list) -> dict:
     return qs_with_seps
 
 
-def get_choices_with_sep_values(config_path: str | None = None,
-                                survey_history_path: str | None = None
-                                ) -> dict:
+def get_choices_with_sep_values(
+    config_path: str | None = None, survey_history_path: str | None = None
+) -> dict:
     """
     Create a dict with a key for every question ID and a set of any responses for that ID that had a
     comma in them.
@@ -996,17 +1008,13 @@ def get_choices_with_sep_values(config_path: str | None = None,
                 survey = version["survey_json"]
                 qs_with_seps = update_qs_with_seps(qs_with_seps, survey)
     else:
-        logger.warning(
-            "No survey history path included. If you have changed radio survey"
-            " answer choices since starting your study, and if you used "
-            "semicolons or commas in those answer choices, incorrect survey "
-            "responses may be output for android devices"
-        )
+        logger.warning(NO_SURVEY_HISTORY_MSG)
     return qs_with_seps
 
 
-def write_data_by_user(df_to_write: pd.DataFrame, output_folder: str,
-                       users: list | None = None) -> None:
+def write_data_by_user(
+    df_to_write: pd.DataFrame, output_folder: str, users: list | None = None
+) -> None:
     """
     Write a dataframe to csv files, with a csv file corresponding to each user.
     
@@ -1017,9 +1025,9 @@ def write_data_by_user(df_to_write: pd.DataFrame, output_folder: str,
         output_folder: path to folder to write csv files in
         df_to_write: dataframe to be written
         users: list of users to split dataframe by
-    
     """
-    os.makedirs(output_folder, exist_ok=True)
+    
+    makedirs(output_folder, exist_ok=True)
     
     if users is None:
         users = df_to_write.beiwe_id.unique().tolist()
@@ -1028,5 +1036,5 @@ def write_data_by_user(df_to_write: pd.DataFrame, output_folder: str,
         if current_df.shape[0] == 0:
             continue
         current_df.drop("beiwe_id", axis=1, inplace=True)
-        path_to_write = os.path.join(output_folder, f"{user}.csv")
+        path_to_write = pathjoin(output_folder, f"{user}.csv")
         current_df.to_csv(path_to_write, index=False)

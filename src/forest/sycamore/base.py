@@ -32,7 +32,7 @@ def compute_survey_stats(
     history_path: str | None = None,
     include_audio_surveys: bool = True,
 ) -> bool:
-    """Compute statistics on surveys
+    """ Compute statistics on surveys
     
     Args:
         output_folder:
