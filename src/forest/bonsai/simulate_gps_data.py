@@ -1,6 +1,7 @@
 """
-Module to simulate realistic GPS trajectories
-of a number of people anywhere in the world.
+Module to simulate realistic GPS trajectories of a number of people anywhere in the world.
+
+Original Authors: Georgios Efstathiadis, Greyson Liu
 """
 
 import datetime
