@@ -1,5 +1,9 @@
-"""This module contains functions for calculating summary statistics for the
-communication logs. """
+"""
+This module contains functions for calculating summary statistics for the communication logs.
+
+Original Authors: Georgios Efstathiadis, Josh Barback, Zachary Clement
+"""
+
 import logging
 import os
 
