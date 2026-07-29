@@ -1,5 +1,10 @@
-""" Module used to impute missing data, by combining functions defined in other modules and
+"""
+Module used to impute missing data, by combining functions defined in other modules and
 calculate summary statistics of imputed trajectories.
+
+Original Authors: Georgios Efstathiadis, Zachary Clement
+Optimization work: Eli Jones
+
 """
 import json
 import logging
@@ -741,31 +746,23 @@ def get_pause_array(
     Returns:
         pause_array: numpy array, contains 3 columns: [x, y, t]
     """
-    pause_array: np.ndarray = np.array([])
-    for row in pause_vec:
-        if (
-            great_circle_dist(row[1], row[2], home_lat, home_lon)[0]
-            > 2 * parameters.place_point_radius
-        ):
-            if len(pause_array) == 0:
-                pause_array = np.array([extract_pause_from_row(row)])
-            elif (
-                np.min(
-                    great_circle_dist(
-                        row[1], row[2], pause_array[:, 0], pause_array[:, 1],
-                    )
-                )
-                > 2*parameters.place_point_radius
-            ):
-                pause_array = np.append(pause_array, [extract_pause_from_row(row)], axis=0)
-            else:
-                pause_array[
-                    np.
-                    argmin(great_circle_dist(row[1], row[2], pause_array[:, 0], pause_array[:, 1])),
-                    -1,
-                ] += (row[6] - row[3]) / 60
     
-    return pause_array
+    array: np.ndarray = np.array([])
+    ppr = parameters.place_point_radius
+    for row in pause_vec:
+        if (great_circle_dist(row[1], row[2], home_lat, home_lon)[0] > 2 * ppr):
+
+            if len(array) == 0:
+                array = np.array([extract_pause_from_row(row)])
+
+            elif np.min(great_circle_dist(row[1], row[2], array[:, 0], array[:, 1])) > 2 * ppr:
+                array = np.append(array, [extract_pause_from_row(row)], axis=0)
+
+            else:
+                argmin = np.argmin(great_circle_dist(row[1], row[2], array[:, 0], array[:, 1]))
+                array[argmin, -1] += (row[6] - row[3]) / 60
+    
+    return array
 
 
 def extract_pause_from_row(row: np.ndarray) -> list:
@@ -1152,11 +1149,9 @@ def format_summary_stats(
     
     Args:
         summary_stats: list, summary statistics
-        log_tags: dict, contains log of tags of all locations visited
-            from openstreetmap
+        log_tags: dict, contains log of tags of all locations visited from openstreetmap
         frequency: Frequency, the time windows of the summary statistics
-        parameters: Hyperparameters, hyperparameters in functions
-            recommend to set it to default
+        parameters: Hyperparameters, hyperparameters in functions, recommend to set it to default.
         places_of_interest: list of str, places of interest
     Returns:
         A tuple of:
@@ -1713,7 +1708,7 @@ def _gps_handle_empty_rows(
     
     if sum(index_rows) != 0:
         return True
-
+    
     # year, month, day  --  mypy doesn't like lists with multiple types
     row= current_time_list[:3]
     
@@ -2142,10 +2137,10 @@ def handle_out_of_range_coodinate_bug(
             )
 
 ##
-## OLD VERSIONS OF CODE, preserved for referency analysis
+## old versions of mobility_trace_difference, preserved for reference
 ##
 
-# def old_avg_mobility_trace_difference(
+# def avg_mobility_trace_difference(
 #     time_range: tuple[int, int], mobility_trace1: FP64Array, mobility_trace2: FP64Array
 # ) -> float:
 #     """ This function calculates the average mobility trace difference
@@ -2204,6 +2199,8 @@ def handle_out_of_range_coodinate_bug(
 #     return res
 
 
+# this function was part of optimization work, it pulls out the relevant logic from np.isin(),
+# and resulted in a small speedup. It was later superseded.
 # def _isin(ar1: FP64Array, ar2: FP64Array) -> BoolArray:
 #     """ This function was copied out of the numpy source and reduced in scope in order to optimize
 #     it. Numba makes multiple parts in here slower and was not workable. """
