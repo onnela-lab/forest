@@ -77,8 +77,7 @@ def num_sig_places(data: np.ndarray, dist_threshold: float) -> tuple[list, list,
         loc_y: list
             a list of longitudes of significant places
         num_xy: list
-            a list of frequency/counts
-         (appear in the dataset) of significant places
+            a list of frequency/counts (appear in the dataset) of significant places
         t_xy: list
             a list of duration at those significant places
     """
@@ -154,7 +153,7 @@ def locate_home(mob_mat: np.ndarray, timezone: str) -> tuple[float, float]:
     return home_x, home_y
 
 
-@numba.jit(cache=True, fastmath=True, nopython=True)
+@numba.njit(cache=True, fastmath=True)
 def calculate_k1(
     method: str,
     timestamp: float,
@@ -214,19 +213,19 @@ def calculate_k1(
 # Separating out these 3 functions for calculate_k1 is does run very slightly faster in testing.
 # The only code change for numba is the use of np.abs instead of the python abs.
 
-@numba.jit(cache=True, fastmath=True, nopython=True)
+@numba.njit(cache=True, fastmath=True)
 def _k1(timestamp, mean_t, length, amplitude):
     return np.exp(-np.abs(timestamp - mean_t) / length) * np.exp(
         -((np.sin(np.abs(timestamp - mean_t) / 86400 * math.pi))**2) / amplitude
     )
 
-@numba.jit(cache=True, fastmath=True, nopython=True)
+@numba.njit(cache=True, fastmath=True)
 def _k2(timestamp, mean_t, length, amplitude):
     return np.exp(-np.abs(timestamp - mean_t) / length) * np.exp(
         -((np.sin(np.abs(timestamp - mean_t) / 604800 * math.pi))**2) / amplitude
     )
 
-@numba.jit(cache=True, fastmath=True, nopython=True)
+@numba.njit(cache=True, fastmath=True)
 def _means_xyz(bv_subset):
     mean_x = ((bv_subset[:, 1] + bv_subset[:, 4]) / 2).astype(np.float64)
     mean_y = ((bv_subset[:, 2] + bv_subset[:, 5]) / 2).astype(np.float64)
@@ -285,7 +284,7 @@ def indicate_flight(
     return movement_indicator
 
 
-@numba.jit(cache=True, fastmath=True, nopython=True)
+@numba.njit(cache=True, fastmath=True)
 def _indicate_flight(
     method: str,
     current_t: float,
@@ -297,7 +296,7 @@ def _indicate_flight(
     bv_subset: np.ndarray,
     num: int,
     pars: tuple,
-) -> np.ndarray:
+) -> int:
     """ The bulk of indicate_flight can be optimized with numba. """
     # Calculate k1 using the specified method
     k1 = calculate_k1(method, current_t, current_x, current_y, bv_subset, pars)
