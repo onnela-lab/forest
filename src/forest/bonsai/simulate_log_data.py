@@ -5,8 +5,8 @@ Original Authors: Greyson Liu, Georgios Efstathiadis
 """
 
 import random
-from string import ascii_lowercase
 from os import makedirs
+from string import ascii_lowercase
 
 import numpy as np
 import pandas as pd

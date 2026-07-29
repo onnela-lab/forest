@@ -26,9 +26,8 @@ from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
 from forest.constants import Frequency, Frequency as Freq, OSM_OVERPASS_URL, OSMTags
-from forest.jasmine.data2mobmat import (gps_to_mobmat, great_circle_dist,
-    great_circle_dist_specialized, infer_mobmat, mix1_great_circle_dist, np_great_circle_dist,
-    pairwise_great_circle_dist)
+from forest.jasmine.data2mobmat import (gps_to_mobmat, great_circle_dist, great_circle_dist_opt,
+    great_circle_dist_specialized, infer_mobmat, pairwise_great_circle_dist)
 from forest.jasmine.mobmat2traj import imp_to_traj, impute_gps, locate_home, num_sig_places
 from forest.jasmine.sogp_gps import bv_select
 from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data, stamp2datetime,
@@ -1547,12 +1546,12 @@ def gps_summaries(
                                 log_tags_temp.append(tags[place_id])
         
         # distances etc
-        d_home_1 = mix1_great_circle_dist(home_lat, home_lon, temp[:, 1], temp[:, 2])
-        d_home_2 = mix1_great_circle_dist(home_lat, home_lon, temp[:, 4], temp[:, 5])
+        d_home_1 = great_circle_dist_opt(home_lat, home_lon, temp[:, 1], temp[:, 2])
+        d_home_2 = great_circle_dist_opt(home_lat, home_lon, temp[:, 4], temp[:, 5])
         d_home = (d_home_1 + d_home_2) / 2
         max_dist_home = max(np.concatenate((d_home_1, d_home_2)))
         time_at_home = sum((temp[:, 6] - temp[:, 3])[d_home <= 50])
-        mov_vec = np.round(np_great_circle_dist(temp[:, 4], temp[:, 5], temp[:, 1], temp[:, 2]), 0)
+        mov_vec = np.round(great_circle_dist_opt(temp[:, 4], temp[:, 5], temp[:, 1], temp[:, 2]), 0)
         flight_d_vec = mov_vec[temp[:, 0] == 1]
         flight_t_vec = (temp[:, 6] - temp[:, 3])[temp[:, 0] == 1]
         pause_t_vec = (temp[:, 6] - temp[:, 3])[temp[:, 0] == 2]

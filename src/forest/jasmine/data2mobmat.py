@@ -9,23 +9,28 @@ from numpy.typing import NDArray
 
 from forest.constants import EARTH_RADIUS_METERS
 
-
-""" This module contains functions to convert raw GPS data to a mobility matrix. """
-
-
-TOLERANCE = 1e-6  # a minimum threshold
-FP64Array = NDArray[np.float64]  # type alias
-
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def cartesian(
-    lat: float | np.ndarray, lon: float | np.ndarray
-) -> tuple[float, float, float] | tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """This function converts latitude and longitude to cartesian coordinates.
+# This module suffers from extremely verbose typing strings that are impossible to read.
+# To make it legible we will create a shorthand.
+FP = float | np.float64
+BoolArr = NDArray[np.bool_]
+FP64Arr = NDArray[np.float64]
+FPorArr = FP | FP64Arr
 
+# numba has its own type system, we use some of them here
+REQUIRES_ALL_FLOAT_ARRAYS = "float64[:](float64[:], float64[:], float64[:], float64[:])"
+REQUIRES_FOUR_FLOATS = "float64[:](float64, float64, float64, float64)"
+TWO_FLOATS_THEN_TWO_FLOAT_ARRAYS = "float64[:](float64, float64, float64[:], float64[:])"
+
+TOLERANCE = 1e-6  # a minimum threshold
+
+
+def cartesian(lat: FPorArr, lon: FPorArr) -> tuple[FP, FP, FP] | tuple[FP64Arr, FP64Arr, FP64Arr]:
+    """This function converts latitude and longitude to cartesian coordinates.
+    
     Args:
         lat: float or 1d np.array, latitude, range[-180, 180]
         lon: float or 1d np.array, longitude, range[-180, 180]
@@ -42,19 +47,20 @@ def cartesian(
     return x_coord, y_coord, z_coord
 
 
-def great_circle_dist(
-    lat1: float | FP64Array,
-    lon1: float | FP64Array,
-    lat2: float | FP64Array,
-    lon2: float | FP64Array,
-) -> np.ndarray:
+## Great Circle Distance Functions
+
+
+def great_circle_dist(lat1: FPorArr, lon1: FPorArr, lat2: FPorArr, lon2: FPorArr) -> FP64Arr:
     """ This function calculates the great circle distance between various pairs of locations.
     
+    This function is deprecated, use either fp_great_circle_dist or great_circle_dist_opt instead.
+    This function is substantially slower.
+    
     Args:
-        lat1: Union[float, np.ndarray], latitude of location1, range[-180, 180]
-        lon1: Union[float, np.ndarray], longitude of location1, range[-180, 180]
-        lat2: Union[float, np.ndarray], latitude of location2, range[-180, 180]
-        lon2: Union[float, np.ndarray], longitude of location2, range[-180, 180]
+        lat1: float|FP64Array latitude of location1, range[-180, 180]
+        lon1: float|FP64Array longitude of location1, range[-180, 180]
+        lat2: float|FP64Array latitude of location2, range[-180, 180]
+        lon2: float|FP64Array longitude of location2, range[-180, 180]
     Returns:
         the great circle distance between location1 and location2
     """
@@ -63,7 +69,7 @@ def great_circle_dist(
     # the math component of this equation is much faster when compiled
     temp = _great_circle_dist_compiled(lat1, lon1, lat2, lon2)
     
-    if not isinstance(temp, np.ndarray):  # handle typing vaguaries
+    if not isinstance(temp, np.ndarray):  # handle typing vaguaries - this is very slow
         temp = np.array([temp])
     
     # this clipping plus the arccos call is also much faster when compiled
@@ -75,7 +81,7 @@ def great_circle_dist(
 ## Numba is a library that can compile python code (plus numpy) to native machine binaries
 ##   for some big speadups.
 ##
-## If the numba.jit decorater starts with a string that looks like a strange type signature
+## If the numba.njit decorater starts with a string that looks like a strange type signature
 ##   the function will be compiled at load time and only allow those types to be passed in.
 ##   (e.g., it does ahead-of-time compilation, it is compiled "eagerly".)
 ##
@@ -86,15 +92,10 @@ def great_circle_dist(
 ## Please report any `numba.TypingError` unless that function has a strict typing signature.
 
 
-@numba.jit(cache=True, fastmath=True, nopython=True)
-def _great_circle_dist_compiled(
-    lat1: float | FP64Array,
-    lon1: float | FP64Array,
-    lat2: float | FP64Array,
-    lon2: float | FP64Array
-) -> FP64Array:
+@numba.njit(cache=True, fastmath=True)
+def _great_circle_dist_compiled(lat1: FPorArr, lon1: FPorArr, lat2: FPorArr, lon2: FPorArr) -> FP64Arr:
     """ A compiled version of the math component of great_circle_dist."""
-    # Solid speedup using numba.jit to compile this function.
+    # Solid speedup using numba.njit to compile this function.
     lat1 = np.radians(lat1)
     lon1 = np.radians(lon1)
     lat2 = np.radians(lat2)
@@ -102,9 +103,9 @@ def _great_circle_dist_compiled(
     return np.cos(lat1) * np.cos(lat2) * np.cos(lon1 - lon2) + np.sin(lat1) * np.sin(lat2)  # Math!
 
 
-@numba.jit(cache=True, fastmath=True, nopython=True)
-def _clip_and_arccos(temp: FP64Array) -> FP64Array:
-    """ A compiled version of the clipping and arccos component of great_circle_dist."""
+@numba.njit(cache=True, fastmath=True)
+def _clip_and_arccos(temp: FP64Arr) -> FP64Arr:
+    """ A compiled version of the clipping and arccos component of great_circle_dist. """
     # Substantial speedup with numba jit, don't have perfect numbers, but
     # along with _great_circle_dist_compiled it drops from ~8s -> ~5s
     np.clip(temp, -1, 1, out=temp)
@@ -112,42 +113,22 @@ def _clip_and_arccos(temp: FP64Array) -> FP64Array:
 
 
 # this is an extended type specification that forces runtime type compliance.
-@numba.jit(
-    "float64[:](float64, float64, float64, float64)", cache=True, fastmath=True, nopython=True
-)
-def fp_great_circle_dist(lat1: float, lon1: float, lat2: float, lon2: float) -> FP64Array:
-    """ A strongly-typed compiled version of great_circle_dist.
-    Call this function when you are passing in all floats. """
+@numba.njit(REQUIRES_FOUR_FLOATS, cache=True, fastmath=True)
+def fp_great_circle_dist(lat1: float, lon1: float, lat2: float, lon2: float) -> FP64Arr:
+    """ Call this version of the function when you are passing in all floats. """
     lat1 = np.radians(lat1)
     lon1 = np.radians(lon1)
     lat2 = np.radians(lat2)
     lon2 = np.radians(lon2)
     temp = np.cos(lat1) * np.cos(lat2) * np.cos(lon1 - lon2) + np.sin(lat1) * np.sin(lat2)  # Math!
-    temp = np.array([temp])
+    temp = np.array([temp])  # we might not need this this the change to np.radians
     np.clip(temp, -1, 1, out=temp)
     return np.arccos(temp) * EARTH_RADIUS_METERS
 
 
-@numba.jit("float64[:](float64, float64, float64[:], float64[:])", cache=True, fastmath=True, nopython=True)
-def mix1_great_circle_dist(lat1: float, lon1: float, lat2: FP64Array, lon2: FP64Array) -> FP64Array:
-    """ A strongly-typed compiled version of great_circle_dist.
-    Call this function when you are passing in all floats. """
-    lat1 = np.radians(lat1)
-    lon1 = np.radians(lon1)
-    lat2 = np.radians(lat2)
-    lon2 = np.radians(lon2)
-    temp = np.cos(lat1) * np.cos(lat2) * np.cos(lon1 - lon2) + np.sin(lat1) * np.sin(lat2)  # Math!
-    np.clip(temp, -1, 1, out=temp)
-    return np.arccos(temp) * EARTH_RADIUS_METERS
-
-
-@numba.jit("float64[:](float64[:], float64[:], float64[:], float64[:])",
-    cache=True, fastmath=True, nopython=True)
-def np_great_circle_dist(
-    lat1: FP64Array, lon1: FP64Array, lat2: FP64Array, lon2: FP64Array,
-) -> FP64Array:
-    """ A strongly-typed compiled version of great_circle_dist.
-    Call this function when you are passing in all numpy arrays. """
+@numba.njit(cache=True, fastmath=True)
+def great_circle_dist_opt(lat1: FPorArr, lon1: FPorArr, lat2: FP64Arr, lon2: FP64Arr) -> FP64Arr:
+    """ In all other circumstances call this version of great_circle_dist. """
     lat1 = np.radians(lat1)
     lon1 = np.radians(lon1)
     lat2 = np.radians(lat2)
@@ -157,16 +138,11 @@ def np_great_circle_dist(
     return np.arccos(temp) * EARTH_RADIUS_METERS
 
 
-@numba.jit(
-    # "float64[:](float64[:,:], boolean[:], float64[:,:], boolean[:])",
-    cache=True, fastmath=True, nopython=True, inline="always"
-)
+# do not add a numba type signature, it makes it slower
+@numba.njit(cache=True, fastmath=True, inline="always")
 def great_circle_dist_specialized(
-    mobility_trace1: FP64Array,
-    mask1_common: NDArray[np.bool_],
-    mobility_trace2: FP64Array,
-    mask2_common: NDArray[np.bool_]
-) -> np.ndarray:
+    mobility_trace1: FP64Arr, mask1_common: BoolArr, mobility_trace2: FP64Arr, mask2_common: BoolArr
+) -> FP64Arr:
     """ A specific, optimized great_circle_dist calculation for the inner loop of
     avg_mobility_trace_difference. Only for use is that code. """
     
@@ -179,19 +155,18 @@ def great_circle_dist_specialized(
     return np.arccos(temp) * EARTH_RADIUS_METERS
 
 
-## (end numba great_circle_dist functions)
+## End Great Circle Distance Functions
 
 
-def shortest_dist_to_great_circle(
-    location1: np.ndarray, location2: np.ndarray, location3: np.ndarray
-) -> np.ndarray:
-    """This function calculates the shortest distance from location 1
-        to the great circle determined by location 2 and 3.
+def shortest_dist_to_great_circle(location1: FP64Arr, location2: FP64Arr, location3: FP64Arr) -> FP64Arr:
+    """
+    This function calculates the shortest distance from location 1 to the great circle determined by
+    location 2 and 3.
 
     Args:
         location1: 2d np.array with latitudes and longitudes of locations, range[-180, 180]
-        location2: np.ndarray, latitude and longitude of location 2
-        location3: np.ndarray, latitude and longitude of location 3
+        location2: NDArray, latitude and longitude of location 2
+        location3: NDArray, latitude and longitude of location 3
     Returns:
         the shortest distance from location 1 to the great circle determined by location 2 and 3.
             (the path which is perpendicular to the great circle)
@@ -224,8 +199,8 @@ def shortest_dist_to_great_circle(
     return d
 
 
-@numba.jit(cache=True, fastmath=True, nopython=True)
-def pairwise_great_circle_dist(latlon_array: FP64Array) -> list[float]:
+@numba.njit(cache=True, fastmath=True)
+def pairwise_great_circle_dist(latlon_array: FP64Arr) -> list[float]:
     """This function calculates the pairwise great circle distance between any pair of locations.
 
     Args:
@@ -235,24 +210,19 @@ def pairwise_great_circle_dist(latlon_array: FP64Array) -> list[float]:
     Returns:
         a list of length n*(n-1)/2, the pairwise great circle distance between any pair of locations
     """
+    # using fp_great_circle_dist and compiling this function with numba gives up to 5x speedup
     
-    # using fp_great_circle_dist and compiling this function with numba
-    # provides a HUGE speedup - roughly 5x.
+    arr = latlon_array
     dist = []
-    k = np.shape(latlon_array)[0]
+    k = np.shape(arr)[0]
     for i in range(k - 1):
         for j in np.arange(i + 1, k):
-            distance_float = fp_great_circle_dist(
-                latlon_array[i, 0],
-                latlon_array[i, 1],
-                latlon_array[j, 0],
-                latlon_array[j, 1],
-            )[0]
+            distance_float = fp_great_circle_dist(arr[i, 0], arr[i, 1], arr[j, 0], arr[j, 1])[0]
             dist.append(float(distance_float))
     return dist
 
 
-def collapse_data(data: pd.DataFrame, interval: float, accuracy_limit: float) -> np.ndarray:
+def collapse_data(data: pd.DataFrame, interval: float, accuracy_limit: float) -> NDArray:
     """ This function collapses the raw data into a 2d numpy array with each row as a chunk of data.
 
     Args:
@@ -337,11 +307,11 @@ def collapse_data(data: pd.DataFrame, interval: float, accuracy_limit: float) ->
     return avgmat
 
 
-def exist_knot(avg_mat: np.ndarray, distance_threshold: float) -> tuple[int, int | None]:
+def exist_knot(avg_mat: NDArray, distance_threshold: float) -> tuple[int, int | None]:
     """ This function checks if there is a knot in the observed data chunk.
 
     Args:
-        avg_mat: np.ndarray
+        avg_mat: NDArray
             avgmat from collapse_data()
         
         distance_threshold : float,
@@ -379,7 +349,7 @@ def exist_knot(avg_mat: np.ndarray, distance_threshold: float) -> tuple[int, int
     return 0, None  # If there is only one row of data, return 0 and None (indicating no knot found)
 
 
-def mark_single_measure(input_matrix: np.ndarray, interval: float) -> np.ndarray:
+def mark_single_measure(input_matrix: NDArray, interval: float) -> NDArray:
     """Marks a single measure as status "3" (unknown).
 
     Args:
@@ -401,7 +371,7 @@ def mark_single_measure(input_matrix: np.ndarray, interval: float) -> np.ndarray
     )
 
 
-def mark_complete_pause(input_matrix: np.ndarray, interval: float, nrows: int) -> np.ndarray:
+def mark_complete_pause(input_matrix: NDArray, interval: float, nrows: int) -> NDArray:
     """Marks a complete pause as status "2" (pause) if
      all points are within the maximum pause radius.
 
@@ -433,7 +403,7 @@ def mark_complete_pause(input_matrix: np.ndarray, interval: float, nrows: int) -
     )
 
 
-def detect_knots(input_matrix: np.ndarray, nrows: int, w: float, h: float) -> list:
+def detect_knots(input_matrix: NDArray, nrows: int, w: float, h: float) -> list:
     """Detects knots in the data.
 
     Args:
@@ -507,7 +477,7 @@ def detect_knots(input_matrix: np.ndarray, nrows: int, w: float, h: float) -> li
     return knot_indices
 
 
-def prepare_output_data(input_matrix: np.ndarray, knot_indices: list, h: float) -> np.ndarray:
+def prepare_output_data(input_matrix: NDArray, knot_indices: list, h: float) -> NDArray:
     """Prepares the output data by detecting flights and pauses.
 
     Args:
@@ -565,9 +535,7 @@ def prepare_output_data(input_matrix: np.ndarray, knot_indices: list, h: float) 
     return np.array(flight_and_pause_data)
 
 
-def extract_flights(
-    input_matrix: np.ndarray, interval: float, r: float, w: float, h: float
-) -> np.ndarray:
+def extract_flights(input_matrix: NDArray, interval: float, r: float, w: float, h: float) -> NDArray:
     """This function extracts flights and pauses from one observed chunk.
 
     If there is only one measure in this chunk, mark it as status "3" (unknown)
@@ -614,7 +582,7 @@ def extract_flights(
 
 def gps_to_mobmat(
     raw_gps_data: pd.DataFrame, interval: float, accuracy_limit: float, r: float, w: float, h: float
-) -> np.ndarray:
+) -> NDArray:
     """This function transforms raw GPS data
      to a matrix of first-step trajectories.
 
@@ -683,7 +651,7 @@ def force_valid_longitude(longitude: float) -> float:
     return (longitude + 180) % 360 - 180
 
 
-def compute_flight_positions(index: int, mobmat: np.ndarray, interval: float) -> np.ndarray:
+def compute_flight_positions(index: int, mobmat: NDArray, interval: float) -> NDArray:
     """Computes the flight positions of the given index in the trajectory.
 
     Args:
@@ -726,7 +694,7 @@ def compute_flight_positions(index: int, mobmat: np.ndarray, interval: float) ->
     return mobmat
 
 
-def compute_future_flight_positions(index: int, mobmat: np.ndarray, interval: float) -> np.ndarray:
+def compute_future_flight_positions(index: int, mobmat: NDArray, interval: float) -> NDArray:
     """Computes the flight positions of the given index in the trajectory.
      using the next point instead of the previous point
 
@@ -770,9 +738,7 @@ def compute_future_flight_positions(index: int, mobmat: np.ndarray, interval: fl
     return mobmat
 
 
-def infer_status_and_positions(
-    index: int, mobmat: np.ndarray, interval: float, r: float
-) -> np.ndarray:
+def infer_status_and_positions(index: int, mobmat: NDArray, interval: float, r: float) -> NDArray:
     """Infers the status and positions of the given index in the trajectory.
 
     Args:
@@ -804,11 +770,10 @@ def infer_status_and_positions(
             mobmat[index, 1], mobmat[index, 2],
             mobmat[index - 1, 4], mobmat[index - 1, 5]
         )[0]
-        # if the time difference to the previous point is
-        # less than or equal to 3 times the time interval
+        # if time difference to the previous point is less than or equal to 3 times time interval
         if mobmat[index, 3] - mobmat[index - 1, 6] <= interval * 3:
-            # if the distance is less than the maximum radius of a pause
-            # assign the status as 'pause' (status code 2)
+            # if the distance is less than the maximum radius of a pause assign the status as
+            # 'pause' (status code 2)
             if distance < r:
                 status = 2  # pause
                 mobmat[index, [4, 5]] = mobmat[index, [1, 2]]
@@ -826,16 +791,15 @@ def infer_status_and_positions(
                     mobmat[index, 1], mobmat[index, 2],
                     mobmat[index + 1, 1], mobmat[index + 1, 2]
                 )[0]
-                # if the time difference to the next point is
-                # less than or equal to 3 times the time interval
+                # if time difference to the next point is less than or equal to 3 times the interval
                 if mobmat[index + 1, 3] - mobmat[index, 6] <= interval * 3:
-                    # if the distance is less than the maximum radius of a pause
-                    # assign the status as 'pause' (status code 2)
+                    # if the distance is less than the maximum radius of a pause assign the status
+                    # as 'pause' (status code 2)
                     if future_distance < r:
                         status = 2  # pause
                         mobmat[index, [4, 5]] = mobmat[index, [1, 2]]
-                    # if the distance is greater than the maximum radius of a pause
-                    # assign the status as 'flight' (status code 1)
+                    # if the distance is greater than the maximum radius of a pause assign the
+                    # status as 'flight' (status code 1)
                     else:
                         status = 1  # flight
                         mobmat = compute_future_flight_positions(index, mobmat, interval)
@@ -854,7 +818,7 @@ def infer_status_and_positions(
     return mobmat
 
 
-def merge_pauses_and_bridge_gaps(mobmat: np.ndarray) -> np.ndarray:
+def merge_pauses_and_bridge_gaps(mobmat: NDArray) -> NDArray:
     """Merge consecutive pauses and bridge any gaps in mobility matrix.
 
     Args:
@@ -904,7 +868,7 @@ def merge_pauses_and_bridge_gaps(mobmat: np.ndarray) -> np.ndarray:
     return mobmat
 
 
-def correct_missing_intervals(mobmat: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def correct_missing_intervals(mobmat: NDArray) -> tuple[NDArray, NDArray]:
     """Corrects missing intervals in the mobility matrix.
 
     Args:
@@ -976,7 +940,7 @@ def correct_missing_intervals(mobmat: np.ndarray) -> tuple[np.ndarray, np.ndarra
     return new_pauses_array, mobmat
 
 
-def infer_mobmat(mobmat: np.ndarray, interval: float, r: float) -> np.ndarray:
+def infer_mobmat(mobmat: NDArray, interval: float, r: float) -> NDArray:
     """This function takes the first-step trajectory matrix
         as input and return the final trajectory matrix as output.
 

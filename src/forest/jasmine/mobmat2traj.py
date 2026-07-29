@@ -8,7 +8,7 @@ import numpy as np
 import scipy.stats as stat
 
 from forest.jasmine.data2mobmat import (exist_knot, fp_great_circle_dist, great_circle_dist,
-    mix1_great_circle_dist, np_great_circle_dist)
+    great_circle_dist_opt)
 from forest.poplar.legacy.common_funcs import stamp2datetime
 
 
@@ -92,7 +92,7 @@ def num_sig_places(data: np.ndarray, dist_threshold: float) -> tuple[list, list,
             add_new_place(loc_x, loc_y, num_xy, t_xy, data[i])
             continue
         
-        distances = np_great_circle_dist(
+        distances = great_circle_dist_opt(
             np.full(len(loc_x), data[i, 1]),
             np.full(len(loc_x), data[i, 2]),
             np.array(loc_x),
@@ -198,14 +198,14 @@ def calculate_k1(
     
     # 'GL' method
     elif method == "GL":
-        distance = mix1_great_circle_dist(x_coord, y_coord, mean_x, mean_y)
+        distance = great_circle_dist_opt(x_coord, y_coord, mean_x, mean_y)
         return np.exp(-distance / spatial_scale)
     
     # 'GLC' method
     elif method == "GLC":
         k1 = _k1(timestamp, mean_t, len1, amplitude1)
         k2 = _k2(timestamp, mean_t, len2, amplitude2)
-        distance = mix1_great_circle_dist(x_coord, y_coord, mean_x, mean_y)
+        distance = great_circle_dist_opt(x_coord, y_coord, mean_x, mean_y)
         k3 = np.exp(-distance / spatial_scale)
         return weight1 * k1 + weight2 * k2 + weight3 * k3
     raise ValueError(f"Invalid method: {method}. Expected 'TL', 'GL', or 'GLC'.")
