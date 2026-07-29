@@ -1,4 +1,9 @@
-""" Functions associated with reading audio surveys """
+""" Functions associated with reading audio surveys.
+
+Original author: Zachary Clement
+
+Maintenance pass, Eli Jones
+"""
 
 import logging
 import os
