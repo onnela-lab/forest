@@ -1,4 +1,9 @@
-""" Module for survey submits and survey schedule generation """
+"""
+Module for survey submits and survey schedule generation
+
+Original Authors: Nellie Ponarul, Zachary Clement, Georgios Efstathiadis
+"""
+
 import datetime
 import logging
 import math
@@ -44,10 +49,7 @@ def convert_time_to_date(submit_time: datetime.datetime, day: int, time_list: li
     #     https://stackoverflow.com/questions/26882499/reset-time-part-of-a-pandas-timestamp
     days = [d - pd.offsets.Micro(0) for d in days]
     list_of_days = [
-        [
-            d.replace(hour=time[0], minute=time[1], second=time[2], microsecond=0)
-            for time in time_list
-        ]
+        [d.replace(hour=t[0], minute=t[1], second=t[2], microsecond=0) for t in time_list]
         for d in days
     ]
     
