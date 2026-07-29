@@ -1,3 +1,7 @@
+"""
+Original Authors: Marcin Straczkiewicz, Georgios Efstathiadis, Zachary Clement (and probably others)
+"""
+
 import logging
 import math
 import os
