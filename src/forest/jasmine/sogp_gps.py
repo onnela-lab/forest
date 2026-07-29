@@ -1,11 +1,15 @@
-""" This module implements the sparse online gaussian process algorithm for GPS data.
+"""
+This module implements the sparse online gaussian process algorithm for GPS data.
 
-    The algorithm is based on the paper [Csato and Opper (2002)] and the code is based on the matlab
-    code from the author of the paper.
-    ref: http://www.cs.ubbcluj.ro/~csatol/SOGP/thesis/Gaussian_Process.html
-    ref: http://www.cs.ubbcluj.ro/~csatol/SOGP/thesis/Sparsity_in.html
-    The algorithm is used to select basis vectors from GPS data, and the selected basis vectors are
-    used to construct the mobility matrix.
+The algorithm is based on the paper [Csato and Opper (2002)] and the code is based on the matlab
+code from the author of the paper.
+ref: http://www.cs.ubbcluj.ro/~csatol/SOGP/thesis/Gaussian_Process.html
+ref: http://www.cs.ubbcluj.ro/~csatol/SOGP/thesis/Sparsity_in.html
+The algorithm is used to select basis vectors from GPS data, and the selected basis vectors are
+used to construct the mobility matrix.
+
+Original Authors: Georgios Efstathiadis, Josh Barback, Greyson Liu
+Optimization work: Eli Jones
 """
 
 import logging
@@ -16,7 +20,6 @@ import numpy as np
 
 
 logger = logging.getLogger(__name__)
-# logger.setLevel(logging.INFO)
 
 
 SECONDS_PER_DAY_TIMES_PI = 86_400 * math.pi
