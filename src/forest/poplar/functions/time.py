@@ -1,4 +1,9 @@
-"""Functions for working with Beiwe time formats."""
+"""
+Functions for working with Beiwe time formats.
+
+Original Authors: Georgios Efstathiadis, Josh Barback
+"""
+
 from datetime import datetime, timedelta, tzinfo
 from logging import getLogger
 from zoneinfo import ZoneInfo

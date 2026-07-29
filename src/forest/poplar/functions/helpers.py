@@ -1,4 +1,7 @@
-""" Tools for common data processing tasks. """
+"""
+Tools for common data processing tasks.
+Original Authors: Georgios Efstathiadis, Josh Barback, Zachary Clement
+"""
 import os
 from collections import OrderedDict
 from logging import getLogger

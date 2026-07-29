@@ -1,5 +1,4 @@
-"""Miscellaneous constants for working with raw Beiwe data.
-"""
+""" Miscellaneous constants for working with raw Beiwe data. """
 
 
 # Mean radius of the Earth (meters)

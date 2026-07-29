@@ -1,5 +1,4 @@
-"""Constants for working with Beiwe time formats.
-"""
+""" Constants for working with Beiwe time formats. """
 from zoneinfo import ZoneInfo
 
 

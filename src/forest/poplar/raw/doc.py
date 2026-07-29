@@ -1,11 +1,13 @@
-""" Access to documentation from the following files:
-
-    - data_streams.csv
-    - headers.json
-    - question_type_names.json
-    - power_events.csv
-
 """
+Access to documentation from the following files:
+- data_streams.csv
+- headers.json
+- question_type_names.json
+- power_events.csv
+
+Original Authors: Josh Barback, Georgios Efstathiadis
+"""
+
 from importlib.resources import files
 from logging import getLogger
 

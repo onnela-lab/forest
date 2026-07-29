@@ -1,8 +1,10 @@
-""" Code for fomatting & exporting logging messages.
+"""
+Code for fomatting & exporting logging messages.
 
 - Will require some modifications to direct logging output to S3, see:
-    https://stackoverflow.com/questions/51070891/how-can-i-write-logs-directly-to-aws-s3-from-memory-without-first-writing-to-std
+https://stackoverflow.com/questions/51070891/how-can-i-write-logs-directly-to-aws-s3-from-memory-without-first-writing-to-std
 
+Original Authors: Georgios Efstathiadis, Josh Barback
 """
 import logging
 

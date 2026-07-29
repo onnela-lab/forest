@@ -1,4 +1,8 @@
-"""Functions for input/output tasks."""
+"""
+Functions for input/output tasks.
+Original Authors: Georgios Efstathiadis, Josh Barback
+"""
+
 import json
 import os
 from collections import OrderedDict
