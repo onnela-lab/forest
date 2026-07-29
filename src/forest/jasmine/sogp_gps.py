@@ -42,7 +42,6 @@ def calculate_k0(x1: np.ndarray, x2: np.ndarray, pars: tuple) -> float:
     """
     l1, l2, l3, a1, a2, b1, b2, b3 = pars
 
-    """ inner heavy-math function of calculate_k0, compiled for a moderate speedup. """
     dt = abs(x1[0] - x2[0])
     sin_daily = np.sin(dt / SECONDS_PER_DAY_TIMES_PI) ** 2
     sin_weekly = np.sin(dt / SECONDS_PER_WEEK_TIMES_PI) ** 2
