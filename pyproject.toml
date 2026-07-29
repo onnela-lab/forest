@@ -173,3 +173,25 @@ exclude = [
     ".venv",
     "venv",
 ]
+
+
+## isort import formatter - (unable to get identical formatting out of ruff)
+
+
+[tool.isort]
+combine_as_imports = true
+float_to_top = true
+honor_noqa = true
+line_length = 100
+lines_after_imports = 2
+multi_line_output = 10  # "HANGING_INDENT_WITH_PARENTHESES"
+py_version = 312
+remove_redundant_aliases = true
+star_first = true
+use_parentheses = true
+
+known_third_party = []  # Force these libraries to a special spot in import order (second to bottom)
+
+known_local_folder = []
+
+known_first_party = []  # Force these libraries to a special spot in import order (bottom)

@@ -11,6 +11,7 @@ beiwe_forest.egg-info/
 venv/
 .DS_Store
 private/
+.claude/
 
 # IntelliJ, VsCode project files
 .idea/
