@@ -1,4 +1,8 @@
-""" Tools for extracting timezone information from GPS data. """
+"""
+Tools for extracting timezone information from GPS data.
+
+Original Authors: Georgios Efstathiadis, Josh Barback
+"""
 
 from datetime import datetime, tzinfo
 from logging import getLogger
@@ -6,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 from timezonefinder import TimezoneFinder
 
-from ..constants.time import HOUR_S
+from forest.poplar.constants.time import HOUR_S
 
 
 logger = getLogger(__name__)
