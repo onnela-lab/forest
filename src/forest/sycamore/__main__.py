@@ -1,3 +1,7 @@
+"""
+Original Author: Zachary Clement
+"""
+
 import argparse
 import sys
 
