@@ -1,3 +1,10 @@
+"""
+This module contains functions to convert raw GPS data to a mobility matrix.
+
+Original Authors: Georgios Efstathiadis, Zachary Clement, Josh Barback
+Optimization work: Eli Jones
+"""
+
 import logging
 import math
 from itertools import groupby
@@ -8,6 +15,7 @@ import pandas as pd
 from numpy.typing import NDArray
 
 from forest.constants import EARTH_RADIUS_METERS
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
