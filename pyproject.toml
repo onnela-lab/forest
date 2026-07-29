@@ -113,6 +113,7 @@ module = [
     "audioread.*",
     "holidays",
     "openrouteservice",
+    "openrouteservice.*",
     "pandas",
     "ratelimit",
     "scipy.*",
