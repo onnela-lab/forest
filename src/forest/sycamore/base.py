@@ -1,4 +1,9 @@
-"""Base functions for computing survey statistics"""
+"""
+Base functions for computing survey statistics
+
+Original Authors: Nellie Ponarul, Zachary Clement, Georgios Efstathiadis
+"""
+
 import logging
 from os import makedirs
 from os.path import join as pathjoin
