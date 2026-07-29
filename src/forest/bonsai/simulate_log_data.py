@@ -1,20 +1,35 @@
-""" Module to simulate realistic call/text data. """
+"""
+Module to simulate realistic call/text data.
 
-import os
+Original Authors: Greyson Liu, Georgios Efstathiadis
+"""
+
 import random
-import string
+from string import ascii_lowercase
+from os import makedirs
 
 import numpy as np
 import pandas as pd
 
-from ..poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
+from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
 
 ORIG_TIME = datetime2stamp([2020, 8, 24, 0, 0, 0], "America/New_York")
 
-CALL_COLS = ["timestamp", "UTC time", "hashed phone number", "call type", "duration in seconds"]
+CALL_COLS = [
+    "timestamp",
+    "UTC time",
+    "hashed phone number",
+    "call type",
+    "duration in seconds",
+]
 TEXT_COLS = [
-   "timestamp", "UTC time", "hashed phone number", "sent vs received", "message length", "time sent"
+    "timestamp",
+    "UTC time",
+    "hashed phone number",
+    "sent vs received",
+    "message length",
+    "time sent",
 ]
 
 
@@ -72,10 +87,9 @@ def gen_random_id(k: int) -> list:
     Returns:
         list: A list of k unique random IDs.
     """
-    letters = string.ascii_lowercase
     hashed_ids = []
     for i in range(k):
-        hashed_ids.append("".join(random.choice(letters) for i in range(10)))
+        hashed_ids.append("".join(random.choice(ascii_lowercase) for i in range(10)))
     return hashed_ids
 
 
@@ -267,10 +281,10 @@ def gen_text_files(output_folder: str):
     Raises:
         OSError: If the directory cannot be created.
     """
-    os.makedirs(output_folder, exist_ok=True)
+    makedirs(output_folder, exist_ok=True)
     
     for idx in ["user_1", "user_2"]:
-        os.makedirs(f"{output_folder}/{idx}/texts", exist_ok=True)
+        makedirs(f"{output_folder}/{idx}/texts", exist_ok=True)
         
         phone_nums = gen_random_id(20)
         for i in range(14):
@@ -323,9 +337,9 @@ def gen_call_files(output_folder: str):
     Raises:
         OSError: If the directory cannot be created.
     """
-    os.makedirs(output_folder, exist_ok=True)
+    makedirs(output_folder, exist_ok=True)
     for idx in ["user_1", "user_2"]:
-        os.makedirs(f"{output_folder}/{idx}/calls", exist_ok=True)
+        makedirs(f"{output_folder}/{idx}/calls", exist_ok=True)
         phone_nums = gen_random_id(20)
         
         for i in range(14):
