@@ -16,6 +16,8 @@ import openrouteservice
 import pandas as pd
 import ratelimit
 import requests
+from numpy.random import choice as randomchoice
+from openrouteservice.exceptions import ApiError, HTTPError, Timeout, ValidationError
 from timezonefinder import TimezoneFinder
 
 from forest.constants import ORS_API_BASE_URL, ORS_API_CALLS_PER_MINUTE, OSM_OVERPASS_URL
@@ -68,7 +70,7 @@ class ActionType(Enum):
 @ratelimit.limits(calls=ORS_API_CALLS_PER_MINUTE, period=60)
 def get_path(start: tuple[float, float], end: tuple[float, float],
              transport: Vehicle, api_key: str) -> tuple[np.ndarray, float]:
-    """Calculates paths between sets of coordinates
+    """ Calculates paths between sets of coordinates
 
     This function takes 2 sets of coordinates and a mean of transport and using the openroute api
     calculates the set of nodes to traverse from location1 to location2 along with the duration and
@@ -77,14 +79,12 @@ def get_path(start: tuple[float, float], end: tuple[float, float],
         start: coordinates of start point (lat, lon)
         end: coordinates of end point (lat, lon)
         transport: means of transportation,
-        api_key: api key collected from
-            https://openrouteservice.org/dev/#/home
+        api_key: api key collected from https://openrouteservice.org/dev/#/home
     Returns:
         path_coordinates: 2d numpy array containing [lat,lon] of route
         distance: distance of trip in meters
     Raises:
-        RuntimeError: An error when openrouteservice does not
-            have any remaining quota
+        RuntimeError: An error when openrouteservice does not have any remaining quota
     """
     
     lat1, lon1 = start
@@ -92,8 +92,7 @@ def get_path(start: tuple[float, float], end: tuple[float, float],
     distance = great_circle_dist(lat1, lon1, lat2, lon2)[0]
     
     if distance < 250:
-        return (np.array([[lat1, lon1], [lat2, lon2]]),
-                distance)
+        return (np.array([[lat1, lon1], [lat2, lon2]]), distance)
     
     if transport in (Vehicle.CAR, Vehicle.BUS):
         transport2 = "driving-car"
@@ -108,13 +107,8 @@ def get_path(start: tuple[float, float], end: tuple[float, float],
     coords = ((lon1, lat1), (lon2, lat2))
     
     try:
-        routes = client.directions(
-            coords, profile=transport2, format="geojson"
-            )
-    except (openrouteservice.exceptions.ApiError,
-            openrouteservice.exceptions.ValidationError,
-            openrouteservice.exceptions.HTTPError,
-            openrouteservice.exceptions.Timeout) as e:
+        routes = client.directions(coords, profile=transport2, format="geojson")
+    except (ApiError, ValidationError, HTTPError, Timeout) as e:
         raise RuntimeError(e.message)
     coordinates = routes["features"][0]["geometry"]["coordinates"]
     distance = routes["features"][0]["properties"]["summary"]["distance"]
@@ -195,13 +189,15 @@ class Attributes:
     """This class holds the attributes needed to create an instance of a
     Person class"""
     
-    def __init__(self,
-                 vehicle: str | None = None,
-                 main_employment: str | None = None,
-                 active_status: int | None = None,
-                 travelling_status: int | None = None,
-                 preferred_places: list[str] | None = None,
-                 **kwargs):
+    def __init__(
+        self,
+        vehicle: str | None = None,
+        main_employment: str | None = None,
+        active_status: int | None = None,
+        travelling_status: int | None = None,
+        preferred_places: list[str] | None = None,
+        **kwargs
+    ):
         """Error check and generate missing data for attributes
 
         Args:
@@ -221,27 +217,26 @@ class Attributes:
         if vehicle is not None:
             self.vehicle = Vehicle(vehicle)
         else:
-            self.vehicle = np.random.choice(np.array(
-                [Vehicle.FOOT, Vehicle.BICYCLE, Vehicle.CAR]))
+            self.vehicle = randomchoice(np.array([Vehicle.FOOT, Vehicle.BICYCLE, Vehicle.CAR]))
         
         if main_employment is not None:
             self.main_occupation = Occupation(main_employment)
         else:
-            self.main_occupation = np.random.choice(np.array(Occupation))
+            self.main_occupation = randomchoice(np.array(Occupation))
         
         if active_status is not None:
             if active_status not in ACTIVE_STATUS_LIST:
                 raise ValueError("active_status must be between 0 and 10")
             self.active_status = int(active_status)
         else:
-            self.active_status = np.random.choice(ACTIVE_STATUS_LIST)
+            self.active_status = randomchoice(ACTIVE_STATUS_LIST)
         
         if travelling_status is not None:
             if travelling_status not in TRAVELLING_STATUS_LIST:
                 raise ValueError("travelling_status must be between 0 and 10")
             self.travelling_status = int(travelling_status)
         else:
-            self.travelling_status = np.random.choice(TRAVELLING_STATUS_LIST)
+            self.travelling_status = randomchoice(TRAVELLING_STATUS_LIST)
         
         if preferred_places is not None:
             self.preferred_places = []
@@ -252,15 +247,13 @@ class Attributes:
             possible_exits2 = np.array([x
                                         for x in PossibleExits
                                         if x not in self.preferred_places])
-            random_exits = np.random.choice(
+            random_exits = randomchoice(
                 possible_exits2, 3 - len(self.preferred_places), replace=False
             ).tolist()
             for choice in random_exits:
                 self.preferred_places.append(choice)
         else:
-            self.preferred_places = np.random.choice(
-                np.array(PossibleExits), 3, replace=False
-            ).tolist()
+            self.preferred_places = randomchoice(np.array(PossibleExits), 3, replace=False).tolist()
 
 
 @dataclass
@@ -268,8 +261,7 @@ class Action:
     """Class containing potential actions for a Person.
 
     Args:
-        action: ActionType, indicating pause, pause
-             for the night or flight-pause-flight
+        action: ActionType, indicating pause, pause for the night or flight-pause-flight
         destination_coordinates: tuple, destination's coordinates
         duration: list, contains [minimum, maximum] duration of pause in seconds
         preferred_exit: str, exit code
@@ -282,18 +274,20 @@ class Action:
 
 class Person:
     """This class represents a person whose trajectories we want to simulate"""
-    def __init__(self,
-                 home_coordinates: tuple[float, float],
-                 attributes: Attributes,
-                 local_places: dict[str, list]):
+    def __init__(
+        self,
+        home_coordinates: tuple[float, float],
+        attributes: Attributes,
+        local_places: dict[str, list],
+    ):
         """This function sets the basic attributes and information to be used of the person.
 
         Args:
             home_coordinates: tuple, coordinates of primary home
             attributes: Attributes class, consists of various information
             local_places: dictionary, contains overpass nodes of amenities near house
-
         """
+        
         self.home_coordinates = home_coordinates
         self.attributes = attributes
         # used to update preferred exits in a day if already visited
@@ -307,15 +301,15 @@ class Person:
         if self.attributes.main_occupation != Occupation.NONE:
             main_occupation_locations = local_places[self.attributes.main_occupation.value]
             if len(main_occupation_locations) != 0:
-                i = np.random.choice(range(len(main_occupation_locations)), 1)[0]
+                i = randomchoice(range(len(main_occupation_locations)), 1)[0]
                 
                 while main_occupation_locations[i] == home_coordinates:
-                    i = np.random.choice(range(len(main_occupation_locations)), 1)[0]
+                    i = randomchoice(range(len(main_occupation_locations)), 1)[0]
                 
                 self.office_coordinates = main_occupation_locations[i]
                 
                 no_office_days = np.random.binomial(5, self.attributes.active_status / 10)
-                self.office_days = np.random.choice(range(5), no_office_days, replace=False)
+                self.office_days = randomchoice(range(5), no_office_days, replace=False)
                 self.office_days.sort()
             else:
                 self.office_coordinates = (0, 0)
@@ -335,7 +329,7 @@ class Person:
             # if there are more than 3 sets of coordinates for an venue select 3 at random, else
             # select all of them as preferred
             if len(local_places[possible_exit.value]) > 3:
-                random_places = np.random.choice(
+                random_places = randomchoice(
                     range(len(local_places[possible_exit.value])), 3, replace=False
                 ).tolist()
                 places_selected = [
@@ -414,24 +408,19 @@ class Person:
         """Update active status.
 
         Args:
-        active_status: 0-10 | int indicating new travelling_status
+            active_status: 0-10 | int indicating new travelling_status
         """
         
         self.attributes.active_status = active_status
         
-        if (
-            self.attributes.main_occupation != Occupation.NONE
-            and self.office_coordinates != (0, 0)
-        ):
+        if self.attributes.main_occupation != Occupation.NONE and self.office_coordinates != (0, 0):
             no_office_days = np.random.binomial(5, active_status / 10)
-            self.office_days = np.random.choice(
-                range(5), no_office_days, replace=False
-            )
+            self.office_days = randomchoice(range(5), no_office_days, replace=False)
             self.office_days.sort()
     
     def update_preferred_places(self, exit_code: PossibleExits):
-        """This function updates the set of preferred exits for the day,
-        after an action has been performed.
+        """ This function updates the set of preferred exits for the day, after an action has been
+        performed.
 
         Args:
             exit_code: str, representing the action which was performed.
@@ -447,7 +436,7 @@ class Person:
                     for c in self.possible_destinations
                 ])
                 probs = probs / sum(probs)
-                self.preferred_places_today[-1] = np.random.choice(
+                self.preferred_places_today[-1] = randomchoice(
                     np.array(self.possible_destinations), p=probs.tolist()
                 )
             else:
@@ -463,16 +452,14 @@ class Person:
     def choose_preferred_exit(self, current_time: float,
                               update: bool = True
                               ) -> tuple[str, tuple[float, float]]:
-        """This function samples through the possible actions for the person,
-        depending on his attributes and the time.
+        """ This function samples through the possible actions for the person, depending on his
+        attributes and the time.
 
         Args:
-            current_time: float, current time in seconds
-            update: boolean, to update preferrences
+            current_time: float, current time in seconds update: boolean, to update preferrences
         Returns:
             tuple of string and tuple:
-                str, selected action to perform
-                tuple, selected location's coordinates
+                str, selected action to perform tuple, selected location's coordinates
         """
         
         seconds_of_day = current_time % (24 * 60 * 60)
@@ -490,9 +477,10 @@ class Person:
             return "home_night", self.home_coordinates
         else:
             # probability of staying at home regardless the time
-            probs_of_staying_home = [1 - self.attributes.active_status / 10,
-                                     self.attributes.active_status / 10]
-            if np.random.choice([0, 1], 1, p=probs_of_staying_home)[0] == 0:
+            probs_of_staying_home = [
+                1 - self.attributes.active_status / 10, self.attributes.active_status / 10
+            ]
+            if randomchoice([0, 1], 1, p=probs_of_staying_home)[0] == 0:
                 return "home", self.home_coordinates
         
         possible_destinations2 = self.possible_destinations.copy()
@@ -517,7 +505,7 @@ class Person:
         
         probabilities = probabilities / sum(probabilities)
         
-        selected_action = np.random.choice(np.array(actions), p=probabilities)
+        selected_action = randomchoice(np.array(actions), p=probabilities)
         
         if update:
             self.update_preferred_places(selected_action)
@@ -529,7 +517,7 @@ class Person:
         probabilities2 = np.array(ratios2)
         probabilities2 = probabilities2 / sum(probabilities2)
         
-        selected_location_index = np.random.choice(range(len_locations), 1, p=probabilities2)[0]
+        selected_location_index = randomchoice(range(len_locations), 1, p=probabilities2)[0]
         selected_location = action_locations[selected_location_index]
         
         return selected_action, selected_location
@@ -1111,7 +1099,7 @@ def generate_addresses(country: str, city: str) -> np.ndarray:
     
     res = response.json()
     try:
-        index = np.random.choice(range(len(res["elements"])), 100, replace=False)
+        index = randomchoice(range(len(res["elements"])), 100, replace=False)
     except ValueError:
         logger.error(
             "Overpass query came back empty. Check the location argument, ISO "
