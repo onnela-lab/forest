@@ -1,4 +1,10 @@
-"""Common functions for the forest package"""
+"""
+Common functions for the forest package
+
+Original Authors: Georgios Efstathiadis, Zachary Clement, Josh Barback, Greyson Liu
+
+Optimization work: Eli Jones
+"""
 
 import logging
 from collections.abc import Sequence
