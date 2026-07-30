@@ -529,3 +529,17 @@ def test_sycamore_cli_missing_output_dir_prints_help(tmp_path):
     assert result.returncode == 0
     assert "usage:" in result.stdout
     assert "AttributeError" not in result.stderr
+
+
+def test_summarize_submits_empty_schedule():
+    """ Regression test: summarize_submits must not crash when survey_submits returns an empty frame
+    from the no-schedule branch (issue #319).
+
+    The empty-schedule branch of survey_submits historically returned a DataFrame built with a
+    nested column list, which produced a MultiIndex on the columns and no 'delivery_time' column,
+    crashing summarize_submits with KeyError: 'delivery_time'. An empty frame with flat columns
+    should instead summarize to an empty result.
+    """
+    empty_submits = pd.DataFrame(columns=["survey id", "beiwe_id"])
+    summary = summarize_submits(empty_submits)
+    assert summary.shape[0] == 0
