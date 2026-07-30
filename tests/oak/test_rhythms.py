@@ -1,22 +1,19 @@
 """Ground-truth tests for forest.oak.rhythms (rest-activity rhythms).
 
-Each test builds a synthetic signal with known RAR properties and checks
-that the estimators recover them, plus an end-to-end ``run`` over a small
-synthetic study folder.
+Each test builds a synthetic signal with known RAR properties and checks that the estimators recover
+them, plus an end-to-end ``run`` over a small synthetic study folder.
+
+Original Author: Ceyhun Olcan
 """
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from forest.constants import Frequency
-from forest.oak.rhythms import (
-    compute_enmo_epochs,
-    cosinor,
-    interdaily_stability,
-    intradaily_variability,
-    rar_metrics,
-    run,
-)
+from forest.oak.rhythms import (compute_enmo_epochs, cosinor, interdaily_stability,
+    intradaily_variability, rar_metrics, run)
+
 
 EPOCH_S = 60
 EPOCHS_PER_DAY = 86400 // EPOCH_S
@@ -56,9 +53,7 @@ def test_white_noise_is_at_floor(rng):
 
 
 def test_identical_days_give_is_one():
-    one_day = np.abs(
-        np.sin(np.linspace(0, 2 * np.pi, EPOCHS_PER_DAY, endpoint=False))
-    ) * 30
+    one_day = np.abs(np.sin(np.linspace(0, 2 * np.pi, EPOCHS_PER_DAY, endpoint=False))) * 30
     activity = np.tile(one_day, 5)
     assert abs(interdaily_stability(activity, EPOCHS_PER_DAY) - 1.0) < 1e-6
 
@@ -102,17 +97,13 @@ def test_enmo_adapter_separates_rest_and_activity(rng):
 
 def test_run_end_to_end(tmp_path, rng):
     fs, days = 2, 4
-    start = pd.Timestamp(
-        "2026-03-01 00:00:00", tz="America/New_York"
-    ).tz_convert("UTC")
+    start = pd.Timestamp("2026-03-01 00:00:00", tz="America/New_York").tz_convert("UTC")
     count = fs * 86400 * days
     times = start + pd.to_timedelta(np.arange(count) / fs, unit="s")
     local_hour = (
-        times.tz_convert("America/New_York").hour
-        + times.tz_convert("America/New_York").minute / 60
+        times.tz_convert("America/New_York").hour + times.tz_convert("America/New_York").minute / 60
     ).to_numpy()
-    amp = 0.05 + 0.6 * np.clip(np.cos(2 * np.pi * (local_hour - 14) / 24),
-                               0, None)
+    amp = 0.05 + 0.6 * np.clip(np.cos(2 * np.pi * (local_hour - 14) / 24), 0, None)
     frame = pd.DataFrame({
         "timestamp": times.astype("int64") // 1_000_000,
         "x": rng.normal(0, amp),
@@ -124,13 +115,15 @@ def test_run_end_to_end(tmp_path, rng):
     per_day = fs * 86400
     for day in range(days):
         chunk = frame.iloc[day * per_day:(day + 1) * per_day]
-        chunk.to_csv(acc_dir / f"2026-03-0{day + 1} 00_00_00.csv",
-                     index=False)
-
+        chunk.to_csv(acc_dir / f"2026-03-0{day + 1} 00_00_00.csv", index=False)
+    
     out_dir = tmp_path / "out"
     summary = run(
-        str(tmp_path / "study"), str(out_dir), "America/New_York",
-        frequency=Frequency.HOURLY_AND_DAILY, epoch_seconds=60,
+        str(tmp_path / "study"),
+        str(out_dir),
+        "America/New_York",
+        frequency=Frequency.HOURLY_AND_DAILY,
+        epoch_seconds=60,
     )
     assert (out_dir / "rar_summary.csv").exists()
     assert (out_dir / "participantA_rar_daily.csv").exists()
@@ -151,12 +144,9 @@ def _write_participant(acc_dir, start_local, n_days, fs, rng):
     count = fs * 86400 * n_days
     times = start + pd.to_timedelta(np.arange(count) / fs, unit="s")
     local_hour = (
-        times.tz_convert("America/New_York").hour
-        + times.tz_convert("America/New_York").minute / 60
+        times.tz_convert("America/New_York").hour + times.tz_convert("America/New_York").minute / 60
     ).to_numpy()
-    amp = 0.05 + 0.6 * np.clip(
-        np.cos(2 * np.pi * (local_hour - 14) / 24), 0, None
-    )
+    amp = 0.05 + 0.6 * np.clip(np.cos(2 * np.pi * (local_hour - 14) / 24), 0, None)
     frame = pd.DataFrame({
         "timestamp": times.astype("int64") // 1_000_000,
         "x": rng.normal(0, amp),
@@ -173,17 +163,15 @@ def _write_participant(acc_dir, start_local, n_days, fs, rng):
 def test_run_skips_participants_below_min_valid_days(tmp_path, rng):
     """min_valid_days must exclude participants with too little data."""
     study = tmp_path / "study"
-    _write_participant(
-        study / "rich" / "accelerometer",
-        "2026-03-01 00:00:00", 5, 2, rng,
-    )
-    _write_participant(
-        study / "sparse" / "accelerometer",
-        "2026-03-01 00:00:00", 1, 2, rng,
-    )
+    _write_participant(study / "rich" / "accelerometer", "2026-03-01 00:00:00", 5, 2, rng)
+    _write_participant(study / "sparse" / "accelerometer", "2026-03-01 00:00:00", 1, 2, rng)
     summary = run(
-        str(study), str(tmp_path / "out"), "America/New_York",
-        frequency=Frequency.DAILY, epoch_seconds=60, min_valid_days=3.0,
+        str(study),
+        str(tmp_path / "out"),
+        "America/New_York",
+        frequency=Frequency.DAILY,
+        epoch_seconds=60,
+        min_valid_days=3.0
     )
     ids = set(summary["backend_id"])
     assert "rich" in ids
@@ -191,25 +179,24 @@ def test_run_skips_participants_below_min_valid_days(tmp_path, rng):
 
 
 def test_run_time_bounds_clip_data(tmp_path, rng):
-    """time_start/time_end restrict the window; clipping below
-    min_valid_days then skips the participant."""
+    """time_start/time_end restrict the window; clipping below min_valid_days then skips the
+    participant."""
     study = tmp_path / "study"
-    _write_participant(
-        study / "rich" / "accelerometer",
-        "2026-03-01 00:00:00", 5, 2, rng,
-    )
+    _write_participant(study / "rich" / "accelerometer", "2026-03-01 00:00:00", 5, 2, rng)
     unbounded = run(
         str(study), str(tmp_path / "out_all"), "America/New_York",
         frequency=Frequency.DAILY, epoch_seconds=60, min_valid_days=3.0,
     )
     assert "rich" in set(unbounded["backend_id"])
     bounded = run(
-        str(study), str(tmp_path / "out_clip"), "America/New_York",
-        frequency=Frequency.DAILY, epoch_seconds=60, min_valid_days=3.0,
-        time_start="2026-03-01 00_00_00", time_end="2026-03-02 12_00_00",
+        str(study),
+        str(tmp_path / "out_clip"),
+        "America/New_York",
+        frequency=Frequency.DAILY,
+        epoch_seconds=60,
+        min_valid_days=3.0,
+        time_start="2026-03-01 00_00_00",
+        time_end="2026-03-02 12_00_00",
     )
-    bounded_ids = (
-        set(bounded["backend_id"]) if "backend_id" in bounded.columns
-        else set()
-    )
+    bounded_ids = set(bounded["backend_id"]) if "backend_id" in bounded.columns else set()
     assert "rich" not in bounded_ids
