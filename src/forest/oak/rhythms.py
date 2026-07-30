@@ -1,20 +1,17 @@
-"""Rest-activity rhythm (RAR) metrics for the accelerometer (oak) tree.
+"""Rest-activity rhythm (RAR) metrics for the accelerometer (Oak) tree.
 
-Derives circadian rest-activity summaries from Beiwe accelerometer data:
-interdaily stability (IS), intradaily variability (IV), relative amplitude
-(RA) with L5/M10, and a single-component 24 h cosinor fit (MESOR,
-amplitude, acrophase, R^2).
+Derives circadian rest-activity summaries from Beiwe accelerometer data: interdaily stability (IS),
+intradaily variability (IV), relative amplitude (RA) with L5/M10, and a single-component 24 h
+cosinor fit (MESOR, amplitude, acrophase, R^2).
 
-These complement oak's gait/step outputs: the same raw accelerometer
-stream, a different (24 h patterning) question. Activity is summarised per
-fixed epoch as ENMO -- the Euclidean norm of the acceleration vector minus
-one gravitational unit, clipped at zero -- which is the standard actigraphy
-proxy for movement intensity.
+These complement oak's gait/step outputs: the same raw accelerometer stream, a different (24 h
+patterning) question. Activity is summarised per fixed epoch as ENMO -- the Euclidean norm of the
+acceleration vector minus one gravitational unit, clipped at zero -- which is the standard
+actigraphy proxy for movement intensity.
 
-The public entry point ``run`` mirrors ``forest.oak.base.run``. It writes a
-recording-level ``rar_summary.csv`` (one row per participant) and, when a
-daily frequency is requested, per-participant ``<backend_id>_rar_daily.csv``
-files holding the day-decomposable metrics.
+The public entry point ``run`` mirrors ``forest.oak.base.run``. It writes a recording-level
+``rar_summary.csv`` (one row per participant) and, when a daily frequency is requested,
+per-participant ``<backend_id>_rar_daily.csv`` files holding the day-decomposable metrics.
 
 References:
     Van Someren EJW, et al. Chronobiol Int 16(4):505-518 (1999).
@@ -25,11 +22,13 @@ from __future__ import annotations
 
 import logging
 import os
+from os.path import join as pathjoin
 
 import numpy as np
 import pandas as pd
 
 from forest.constants import Frequency
+
 
 logger = logging.getLogger(__name__)
 
@@ -46,15 +45,12 @@ def _as_float_array(activity: np.ndarray) -> np.ndarray:
     return arr
 
 
-def interdaily_stability(
-    activity: np.ndarray, epochs_per_day: int
-) -> float:
+def interdaily_stability(activity: np.ndarray, epochs_per_day: int) -> float:
     """Interdaily stability (IS), in (0, 1].
 
-    ``IS = n * sum_h (m_h - m)^2 / (p * sum_i (x_i - m)^2)`` where ``p`` is
-    ``epochs_per_day``, ``m_h`` the mean over all days at epoch-of-day ``h``
-    and ``m`` the grand mean. IS approaches 1 for a perfectly reproducible
-    daily pattern and ``p / n`` (i.e. ``1 / n_days``) for white noise.
+    ``IS = n * sum_h (m_h - m)^2 / (p * sum_i (x_i - m)^2)`` where ``p`` is ``epochs_per_day``,
+    ``m_h`` the mean over all days at epoch-of-day ``h`` and ``m`` the grand mean. IS approaches 1
+    for a perfectly reproducible daily pattern and ``p / n`` (i.e. ``1 / n_days``) for white noise.
 
     Args:
         activity: Per-epoch activity vector; NaNs are omitted.
@@ -84,8 +80,8 @@ def intradaily_variability(activity: np.ndarray) -> float:
     """Intradaily variability (IV), typically in [0, ~2].
 
     ``IV = n * sum (x_i - x_{i-1})^2 / ((n - 1) * sum (x_i - m)^2)``.
-    Higher values indicate a more fragmented rhythm; IV approaches ~2 for
-    white noise and ~0 for a smooth sinusoid sampled densely.
+    Higher values indicate a more fragmented rhythm; IV approaches ~2 for white noise and ~0 for a
+    smooth sinusoid sampled densely.
 
     Args:
         activity: Per-epoch activity vector; NaNs are omitted.
@@ -104,9 +100,7 @@ def intradaily_variability(activity: np.ndarray) -> float:
     return float(num / den) if den > 0 else float("nan")
 
 
-def _average_day_profile(
-    activity: np.ndarray, epochs_per_day: int
-) -> np.ndarray:
+def _average_day_profile(activity: np.ndarray, epochs_per_day: int) -> np.ndarray:
     """Mean activity at each epoch-of-day, empty positions mean-filled."""
     arr = _as_float_array(activity)
     period = int(epochs_per_day)
@@ -117,9 +111,7 @@ def _average_day_profile(
         for h in range(period)
     ])
     if np.any(np.isnan(profile)):
-        profile = np.where(
-            np.isnan(profile), np.nanmean(profile), profile
-        )
+        profile = np.where(np.isnan(profile), np.nanmean(profile), profile)
     return profile
 
 
@@ -128,10 +120,7 @@ def _circular_window_mean(
 ) -> np.ndarray:
     """Mean over a length-``window`` window at every circular start."""
     width = max(1, int(window))
-    if width > 1:
-        extended = np.concatenate([profile, profile[: width - 1]])
-    else:
-        extended = profile
+    extended = np.concatenate([profile, profile[: width - 1]]) if width > 1 else profile
     kernel = np.ones(width) / width
     return np.convolve(extended, kernel, mode="valid")
 
@@ -170,11 +159,7 @@ def relative_amplitude(l5_value: float, m10_value: float) -> float:
     return float((m10_value - l5_value) / denom)
 
 
-def cosinor(
-    activity: np.ndarray,
-    epoch_seconds: float,
-    period_hours: float = 24.0,
-) -> dict:
+def cosinor(activity: np.ndarray, epoch_seconds: float, period_hours: float = 24.0) -> dict:
     """Single-component cosinor fit ``M + A cos(w t - phi)`` via OLS.
 
     Args:
@@ -233,9 +218,7 @@ def rar_metrics(activity: np.ndarray, epoch_seconds: float) -> dict:
     """
     epochs_per_day = SECONDS_PER_DAY / float(epoch_seconds)
     if not float(epochs_per_day).is_integer():
-        raise ValueError(
-            f"epoch_seconds={epoch_seconds} does not divide a 24 h day"
-        )
+        raise ValueError(f"epoch_seconds={epoch_seconds} does not divide a 24 h day")
     epochs_per_day = int(epochs_per_day)
     arr = _as_float_array(activity)
     windows = l5_m10(arr, epochs_per_day)
@@ -261,9 +244,7 @@ def _parse_time_utc(data_frame: pd.DataFrame) -> pd.DatetimeIndex:
     """UTC timestamps from a Beiwe accelerometer frame."""
     columns = _column_map(data_frame)
     if "timestamp" in columns:
-        series = pd.to_datetime(
-            data_frame[columns["timestamp"]], unit="ms", utc=True
-        )
+        series = pd.to_datetime(data_frame[columns["timestamp"]], unit="ms", utc=True)
     elif "utc time" in columns:
         series = pd.to_datetime(data_frame[columns["utc time"]], utc=True)
     else:
@@ -284,10 +265,7 @@ def _read_accelerometer_file(filepath: str) -> pd.DataFrame:
 
 
 def compute_enmo_epochs(
-    data_frame: pd.DataFrame,
-    epoch_seconds: int,
-    tz_str: str,
-    gravity: float = 1.0,
+    data_frame: pd.DataFrame, epoch_seconds: int, tz_str: str, gravity: float = 1.0
 ) -> pd.Series:
     """Mean ENMO per fixed epoch on a gap-filled, tz-local grid.
 
@@ -320,9 +298,7 @@ def compute_enmo_epochs(
     series = series.tz_convert(tz_str)
     rule = f"{int(epoch_seconds)}s"
     epoched = series.resample(rule).mean()
-    grid = pd.date_range(
-        epoched.index.min(), epoched.index.max(), freq=rule, tz=tz_str
-    )
+    grid = pd.date_range(epoched.index.min(), epoched.index.max(), freq=rule, tz=tz_str)
     return epoched.reindex(grid)
 
 
@@ -334,18 +310,14 @@ def _parse_bound(value: str | None, tz_str: str) -> pd.Timestamp | None:
     return naive.tz_localize(tz_str)
 
 
-def _align_to_day_grid(
-    activity: pd.Series, epoch_seconds: int
-) -> tuple[np.ndarray, pd.Timestamp]:
+def _align_to_day_grid(activity: pd.Series, epoch_seconds: int) -> tuple[np.ndarray, pd.Timestamp]:
     """Pad to local-midnight-aligned whole days for epoch-of-day folding."""
     epochs_per_day = SECONDS_PER_DAY // int(epoch_seconds)
     index = activity.index
     start = index[0].normalize()
     end = index[-1].normalize() + pd.Timedelta(days=1)
     rule = f"{int(epoch_seconds)}s"
-    grid = pd.date_range(
-        start, end, freq=rule, tz=index.tz, inclusive="left"
-    )
+    grid = pd.date_range(start, end, freq=rule, tz=index.tz, inclusive="left")
     values = activity.reindex(grid).to_numpy(dtype=float)
     usable = (values.size // epochs_per_day) * epochs_per_day
     return values[:usable], start
@@ -361,18 +333,15 @@ def _load_participant_activity(
     time_end: str | None,
 ) -> pd.Series:
     """Read, concatenate and epoch one participant's accelerometer data."""
-    acc_dir = os.path.join(study_folder, backend_id, ACCELEROMETER_DIR)
+    acc_dir = pathjoin(study_folder, backend_id, ACCELEROMETER_DIR)
     if not os.path.isdir(acc_dir):
         return pd.Series(dtype=float)
     files = sorted(f for f in os.listdir(acc_dir) if f.endswith(".csv"))
     frames = []
     for filename in files:
         try:
-            frames.append(
-                _read_accelerometer_file(os.path.join(acc_dir, filename))
-            )
-        except (ValueError, pd.errors.EmptyDataError,
-                pd.errors.ParserError):
+            frames.append(_read_accelerometer_file(pathjoin(acc_dir, filename)))
+        except (ValueError, pd.errors.EmptyDataError, pd.errors.ParserError):
             logger.warning("skipping unreadable file %s", filename)
     if not frames:
         return pd.Series(dtype=float)
@@ -387,9 +356,7 @@ def _load_participant_activity(
     return activity
 
 
-def _daily_frame(
-    values: np.ndarray, start: pd.Timestamp, epoch_seconds: int
-) -> pd.DataFrame:
+def _daily_frame(values: np.ndarray, start: pd.Timestamp, epoch_seconds: int) -> pd.DataFrame:
     """Per-day day-decomposable metrics (IS is recording-level only)."""
     epochs_per_day = SECONDS_PER_DAY // int(epoch_seconds)
     n_days = values.size // epochs_per_day
@@ -399,8 +366,7 @@ def _daily_frame(
         date = (start + pd.Timedelta(days=day)).date().isoformat()
         valid_fraction = np.sum(~np.isnan(chunk)) / epochs_per_day
         if valid_fraction < MIN_DAY_COVERAGE:
-            rows.append({"date": date, "n_valid_epochs":
-                         int(np.sum(~np.isnan(chunk)))})
+            rows.append({"date": date, "n_valid_epochs": int(np.sum(~np.isnan(chunk)))})
             continue
         windows = l5_m10(chunk, epochs_per_day)
         row = {
@@ -419,9 +385,7 @@ def _discover_users(study_folder: str) -> list:
     """List backend IDs that have an accelerometer subfolder."""
     return sorted(
         entry for entry in os.listdir(study_folder)
-        if os.path.isdir(
-            os.path.join(study_folder, entry, ACCELEROMETER_DIR)
-        )
+        if os.path.isdir(pathjoin(study_folder, entry, ACCELEROMETER_DIR))
     )
 
 
@@ -460,14 +424,11 @@ def run(
     if users is None:
         users = _discover_users(study_folder)
     epochs_per_day = SECONDS_PER_DAY // int(epoch_seconds)
-    write_daily = frequency in (
-        Frequency.DAILY, Frequency.HOURLY_AND_DAILY
-    )
+    write_daily = frequency in (Frequency.DAILY, Frequency.HOURLY_AND_DAILY)
     rows = []
     for backend_id in users:
         activity = _load_participant_activity(
-            study_folder, backend_id, epoch_seconds, tz_str, gravity,
-            time_start, time_end,
+            study_folder, backend_id, epoch_seconds, tz_str, gravity, time_start, time_end
         )
         if activity.empty:
             continue
@@ -475,24 +436,17 @@ def run(
         valid_days = np.sum(~np.isnan(values)) / epochs_per_day
         if valid_days < min_valid_days:
             logger.warning(
-                "skipping %s: %.1f valid days (< %.1f)",
-                backend_id, valid_days, min_valid_days,
+                "skipping %s: %.1f valid days (< %.1f)", backend_id, valid_days, min_valid_days
             )
             continue
-        rows.append({"backend_id": backend_id,
-                     **rar_metrics(values, epoch_seconds)})
+        rows.append({"backend_id": backend_id, **rar_metrics(values, epoch_seconds)})
         if write_daily:
             daily = _daily_frame(values, start, epoch_seconds)
-            daily.to_csv(
-                os.path.join(output_folder, f"{backend_id}_rar_daily.csv"),
-                index=False,
-            )
+            daily.to_csv(pathjoin(output_folder, f"{backend_id}_rar_daily.csv"), index=False)
     summary = pd.DataFrame(rows)
     if summary.empty:
-        # No participant met the coverage threshold; still return a frame
-        # with the identifier column so callers can rely on its presence.
+        # No participant met the coverage threshold; still return a frame with the identifier column
+        # so callers can rely on its presence.
         summary = pd.DataFrame(columns=["backend_id"])
-    summary.to_csv(
-        os.path.join(output_folder, "rar_summary.csv"), index=False
-    )
+    summary.to_csv(pathjoin(output_folder, "rar_summary.csv"), index=False)
     return summary
