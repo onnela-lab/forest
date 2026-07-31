@@ -131,7 +131,6 @@
         "use_gps_fuzzing": false,
         "call_clinician_button_enabled": true,
         "call_research_assistant_button_enabled": true,
-        "ambient_audio": false,
         "proximity": false,
         "gyro": false,
         "magnetometer": false,
