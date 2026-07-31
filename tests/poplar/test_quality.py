@@ -122,3 +122,45 @@ def test_bin_minutes():
     assert _bin_minutes(Frequency.DAILY) == 1440
     assert _bin_minutes(Frequency.HOURLY) == 60
     assert _bin_minutes(Frequency.HOURLY_AND_DAILY) == 1440
+
+
+def test_run_discovers_zst_files(tmp_path):
+    """Compressed .csv.zst streams must be discovered and read, matching
+    the sycamore fix in #320. Without the extension fix, discovery filters
+    to .csv only and the stream is reported absent."""
+    root = tmp_path / "study"
+    pid = "participantZ"
+
+    _write(
+        root / pid / "identifiers" / "2026-03-01 00_00_00.csv",
+        pd.DataFrame({
+            "timestamp": [_ms("2026-03-01T00:00:00Z")],
+            "UTC time": ["2026-03-01T00:00:00.000"],
+            "patient_id": [pid],
+            "device_os": ["Android"],
+        }),
+    )
+
+    base = pd.Timestamp("2026-03-01T00:00:00Z")
+    stamps = [base + pd.Timedelta(hours=h) for h in range(24)]
+    frame = pd.DataFrame({
+        "timestamp": [_ms(t) for t in stamps],
+        "UTC time": [t.isoformat() for t in stamps],
+        "accuracy": ["unknown"] * 24,
+        "x": np.zeros(24),
+        "y": np.zeros(24),
+        "z": np.ones(24),
+    })
+    # Write the accelerometer stream as a single compressed .csv.zst file.
+    acc_dir = root / pid / "accelerometer"
+    acc_dir.mkdir(parents=True, exist_ok=True)
+    frame.to_csv(acc_dir / "2026-03-01 00_00_00.csv.zst", index=False)
+
+    out = tmp_path / "out"
+    report = run(str(root), str(out), TZ, frequency=Frequency.DAILY)
+
+    acc = report[report["stream"] == "accelerometer"].iloc[0]
+    assert acc["present"]
+    assert acc["n_files"] == 1
+    assert acc["n_rows"] == 24
+    assert acc["n_unreadable_files"] == 0

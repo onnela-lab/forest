@@ -101,7 +101,10 @@ def _device_os(study_folder: str, backend_id: str) -> str:
     id_dir = os.path.join(study_folder, backend_id, IDENTIFIERS_STREAM)
     if not os.path.isdir(id_dir):
         return "unknown"
-    files = sorted(f for f in os.listdir(id_dir) if f.endswith(".csv"))
+    files = sorted(
+        f for f in os.listdir(id_dir)
+        if f.endswith((".csv", ".csv.zst"))
+    )
     device_os = "unknown"
     for name in files:
         try:
@@ -279,7 +282,7 @@ def _stream_row(
     if not os.path.isdir(stream_dir):
         return row
     files = sorted(f for f in os.listdir(stream_dir)
-                   if f.endswith(".csv"))
+                   if f.endswith((".csv", ".csv.zst")))
     if not files:
         return row
     row["present"] = True
