@@ -115,7 +115,6 @@ module = [
     "holidays",
     "openrouteservice",
     "openrouteservice.*",
-    "pandas",
     "ratelimit",
     "scipy.*",
     "shapely.*",
