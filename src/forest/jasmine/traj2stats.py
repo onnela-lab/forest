@@ -215,16 +215,16 @@ def get_nearby_locations(
 
     try:
         res = overpass_request_json(query, method="POST")
-    except (
-        requests.exceptions.HTTPError,
-        requests.exceptions.Timeout
-    ) as err:
+    except requests.exceptions.Timeout as err:
         raise RuntimeError(
-            f"Timeout error: {err} \n"
-            "OpenStreetMap query is too large. "
+            "Query to Overpass API timed out. "
+            "The OpenStreetMap query may be too large. "
             "Do not use save_osm_log or places_of_interest "
-            "unless you need them. \n"
-            "Query to Overpass API failed to return data in alloted time"
+            "unless you need them."
+        ) from err
+    except requests.exceptions.HTTPError as err:
+        raise RuntimeError(
+            f"Query to Overpass API failed: {err}"
         ) from err
     ids: Dict[str, List[int]] = {}
     locations: Dict[int, List[List[float]]] = {}
