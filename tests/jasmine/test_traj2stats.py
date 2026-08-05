@@ -9,7 +9,7 @@ from forest.jasmine.data2mobmat import great_circle_dist
 from forest.jasmine.traj2stats import (
     Frequency, gps_summaries, Hyperparameters, transform_point_to_circle,
     avg_mobility_trace_difference, create_mobility_trace, get_pause_array,
-    extract_pause_from_row, compute_window_and_count
+    extract_pause_from_row, compute_window_and_count, get_nearby_locations
 )
 
 
@@ -421,6 +421,34 @@ def test_gps_summaries_log_format(
         )
     dates_log = np.array(list(log.keys()))
     assert np.all(dates_stats == dates_log)
+
+
+def test_get_nearby_locations_uses_overpass_helper(mocker):
+    trajectory = np.array(
+        [[2, 51.457183, -2.59796, 0, 51.457183, -2.59796, 10, 1]]
+    )
+    helper = mocker.patch(
+        "forest.jasmine.traj2stats.overpass_request_json",
+        return_value={
+            "elements": [
+                {
+                    "id": 1,
+                    "type": "node",
+                    "lat": 51.4572,
+                    "lon": -2.5980,
+                    "tags": {"amenity": "pub", "name": "Test Pub"},
+                }
+            ]
+        },
+    )
+
+    ids, locations, tags = get_nearby_locations(trajectory)
+
+    assert helper.call_args.args[0]
+    assert helper.call_args.kwargs == {"method": "POST"}
+    assert ids == {"pub": [1]}
+    assert locations == {1: [[51.4572, -2.598]]}
+    assert tags == {1: {"amenity": "pub", "name": "Test Pub"}}
 
 
 def test_gps_summaries_summary_vals(

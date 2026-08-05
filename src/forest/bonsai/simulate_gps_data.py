@@ -15,13 +15,12 @@ import numpy as np
 import openrouteservice
 import pandas as pd
 import ratelimit
-import requests
 from timezonefinder import TimezoneFinder
 
-from forest.constants import (ORS_API_BASE_URL, ORS_API_CALLS_PER_MINUTE,
-                              OSM_OVERPASS_URL)
+from forest.constants import ORS_API_BASE_URL, ORS_API_CALLS_PER_MINUTE
 from forest.jasmine.data2mobmat import great_circle_dist
 from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
+from forest.utils import overpass_request_json
 
 ACTIVE_STATUS_LIST = range(11)
 TRAVELLING_STATUS_LIST = range(11)
@@ -192,7 +191,8 @@ def bounding_box(center: Tuple[float, float], radius: int) -> Tuple:
     earth_radius = 6371  # kilometers
     lat_const = (radius / (1000 * earth_radius)) * (180 / np.pi)
     lon_const = lat_const / np.cos(lat * np.pi / 180)
-    return lat - lat_const, lon - lon_const, lat + lat_const, lon + lon_const
+    return (float(lat - lat_const), float(lon - lon_const),
+            float(lat + lat_const), float(lon + lon_const))
 
 
 class Attributes:
@@ -1167,11 +1167,7 @@ def generate_addresses(country: str, city: str) -> np.ndarray:
     out center 150;
     """
 
-    response = requests.get(OSM_OVERPASS_URL, params={"data": overpy_query},
-                            timeout=60)
-    response.raise_for_status()
-
-    res = response.json()
+    res = overpass_request_json(overpy_query)
     try:
         index = np.random.choice(
             range(len(res["elements"])), 100, replace=False
@@ -1235,11 +1231,7 @@ def generate_nodes(
     out center;
     """
 
-    response = requests.get(OSM_OVERPASS_URL, params={"data": overpy_query2},
-                            timeout=60)
-    response.raise_for_status()
-
-    res = response.json()
+    res = overpass_request_json(overpy_query2)
 
     all_nodes: Dict[str, list] = {}
     for place in list(PossibleExits):

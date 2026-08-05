@@ -19,7 +19,7 @@ from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
-from forest.constants import Frequency, OSM_OVERPASS_URL, OSMTags
+from forest.constants import Frequency, OSMTags
 from forest.jasmine.data2mobmat import (gps_to_mobmat, infer_mobmat,
                                         great_circle_dist,
                                         pairwise_great_circle_dist)
@@ -29,7 +29,7 @@ from forest.jasmine.sogp_gps import bv_select
 from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data,
                                                stamp2datetime,
                                                write_all_summaries)
-from forest.utils import get_ids
+from forest.utils import get_ids, overpass_request_json
 
 
 logger = logging.getLogger(__name__)
@@ -213,23 +213,19 @@ def get_nearby_locations(
 
     query += "\n);\nout geom qt;"
 
-    response = requests.post(OSM_OVERPASS_URL,
-                             data={"data": query}, timeout=60)
     try:
-        response.raise_for_status()
-    except (
-        requests.exceptions.HTTPError,
-        requests.exceptions.ReadTimeout
-    ) as err:
+        res = overpass_request_json(query, method="POST")
+    except requests.exceptions.Timeout as err:
         raise RuntimeError(
-            f"Timeout error: {err} \n"
-            "OpenStreetMap query is too large. "
+            "Query to Overpass API timed out. "
+            "The OpenStreetMap query may be too large. "
             "Do not use save_osm_log or places_of_interest "
-            "unless you need them. \n"
-            "Query to Overpass API failed to return data in alloted time"
-        )
-
-    res = response.json()
+            "unless you need them."
+        ) from err
+    except requests.exceptions.HTTPError as err:
+        raise RuntimeError(
+            f"Query to Overpass API failed: {err}"
+        ) from err
     ids: Dict[str, List[int]] = {}
     locations: Dict[int, List[List[float]]] = {}
     tags: Dict[int, Dict[str, str]] = {}

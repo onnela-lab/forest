@@ -16,6 +16,17 @@ ORS_API_BASE_URL = os.getenv("FOREST_ORS_API_BASE_URL",
 # URL of OpenStreetMap instance
 OSM_OVERPASS_URL = os.getenv("FOREST_OSM_OVERPASS_URL",
                              default="https://overpass-api.de/api/interpreter")
+# User-Agent for Overpass API requests (required by usage policy)
+OSM_OVERPASS_USER_AGENT = os.getenv(
+    "FOREST_OSM_OVERPASS_USER_AGENT",
+    default="forest/1.0 (https://github.com/onnela-lab/forest)"
+)
+# Overpass API asks clients to stay below roughly 10000 requests per day
+# https://dev.overpass-api.de/overpass-doc/en/preface/commons.html
+OVERPASS_CALLS_PER_MINUTE = int(os.getenv(
+    "FOREST_OSM_OVERPASS_CALLS_PER_MINUTE",
+    default="40"
+))
 
 
 class Frequency(Enum):
