@@ -21,6 +21,11 @@ OSM_OVERPASS_USER_AGENT = os.getenv(
     "FOREST_OSM_OVERPASS_USER_AGENT",
     default="forest/1.0 (https://github.com/onnela-lab/forest)"
 )
+# Overpass API is rate limited to avoid hammering the service
+OVERPASS_CALLS_PER_MINUTE = int(os.getenv(
+    "FOREST_OSM_OVERPASS_CALLS_PER_MINUTE",
+    default="1"
+))
 
 
 class Frequency(Enum):

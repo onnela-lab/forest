@@ -356,6 +356,26 @@ def test_zero_meters_bounding_box(sample_coordinates):
     assert bbox[1] == bbox[3]
 
 
+def test_generate_addresses_uses_overpass_helper(mocker):
+    from forest.bonsai.simulate_gps_data import generate_addresses
+
+    overpass_result = {"elements": [{"id": i} for i in range(100)]}
+    helper = mocker.patch(
+        "forest.bonsai.simulate_gps_data.overpass_request_json",
+        return_value=overpass_result,
+    )
+    mocker.patch(
+        "forest.bonsai.simulate_gps_data.np.random.choice",
+        return_value=np.arange(100),
+    )
+
+    result = generate_addresses("GB", "Bristol")
+
+    helper.assert_called_once()
+    assert result[0]["id"] == 0
+    assert result[-1]["id"] == 99
+
+
 @pytest.fixture(scope="session")
 def sample_locations():
     """All nodes of preferred categories around sample_coordinates"""
