@@ -21,10 +21,11 @@ OSM_OVERPASS_USER_AGENT = os.getenv(
     "FOREST_OSM_OVERPASS_USER_AGENT",
     default="forest/1.0 (https://github.com/onnela-lab/forest)"
 )
-# Overpass API is rate limited to avoid hammering the service
+# Overpass API asks clients to stay below roughly 10000 requests per day
+# https://dev.overpass-api.de/overpass-doc/en/preface/commons.html
 OVERPASS_CALLS_PER_MINUTE = int(os.getenv(
     "FOREST_OSM_OVERPASS_CALLS_PER_MINUTE",
-    default="1"
+    default="40"
 ))
 
 
