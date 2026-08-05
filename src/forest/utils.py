@@ -38,16 +38,16 @@ def overpass_request_json(query: str, method: str = "GET") -> dict:
     if method_upper not in ("GET", "POST"):
         raise ValueError("method must be GET or POST")
 
-    request_kwargs = {
-        "url": OSM_OVERPASS_URL,
-        "timeout": 60,
-        "headers": {"User-Agent": OSM_OVERPASS_USER_AGENT},
-    }
-    if method_upper == "GET":
-        request_kwargs["params"] = {"data": query}
-    else:
-        request_kwargs["data"] = {"data": query}
-
-    response = requests.request(method_upper, **request_kwargs)
+    # Overpass accepts the query as "data" in the query string for GET
+    # requests and in the body for POST requests
+    payload = {"data": query}
+    response = requests.request(
+        method_upper,
+        url=OSM_OVERPASS_URL,
+        params=payload if method_upper == "GET" else None,
+        data=payload if method_upper == "POST" else None,
+        timeout=60,
+        headers={"User-Agent": OSM_OVERPASS_USER_AGENT},
+    )
     response.raise_for_status()
     return response.json()
