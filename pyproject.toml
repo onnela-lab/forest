@@ -154,8 +154,8 @@ select = [  # (linting directives to enable)
     "UP",      # pyupgrade codes
     "COM818",  # trailing-comma-on-bare-tuple
     "A",       # flake8-annotations codes
-    # "DTZ",  # Timezone checks
-    # "SIM", # code simplification
+    "SIM",     # code simplification rules - noqa with a reason if you ignore
+    # "DTZ",     # Timezone checks - can't enable due to datetime handling
 ]
 
 extend-ignore = [  # (linting directives to ignore)
