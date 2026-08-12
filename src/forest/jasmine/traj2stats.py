@@ -827,7 +827,9 @@ def intersect_with_places_of_interest(
          bool, True if the pause is not intersected with
             any place of interest
     """
-    all_place_probs = [0] * len(places_of_interest)
+    
+    all_place_probs: list[float] = [0.0] * len(places_of_interest)  # (pedantic typing for mypy)
+
     pause_circle, saved_polygons = get_polygon(
         saved_polygons, pause[0], pause[1], "person", parameters.person_point_radius
     )
@@ -836,7 +838,7 @@ def intersect_with_places_of_interest(
         if place not in ids_keys_list:
             continue
         for element_id in ids[place]:
-            intersection_area = 0
+            intersection_area: float = 0.0
             
             if len(locations[element_id]) == 1:
                 # TODO: this branch is not covered by a test

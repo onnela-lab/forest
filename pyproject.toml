@@ -110,7 +110,6 @@ module = [
     "openrouteservice",
     "openrouteservice.*",
     "scipy.*",
-    "shapely.*",
     "soundfile",
     "ssqueezepy",
 ]
