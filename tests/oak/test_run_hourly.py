@@ -6,8 +6,9 @@ from forest.constants import Frequency
 from forest.oak.base import run_hourly
 
 
+# signal_bout gets caught as ruff unused argument, ignore
 @pytest.fixture
-def sample_run_input(_signal_bout):
+def sample_run_input(signal_bout):  # noqa
     t_hours_pd = pd.Series(pd.to_datetime([
         "2020-02-25 08:00:00-05:00",
         "2020-02-25 08:00:00-05:00",

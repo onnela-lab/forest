@@ -3,7 +3,8 @@ import numpy as np
 from forest.oak.base import compute_interpolate_cwt, identify_peaks_in_cwt, preprocess_bout
 
 
-def test_identify_peaks_in_cwt(signal_bout, fs, _min_amp, step_freq, alpha, beta, wavelet):
+# min_amp gets caught as ruff unused argument
+def test_identify_peaks_in_cwt(signal_bout, fs, min_amp, step_freq, alpha, beta, wavelet):  # noqa
     timestamp, _, x, y, z = signal_bout
     vm_bout = preprocess_bout(timestamp, x, y, z)[1]
     
