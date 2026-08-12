@@ -245,7 +245,7 @@ def get_nearby_locations(
         
         for tag in osm_tags:
             if tag.value in element["tags"]:
-                if element["tags"][tag.value] not in ids.keys():
+                if element["tags"][tag.value] not in ids:
                     ids[element["tags"][tag.value]] = [element_id]
                 else:
                     ids[element["tags"][tag.value]].append(element_id)
@@ -792,7 +792,7 @@ def get_polygon(
             dict, contains saved polygons
     """
     loc_str = f"{lat}, {lon} - {label}"
-    if loc_str in saved_polygons.keys():
+    if loc_str in saved_polygons:
         return saved_polygons[loc_str], saved_polygons
     
     circle = transform_point_to_circle(lat, lon, radius)
@@ -1656,7 +1656,7 @@ def _gps_ids_locations_and_tags(
     
     if places_of_interest is not None or parameters.save_osm_log:
         ids, locations, tags = get_nearby_locations(traj, osm_tags)
-        return ids, list(ids.keys()), locations, tags
+        return ids, list(ids), locations, tags
     
     return {}, [], {}, {}
 

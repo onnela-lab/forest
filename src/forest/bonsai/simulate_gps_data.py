@@ -69,7 +69,7 @@ class ActionType(Enum):
 @ratelimit.sleep_and_retry
 @ratelimit.limits(calls=ORS_API_CALLS_PER_MINUTE, period=60)
 def get_path(
-    start: tuple[float, float], end: tuple[float, float], transport: Vehicle, api_key: str
+    start: tuple[float, float], end: tuple[float, float], transport: Vehicle, api_key: str,
 ) -> tuple[np.ndarray, float]:
     """ Calculates paths between sets of coordinates
 
@@ -347,6 +347,7 @@ class Person:
                     if tuple(place) != home_coordinates
                 ]
                 setattr(self, possible_exit.value + "_places", places_selected)
+            
             # calculate distances of selected places from home create a list of the locations
             # ordered by distance
             distances = []
@@ -451,9 +452,9 @@ class Person:
                     self.preferred_places_today[index_of_code],
                 )
     
-    def choose_preferred_exit(self, current_time: float,
-                              update: bool = True
-                              ) -> tuple[str, tuple[float, float]]:
+    def choose_preferred_exit(
+        self, current_time: float, update: bool = True
+    ) -> tuple[str, tuple[float, float]]:
         """ This function samples through the possible actions for the person, depending on his
         attributes and the time.
 
@@ -529,9 +530,9 @@ class Person:
         self.preferred_places_today = self.attributes.preferred_places
         self.office_today = False
     
-    def calculate_trip(self, origin: tuple[float, float],
-                       destination: tuple[float, float], api_key: str
-                       ) -> tuple[np.ndarray, Vehicle]:
+    def calculate_trip(
+        self, origin: tuple[float, float], destination: tuple[float, float], api_key: str
+    ) -> tuple[np.ndarray, Vehicle]:
         """ This function uses the openrouteservice api to produce the path from person's house to
         destination and back.
 
@@ -566,8 +567,7 @@ class Person:
         
         return path, transport
     
-    def choose_action(self, current_time: float, day_of_week: int,
-                      update: bool = True) -> Action:
+    def choose_action(self, current_time: float, day_of_week: int, update: bool = True) -> Action:
         """This function decides action for person to take.
 
         Args:
@@ -776,8 +776,7 @@ def gen_basic_pause(
     return traj_array
 
 
-def gen_route_traj(route: list, vehicle: Vehicle,
-                   time_start: float) -> tuple[np.ndarray, float]:
+def gen_route_traj(route: list, vehicle: Vehicle, time_start: float) -> tuple[np.ndarray, float]:
     """This function generates basic trajectories between multiple points.
 
     Args:
@@ -812,9 +811,13 @@ def gen_route_traj(route: list, vehicle: Vehicle,
     return traj[1:, :], total_distance
 
 
-def gen_all_traj(person: Person, switches: dict[str, int],
-                 start_date: datetime.date, end_date: datetime.date,
-                 api_key: str) -> tuple[np.ndarray, list[int], list[float]]:
+def gen_all_traj(
+    person: Person,
+    switches: dict[str, int],
+    start_date: datetime.date,
+    end_date: datetime.date,
+    api_key: str,
+) -> tuple[np.ndarray, list[int], list[float]]:
     """Generates trajectories for a single person.
 
     Args:
@@ -848,8 +851,8 @@ def gen_all_traj(person: Person, switches: dict[str, int],
     time_active_change = -1
     val_travel_change = -1
     time_travel_change = -1
-    if len(switches.keys()) != 0:
-        for key in switches.keys():
+    if len(switches) != 0:
+        for key in switches:
             key_list = key.split("-")
             if key_list[0] == "active_status":
                 time_active_change = int(key_list[1]) - 1
@@ -1013,9 +1016,7 @@ def prepare_data(obs: np.ndarray, timestamp_s: int, tz_str: str) -> pd.DataFrame
     )
 
 
-def process_switches(
-    attributes: dict[str, dict], key: str,
-) -> dict[str, int]:
+def process_switches(attributes: dict[str, dict], key: str) -> dict[str, int]:
     """Preprocesses the attributes of each person.
 
     Args:
@@ -1037,8 +1038,7 @@ def process_switches(
 
 
 def load_attributes(
-    attributes: dict[str, dict],
-) -> tuple[dict[int, Attributes], dict[int, dict[str, int]]]:
+    attributes: dict[str, dict]) -> tuple[dict[int, Attributes], dict[int, dict[str, int]]]:
     """Loads the attributes of each person.
 
     Args:
@@ -1056,7 +1056,7 @@ def load_attributes(
     attributes_dictionary: dict[int, Attributes] = {}
     switches_dictionary: dict[int, dict[str, int]] = {}
     
-    for key in attributes.keys():
+    for key in attributes:
         match = re.search(r"[0-9]*-?[0-9]+", key)
         if match is None:
             raise ValueError(f"Wrong format in attributes.json on {key}")
@@ -1111,7 +1111,7 @@ def generate_addresses(country: str, city: str) -> np.ndarray:
 
 def generate_nodes(
     house_address: tuple[float, float],
-    employment: Occupation
+    employment: Occupation,
 ) -> dict[str, list[tuple[float, float]]]:
     """Generates multiple amenities coordinates.
 
@@ -1178,11 +1178,11 @@ def generate_nodes(
             all_nodes["office"].append((lat, lon))
         
         if "amenity" in element["tags"]:
-            for key in all_nodes.keys():
+            for key in all_nodes:
                 if element["tags"]["amenity"] == key:
                     all_nodes[key].append((lat, lon))
         elif "leisure" in element["tags"]:
-            for key in all_nodes.keys():
+            for key in all_nodes:
                 if element["tags"]["leisure"] == key:
                     all_nodes[key].append((lat, lon))
     

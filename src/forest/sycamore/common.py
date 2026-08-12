@@ -958,7 +958,7 @@ def update_qs_with_seps(qs_with_seps: dict, survey_content: list) -> dict:
             
             if len(q_sep_choices) != 0:
                 question_id = question["question_id"]
-                if question_id in qs_with_seps.keys():
+                if question_id in qs_with_seps:
                     qs_with_seps[question_id] = qs_with_seps[question_id].union(q_sep_choices)
                 else:
                     qs_with_seps[question_id] = q_sep_choices
@@ -1003,7 +1003,7 @@ def get_choices_with_sep_values(
     if survey_history_path is not None:
         survey_history_dict = read_json(survey_history_path)
         
-        for survey_id in survey_history_dict.keys():
+        for survey_id in survey_history_dict:
             for version in survey_history_dict[survey_id]:
                 survey = version["survey_json"]
                 qs_with_seps = update_qs_with_seps(qs_with_seps, survey)

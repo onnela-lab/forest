@@ -92,15 +92,9 @@ dev = [
 [tool.setuptools.package-data]
 "forest.poplar.raw" = ["noncode/*.csv", "noncode/*.json"]
 
-
-[tool.ruff]
-line-length = 100  # target a 100 character line length
-indent-width = 4
-
-
-[tool.ruff.lint.pycodestyle]
-max-line-length = 105  # only go above 100 when it makes the code clearer.
-
+#
+## Type checker config
+#
 
 [tool.mypy]
 mypy_path = "src"
@@ -122,16 +116,32 @@ module = [
 ]
 ignore_missing_imports = true
 
+#
+## Pytest config
+#
 
 [tool.pytest.ini_options]
 # addopts = "--import-mode=importlib"  # this does not seem to be necessary anymore
 
 testpaths = ["tests"]
 
+#
+## Linting and type checking tools
+#
+
+## Ruff
+[tool.ruff]
+line-length = 100  # target a 100 character line length
+indent-width = 4
+
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 105  # only go above 100 when it makes the code clearer.
+
 
 [tool.ruff.format]
 indent-style = "space"  # use spaces for indentation
-line-ending = "lf"  # use \n for line endings
+line-ending = "lf"      # use \n for line endings
 
 
 [tool.ruff.lint]
@@ -144,6 +154,8 @@ select = [  # (linting directives to enable)
     "UP",      # pyupgrade codes
     "COM818",  # trailing-comma-on-bare-tuple
     "A",       # flake8-annotations codes
+    # "DTZ",  # Timezone checks
+    # "SIM", # code simplification
 ]
 
 extend-ignore = [  # (linting directives to ignore)
@@ -159,6 +171,7 @@ exclude = [
 ]
 
 
+## Flake8 - not actually used, but IDEs using it need it configured.
 [tool.flake8]
 line-length = 100
 max-line-length = 100
@@ -174,9 +187,7 @@ exclude = [
 ]
 
 
-## isort import formatter - (unable to get identical formatting out of ruff)
-
-
+## isort - import formatter - (would use ruff, cannot get identical formatting out of it)
 [tool.isort]
 combine_as_imports = true
 float_to_top = true

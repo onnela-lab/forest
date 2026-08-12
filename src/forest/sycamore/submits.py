@@ -156,7 +156,7 @@ def get_question_ids(survey_dict: dict[str, dict], audio_survey_id_dict: dict[st
             question_ids.append(question["question_id"])
         elif "prompt" in question.keys():
             audio_prompt = question["prompt"]
-            if audio_prompt not in audio_survey_id_dict.keys():
+            if audio_prompt not in audio_survey_id_dict:
                 logger.warning(f"Unable to find survey ID for audio prompt {audio_prompt}")
                 continue
             question_ids.append(audio_survey_id_dict[audio_prompt])
@@ -219,7 +219,7 @@ def gen_survey_schedule(
                 )
             if survey["relative_timings"]:
                 # We can only get relative timings if we have an index time
-                if user in all_interventions_dict.keys():
+                if user in all_interventions_dict:
                     s_times = s_times + generate_survey_times(
                         time_start,
                         time_end,
