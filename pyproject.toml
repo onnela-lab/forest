@@ -94,12 +94,12 @@ dev = [
 
 
 [tool.ruff]
-line-length = 100  # this is the maximum that should emit a warning, it is sometimes ok to go over.
+line-length = 100  # target a 100 character line length
 indent-width = 4
 
 
 [tool.ruff.lint.pycodestyle]
-max-line-length = 120  # strict maximum line length for python files. Don't get to this point, use 100.
+max-line-length = 105  # only go above 100 when it makes the code clearer.
 
 
 [tool.mypy]
