@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, tzinfo
 from logging import getLogger
 from zoneinfo import ZoneInfo
 
-from ..constants.time import DATE_FORMAT, DAY_S, MIN_MS, NAIVE_DATETIME_FORMAT, UTC
+from forest.poplar.constants.time import DATE_FORMAT, DAY_S, MIN_MS, NAIVE_DATETIME_FORMAT, UTC
 
 
 logger = getLogger(__name__)

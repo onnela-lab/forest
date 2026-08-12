@@ -11,7 +11,7 @@ Original Authors: Josh Barback, Georgios Efstathiadis
 from importlib.resources import files
 from logging import getLogger
 
-from ..functions.io import read_json
+from forest.poplar.functions.io import read_json
 
 
 logger = getLogger(__name__)

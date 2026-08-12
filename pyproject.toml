@@ -155,6 +155,7 @@ select = [  # (linting directives to enable)
     "COM818",  # trailing-comma-on-bare-tuple
     "A",       # flake8-annotations codes
     "SIM",     # code simplification rules - noqa with a reason if you ignore
+    "TID",     # "tidy import" checks
     # "DTZ",     # Timezone checks - can't enable due to datetime handling
 ]
 
