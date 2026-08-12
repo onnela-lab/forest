@@ -25,14 +25,14 @@ from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
-from forest.constants import Frequency, Frequency as Freq, OSM_OVERPASS_URL, OSMTags
+from forest.constants import Frequency, Frequency as Freq, OSMTags
 from forest.jasmine.data2mobmat import (gps_to_mobmat, great_circle_dist, great_circle_dist_opt,
     great_circle_dist_specialized, infer_mobmat, pairwise_great_circle_dist)
 from forest.jasmine.mobmat2traj import imp_to_traj, impute_gps, locate_home, num_sig_places
 from forest.jasmine.sogp_gps import bv_select
 from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data, stamp2datetime,
     write_all_summaries)
-from forest.utils import get_ids
+from forest.utils import get_ids, overpass_request_json
 
 
 logger = logging.getLogger(__name__)
@@ -226,25 +226,21 @@ def get_nearby_locations(
     
     query += "\n);\nout geom qt;"
     
-    response = requests.post(OSM_OVERPASS_URL, data={"data": query}, timeout=60)
     try:
-        response.raise_for_status()
-    except (requests.exceptions.HTTPError, requests.exceptions.ReadTimeout) as err:
+        res = overpass_request_json(query, method="POST")
+    except requests.exceptions.Timeout as err:
         raise RuntimeError(
-            f"Timeout error: {err} \n"
-            "OpenStreetMap query is too large. "
-            "Do not use save_osm_log or places_of_interest "
-            "unless you need them. \n"
-            "Query to Overpass API failed to return data in alloted time"
-        )
+            "Query to Overpass API timed out. The OpenStreetMap query may be too large. "
+            "(save_osm_log and places_of_interest should be ommitted when not required.)"
+        ) from err
+    except requests.exceptions.HTTPError as err:
+        raise RuntimeError(f"Query to Overpass API failed: {err}") from err
     
-    res = response.json()
     ids: dict[str, list[int]] = {}
     locations: dict[int, list[list[float]]] = {}
     tags: dict[int, dict[str, str]] = {}
     
     for element in res["elements"]:
-        
         element_id = element["id"]
         
         for tag in osm_tags:
@@ -750,13 +746,13 @@ def get_pause_array(
     ppr = parameters.place_point_radius
     for row in pause_vec:
         if (great_circle_dist(row[1], row[2], home_lat, home_lon)[0] > 2 * ppr):
-
+            
             if len(array) == 0:
                 array = np.array([extract_pause_from_row(row)])
-
+            
             elif np.min(great_circle_dist(row[1], row[2], array[:, 0], array[:, 1])) > 2 * ppr:
                 array = np.append(array, [extract_pause_from_row(row)], axis=0)
-
+            
             else:
                 argmin = np.argmin(great_circle_dist(row[1], row[2], array[:, 0], array[:, 1]))
                 array[argmin, -1] += (row[6] - row[3]) / 60

@@ -289,7 +289,7 @@ def random_path(directions1, coords1, coords2):
     # with car as transport
     coordinates = directions1["features"][0]["geometry"]["coordinates"]
     path_coordinates = [[coord[1], coord[0]] for coord in coordinates]
-
+    
     # sometimes if exact coordinates of location are not in a road
     # the starting or ending coordinates of route will be returned
     # in the nearer road which can be slightly different than
@@ -352,6 +352,24 @@ def test_zero_meters_bounding_box(sample_coordinates):
     bbox = bounding_box(sample_coordinates, 0)
     assert bbox[0] == bbox[2]
     assert bbox[1] == bbox[3]
+
+
+def test_generate_addresses_uses_overpass_helper(mocker):
+    from forest.bonsai.simulate_gps_data import generate_addresses
+    
+    overpass_result = {"elements": [{"id": i} for i in range(100)]}
+    helper = mocker.patch(
+        "forest.bonsai.simulate_gps_data.overpass_request_json", return_value=overpass_result
+    )
+    mocker.patch("forest.bonsai.simulate_gps_data.np.random.choice", return_value=np.arange(100))
+
+    # sorting the list of objects returned here is hard to sort, the list itself makes an api call
+    # and just isn't stable (also might be brittle)
+    result = list(generate_addresses("GB", "Bristol"))
+    result.sort(key=lambda x: x["id"])
+    helper.assert_called_once()
+    assert result[0]["id"] == 0
+    assert result[-1]["id"] == 99
 
 
 @pytest.fixture(scope="session")
@@ -758,7 +776,7 @@ def test_gen_all_traj_consistent_values(sample_person, mocker):
         end_date=datetime.date(2021, 10, 5),
         api_key="mock_api_key",
     )
-
+    
     distances = []
     for i in range(len(traj) - 1):
         distances.append(
@@ -780,7 +798,7 @@ def test_gen_all_traj_time_at_home(sample_person, mocker):
         end_date=datetime.date(2021, 10, 5),
         api_key="mock_api_key",
     )
-
+    
     home_time_list = np.array(home_time_list)
     assert np.all(home_time_list >= 0)
     assert np.all(home_time_list <= 24 * 3600)

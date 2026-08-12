@@ -15,14 +15,14 @@ import numpy as np
 import openrouteservice
 import pandas as pd
 import ratelimit
-import requests
 from numpy.random import choice as randomchoice
 from openrouteservice.exceptions import ApiError, HTTPError, Timeout, ValidationError
 from timezonefinder import TimezoneFinder
 
-from forest.constants import ORS_API_BASE_URL, ORS_API_CALLS_PER_MINUTE, OSM_OVERPASS_URL
+from forest.constants import ORS_API_BASE_URL, ORS_API_CALLS_PER_MINUTE
 from forest.jasmine.data2mobmat import great_circle_dist
 from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
+from forest.utils import overpass_request_json
 
 
 ACTIVE_STATUS_LIST = range(11)
@@ -68,8 +68,9 @@ class ActionType(Enum):
 
 @ratelimit.sleep_and_retry
 @ratelimit.limits(calls=ORS_API_CALLS_PER_MINUTE, period=60)
-def get_path(start: tuple[float, float], end: tuple[float, float],
-             transport: Vehicle, api_key: str) -> tuple[np.ndarray, float]:
+def get_path(
+    start: tuple[float, float], end: tuple[float, float], transport: Vehicle, api_key: str
+) -> tuple[np.ndarray, float]:
     """ Calculates paths between sets of coordinates
 
     This function takes 2 sets of coordinates and a mean of transport and using the openroute api
@@ -182,7 +183,8 @@ def bounding_box(center: tuple[float, float], radius: int) -> tuple:
     earth_radius = 6371  # kilometers
     lat_const = (radius / (1000 * earth_radius)) * (180 / np.pi)
     lon_const = lat_const / np.cos(lat * np.pi / 180)
-    return lat - lat_const, lon - lon_const, lat + lat_const, lon + lon_const
+    return (float(lat - lat_const), float(lon - lon_const),
+            float(lat + lat_const), float(lon + lon_const))
 
 
 class Attributes:
@@ -1093,11 +1095,8 @@ def generate_addresses(country: str, city: str) -> np.ndarray:
     out center 150;
     """
     
-    response = requests.get(OSM_OVERPASS_URL, params={"data": overpy_query},
-                            timeout=60)
-    response.raise_for_status()
+    res = overpass_request_json(overpy_query)
     
-    res = response.json()
     try:
         index = randomchoice(range(len(res["elements"])), 100, replace=False)
     except ValueError:
@@ -1159,13 +1158,9 @@ def generate_nodes(
     out center;
     """
     
-    response = requests.get(OSM_OVERPASS_URL, params={"data": overpy_query2},
-                            timeout=60)
-    response.raise_for_status()
-    
-    res = response.json()
-    
+    res = overpass_request_json(overpy_query2)
     all_nodes: dict[str, list] = {}
+    
     for place in list(PossibleExits):
         all_nodes[place.value] = []
     all_nodes["office"] = []
@@ -1312,8 +1307,9 @@ def sim_gps_data(
     return gps_data
 
 
-def gps_to_csv(data: pd.DataFrame, path: str, start_date: datetime.date,
-               end_date: datetime.date) -> None:
+def gps_to_csv(
+    data: pd.DataFrame, path: str, start_date: datetime.date, end_date: datetime.date
+) -> None:
     """ Writes gps trajectories to csv files.
 
     Args:
