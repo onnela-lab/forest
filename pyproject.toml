@@ -142,6 +142,24 @@ max-line-length = 105  # only go above 100 when it makes the code clearer.
 [tool.ruff.format]
 indent-style = "space"  # use spaces for indentation
 line-ending = "lf"      # use \n for line endings
+skip-magic-trailing-comma = true  # even with this set to true the , is added to imports
+
+
+# [tool.ruff.lint.isort]
+# Cannot get this to match isort hanging indent style
+# case-sensitive = false
+# combine-as-imports = true
+# force-single-line = false
+# force-sort-within-sections = false  # module imports pushed to their own section
+# force-wrap-aliases = true
+# from-first = false
+# lines-after-imports = 2
+# lines-between-types = 1
+# order-by-type = false
+# split-on-trailing-comma = true  # should make it not break inside parentheses, doesn't
+# known-third-party = []  # Force these libraries to a special spot in import order (second to bottom)
+# known-local-folder = []
+# known-first-party = []  # Force these libraries to a special spot in import order (bottom)
 
 
 [tool.ruff.lint]
@@ -157,6 +175,7 @@ select = [  # (linting directives to enable)
     "SIM",     # code simplification rules - noqa with a reason if you ignore
     "TID",     # "tidy import" checks
     "ARG",     # argument-related checks, unused args, (at least hide them with an _underscore)
+    # "I",       # import checks and sorting - cannot get this to match isort
     # "DTZ",     # Timezone checks - can't enable due to datetime handling
 ]
 
