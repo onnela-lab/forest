@@ -839,9 +839,11 @@ def intersect_with_places_of_interest(
             intersection_area = 0
             
             if len(locations[element_id]) == 1:
+                # TODO: this branch is not covered by a test
                 loc_lat, loc_lon = locations[element_id][0]
-                
-                loc_circle = get_polygon(
+
+                # `_` is second reference to the unmodified saved_polygons dictionary
+                loc_circle, _ = get_polygon(
                     saved_polygons, loc_lat, loc_lon, "place", parameters.place_point_radius
                 )
                 
