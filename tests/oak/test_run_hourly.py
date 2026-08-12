@@ -7,7 +7,7 @@ from forest.oak.base import run_hourly
 
 
 @pytest.fixture
-def sample_run_input(signal_bout):
+def sample_run_input(_signal_bout):
     t_hours_pd = pd.Series(pd.to_datetime([
         "2020-02-25 08:00:00-05:00",
         "2020-02-25 08:00:00-05:00",

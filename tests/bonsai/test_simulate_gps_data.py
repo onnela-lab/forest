@@ -731,7 +731,7 @@ def test_gen_route_traj_time(random_path):
     assert traj[-1, 0] >= traj[0, 0]
 
 
-def mock_get_path(start, end, transport, api_key):
+def mock_get_path(start, end, _transport, _api_key):
     """Mock get_path function"""
     return np.array([start, end]), great_circle_dist(*start, *end)[0]
 

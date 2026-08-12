@@ -606,11 +606,11 @@ def summarize_submits(
     else:
         # do the groupby on all rows to avoid getting an error
         avg_time_to_submit = \
-            submits.groupby(summary_cols)["time_to_submit"].apply(lambda x: pd.to_datetime("NaT"))
+            submits.groupby(summary_cols)["time_to_submit"].apply(lambda _: pd.to_datetime("NaT"))
         avg_time_to_open = \
             submits.groupby(summary_cols)["time_to_open"].apply(lambda x: np.mean(x))
         avg_duration = \
-            submits.groupby(summary_cols)["survey_duration"].apply(lambda x: pd.to_datetime("NaT"))
+            submits.groupby(summary_cols)["survey_duration"].apply(lambda _: pd.to_datetime("NaT"))
     
     submit_lines_summary = pd.concat(
         [

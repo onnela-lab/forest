@@ -198,7 +198,7 @@ class Attributes:
         active_status: int | None = None,
         travelling_status: int | None = None,
         preferred_places: list[str] | None = None,
-        **kwargs
+        **_
     ):
         """Error check and generate missing data for attributes
 
@@ -246,9 +246,7 @@ class Attributes:
                 possible_exit2 = PossibleExits(possible_exit)
                 self.preferred_places.append(possible_exit2)
             
-            possible_exits2 = np.array([x
-                                        for x in PossibleExits
-                                        if x not in self.preferred_places])
+            possible_exits2 = np.array([x for x in PossibleExits if x not in self.preferred_places])
             random_exits = randomchoice(
                 possible_exits2, 3 - len(self.preferred_places), replace=False
             ).tolist()

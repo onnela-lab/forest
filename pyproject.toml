@@ -156,6 +156,7 @@ select = [  # (linting directives to enable)
     "A",       # flake8-annotations codes
     "SIM",     # code simplification rules - noqa with a reason if you ignore
     "TID",     # "tidy import" checks
+    "ARG",     # argument-related checks, unused args, (at least hide them with an _underscore)
     # "DTZ",     # Timezone checks - can't enable due to datetime handling
 ]
 
