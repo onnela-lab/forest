@@ -1319,9 +1319,13 @@ def gps_to_csv(
     
     s = datetime2stamp([start_date.year, start_date.month, start_date.day, 0, 0, 0], tz_str) * 1000
     
+    columns = list(data.columns)  # don't need user in our output files, they are per-user
+    columns.remove("user")
+    
     for user in np.unique(data["user"]):
-        traj = data[data["user"] == user].iloc[:, 1:]
-        
+        traj = data[data["user"] == user]
+
+        # iterate through range, write to file.
         for i in range((end_date - start_date).days):
             for j in range(24):
                 
@@ -1330,10 +1334,9 @@ def gps_to_csv(
                 
                 temp = traj[(traj["timestamp"] >= s_lower) & (traj["timestamp"] < s_upper)]
                 
-                [y, m, d, h, _, _] = stamp2datetime(s_lower / 1000, tz_str)
+                y, m, d, h, _, _ = stamp2datetime(s_lower / 1000, tz_str)
                 
                 filename = f"{y}-{m:0>2}-{d:0>2} {h:0>2}_00_00.csv"
-                
                 os.makedirs(f"{path}/user_{user}/gps/", exist_ok=True)
                 
-                temp.to_csv(f"{path}/user_{user}/gps/{filename}", index=False)
+                temp.to_csv(f"{path}/user_{user}/gps/{filename}", index=False, columns=columns)

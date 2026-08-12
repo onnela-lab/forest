@@ -1,15 +1,18 @@
 """ Tests for simulate_gps_data module """
 
 import datetime
+import os
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from forest.bonsai.simulate_gps_data import (ActionType, Attributes, bounding_box, gen_all_traj,
-    gen_basic_pause, gen_basic_traj, gen_route_traj, get_basic_path, get_path, load_attributes,
-    Occupation, Person, PossibleExits, prepare_data, process_switches, remove_data, sim_gps_data,
-    Vehicle)
+    gen_basic_pause, gen_basic_traj, gen_route_traj, get_basic_path, get_path, gps_to_csv,
+    load_attributes, Occupation, Person, PossibleExits, prepare_data, process_switches, remove_data,
+    sim_gps_data, Vehicle)
 from forest.jasmine.data2mobmat import great_circle_dist
+from forest.poplar.legacy.common_funcs import datetime2stamp
 
 
 @pytest.fixture(scope="session")
@@ -362,7 +365,7 @@ def test_generate_addresses_uses_overpass_helper(mocker):
         "forest.bonsai.simulate_gps_data.overpass_request_json", return_value=overpass_result
     )
     mocker.patch("forest.bonsai.simulate_gps_data.np.random.choice", return_value=np.arange(100))
-
+    
     # sorting the list of objects returned here is hard to sort, the list itself makes an api call
     # and just isn't stable (also might be brittle)
     result = list(generate_addresses("GB", "Bristol"))
@@ -977,3 +980,89 @@ def test_sim_gps_data_multiple_people(
         attributes_dict=sample_attributes,
     )
     assert len(np.unique(data.user)) == 3
+
+
+# These tests for the gps_to_csv function were mostly generated using Anthropic Claude
+GPS_CSV_LAT = 64.1265
+GPS_CSV_LON = -21.8174
+
+
+def gps_to_csv_timestamp_ms(year, month, day, hour, minute):
+    # use UTC to make things easy
+    return datetime2stamp([year, month, day, hour, minute, 0], "UTC") * 1000
+
+
+@pytest.fixture
+def gps_to_csv_data():
+    """ simple fixture for some data of the correct format in a dataframe """
+    rows = [
+        # user, timestamp, UTC time, latitude, longitude, altitude, accuracy
+        (1, gps_to_csv_timestamp_ms(2021, 10, 1, 5, 10), 0, GPS_CSV_LAT, GPS_CSV_LON, 0, 20),
+        (1, gps_to_csv_timestamp_ms(2021, 10, 1, 5, 45), 0, GPS_CSV_LAT + 0.001, GPS_CSV_LON, 0, 20),
+        (1, gps_to_csv_timestamp_ms(2021, 10, 1, 10, 0), 0, GPS_CSV_LAT, GPS_CSV_LON, 0, 20),
+        (2, gps_to_csv_timestamp_ms(2021, 10, 1, 0, 5), 0, GPS_CSV_LAT, GPS_CSV_LON, 0, 20),
+    ]
+    return pd.DataFrame(
+        rows,
+        columns=["user", "timestamp", "UTC time", "latitude", "longitude", "altitude", "accuracy"],
+    )
+
+
+def test_gps_to_csv_creates_hourly_files_per_user(gps_to_csv_data, tmp_path):
+    """Test one csv file is created per hour, per user, over the date range"""
+    gps_to_csv(
+        gps_to_csv_data, str(tmp_path), datetime.date(2021, 10, 1), datetime.date(2021, 10, 2)
+    )
+    
+    user1_files = os.listdir(tmp_path / "user_1" / "gps")
+    user2_files = os.listdir(tmp_path / "user_2" / "gps")
+    assert len(user1_files) == 24
+    assert len(user2_files) == 24
+
+
+def test_gps_to_csv_places_rows_in_correct_hour_file(gps_to_csv_data, tmp_path):
+    """Test rows are written into the csv matching their timestamp's hour"""
+    gps_to_csv(
+        gps_to_csv_data, str(tmp_path), datetime.date(2021, 10, 1), datetime.date(2021, 10, 2)
+    )
+    
+    hour5 = pd.read_csv(tmp_path / "user_1" / "gps" / "2021-10-01 05_00_00.csv")
+    hour6 = pd.read_csv(tmp_path / "user_1" / "gps" / "2021-10-01 06_00_00.csv")
+    hour10 = pd.read_csv(tmp_path / "user_1" / "gps" / "2021-10-01 10_00_00.csv")
+    
+    assert len(hour5) == 2
+    assert len(hour6) == 0
+    assert len(hour10) == 1
+
+
+def test_gps_to_csv_separates_users(gps_to_csv_data, tmp_path):
+    """Test data from different users is written to separate directories"""
+    gps_to_csv(
+        gps_to_csv_data, str(tmp_path), datetime.date(2021, 10, 1), datetime.date(2021, 10, 2)
+    )
+    
+    user1_hour0 = pd.read_csv(tmp_path / "user_1" / "gps" / "2021-10-01 00_00_00.csv")
+    user2_hour0 = pd.read_csv(tmp_path / "user_2" / "gps" / "2021-10-01 00_00_00.csv")
+    
+    assert len(user1_hour0) == 0
+    assert len(user2_hour0) == 1
+
+
+def test_gps_to_csv_excludes_user_column(gps_to_csv_data, tmp_path):
+    """Test the "user" column is not written to the per-user csv files"""
+    gps_to_csv(
+        gps_to_csv_data, str(tmp_path), datetime.date(2021, 10, 1), datetime.date(2021, 10, 2)
+    )
+    
+    hour5 = pd.read_csv(tmp_path / "user_1" / "gps" / "2021-10-01 05_00_00.csv")
+    assert list(hour5.columns) == \
+        ["timestamp", "UTC time", "latitude", "longitude", "altitude", "accuracy"]
+
+
+def test_gps_to_csv_raises_value_error_for_unknown_timezone(gps_to_csv_data, tmp_path, mocker):
+    """Test a ValueError is raised when the timezone cannot be determined"""
+    mocker.patch("forest.bonsai.simulate_gps_data.TimezoneFinder.timezone_at", return_value=None)
+    with pytest.raises(ValueError):
+        gps_to_csv(
+            gps_to_csv_data, str(tmp_path), datetime.date(2021, 10, 1), datetime.date(2021, 10, 2)
+        )
