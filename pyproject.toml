@@ -109,18 +109,16 @@ python_version = "3.12"
 
 
 [[tool.mypy.overrides]]
+# remember to run mypy --install-types
 module = [
     "audioread",
     "audioread.*",
-    "holidays",
     "openrouteservice",
     "openrouteservice.*",
-    "ratelimit",
     "scipy.*",
     "shapely.*",
     "soundfile",
     "ssqueezepy",
-    "timezonefinder",
 ]
 ignore_missing_imports = true
 
