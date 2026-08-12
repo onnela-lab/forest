@@ -204,10 +204,7 @@ def read_data(
         all_timestamps += directory_filestamps.tolist()
     
     stamp_end1 = sorted(all_timestamps)[-1]
-    if time_end is None:
-        stamp_end = stamp_end1
-    else:
-        stamp_end = min(stamp_end1, datetime2stamp(time_end, tz_str))
+    stamp_end = stamp_end1 if time_end is None else min(stamp_end1, datetime2stamp(time_end, tz_str))
     
     # extract the filenames in range
     files_in_range = list(filenames[(filestamps >= stamp_start) * (filestamps < stamp_end)])

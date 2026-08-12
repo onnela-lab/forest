@@ -32,9 +32,8 @@ def subset_answer_choices(answer: list) -> list:
     if isinstance(answer[0], float):
         answer = answer[1:]
     
-    if len(answer) > 1:
-        if answer[-1] == answer[-2]:
-            answer = answer[:-1]
+    if len(answer) > 1 and answer[-1] == answer[-2]:
+        answer = answer[:-1]
     return answer
 
 

@@ -152,9 +152,9 @@ def get_question_ids(survey_dict: dict[str, dict], audio_survey_id_dict: dict[st
     
     question_ids = []
     for question in survey_dict["content"]:
-        if "question_id" in question.keys():
+        if "question_id" in question:
             question_ids.append(question["question_id"])
-        elif "prompt" in question.keys():
+        elif "prompt" in question:
             audio_prompt = question["prompt"]
             if audio_prompt not in audio_survey_id_dict:
                 logger.warning(f"Unable to find survey ID for audio prompt {audio_prompt}")
@@ -685,10 +685,10 @@ def get_all_interventions_dict(filepath: str | None) -> dict:
     full_dict = read_json(filepath)
     output_dict: dict = {}
     
-    for user in full_dict.keys():
+    for user in full_dict:
         output_dict[user] = {}
-        for survey in full_dict[user].keys():
-            for time in full_dict[user][survey].keys():
+        for survey in full_dict[user]:
+            for time in full_dict[user][survey]:
                 output_dict[user][time] = full_dict[user][survey][time]
     
     return output_dict

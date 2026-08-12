@@ -551,14 +551,11 @@ class Person:
         distance = great_circle_dist(*origin, *destination)[0]
         
         # if very short distance do not take any vehicle (less than 1km)
-        if distance <= 1000:
-            transport = Vehicle.FOOT
-        else:
-            transport = self.attributes.vehicle
+        transport = Vehicle.FOOT if distance <= 1000 else self.attributes.vehicle
         
         coords_str = f"{origin[0]}_{origin[1]}_{destination[0]}_{destination[1]}"
         
-        if coords_str in self.trips.keys():
+        if coords_str in self.trips:
             path = self.trips[coords_str]
         else:
             path, _ = get_path(origin, destination, transport, api_key)
@@ -1029,7 +1026,7 @@ def process_switches(attributes: dict[str, dict], key: str) -> dict[str, int]:
     """
     switches = {}
     
-    for x in attributes[key].keys():
+    for x in attributes[key]:
         key_list = x.split("-")
         if len(key_list) == 2:
             switches[x] = attributes[key][x]
@@ -1061,10 +1058,7 @@ def load_attributes(
         if match is None:
             raise ValueError(f"Wrong format in attributes.json on {key}")
         users = match.group(0).split("-")
-        if len(users) == 1:
-            up_to = int(users[0])
-        else:
-            up_to = int(users[1])
+        up_to = int(users[0]) if len(users) == 1 else int(users[1])
         for user in range(int(users[0]), up_to + 1):
             attrs = Attributes(**attributes[key])
             switches = process_switches(attributes, key)
@@ -1235,9 +1229,9 @@ def sim_gps_data(
         )
     
     for user in range(1, n_persons + 1):
-        if user not in attributes_dictionary.keys():
+        if user not in attributes_dictionary:
             attributes_dictionary[user] = Attributes()
-        if user not in switches_dictionary.keys():
+        if user not in switches_dictionary:
             switches_dictionary[user] = {}
     
     logger.info("Gathering Addresses...")
@@ -1296,10 +1290,7 @@ def sim_gps_data(
         obs = remove_data(all_traj, cycle, percentage, no_of_days)
         obs_pd = prepare_data(obs, int(timestamp_s / 1000), tz_str)
         obs_pd['user'] = user + 1
-        if gps_data.empty:
-            gps_data = obs_pd
-        else:
-            gps_data = pd.concat([gps_data, obs_pd])
+        gps_data = obs_pd if gps_data.empty else pd.concat([gps_data, obs_pd])
         
         user += 1
         ind += 1

@@ -61,7 +61,7 @@ def get_audio_survey_id_dict(history_path: str | None = None) -> dict[str, str]:
     
     history_dict = read_json(history_path)
     
-    for key in history_dict.keys():
+    for key in history_dict:
         most_recent_update = history_dict[key][-1]['survey_json']
         
         if most_recent_update is None:
@@ -70,7 +70,7 @@ def get_audio_survey_id_dict(history_path: str | None = None) -> dict[str, str]:
             continue
         if len(most_recent_update) == 0:
             continue
-        if "prompt" not in most_recent_update[0].keys():
+        if "prompt" not in most_recent_update[0]:
             continue
         output_dict[most_recent_update[0]['prompt']] = key
     
@@ -96,7 +96,7 @@ def get_config_id_dict(config_path: str | None = None) -> dict[str, int]:
     surveys = read_json(config_path)["surveys"]
     for index, survey in enumerate(surveys):
         
-        if "content" not in survey.keys():
+        if "content" not in survey:
             continue
         if not isinstance(survey["content"], list):
             continue
@@ -289,7 +289,7 @@ def read_aggregate_audio_recordings_stream(
     aggregated_data["data_stream"] = "audio_recordings"
     
     aggregated_data["config_id"] = aggregated_data["question text"].apply(
-        lambda x: audio_config_id_dict[x] if x in audio_config_id_dict else np.nan
+        lambda x: audio_config_id_dict.get(x, np.nan)
     )
     
     return aggregated_data

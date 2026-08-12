@@ -260,10 +260,7 @@ def update_c(c: np.ndarray, sigmax: float, s: np.ndarray) -> np.ndarray:
         np.ndarray, updated 2D array c.
     """
     d = np.shape(c)[0]
-    if d == 0:
-        u_c = np.array([0])
-    else:
-        u_c = np.hstack([np.vstack([c, np.zeros(d)]), np.zeros([d + 1, 1])])
+    u_c = np.array([0]) if d == 0 else np.hstack([np.vstack([c, np.zeros(d)]), np.zeros([d + 1, 1])])
     r = -1 / sigmax
     new_c = u_c + r * np.outer(s, s)
     return new_c
@@ -561,10 +558,7 @@ def sogp(
     indicator = 0
     
     for i in range(n):
-        if x_mat.ndim == 1:
-            x_current = x_mat[i]
-        else:
-            x_current = x_mat[i, :]
+        x_current = x_mat[i] if x_mat.ndim == 1 else x_mat[i, :]
         y_current = y_mat[i]
         
         k = update_similarity_all(bv, x_current, pars)

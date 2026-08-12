@@ -556,8 +556,8 @@ def create_mobility_trace(traj: np.ndarray) -> FP64Array:
 
 @numba.njit(cache=True, fastmath=True)
 def _is_sorted_unique(times: NDArray[np.float64]) -> bool:
-    for i in range(1, len(times)):
-        if times[i] <= times[i - 1]:
+    for i in range(1, len(times)):  # noqa - ruff with SIM enabled will mark this as simplifyable
+        if times[i] <= times[i - 1]:  # but the replacement is not numba compatible.
             return False
     return True
 
@@ -1085,10 +1085,7 @@ def final_daily_prep(
                 res += all_place_times_adjusted
             summary_stats.append(res)
             
-            if i % 2 == 0:
-                time_cat = "daytime"
-            else:
-                time_cat = "nighttime"
+            time_cat = "daytime" if i % 2 == 0 else "nighttime"
             log_tags[f"{day}/{mo}/{yr}, {time_cat}"] = (log_tags_temp)
     else:
         if obs_dur == 0:
@@ -1608,10 +1605,7 @@ def gps_summaries(
             # -log(1.00001) < 0 but the small value is added to avoid log(0)
             if num_sig == 1:
                 entropy = 0
-            if temp.shape[0] == 1:
-                diameter = 0.
-            else:
-                diameter = max(pairwise_great_circle_dist(temp[:, [1, 2]]))
+            diameter = 0.0 if temp.shape[0] == 1 else max(pairwise_great_circle_dist(temp[:, [1, 2]]))
             
             summary_stats, log_tags = final_daily_prep(
                 obs_dur,
@@ -2041,14 +2035,13 @@ def gps_stats_main(
         traj = imp_to_traj(imp_table, mobmat2, params_w)
         
         # raise error if traj coordinates are not in the range of [-90, 90] and [-180, 180]
-        if traj.shape[0] > 0:
-            if (
-                np.max(traj[:, 1]) > 90  or np.min(traj[:, 1]) < -90  or
-                np.max(traj[:, 2]) > 180 or np.min(traj[:, 2]) < -180 or
-                np.max(traj[:, 4]) > 90  or np.min(traj[:, 4]) < -90  or
-                np.max(traj[:, 5]) > 180 or np.min(traj[:, 5]) < -180
-            ):
-                raise ValueError(COORDS_OUT_OF_RANGE)
+        if traj.shape[0] > 0 and (
+            np.max(traj[:, 1]) > 90  or np.min(traj[:, 1]) < -90  or
+            np.max(traj[:, 2]) > 180 or np.min(traj[:, 2]) < -180 or
+            np.max(traj[:, 4]) > 90  or np.min(traj[:, 4]) < -90  or
+            np.max(traj[:, 5]) > 180 or np.min(traj[:, 5]) < -180
+        ):
+            raise ValueError(COORDS_OUT_OF_RANGE)
         
         # save all_memory_dict and all_bv_set
         with open(all_memory_dict_file, "wb") as f1, open(all_bv_set_file, "wb") as f2:

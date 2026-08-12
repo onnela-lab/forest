@@ -143,9 +143,8 @@ def text_analysis(
     for k, mlength in enumerate(message_lengths):
         if mlength == "MMS":
             message_lengths[k] = 0
-        if not isinstance(mlength, str):
-            if np.isnan(mlength):
-                message_lengths[k] = 0
+        if not isinstance(mlength, str) and np.isnan(mlength):
+            message_lengths[k] = 0
     
     message_lengths = message_lengths.astype(int)
     

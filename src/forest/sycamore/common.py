@@ -818,8 +818,7 @@ def read_aggregate_answers_stream(
     
     # convert to the iOS question types text
     aggregated_data["question type"] = aggregated_data["question type"].apply(
-        lambda x: QUESTION_TYPES_LOOKUP["Android"][x]
-        if x in QUESTION_TYPES_LOOKUP["Android"] else x
+        lambda x: QUESTION_TYPES_LOOKUP["Android"].get(x, x)
     )
     
     aggregated_data["data_stream"] = "survey_answers"
@@ -881,11 +880,10 @@ def fix_radio_answer_choices(
         ),
         "question answer options",
     ].unique()
-    
+
+    sep_dict = {}
     if config_path is not None:
         sep_dict = get_choices_with_sep_values(config_path, history_path)
-    else:
-        sep_dict = {}
     
     for answer_choices in radio_answer_choices_list:
         fixed_answer_choices = answer_choices
@@ -896,7 +894,7 @@ def fix_radio_answer_choices(
             ].unique()[0]
             # sep_dict wil only include keys for question IDs with semicolons/commas inside the
             # answer choice, so we can skip that question if it's not a key of sep_dict
-            if question_id not in sep_dict.keys():
+            if question_id not in sep_dict:
                 continue
             answer_list = sep_dict[question_id]
         else:
@@ -944,7 +942,7 @@ def update_qs_with_seps(qs_with_seps: dict, survey_content: list) -> dict:
     """
     
     for question in survey_content:
-        if "question_type" not in question.keys():
+        if "question_type" not in question:
             continue
         
         if question["question_type"] == "radio_button":
@@ -990,7 +988,7 @@ def get_choices_with_sep_values(
     if config_path is not None:
         study_config = read_json(config_path)
         
-        if "surveys" in study_config.keys():
+        if "surveys" in study_config:
             surveys_list = study_config["surveys"]
         else:
             logger.warning("No survey information found in config file")

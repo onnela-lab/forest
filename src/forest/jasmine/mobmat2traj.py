@@ -1198,9 +1198,8 @@ def imp_to_traj(
         # Iterate through the rows of the temporary trajectory
         start_idx, end_idx = 0, 1
         while start_idx < temp.shape[0]:
-            if end_idx < temp.shape[0]:
-                if temp[end_idx, 0] == temp[start_idx, 0]:
-                    end_idx += 1
+            if end_idx < temp.shape[0] and temp[end_idx, 0] == temp[start_idx, 0]:
+                end_idx += 1
             
             # Check if we have reached the end or found a different trajectory
             if (
