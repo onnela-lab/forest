@@ -200,3 +200,24 @@ def test_run_time_bounds_clip_data(tmp_path, rng):
     )
     bounded_ids = set(bounded["backend_id"]) if "backend_id" in bounded.columns else set()
     assert "rich" not in bounded_ids
+
+
+def test_intradaily_variability_normalizes_over_valid_pairs():
+    """IV with gaps must divide each sum by the count of terms that actually
+    contributed, not by the raw epoch count.
+
+    An alternating 0, 2, 0, 2, ... series has every squared successive
+    difference equal to 4 and variance 1, so its IV is exactly 4.0. Dropping
+    one 0 and one 2 (equal counts, so the mean stays 1.0) leaves every
+    surviving pair at squared-difference 4 and every present point at deviation
+    1, so IV must remain exactly 4.0 under valid-pairs normalization. The
+    pre-fix formula divides the gap-reduced numerator by the full epoch count
+    and so returns a biased value below 4.0.
+    """
+    base = np.array([0.0, 2.0] * 12)          # 24 epochs; even idx 0, odd idx 2
+    assert intradaily_variability(base) == pytest.approx(4.0)
+
+    gapped = base.copy()
+    gapped[4] = np.nan                         # drops a 0
+    gapped[9] = np.nan                         # drops a 2 -> mean unchanged
+    assert intradaily_variability(gapped) == pytest.approx(4.0)

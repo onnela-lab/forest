@@ -33,7 +33,7 @@ from forest.constants import Frequency
 logger = logging.getLogger(__name__)
 
 ACCELEROMETER_DIR = "accelerometer"
-SECONDS_PER_DAY = 86400
+SECONDS_PER_DAY = 86_400
 MIN_DAY_COVERAGE = 0.5  # fraction of a day required to emit a daily row
 
 
@@ -90,14 +90,28 @@ def intradaily_variability(activity: np.ndarray) -> float:
         The IV value, or NaN if it is undefined.
     """
     arr = _as_float_array(activity)
-    n_epochs = arr.size
-    if n_epochs < 2:
+    if arr.size < 2:
         return float("nan")
+
+    valid = ~np.isnan(arr)
+
+    # A successive difference is only defined when both of its endpoints are
+    # present; np.diff across a gap yields NaN, which np.nansum then drops. To
+    # keep the normalisation consistent we divide each sum by the count of
+    # terms that actually contributed rather than by the raw epoch count, so
+    # missing epochs neither inflate nor deflate IV. With no gaps this reduces
+    # exactly to the Van Someren n / (n - 1) form.
+    valid_pairs = valid[1:] & valid[:-1]
+    n_pairs = int(np.count_nonzero(valid_pairs))
+    n_valid = int(np.count_nonzero(valid))
+    if n_pairs < 1 or n_valid < 2:
+        return float("nan")
+
     grand_mean = np.nanmean(arr)
     diffs = np.diff(arr)
-    num = n_epochs * np.nansum(diffs ** 2)
-    den = (n_epochs - 1) * np.nansum((arr - grand_mean) ** 2)
-    return float(num / den) if den > 0 else float("nan")
+    mean_sq_diff = np.nansum(diffs ** 2) / n_pairs
+    variance = np.nansum((arr - grand_mean) ** 2) / n_valid
+    return float(mean_sq_diff / variance) if variance > 0 else float("nan")
 
 
 def _average_day_profile(activity: np.ndarray, epochs_per_day: int) -> np.ndarray:
@@ -162,6 +176,14 @@ def relative_amplitude(l5_value: float, m10_value: float) -> float:
 def cosinor(activity: np.ndarray, epoch_seconds: float, period_hours: float = 24.0) -> dict:
     """Single-component cosinor fit ``M + A cos(w t - phi)`` via OLS.
 
+    The phase is measured from the first element of ``activity``: ``t = 0`` is
+    index 0, so ``cosinor_acrophase_h`` is the peak time relative to the start
+    of the series. It equals a local *clock* hour only when the series begins
+    at local midnight, which ``run()`` guarantees by aligning to a
+    midnight-anchored day grid before calling this. A caller passing an
+    unaligned series gets a start-relative phase, not a clock hour. Days that
+    are not 24 h (DST transitions) are not yet handled; see the module notes.
+
     Args:
         activity: Per-epoch activity vector; NaNs are omitted.
         epoch_seconds: Epoch length in seconds.
@@ -169,7 +191,8 @@ def cosinor(activity: np.ndarray, epoch_seconds: float, period_hours: float = 24
 
     Returns:
         Dict with ``cosinor_mesor``, ``cosinor_amplitude``,
-        ``cosinor_acrophase_h`` (clock hour of peak, in [0, period)) and
+        ``cosinor_acrophase_h`` (peak time in [0, period); a local clock hour
+        when the series starts at local midnight, as ``run()`` ensures) and
         ``cosinor_r2``.
     """
     nan_result = {

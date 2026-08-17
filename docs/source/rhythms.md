@@ -40,6 +40,8 @@ run(study_folder, output_folder, tz_str, frequency,
 ### Default tuning parameters:
 ```
 # epoch length in seconds; must divide a 24-hour day evenly - epoch_seconds
+# (this is the length of one epoch, not the count per day: the number of
+# epochs in a 24-hour day is 86_400 / epoch_seconds, e.g. 1440 at 60 s)
 epoch_seconds = 60
 
 # numeric value of 1 g in the data's units (1.0 if the accelerometer is
