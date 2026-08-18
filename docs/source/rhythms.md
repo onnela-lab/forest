@@ -101,6 +101,20 @@ day-decomposable metrics (IS is recording-level only and is omitted):
 |     cosinor_r2          	|      float    	|     Coefficient of determination of the day's cosinor fit                  	|
 |     n_valid_epochs      	|       int     	|     Number of non-missing epochs in the day                               	|
 
+## Assumptions and limitations
+
+- **24-hour local days.** Days are treated as fixed 24-hour windows with a
+  constant number of epochs per day (`86_400 / epoch_seconds`). Days that are
+  not 24 hours long -- daylight-saving transitions, which produce 23- or
+  25-hour local days -- are not specially handled. On those specific days this
+  can bias valid-day coverage counts, day alignment, and the timing of L5,
+  M10, and the cosinor acrophase. This mirrors a wider assumption in the
+  codebase and is a known limitation.
+- **Local-midnight alignment.** Recording-level folding and the cosinor phase
+  assume the series starts at local midnight; `run()` guarantees this via the
+  day-grid alignment, but callers using the metric functions directly are
+  responsible for that alignment (see the `cosinor` docstring).
+
 ## References
 
 - Van Someren EJW, et al. Bright light therapy: improved sensitivity to its

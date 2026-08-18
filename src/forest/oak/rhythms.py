@@ -335,6 +335,9 @@ def _parse_bound(value: str | None, tz_str: str) -> pd.Timestamp | None:
 
 def _align_to_day_grid(activity: pd.Series, epoch_seconds: int) -> tuple[np.ndarray, pd.Timestamp]:
     """Pad to local-midnight-aligned whole days for epoch-of-day folding."""
+    # Assumes 24-hour local days: epochs_per_day is fixed regardless of DST, so
+    # 23-/25-hour transition days are not specially handled (known limitation,
+    # see rhythms.md).
     epochs_per_day = SECONDS_PER_DAY // int(epoch_seconds)
     index = pd.DatetimeIndex(activity.index)
     start = index[0].normalize()
