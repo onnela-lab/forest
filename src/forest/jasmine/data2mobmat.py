@@ -14,26 +14,12 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
-from forest.constants import EARTH_RADIUS_METERS
+from forest.constants import (BoolArr, EARTH_RADIUS_METERS, FP, FP64Arr, FP_TOLERANCE, FPorArr,
+    REQUIRES_FOUR_FLOATS)
 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-
-# This module suffers from extremely verbose typing strings that are impossible to read.
-# To make it legible we will create a shorthand.
-FP = float | np.float64
-BoolArr = NDArray[np.bool_]
-FP64Arr = NDArray[np.float64]
-FPorArr = FP | FP64Arr
-
-# numba has its own type system, we use some of them here
-REQUIRES_ALL_FLOAT_ARRAYS = "float64[:](float64[:], float64[:], float64[:], float64[:])"
-REQUIRES_FOUR_FLOATS = "float64[:](float64, float64, float64, float64)"
-TWO_FLOATS_THEN_TWO_FLOAT_ARRAYS = "float64[:](float64, float64, float64[:], float64[:])"
-
-TOLERANCE = 1e-6  # a minimum threshold
 
 
 def cartesian(lat: FPorArr, lon: FPorArr) -> tuple[FP, FP, FP] | tuple[FP64Arr, FP64Arr, FP64Arr]:
@@ -185,7 +171,7 @@ def shortest_dist_to_great_circle(location1: FP64Arr, location2: FP64Arr, locati
     lat, lon = location1[:, 0], location1[:, 1]
     
     # if loc2 and 3 are too close to determine a great circle, return 0
-    if (abs(lat_start - lat_end) < TOLERANCE and abs(lon_start - lon_end) < TOLERANCE):
+    if (abs(lat_start - lat_end) < FP_TOLERANCE and abs(lon_start - lon_end) < FP_TOLERANCE):
         return np.zeros(len(lat))
     
     x_coord, y_coord, z_coord = cartesian(lat, lon)
@@ -193,7 +179,7 @@ def shortest_dist_to_great_circle(location1: FP64Arr, location2: FP64Arr, locati
     x_end, y_end, z_end = cartesian(lat_end, lon_end)
     cross_product = np.cross(np.array([x_start, y_start, z_start]), np.array([x_end, y_end, z_end]))
     
-    N = cross_product / (np.linalg.norm(cross_product) + TOLERANCE)
+    N = cross_product / (np.linalg.norm(cross_product) + FP_TOLERANCE)
     C = np.array([x_coord, y_coord, z_coord]) / EARTH_RADIUS_METERS
     temp = np.dot(N, C)
     
@@ -955,10 +941,9 @@ def infer_mobmat(mobmat: NDArray, interval: float, r: float) -> NDArray:
     It carries out the following steps:
         1) Infers the unknown status for observations in the matrix.
         2) Combines close pauses into single pause events.
-        3) Joins flights (sequences of observations) together
-            to form a continuous trajectory.
-    In addition, it adds a column to the trajectory matrix indicating
-     whether an observation is 'observed' (1) or 'imputed' (0).
+        3) Joins flights (sequences of observations) together to form a continuous trajectory.
+    In addition, it adds a column to the trajectory matrix indicating whether an observation is
+    'observed' (1) or 'imputed' (0).
 
     Args:
         mobmat: np.array, a 2d numpy array (output from gps_to_mobmat())

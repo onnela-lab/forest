@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 from timezonefinder import TimezoneFinder
 
-from forest.poplar.constants.time import HOUR_S
+from forest.constants import HOUR_S
 
 
 logger = getLogger(__name__)

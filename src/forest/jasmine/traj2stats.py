@@ -10,7 +10,6 @@ import json
 import logging
 import os
 import pickle
-from dataclasses import dataclass
 from datetime import datetime
 
 import numba
@@ -25,7 +24,8 @@ from shapely.geometry.polygon import Polygon
 from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
-from forest.constants import Frequency, Frequency as Freq, OSMTags
+from forest.constants import (BoolArr, COORDS_OUT_OF_RANGE_MSG, FP64Arr, Frequency,
+    Frequency as Freq, Hyperparameters, MOBILITY_TRACE_CACHE, OSMTags, SECONDS_IN_DAY)
 from forest.jasmine.data2mobmat import (gps_to_mobmat, great_circle_dist, great_circle_dist_opt,
     great_circle_dist_specialized, infer_mobmat, pairwise_great_circle_dist)
 from forest.jasmine.mobmat2traj import imp_to_traj, impute_gps, locate_home, num_sig_places
@@ -38,94 +38,9 @@ from forest.utils import get_ids, overpass_request_json
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-PD_TRAJ_COLUMNS = ("status", "x0", "y0", "t0", "x1", "y1", "t1", "obs")
-
-FP64Array = NDArray[np.float64]
-BoolArray = NDArray[np.bool_]
-SECONDS_IN_DAY = 60 * 60 * 24
 
 PARS0 = tuple[int, int, float, int, int, float, float, float]
 PARS1 = tuple[int, int, int, int, float, float, float, int]
-
-TRACE_CACHE = dict[tuple[int, int, int] | str, tuple[FP64Array, FP64Array, FP64Array] | float]
-
-COORDS_OUT_OF_RANGE = "Trajectory coordinates are not in the range of [-90, 90] and [-180, 180]."
-
-@dataclass
-class Hyperparameters:
-    """Class containing hyperparemeters for gps imputation and trajectory
-     summary statistics calculation.
-    
-    Args:
-        itrvl, accuracylim, r, w, h: hyperparameters for the gps_to_mobmat function.
-        
-        itrvl, r: hyperparameters for the infer_mobmat function.
-        
-        l1, l2, l3, a1, a2, b1, b2, b3, sigma2, tol, d: hyperparameters for the bv_select function.
-        
-        l1, l2, a1, a2, b1, b2, b3, g, method, switch, num, linearity: hyperparameters for the
-            impute_gps function.
-        
-        itrvl, r, w, h: hyperparameters for the imp_to_traj function.
-        
-        log_threshold: int, time spent in a pause needs to exceed the
-            log_threshold to be placed in the log only if save_osm_log True, in minutes
-        
-        split_day_night: bool, True if you want to split all metrics to datetime and nighttime
-            patterns only for daily frequency
-        
-        person_point_radius: float, radius of the person's circle when discovering places near him
-            in pauses
-        
-        place_point_radius: float, radius of place's circle when place is returned as centre
-            coordinates from osm
-            
-        save_osm_log: bool, True if you want to output a log of locations visited and their tags
-        
-        quality_threshold: float, a percentage value of the fraction of data
-            required for a summary to be created
-        
-        pcr_bool: bool, True if you want to calculate the physical circadian rhythm
-        
-        pcr_window: int, number of days to look back and forward for calculating the physical
-            circadian rhythm
-        
-        pcr_sample_rate: int, number of seconds between each sample for calculating the physical
-            circadian rhythm
-    """
-    # imputation hyperparameters
-    l1: int = 60 * 60 * 24 * 10
-    l2: int = 60 * 60 * 24 * 30
-    l3: float = 0.002
-    g: int = 200
-    a1: int = 5
-    a2: int = 1
-    b1: float = 0.3
-    b2: float = 0.2
-    b3: float = 0.5
-    d: int = 100
-    sigma2: float = 0.01
-    tol: float = 0.05
-    switch: int = 3
-    num: int = 10
-    linearity: int = 2
-    method: str = "GLC"
-    itrvl: int = 10
-    accuracylim: int = 51
-    r: float | None = None
-    w: float | None = None
-    h: float | None = None
-    
-    # summary statistics hyperparameters
-    save_osm_log: bool = False
-    log_threshold: int = 60
-    split_day_night: bool = False
-    person_point_radius: float = 2
-    place_point_radius: float = 7.5
-    quality_threshold: float = 0.05
-    pcr_bool: bool = False
-    pcr_window: int = 14
-    pcr_sample_rate: int = 30
 
 
 def transform_point_to_circle(lat: float, lon: float, radius: float) -> Polygon:
@@ -267,7 +182,7 @@ def get_nearby_locations(
 def routine_index(
     time_range: tuple[int, int],
     mobility_trace: np.ndarray,
-    cache: TRACE_CACHE,
+    cache: MOBILITY_TRACE_CACHE,
     pcr_window: int = 14,
     pcr_sample_rate: int = 30,
     stratified: bool = False,
@@ -350,10 +265,10 @@ def _get_time_components(time_range, time_col, pcr_window):
 
 
 def _get_inner_params(
-    mobility_trace: FP64Array,
+    mobility_trace: FP64Arr,
     pcr_sample_rate: int,
-    cache: TRACE_CACHE
-) -> tuple[FP64Array, FP64Array, FP64Array]:
+    cache: MOBILITY_TRACE_CACHE
+) -> tuple[FP64Arr, FP64Arr, FP64Arr]:
     # These items are memory heavy, but are based on the value of an invariant - the mobility trace.
     # caching them instead of recomputing them is a 20% overall speedup.
     if params := cache.get("mobility_trace"):
@@ -378,10 +293,10 @@ def _innermost_loop(
     time_start: int,
     time_end: int,
     shifts: list[int],
-    cache: TRACE_CACHE,
-    time_col: FP64Array,
-    sampled_trace: FP64Array,
-    preallocated_array: FP64Array,
+    cache: MOBILITY_TRACE_CACHE,
+    time_col: FP64Arr,
+    sampled_trace: FP64Arr,
+    preallocated_array: FP64Arr,
 ) -> float:
     # This function is hit twice with calls that repeat work, we can save on that by caching answers
     # on the already known parameters. There is virtually no overhead, performance gain depends on
@@ -413,7 +328,7 @@ def _innermost_loop(
 # "float64(float64, float64, float64[:,:], float64[:,:])"
 @numba.njit(cache=True, fastmath=True)
 def avg_mobility_trace_difference(
-    time_start: int, time_end: int, mobility_trace1: FP64Array, mobility_trace2: FP64Array
+    time_start: int, time_end: int, mobility_trace1: FP64Arr, mobility_trace2: FP64Arr
 ) -> float:
     """ This function calculates the average mobility trace difference
 
@@ -450,8 +365,8 @@ def avg_mobility_trace_difference(
 # "Tuple((float64[:], float64[:], float64[:]))(int64, int64, float64[:,:], float64[:,:])"
 @numba.njit(cache=True, fastmath=True)
 def _masks_and_common(
-    time_start: int, time_end: int, trace1: FP64Array, trace2: FP64Array,
-) -> tuple[FP64Array, np.ndarray, np.ndarray]:
+    time_start: int, time_end: int, trace1: FP64Arr, trace2: FP64Arr,
+) -> tuple[FP64Arr, np.ndarray, np.ndarray]:
     """  """
     # wrapping this with numba jit yields about a 10% speedup overall improvement
     
@@ -468,8 +383,8 @@ def _masks_and_common(
 # "boolean[:](float64[:], float64[:,:], float64[:])"
 @numba.njit(cache=True, fastmath=True)
 def _trace_diff_and_mask(
-    common: FP64Array, mobility_trace: FP64Array, times: FP64Array
-) -> BoolArray:
+    common: FP64Arr, mobility_trace: FP64Arr, times: FP64Arr
+) -> BoolArr:
     """ Two-pointer merge: requires times be sorted ascending, which is guaranteed by
     create_mobility_trace's np.unique dedup/sort. """
     
@@ -489,7 +404,7 @@ def _trace_diff_and_mask(
 
 # "Tuple((float64, boolean))(float64[:])",
 @numba.njit(cache=True, fastmath=True)
-def _dist_flag_compute(dists: FP64Array) -> tuple[float, bool]:
+def _dist_flag_compute(dists: FP64Arr) -> tuple[float, bool]:
     # gets a moderate speedup from numba
     dist_flag = dists <= 10
     res = np.mean(dist_flag)
@@ -501,7 +416,7 @@ def _dist_flag_compute(dists: FP64Array) -> tuple[float, bool]:
 ## create_mobility_trace
 
 
-def create_mobility_trace(traj: np.ndarray) -> FP64Array:
+def create_mobility_trace(traj: np.ndarray) -> FP64Arr:
     """ This function creates a mobility trace from a trajectory
 
     Args:
@@ -1421,7 +1336,7 @@ def gps_summaries(
     saved_polygons: dict[str, Polygon] = {}
     
     mobility_trace = None
-    cache: TRACE_CACHE = {}
+    cache: MOBILITY_TRACE_CACHE = {}
     
     for i in range(num_windows):
         start_time2 = 0
@@ -1437,7 +1352,7 @@ def gps_summaries(
         
         # take a subset, the starting point of the last traj <end_time and the ending point of the
         # first traj >start_time
-        index_rows: BoolArray = (traj[:, 3] < end_time) * (traj[:, 6] > start_time)
+        index_rows: BoolArr = (traj[:, 3] < end_time) * (traj[:, 6] > start_time)
         
         if parameters.split_day_night:
             index_rows, stop1, stop2, start_time2, end_time2 = (
@@ -1690,7 +1605,7 @@ def _gps_frequency_init(
 
 
 def _gps_handle_empty_rows(
-    index_rows: BoolArray,
+    index_rows: BoolArr,
     frequency: Frequency,
     parameters: Hyperparameters,
     places_of_interest: list[str] | None,
@@ -2045,7 +1960,7 @@ def gps_stats_main(
             np.max(traj[:, 4]) > 90  or np.min(traj[:, 4]) < -90  or
             np.max(traj[:, 5]) > 180 or np.min(traj[:, 5]) < -180
         ):
-            raise ValueError(COORDS_OUT_OF_RANGE)
+            raise ValueError(COORDS_OUT_OF_RANGE_MSG)
         
         # save all_memory_dict and all_bv_set
         with open(all_memory_dict_file, "wb") as f1, open(all_bv_set_file, "wb") as f2:

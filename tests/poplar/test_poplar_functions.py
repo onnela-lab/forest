@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from forest.poplar.constants.time import UTC
+from forest.constants import UTC
 from forest.poplar.functions.helpers import (clean_dataframe, directory_size, get_windows, iqr,
     join_lists, sample_range, sample_std, sample_var, sort_by)
 from forest.poplar.functions.time import to_readable, to_timestamp

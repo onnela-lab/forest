@@ -4,7 +4,7 @@ from logging import getLogger
 
 import holidays
 
-from forest.poplar.constants.time import DATE_FORMAT
+from forest.constants import DATE_FORMAT
 
 
 logger = getLogger(__name__)
