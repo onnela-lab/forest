@@ -10,10 +10,9 @@ from os.path import join as pathjoin
 
 from pandas import DataFrame
 
-from forest.constants import Frequency, Frequency as Freq
+from forest.constants import EARLIEST_DATE, Frequency, Frequency as Freq
 from forest.sycamore.common import (aggregate_surveys_config, aggregate_surveys_no_config,
     get_month_from_today, write_data_by_user)
-from forest.sycamore.constants import EARLIEST_DATE
 from forest.sycamore.responses import agg_changed_answers_summary, format_responses_by_submission
 from forest.sycamore.submits import summarize_submits, survey_submits, survey_submits_no_config
 from forest.utils import get_ids

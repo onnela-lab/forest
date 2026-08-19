@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import soundfile
 
-from forest.sycamore.constants import EARLIEST_DATE
+from forest.constants import EARLIEST_DATE
 from forest.sycamore.utils import filename_to_timestamp, get_month_from_today, read_json
 from forest.utils import get_ids
 

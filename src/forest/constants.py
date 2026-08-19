@@ -7,6 +7,7 @@ from enum import Enum
 from zoneinfo import ZoneInfo
 
 import numpy as np
+import pandas as pd
 from numpy.typing import NDArray
 
 
@@ -26,6 +27,19 @@ MOBILITY_TRACE_CACHE = dict[tuple[int, int, int] | str, tuple[FP64Arr, FP64Arr, 
 
 
 #
+## Messages
+#
+# src/forest/jasmine/traj2stats.py
+COORDS_OUT_OF_RANGE_MSG = "Trajectory coordinates are not in the range of [-90, 90] and [-180, 180]."
+
+NO_SURVEY_HISTORY_MSG = "No survey history path included. If you have changed radio survey " \
+"answer choices since starting your study, and if you used semicolons or commas in those " \
+"answer choices, incorrect survey responses may be output for android devices"
+
+
+
+
+#
 ## Constants
 #
 
@@ -36,8 +50,9 @@ SECONDS_PER_WEEK_TIMES_PI = 604_800 * math.pi
 
 # src/forest/jasmine/data2mobmat.py
 EARTH_RADIUS_METERS = 6.371*10**6
-FP_TOLERANCE = 1e-6  # a minimum threshold
+GEE = 9.80665  # Earth's gravity (meters/second^2)
 
+FP_TOLERANCE = 1e-6  # a minimum threshold
 
 ## Time
 SECONDS_IN_DAY = 60 * 60 * 24
@@ -115,10 +130,6 @@ TRAVELLING_STATUS_LIST = range(11)
 ## Numba type declaration for the great circle functions
 # numba has its own type system, we use some of them here
 REQUIRES_FOUR_FLOATS = "float64[:](float64, float64, float64, float64)"
-
-
-# src/forest/jasmine/traj2stats.py
-COORDS_OUT_OF_RANGE_MSG = "Trajectory coordinates are not in the range of [-90, 90] and [-180, 180]."
 
 
 @dataclass
@@ -247,3 +258,61 @@ OFFSET_DATETIME_FORMAT = " ".join([DATE_FORMAT, TIME_FORMAT, OFFSET_FORMAT])
 
 # commonly used time zones
 UTC = ZoneInfo("UTC")
+
+
+# Bytes, see https://physics.nist.gov/cuu/Units/binary.html
+BYTES_DEC = {
+    "B": 1,
+    "KB": 10**3,
+    "MB": 10**6,
+    "GB": 10**9,
+    "TB": 10**12,
+    "PB": 10**15,
+}
+BYTES_BIN = {
+    "B": 1,
+    "KiB": 2**10,
+    "MiB": 2**20,
+    "GiB": 2**30,
+    "TiB": 2**40,
+    "PiB": 2**50,
+}
+BYTES = {**BYTES_DEC, **BYTES_BIN}
+
+
+
+
+## Sycamore tree constants
+
+
+# We want our default date to be farther in the past than any Beiwe data could have been collected,
+# so we never cut off data by default. But, if we set our default date too far in the past, we would
+# generate too many weekly survey timings
+EARLIEST_DATE = "2010-01-01"
+
+# load events & question types dictionary
+QUESTION_TYPES_LOOKUP = {
+    "Android":
+        {
+            "Checkbox Question": "checkbox",
+            "Info Text Box": "info_text_box",
+            "Open Response Question": "free_response",
+            "Radio Button Question": "radio_button",
+            "Slider Question": "slider",
+        },
+    "iOS":
+        {
+            "checkbox": "checkbox",
+            "free_response": "free_response",
+            "info_text_box": "info_text_box",
+            "radio_button": "radio_button",
+            "slider": "slider",
+        }
+}
+
+# On 6 Dec 2016, a commit was pushed which changed the behavior of Android Radio question answers.
+# The commit was called "Gets nullable Integer answers from sliders and radio button questions" and
+# can be found at.
+
+# https://github.com/onnela-lab/beiwe-android/commit/6341eb5498ceeffcb64d65c2dd2bcfdab9b982f2
+ANDROID_NULLABLE_ANSWER_CHANGE_DATE = pd.to_datetime("2016-12-06")

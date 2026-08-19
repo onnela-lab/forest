@@ -14,18 +14,14 @@ from os.path import basename, isdir as isdirectory, join as pathjoin
 import numpy as np
 import pandas as pd
 
-from forest.sycamore.constants import (ANDROID_NULLABLE_ANSWER_CHANGE_DATE, EARLIEST_DATE,
-    QUESTION_TYPES_LOOKUP)
+from forest.constants import (ANDROID_NULLABLE_ANSWER_CHANGE_DATE, EARLIEST_DATE,
+    NO_SURVEY_HISTORY_MSG, QUESTION_TYPES_LOOKUP)
 from forest.sycamore.read_audio import read_aggregate_audio_recordings_stream
 from forest.sycamore.utils import filename_to_timestamp, get_month_from_today, read_json
 from forest.utils import get_ids
 
 
 logger = logging.getLogger(__name__)
-
-NO_SURVEY_HISTORY_MSG = "No survey history path included. If you have changed radio survey " \
-    "answer choices since starting your study, and if you used semicolons or commas in those " \
-    "answer choices, incorrect survey responses may be output for android devices"
 
 
 def safe_read_csv(filepath: str) -> pd.DataFrame:
