@@ -68,3 +68,10 @@ class OSMTags(Enum):
     TOURISM = "tourism"
     WATER = "water"
     WATERWAY = "waterway"
+
+
+## src: simulate_gps_data.py
+
+
+ACTIVE_STATUS_LIST = range(11)  # ranges are special objects that can be iterated over multiple times
+TRAVELLING_STATUS_LIST = range(11)
