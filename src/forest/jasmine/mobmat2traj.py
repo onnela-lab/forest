@@ -12,6 +12,7 @@ import numba
 import numpy as np
 import scipy.stats as stat
 
+from forest.constants import K1_PARAMS
 from forest.jasmine.data2mobmat import (exist_knot, fp_great_circle_dist, great_circle_dist,
     great_circle_dist_opt)
 from forest.poplar.legacy.common_funcs import stamp2datetime
@@ -165,7 +166,7 @@ def calculate_k1(
     x_coord: float,
     y_coord: float,
     bv_subset: np.ndarray,
-    parameters: tuple,
+    k1_params: K1_PARAMS,
 ) -> np.ndarray:
     """ Calculate the similarity measure between a given point and a set of base vectors, using one
         of three specified methods: 'TL', 'GL', or 'GLC'.
@@ -181,7 +182,7 @@ def calculate_k1(
             The y-coordinate (e.g. lattitude) of the point to compare.
         bv_subset: np.ndarray,
             A set of base vectors to compare with, typically a subset of output from BV_select().
-        parameters: tuple,
+        parameters: tuple[int, int, int, int, float, float, float, int],
             A list of parameters to use for the calculation.
     
     Returns:
@@ -191,7 +192,7 @@ def calculate_k1(
     Raises:
         ValueError: If an invalid method is specified.
     """
-    len1, len2, amplitude1, amplitude2, weight1, weight2, weight3, spatial_scale = parameters
+    len1, len2, amplitude1, amplitude2, weight1, weight2, weight3, spatial_scale = k1_params
     mean_x, mean_y, mean_t = _means_xyz(bv_subset)
     
     # 'TL' method
@@ -249,7 +250,7 @@ def indicate_flight(
     bv_subset: np.ndarray,
     switch: int,
     num: int,
-    pars: tuple,
+    k1_params: K1_PARAMS,
 ) -> np.ndarray:
     """ This function generates a binary variable to indicate whether a person is moving or not.
 
@@ -274,19 +275,18 @@ def indicate_flight(
         num: int
             checks the top k similarities.
             This helps to avoid the cumulative effect of many low probability trajectories.
-        pars: tuple
+        k1_params: tuple[int, int, int, int, float, float, float, int]
             the parameters that are required for the calculate_k1 function.
     
     Returns:
         numpy.ndarray: A 1D array of 0 and 1, indicating the status of an incoming flight.
     """
     p1 = _indicate_flight(
-        method, current_t, current_x, current_y, dest_t, dest_x, dest_y, bv_subset, num, pars
+        method, current_t, current_x, current_y, dest_t, dest_x, dest_y, bv_subset, num, k1_params
     )
     
-    # Generate the binary variables
-    movement_indicator = stat.bernoulli.rvs(p1, size=switch)
-    return movement_indicator
+    # Generate the binary variables - a movement_indicator
+    return stat.bernoulli.rvs(p1, size=switch)
 
 
 @numba.njit(cache=True, fastmath=True)
@@ -300,11 +300,11 @@ def _indicate_flight(
     dest_y: float,
     bv_subset: np.ndarray,
     num: int,
-    pars: tuple,
+    k1_params: K1_PARAMS,
 ) -> int:
-    """ The bulk of indicate_flight can be optimized with numba. """
+    """ The bulk of indicate_flight can be optimized with Numba. """
     # Calculate k1 using the specified method
-    k1 = calculate_k1(method, current_t, current_x, current_y, bv_subset, pars)
+    k1 = calculate_k1(method, current_t, current_x, current_y, bv_subset, k1_params)
     if k1 is None:
         raise ValueError("Invalid method for calculate_k1.")
     
@@ -568,8 +568,7 @@ def adjust_delta_if_needed(
 
 
 def calculate_position(
-    start_t: float, end_t: float, try_t: float,
-    start_delta: float, end_delta: float
+    start_t: float, end_t: float, try_t: float, start_delta: float, end_delta: float
 ) -> float:
     """ This function calculates the position of a point at a given time.
     
@@ -608,7 +607,7 @@ def forward_impute(
     bv_subset: np.ndarray,
     switch: int,
     num: int,
-    pars: tuple,
+    k1_params: K1_PARAMS,
     flight_table: np.ndarray,
     linearity: float,
     mis_row: np.ndarray,
@@ -635,7 +634,7 @@ def forward_impute(
             the number of binary variables to be generated
         num: int
             checks the top k similarities
-        pars: tuple
+        k1_params: tuple[int, int, int, int, float, float, float, int]
             the parameters that are required for the calculate_k1 function
         flight_table: np.ndarray
             output from create_tables()
@@ -664,7 +663,7 @@ def forward_impute(
     """
     
     flight_indication = indicate_flight(
-        method, start_t, start_x, start_y, end_t, end_x, end_y, bv_subset, switch, num, pars
+        method, start_t, start_x, start_y, end_t, end_x, end_y, bv_subset, switch, num, k1_params
     )
     
     condition = (
@@ -673,10 +672,7 @@ def forward_impute(
     )
     
     if condition:
-        weight = calculate_k1(
-            method, start_t, start_x, start_y,
-            flight_table, pars
-        )
+        weight = calculate_k1(method, start_t, start_x, start_y, flight_table, k1_params)
         if weight is None or len(weight) == 0:
             raise ValueError("Invalid method for calculate_k1.")
         
@@ -736,7 +732,7 @@ def forward_impute(
             start_x, start_y, start_t, start_s = end_x, end_y, current_t, 1
             counter += 1
         else:
-            weight = calculate_k1(method, start_t, start_x, start_y, pause_table, pars)
+            weight = calculate_k1(method, start_t, start_x, start_y, pause_table, k1_params)
             if weight is None:
                 raise ValueError("Invalid method for calculate_k1.")
             
@@ -772,7 +768,7 @@ def backward_impute(
     bv_subset: np.ndarray,
     switch: int,
     num: int,
-    pars: tuple,
+    k1_params: K1_PARAMS,
     flight_table: np.ndarray,
     linearity: float,
     mis_row: np.ndarray,
@@ -801,7 +797,7 @@ def backward_impute(
             the number of binary variables to be generated
         num: int
             checks the top k similarities
-        pars: tuple
+        k1_params: tuple[int, int, int, int, float, float, float, int]
             the parameters that are required for the calculate_k1 function
         flight_table: np.ndarray
             output from create_tables()
@@ -834,14 +830,14 @@ def backward_impute(
     
     flight_indication = indicate_flight(
         method, end_t, end_x, end_y, start_t, start_x,
-        start_y, bv_subset, switch, num, pars
+        start_y, bv_subset, switch, num, k1_params
     )
     
     condition = (sum(flight_indication == 1) == switch and end_s == 2) or \
         (sum(flight_indication == 0) < switch and end_s == 1)
     
     if condition:
-        weight = calculate_k1(method, end_t, end_x, end_y, flight_table, pars)
+        weight = calculate_k1(method, end_t, end_x, end_y, flight_table, k1_params)
         if weight is None:
             raise ValueError("Invalid method for calculate_k1.")
         
@@ -900,7 +896,7 @@ def backward_impute(
             counter += 1
         
         else:
-            weight = calculate_k1(method, end_t, end_x, end_y, pause_table, pars)
+            weight = calculate_k1(method, end_t, end_x, end_y, pause_table, k1_params)
             
             if weight is None or len(weight) == 0:
                 raise ValueError("Invalid method for calculate_k1.")
@@ -935,7 +931,7 @@ def impute_gps(
     num: int,
     linearity: float,
     tz_str: str,
-    pars: tuple,
+    k1_params: K1_PARAMS,
 ) -> np.ndarray:
     """
     This is the algorithm for the bi-directional imputation in the paper
@@ -955,7 +951,7 @@ def impute_gps(
             controls the smoothness of a trajectory
         tz_str: str
             time zone
-        pars: tuple
+        params: TRAJ_PARAMS_LIST_2
             the parameters that are required for the calculate_k1 function
 
     Returns:
@@ -1115,7 +1111,7 @@ def impute_gps(
                             bv_subset,
                             switch,
                             num,
-                            pars,
+                            k1_params,
                             flight_table,
                             linearity,
                             mis_table[i, :],
@@ -1137,7 +1133,7 @@ def impute_gps(
                             bv_subset,
                             switch,
                             num,
-                            pars,
+                            k1_params,
                             flight_table,
                             linearity,
                             mis_table[i, :],

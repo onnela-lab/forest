@@ -17,27 +17,27 @@ import logging
 import numba
 import numpy as np
 
-from forest.constants import SECONDS_PER_DAY_TIMES_PI, SECONDS_PER_WEEK_TIMES_PI
+from forest.constants import K0_PARAMS, SECONDS_PER_DAY_TIMES_PI, SECONDS_PER_WEEK_TIMES_PI
 
 
 logger = logging.getLogger(__name__)
 
 
 @numba.njit(cache=True, fastmath=True)
-def calculate_k0(x1: np.ndarray, x2: np.ndarray, pars: tuple) -> float:
+def calculate_k0(x1: np.ndarray, x2: np.ndarray, k0_params: K0_PARAMS) -> float:
     """ This function calculates the similarity between two points
     
     Args:
         x1, x2: np.ndarrays with length 2
             x1 = [a,b], with a as timestamp and b as latitude or longitude
         
-        pars: tuple
+        k0_params: tuple[int, int, float, int, int, float, float, float]
             a list of parameters used in the similarity function
     
     Returns:
         float, the similarity between x1 and x2
     """
-    l1, l2, l3, a1, a2, b1, b2, b3 = pars
+    l1, l2, l3, a1, a2, b1, b2, b3 = k0_params
 
     dt = abs(x1[0] - x2[0])
     sin_daily = np.sin(dt / SECONDS_PER_DAY_TIMES_PI) ** 2
@@ -48,7 +48,7 @@ def calculate_k0(x1: np.ndarray, x2: np.ndarray, pars: tuple) -> float:
     return b1 * k1 + b2 * k2 + b3 * k3
 
 
-def update_similarity(bv: list, k_mat: np.ndarray, pars: tuple) -> np.ndarray:
+def update_similarity(bv: list, k_mat: np.ndarray, k0_params: K0_PARAMS) -> np.ndarray:
     """ Update the similarity matrix between basis vectors.
     
     Args:
@@ -57,7 +57,7 @@ def update_similarity(bv: list, k_mat: np.ndarray, pars: tuple) -> np.ndarray:
         
         k_mat: np.ndarray, a 2D array.
         
-        pars: tuple
+        k0_params: tuple[int, int, float, int, int, float, float, float]
             a list of parameters used in the similarity function.
     
     Returns:
@@ -72,12 +72,12 @@ def update_similarity(bv: list, k_mat: np.ndarray, pars: tuple) -> np.ndarray:
     
     for i in range(d):
         x1, x2 = bv[-1][:-1], bv[i][:-1]
-        row[i] = column[i, 0] = calculate_k0(x1, x2, pars)
+        row[i] = column[i, 0] = calculate_k0(x1, x2, k0_params)
     
     return np.hstack([np.vstack([k_mat, row]), column])
 
 
-def update_similarity_all(bv: list, x1: np.ndarray, pars: tuple) -> np.ndarray:
+def update_similarity_all(bv: list, x1: np.ndarray, k0_params: K0_PARAMS) -> np.ndarray:
     """ Compute the similarity vector between
         the current input and all basis vectors.
     
@@ -86,7 +86,7 @@ def update_similarity_all(bv: list, x1: np.ndarray, pars: tuple) -> np.ndarray:
             a list of basis vectors.
         x1: np.ndarray
             the current input, which is a 1D array.
-        pars: tuple
+        k0_params: tuple[int, int, float, int, int, float, float, float]
             a list of parameters used in the similarity function.
     
     Returns:
@@ -101,7 +101,7 @@ def update_similarity_all(bv: list, x1: np.ndarray, pars: tuple) -> np.ndarray:
     
     for i in range(d):
         x2 = bv[i][:-1]
-        out[i] = calculate_k0(x1, x2, pars)
+        out[i] = calculate_k0(x1, x2, k0_params)
     
     return out
 
@@ -445,7 +445,7 @@ def pruning_bv(
     k: np.ndarray,
     sigma2: float,
     d: int,
-    pars: tuple,
+    k0_params: K0_PARAMS,
 ) -> tuple[list, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """ Prune the basis vectors.
     
@@ -458,7 +458,7 @@ def pruning_bv(
         k: np.ndarray, a 2D array.
         sigma2: float, a scalar.
         d: int, a scalar.
-        pars: tuple,
+        k0_params: tuple[int, int, float, int, int, float, float, float],
             a list of parameters used in the similarity function.
     
     Returns:
@@ -474,7 +474,7 @@ def pruning_bv(
     q_mat = update_q_mat(q)
     s_mat = np.hstack([np.vstack([s, np.zeros(d)]), np.zeros([d + 1, 1])])
     s_mat[d, d] = 1 / sigma2
-    k_mat = update_similarity(bv, k, pars)
+    k_mat = update_similarity(bv, k, k0_params)
     eps = np.zeros(d)
     for j in range(d):
         eps[j] = (
@@ -509,7 +509,7 @@ def sogp(
     sigma2: float,
     tol: float,
     d: int,
-    pars: tuple,
+    k0_params: K0_PARAMS,
     q_mat: np.ndarray,
     c_mat: np.ndarray,
     alpha: np.ndarray,
@@ -534,7 +534,7 @@ def sogp(
         sigma2: scalar, hyperparameter
         tol: scalar, hyperparameter
         d: scalar, hyperparameter
-        pars: tuple
+        k0_params: tuple[int, int, float, int, int, float, float, float]
             a list of parameters used in the similarity function
         q_mat: 2d array (d*d)
             a summary of previous processed data
@@ -558,7 +558,7 @@ def sogp(
         x_current = x_mat[i] if x_mat.ndim == 1 else x_mat[i, :]
         y_current = y_mat[i]
         
-        k = update_similarity_all(bv, x_current, pars)
+        k = update_similarity_all(bv, x_current, k0_params)
         sigmax = calculate_sigma_max(c_mat, k, sigma2)
         q = update_q(k, alpha, sigmax, y_current)
         e_hat = update_e_hat(q_mat, k)
@@ -602,7 +602,7 @@ def sogp(
                 for i in range(d):
                     for j in range(d):
                         x1, x2 = bv[i][:-1], bv[j][:-1]
-                        K[i, j] = calculate_k0(x1, x2, pars)
+                        K[i, j] = calculate_k0(x1, x2, k0_params)
                 
                 S = np.linalg.inv(np.linalg.inv(c_mat) + K)
             
@@ -616,7 +616,7 @@ def sogp(
                     K,
                     sigma2,
                     d,
-                    pars,
+                    k0_params,
                 )
     
     return {"bv": bv, "alpha": alpha, "Q": q_mat, "C": c_mat}
@@ -627,7 +627,7 @@ def bv_select(
     sigma2: float,
     tol: float,
     d: int,
-    pars: tuple,
+    k0_params: K0_PARAMS,
     memory_dict: dict | None,
     bv_set: np.ndarray,
 ) -> dict:
@@ -645,7 +645,7 @@ def bv_select(
         sigma2: scalar, hyperparameter
         tol: scalar, hyperparameter
         d: scalar, hyperparameter
-        pars: tuple
+        k0_params: tuple[int, int, float, int, int, float, float, float],
             a list of parameters used in the similarity function
         memory_dict: dict
             a dictionary of dictionaries from sogp()
@@ -674,7 +674,7 @@ def bv_select(
         sigma2,
         tol,
         d,
-        pars,
+        k0_params,
         memory_dict["1"]["Q"],
         memory_dict["1"]["C"],
         memory_dict["1"]["alpha"],
@@ -691,7 +691,7 @@ def bv_select(
         sigma2,
         tol,
         d,
-        pars,
+        k0_params,
         memory_dict["2"]["Q"],
         memory_dict["2"]["C"],
         memory_dict["2"]["alpha"],
@@ -708,7 +708,7 @@ def bv_select(
         sigma2,
         tol,
         d,
-        pars,
+        k0_params,
         memory_dict["3"]["Q"],
         memory_dict["3"]["C"],
         memory_dict["3"]["alpha"],
@@ -725,7 +725,7 @@ def bv_select(
         sigma2,
         tol,
         d,
-        pars,
+        k0_params,
         memory_dict["4"]["Q"],
         memory_dict["4"]["C"],
         memory_dict["4"]["alpha"],

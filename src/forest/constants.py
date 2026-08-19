@@ -25,19 +25,18 @@ FPorArr = FP | FP64Arr
 # src/forest/jasmine/traj2stats.py
 MOBILITY_TRACE_CACHE = dict[tuple[int, int, int] | str, tuple[FP64Arr, FP64Arr, FP64Arr] | float]
 
+K0_PARAMS = tuple[int, int, float, int, int, float, float, float]
+K1_PARAMS = tuple[int, int, int, int, float, float, float, int]
+
 
 #
 ## Messages
 #
-# src/forest/jasmine/traj2stats.py
 COORDS_OUT_OF_RANGE_MSG = "Trajectory coordinates are not in the range of [-90, 90] and [-180, 180]."
 
 NO_SURVEY_HISTORY_MSG = "No survey history path included. If you have changed radio survey " \
 "answer choices since starting your study, and if you used semicolons or commas in those " \
 "answer choices, incorrect survey responses may be output for android devices"
-
-
-
 
 #
 ## Constants

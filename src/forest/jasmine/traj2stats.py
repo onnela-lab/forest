@@ -25,7 +25,8 @@ from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
 from forest.constants import (BoolArr, COORDS_OUT_OF_RANGE_MSG, FP64Arr, Frequency,
-    Frequency as Freq, Hyperparameters, MOBILITY_TRACE_CACHE, OSMTags, SECONDS_IN_DAY)
+    Frequency as Freq, Hyperparameters, K0_PARAMS, K1_PARAMS, MOBILITY_TRACE_CACHE, OSMTags,
+    SECONDS_IN_DAY)
 from forest.jasmine.data2mobmat import (gps_to_mobmat, great_circle_dist, great_circle_dist_opt,
     great_circle_dist_specialized, infer_mobmat, pairwise_great_circle_dist)
 from forest.jasmine.mobmat2traj import imp_to_traj, impute_gps, locate_home, num_sig_places
@@ -37,10 +38,6 @@ from forest.utils import get_ids, overpass_request_json
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-
-PARS0 = tuple[int, int, float, int, int, float, float, float]
-PARS1 = tuple[int, int, int, int, float, float, float, int]
 
 
 def transform_point_to_circle(lat: float, lon: float, radius: float) -> Polygon:
@@ -1856,11 +1853,11 @@ def gps_stats_main(
     if save_traj:
         os.makedirs(trajectory_folder, exist_ok=True)
     
-    pars0: PARS0 = (
+    k0_params: K0_PARAMS = (
         parameters.l1, parameters.l2, parameters.l3, parameters.a1, parameters.a2, parameters.b1,
         parameters.b2, parameters.b3
     )
-    pars1: PARS1 = (
+    k1_params: K1_PARAMS = (
         parameters.l1, parameters.l2, parameters.a1, parameters.a2, parameters.b1, parameters.b2,
         parameters.b3, parameters.g
     )
@@ -1934,7 +1931,7 @@ def gps_stats_main(
             parameters.sigma2,
             parameters.tol,
             parameters.d,
-            pars0,
+            k0_params,
             all_memory_dict[str(participant_id)],
             all_bv_set[str(participant_id)],
         )
@@ -1945,7 +1942,7 @@ def gps_stats_main(
         try:
             imp_table = impute_gps(
                 mobmat2, bv_set, parameters.method, parameters.switch, parameters.num,
-                parameters.linearity, tz_str, pars1
+                parameters.linearity, tz_str, k1_params
             )
         except RuntimeError as e:
             logger.error("Error: %s", e)
