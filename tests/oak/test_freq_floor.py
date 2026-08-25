@@ -2,7 +2,7 @@
 Regression test for issue #308: deprecated pandas frequency aliases.
 
 Pandas 2.2 deprecated 'H' (hour) and 'T' (minute) in favor of 'h' and 'min', and removed them in
-pandas 3.0. The Series.dt.floor calls inside ``forest.oak.base.run`` must use the new aliases.
+pandas 3.0. The Series.dt.floor calls inside ``forest.oak.runners.run`` must use the new aliases.
 
 """
 from datetime import datetime

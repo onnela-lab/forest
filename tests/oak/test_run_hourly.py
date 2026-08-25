@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from forest.constants import Frequency
-from forest.oak.base import run_hourly
+from forest.oak.runners import run_hourly
 
 
 # signal_bout gets caught as ruff unused argument, ignore

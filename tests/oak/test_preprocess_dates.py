@@ -3,7 +3,7 @@ import datetime
 import pytest
 from dateutil import tz
 
-from forest.oak.base import preprocess_dates
+from forest.oak.preprocess import preprocess_dates
 
 
 @pytest.fixture

@@ -10,7 +10,7 @@ import math
 
 import numba
 import numpy as np
-from scipy import stat
+from scipy import stats
 
 from forest.constants import K1_PARAMS
 from forest.jasmine.data2mobmat import (exist_knot, fp_great_circle_dist, great_circle_dist,
@@ -286,7 +286,7 @@ def indicate_flight(
     )
     
     # Generate the binary variables - a movement_indicator
-    return stat.bernoulli.rvs(p1, size=switch)
+    return stats.bernoulli.rvs(p1, size=switch)
 
 
 @numba.njit(cache=True, fastmath=True)

@@ -1,6 +1,7 @@
 import numpy as np
 
-from forest.oak.base import compute_interpolate_cwt, identify_peaks_in_cwt, preprocess_bout
+from forest.oak.analysis import compute_interpolate_cwt, identify_peaks_in_cwt
+from forest.oak.preprocess import preprocess_bout
 
 
 # min_amp gets caught as ruff unused argument
