@@ -1,4 +1,4 @@
-"""Contains parameters used for API calls in Forest."""
+""" Contains numerous constants used throughout the forest package. """
 
 import math
 import os
@@ -15,7 +15,7 @@ from numpy.typing import NDArray
 ## Type Shorthands
 #
 
-# This module suffers from extremely verbose typing strings that are impossible to read.
+# Some modules suffer from extremely verbose Python typing strings that are impossible to read.
 # To make it legible we will create a shorthand.
 FP = float | np.float64
 BoolArr = NDArray[np.bool_]
@@ -251,9 +251,9 @@ TIMEZONE_FORMAT = "%Z"  # timezone name
 OFFSET_FORMAT = "%z"  # UTC offset
 
 # human-readable and RFC 3339-compliant
-NAIVE_DATETIME_FORMAT = " ".join([DATE_FORMAT, TIME_FORMAT])
-AWARE_DATETIME_FORMAT = " ".join([DATE_FORMAT, TIME_FORMAT, TIMEZONE_FORMAT])
-OFFSET_DATETIME_FORMAT = " ".join([DATE_FORMAT, TIME_FORMAT, OFFSET_FORMAT])
+NAIVE_DATETIME_FORMAT = f"{DATE_FORMAT} {TIME_FORMAT}"
+AWARE_DATETIME_FORMAT = f"{DATE_FORMAT} {TIME_FORMAT} {TIMEZONE_FORMAT}"
+OFFSET_DATETIME_FORMAT = f"{DATE_FORMAT} {TIME_FORMAT} {OFFSET_FORMAT}"
 
 # commonly used time zones
 UTC = ZoneInfo("UTC")
@@ -277,8 +277,6 @@ BYTES_BIN = {
     "PiB": 2**50,
 }
 BYTES = {**BYTES_DEC, **BYTES_BIN}
-
-
 
 
 ## Sycamore tree constants
