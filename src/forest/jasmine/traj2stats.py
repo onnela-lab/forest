@@ -25,10 +25,10 @@ from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
 from forest.constants import (BoolArr, COORDS_OUT_OF_RANGE_MSG, FP64Arr, Frequency,
-    Frequency as Freq, Hyperparameters, K0_PARAMS, K1_PARAMS, MOBILITY_TRACE_CACHE, OSMTags,
-    SECONDS_IN_DAY)
+    Frequency as Freq, K0_PARAMS, K1_PARAMS, MOBILITY_TRACE_CACHE, SECONDS_IN_DAY)
 from forest.jasmine.data2mobmat import (gps_to_mobmat, great_circle_dist, great_circle_dist_opt,
     great_circle_dist_specialized, infer_mobmat, pairwise_great_circle_dist)
+from forest.jasmine.jasmine_common import Hyperparameters, OSMTags
 from forest.jasmine.mobmat2traj import imp_to_traj, impute_gps, locate_home, num_sig_places
 from forest.jasmine.sogp_gps import bv_select
 from forest.poplar.legacy.common_funcs import (datetime2stamp, read_data, stamp2datetime,

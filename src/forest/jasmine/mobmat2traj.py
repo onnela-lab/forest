@@ -10,6 +10,7 @@ import math
 
 import numba
 import numpy as np
+from scipy import stat
 
 from forest.constants import K1_PARAMS
 from forest.jasmine.data2mobmat import (exist_knot, fp_great_circle_dist, great_circle_dist,

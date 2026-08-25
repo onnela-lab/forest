@@ -8,7 +8,6 @@ import os
 from datetime import datetime, timedelta, tzinfo
 
 import numpy as np
-import numpy.typing as npt
 import pandas as pd
 from dateutil import tz
 from scipy import interpolate
@@ -16,13 +15,11 @@ from scipy.signal import find_peaks
 from scipy.signal.windows import tukey
 from ssqueezepy import ssq_cwt
 
-from forest.constants import Frequency
+from forest.constants import Frequency, FP64Arr
 from forest.utils import get_ids
 
 
 logger = logging.getLogger(__name__)
-
-NDArrayFloat = npt.NDArray[np.float64]
 
 
 """
@@ -39,12 +36,8 @@ Results may be output in hourly and daily intervals.
 
 
 def preprocess_bout(
-    t_bout: NDArrayFloat,
-    x_bout: NDArrayFloat,
-    y_bout: NDArrayFloat,
-    z_bout: NDArrayFloat,
-    fs: int = 10,
-) -> tuple[NDArrayFloat, NDArrayFloat]:
+    t_bout: FP64Arr, x_bout: FP64Arr, y_bout: FP64Arr, z_bout: FP64Arr, fs: int = 10
+) -> tuple[FP64Arr, FP64Arr]:
     """Preprocesses accelerometer bout to a common format.
     
     Resample 3-axial input signal to a predefined sampling rate and compute vector magnitude.
@@ -107,7 +100,7 @@ def preprocess_bout(
     return t_bout_interp, vm_bout_interp
 
 
-def adjust_bout(inarray: NDArrayFloat, fs: int = 10) -> NDArrayFloat:
+def adjust_bout(inarray: FP64Arr, fs: int = 10) -> FP64Arr:
     """Fills observations in incomplete bouts.
     
     For example, if the bout is 9.8s long, add values at its end to make it 10s (results in N%fs=0).
@@ -132,7 +125,7 @@ def adjust_bout(inarray: NDArrayFloat, fs: int = 10) -> NDArrayFloat:
     return inarray
 
 
-def get_pp(vm_bout: NDArrayFloat, fs: int = 10) -> NDArrayFloat:
+def get_pp(vm_bout: FP64Arr, fs: int = 10) -> FP64Arr:
     """Calculate peak-to-peak metric in one-second time windows.
     
     Args:
@@ -150,10 +143,10 @@ def get_pp(vm_bout: NDArrayFloat, fs: int = 10) -> NDArrayFloat:
 
 
 def compute_interpolate_cwt(
-    tapered_bout: NDArrayFloat,
+    tapered_bout: FP64Arr,
     fs: int = 10,
     wavelet: tuple[str, dict[str, int]] = ('gmw', {'beta': 90, 'gamma': 3})
-) -> tuple[NDArrayFloat, NDArrayFloat]:
+) -> tuple[FP64Arr, FP64Arr]:
     """Compute and interpolate CWT over acceleration data.
     
     Args:
@@ -172,7 +165,7 @@ def compute_interpolate_cwt(
     tapered_bout = np.concatenate((np.zeros(5 * fs), tapered_bout * window, np.zeros(5 * fs)))
     
     # compute cwt over bout (wavelet is of an accepted type, pyright doesn't like it)
-    out: NDArrayFloat = ssq_cwt(tapered_bout[:-1], wavelet, fs=10)  # type: ignore
+    out: FP64Arr = ssq_cwt(tapered_bout[:-1], wavelet, fs=10)  # type: ignore
     coefs = out[0]
     
     coefs = np.append(coefs, coefs[:, -1:], 1)
@@ -193,13 +186,13 @@ def compute_interpolate_cwt(
 
 
 def identify_peaks_in_cwt(
-    freqs_interp: NDArrayFloat,
-    coefs_interp: NDArrayFloat,
+    freqs_interp: FP64Arr,
+    coefs_interp: FP64Arr,
     fs: int = 10,
     step_freq: tuple = (1.4, 2.3),
     alpha: float = 0.6,
     beta: float = 2.5,
-) -> NDArrayFloat:
+) -> FP64Arr:
     """Identify dominant peaks in wavelet coefficients.
     
     Method uses alpha and beta parameters to identify dominant peaks in one-second non-overlapping
@@ -276,7 +269,7 @@ def identify_peaks_in_cwt(
 
 
 def find_walking(
-    vm_bout: NDArrayFloat,
+    vm_bout: FP64Arr,
     fs: int = 10,
     min_amp: float = 0.3,
     step_freq: tuple = (1.4, 2.3),
@@ -284,7 +277,7 @@ def find_walking(
     beta: float = 2.5,
     min_t: int = 3,
     delta: int = 20,
-) -> NDArrayFloat:
+) -> FP64Arr:
     """Finds walking and calculate steps from raw acceleration data.
     
     Method finds periods of repetitive and continuous oscillations with predominant frequency
@@ -351,9 +344,7 @@ def find_walking(
     return cad
 
 
-def find_continuous_dominant_peaks(
-    valid_peaks: NDArrayFloat, min_t: int, delta: int
-) -> NDArrayFloat:
+def find_continuous_dominant_peaks(valid_peaks: FP64Arr, min_t: int, delta: int) -> FP64Arr:
     """Identifies continuous and sustained peaks within matrix.
     
     Args:
@@ -489,10 +480,10 @@ def preprocess_dates(
 def run_hourly(
     t_hours_pd: pd.Series,
     t_ind_pydate: list | np.ndarray,
-    cadence_bout: NDArrayFloat,
-    steps_hourly: NDArrayFloat,
-    walkingtime_hourly: NDArrayFloat,
-    cadence_hourly: NDArrayFloat,
+    cadence_bout: FP64Arr,
+    steps_hourly: FP64Arr,
+    walkingtime_hourly: FP64Arr,
+    cadence_hourly: FP64Arr,
     frequency: Frequency,
 ) -> None:
     """Runs hourly metrics computation for steps, walking time, and cadence.

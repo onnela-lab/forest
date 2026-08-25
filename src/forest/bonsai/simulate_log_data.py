@@ -11,26 +11,11 @@ from string import ascii_lowercase
 import numpy as np
 import pandas as pd
 
+from forest.constants import CALLS_COLS, TEXTS_COLS
 from forest.poplar.legacy.common_funcs import datetime2stamp, stamp2datetime
 
 
 ORIG_TIME = datetime2stamp([2020, 8, 24, 0, 0, 0], "America/New_York")
-
-CALL_COLS = [
-    "timestamp",
-    "UTC time",
-    "hashed phone number",
-    "call type",
-    "duration in seconds",
-]
-TEXT_COLS = [
-    "timestamp",
-    "UTC time",
-    "hashed phone number",
-    "sent vs received",
-    "message length",
-    "time sent",
-]
 
 
 def gen_status() -> str:
@@ -320,7 +305,7 @@ def gen_text_files(output_folder: str):
                         ]
                         data.append(new_line)
                 
-                data2 = pd.DataFrame(data, columns=TEXT_COLS)
+                data2 = pd.DataFrame(data, columns=TEXTS_COLS)
                 data2.to_csv(f"{output_folder}/{idx}/texts/{filename}", index=False)
 
 
@@ -382,7 +367,7 @@ def gen_call_files(output_folder: str):
                         ]
                         data.append(new_line)
                     
-                    data2 = pd.DataFrame(data, columns=CALL_COLS)
+                    data2 = pd.DataFrame(data, columns=CALLS_COLS)
                     data2.to_csv(f"{output_folder}/{idx}/calls/{filename}", index=False)
 
 

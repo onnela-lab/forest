@@ -2,7 +2,6 @@
 
 import math
 import os
-from dataclasses import dataclass
 from enum import Enum
 from zoneinfo import ZoneInfo
 
@@ -28,33 +27,48 @@ MOBILITY_TRACE_CACHE = dict[tuple[int, int, int] | str, tuple[FP64Arr, FP64Arr, 
 K0_PARAMS = tuple[int, int, float, int, int, float, float, float]
 K1_PARAMS = tuple[int, int, int, int, float, float, float, int]
 
+# Numba (an optimization library) has special type declarations that we use in Jasmine's great
+# circle functions. These have a special Numba library purpose and are not recognized by Python.
+REQUIRES_FOUR_FLOATS = "float64[:](float64, float64, float64, float64)"
 
-#
-## Messages
-#
-COORDS_OUT_OF_RANGE_MSG = "Trajectory coordinates are not in the range of [-90, 90] and [-180, 180]."
-
-NO_SURVEY_HISTORY_MSG = "No survey history path included. If you have changed radio survey " \
-"answer choices since starting your study, and if you used semicolons or commas in those " \
-"answer choices, incorrect survey responses may be output for android devices"
 
 #
 ## Constants
 #
 
-## src: SOGP:
-SECONDS_PER_DAY_TIMES_PI = 86_400 * math.pi
+class Frequency(Enum):
+    """ Frequency options available for summary data output.
+    These options are used in the frequency parameters of various functions across Forest.
+    
+    Values outside of these options may not be supported and may result in errors or unexpected
+    behavior. """
+    
+    MINUTE = 1
+    HOURLY = 60
+    THREE_HOURLY = 3 * 60
+    SIX_HOURLY = 6 * 60
+    TWELVE_HOURLY = 12 * 60
+    DAILY = 24 * 60
+    HOURLY_AND_DAILY = -1
+
+
+# The one true timezone
+UTC = ZoneInfo("UTC")
+
+
+## Numerical constants
+
+FP_TOLERANCE = 1e-6  # a minimum threshold (Jasmine)
+
+SECONDS_IN_DAY = 60 * 60 * 24
+
+SECONDS_PER_DAY_TIMES_PI = 86_400 * math.pi  ## src: SOGP
 SECONDS_PER_WEEK_TIMES_PI = 604_800 * math.pi
 
-
-# src/forest/jasmine/data2mobmat.py
-EARTH_RADIUS_METERS = 6.371*10**6
+EARTH_RADIUS_METERS = 6.371*10**6  # src: data2mobmat
 GEE = 9.80665  # Earth's gravity (meters/second^2)
 
-FP_TOLERANCE = 1e-6  # a minimum threshold
-
-## Time
-SECONDS_IN_DAY = 60 * 60 * 24
+# URLs and other constants
 
 # Openrouteservice API is limited to 40 requests per minute for free accounts
 # https://openrouteservice.org/plans/
@@ -75,140 +89,14 @@ OSM_OVERPASS_USER_AGENT = os.getenv(
 OVERPASS_CALLS_PER_MINUTE = int(os.getenv("FOREST_OSM_OVERPASS_CALLS_PER_MINUTE", default="40"))
 
 
-class Frequency(Enum):
-    """This class enumerates possible frequencies for summary data."""
-    MINUTE = 1
-    HOURLY = 60
-    THREE_HOURLY = 3 * 60
-    SIX_HOURLY = 6 * 60
-    TWELVE_HOURLY = 12 * 60
-    DAILY = 24 * 60
-    HOURLY_AND_DAILY = -1
+## Named Hardcoded Ranges
+# ranges are special objects that can be iterated over multiple times
 
-
-class OSMTags(Enum):
-    """This class enumerates all OSM keys."""
-    AERIALWAY = "aerialway"
-    AEROWAY = "aeroway"
-    AMENITY = "amenity"
-    BARRIER = "barrier"
-    BOUNDARY = "boundary"
-    BUILDING = "building"
-    CRAFT = "craft"
-    EMERGENCY = "emergency"
-    GEOLOGICAL = "geological"
-    HEALTHCARE = "healthcare"
-    HIGHWAY = "highway"
-    HISTORIC = "historic"
-    LANDUSE = "landuse"
-    LEISURE = "leisure"
-    MAN_MADE = "man_made"
-    MILITARY = "military"
-    NATURAL = "natural"
-    OFFICE = "office"
-    PLACE = "place"
-    POWER = "power"
-    PUBLIC_TRANSPORT = "public_transport"
-    RAILWAY = "railway"
-    ROUTE = "route"
-    SHOP = "shop"
-    SPORT = "sport"
-    TELECOM = "telecom"
-    TOURISM = "tourism"
-    WATER = "water"
-    WATERWAY = "waterway"
-
-
-## src: simulate_gps_data.py
-
-
-ACTIVE_STATUS_LIST = range(11)  # ranges are special objects that can be iterated over multiple times
+ACTIVE_STATUS_LIST = range(11)
 TRAVELLING_STATUS_LIST = range(11)
 
 
-## Numba type declaration for the great circle functions
-# numba has its own type system, we use some of them here
-REQUIRES_FOUR_FLOATS = "float64[:](float64, float64, float64, float64)"
-
-
-@dataclass
-class Hyperparameters:
-    """Class containing hyperparemeters for gps imputation and trajectory
-     summary statistics calculation.
-    
-    Args:
-        itrvl, accuracylim, r, w, h: hyperparameters for the gps_to_mobmat function.
-        
-        itrvl, r: hyperparameters for the infer_mobmat function.
-        
-        l1, l2, l3, a1, a2, b1, b2, b3, sigma2, tol, d: hyperparameters for the bv_select function.
-        
-        l1, l2, a1, a2, b1, b2, b3, g, method, switch, num, linearity: hyperparameters for the
-            impute_gps function.
-        
-        itrvl, r, w, h: hyperparameters for the imp_to_traj function.
-        
-        log_threshold: int, time spent in a pause needs to exceed the
-            log_threshold to be placed in the log only if save_osm_log True, in minutes
-        
-        split_day_night: bool, True if you want to split all metrics to datetime and nighttime
-            patterns only for daily frequency
-        
-        person_point_radius: float, radius of the person's circle when discovering places near him
-            in pauses
-        
-        place_point_radius: float, radius of place's circle when place is returned as centre
-            coordinates from osm
-            
-        save_osm_log: bool, True if you want to output a log of locations visited and their tags
-        
-        quality_threshold: float, a percentage value of the fraction of data
-            required for a summary to be created
-        
-        pcr_bool: bool, True if you want to calculate the physical circadian rhythm
-        
-        pcr_window: int, number of days to look back and forward for calculating the physical
-            circadian rhythm
-        
-        pcr_sample_rate: int, number of seconds between each sample for calculating the physical
-            circadian rhythm
-    """
-    # imputation hyperparameters
-    l1: int = 60 * 60 * 24 * 10
-    l2: int = 60 * 60 * 24 * 30
-    l3: float = 0.002
-    g: int = 200
-    a1: int = 5
-    a2: int = 1
-    b1: float = 0.3
-    b2: float = 0.2
-    b3: float = 0.5
-    d: int = 100
-    sigma2: float = 0.01
-    tol: float = 0.05
-    switch: int = 3
-    num: int = 10
-    linearity: int = 2
-    method: str = "GLC"
-    itrvl: int = 10
-    accuracylim: int = 51
-    r: float | None = None
-    w: float | None = None
-    h: float | None = None
-    
-    # summary statistics hyperparameters
-    save_osm_log: bool = False
-    log_threshold: int = 60
-    split_day_night: bool = False
-    person_point_radius: float = 2
-    place_point_radius: float = 7.5
-    quality_threshold: float = 0.05
-    pcr_bool: bool = False
-    pcr_window: int = 14
-    pcr_sample_rate: int = 30
-
-
-## Constants for working with Beiwe time formats.
+## Constants for working with Beiwe time formats
 
 # seconds
 MIN_S = 60
@@ -222,6 +110,7 @@ HOUR_MS = 1000 * HOUR_S
 DAY_MS = 1000 * DAY_S
 WEEK_MS = 7 * DAY_MS
 YEAR_MS = 365 * DAY_MS
+
 TIME_MS = dict(
     zip(
         ["milliseconds", "seconds", "minutes", "hours", "days", "weeks", "years"],
@@ -240,7 +129,9 @@ DAY_ORDER = [
     "Saturday",
 ]
 
-# Beiwe time formats
+
+## Beiwe time formats
+
 DATA_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"  # used in raw Beiwe data
 FILENAME_DATETIME_FORMAT = "%Y-%m-%d %H_%M_%S"  # used in raw Beiwe file names
 
@@ -254,10 +145,6 @@ OFFSET_FORMAT = "%z"  # UTC offset
 NAIVE_DATETIME_FORMAT = f"{DATE_FORMAT} {TIME_FORMAT}"
 AWARE_DATETIME_FORMAT = f"{DATE_FORMAT} {TIME_FORMAT} {TIMEZONE_FORMAT}"
 OFFSET_DATETIME_FORMAT = f"{DATE_FORMAT} {TIME_FORMAT} {OFFSET_FORMAT}"
-
-# commonly used time zones
-UTC = ZoneInfo("UTC")
-
 
 # Bytes, see https://physics.nist.gov/cuu/Units/binary.html
 BYTES_DEC = {
@@ -279,8 +166,7 @@ BYTES_BIN = {
 BYTES = {**BYTES_DEC, **BYTES_BIN}
 
 
-## Sycamore tree constants
-
+## Survey constants
 
 # We want our default date to be farther in the past than any Beiwe data could have been collected,
 # so we never cut off data by default. But, if we set our default date too far in the past, we would
@@ -313,3 +199,35 @@ QUESTION_TYPES_LOOKUP = {
 
 # https://github.com/onnela-lab/beiwe-android/commit/6341eb5498ceeffcb64d65c2dd2bcfdab9b982f2
 ANDROID_NULLABLE_ANSWER_CHANGE_DATE = pd.to_datetime("2016-12-06")
+
+#
+## Data Columns - Collect lists of columns for data types in one place
+#
+
+CALLS_COLS = [
+    "timestamp",
+    "UTC time",
+    "hashed phone number",
+    "call type",
+    "duration in seconds",
+]
+
+TEXTS_COLS = [
+    "timestamp",
+    "UTC time",
+    "hashed phone number",
+    "sent vs received",
+    "message length",
+    "time sent",
+]
+
+
+#
+## Messages
+#
+
+COORDS_OUT_OF_RANGE_MSG = "Trajectory coordinates are not in the range of [-90, 90] and [-180, 180]."
+
+NO_SURVEY_HISTORY_MSG = "No survey history path included. If you have changed radio survey " \
+"answer choices since starting your study, and if you used semicolons or commas in those " \
+"answer choices, incorrect survey responses may be output for android devices"
