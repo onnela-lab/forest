@@ -12,7 +12,7 @@ from pandas import DataFrame
 
 from forest.constants import EARLIEST_DATE, Frequency, Frequency as Freq
 from forest.sycamore.common import (aggregate_surveys_config, aggregate_surveys_no_config,
-    get_month_from_today, write_data_by_user)
+    get_month_from_today)
 from forest.sycamore.responses import agg_changed_answers_summary, format_responses_by_submission
 from forest.sycamore.submits import summarize_submits, survey_submits, survey_submits_no_config
 from forest.utils import get_ids
@@ -214,51 +214,12 @@ def get_submits_for_tableau(
         history_path: Filepath to the survey history file.
             If this is not included audio survey timings cannot be estimated.
     """
-    if submits_timeframe not in [Frequency.HOURLY, Frequency.DAILY, Frequency.HOURLY_AND_DAILY]:
-        logger.error("Error: Invalid submits timeframe")
-        return
-    
-    if submits_timeframe == Frequency.HOURLY_AND_DAILY:
-        submits_timeframes = [Frequency.HOURLY, Frequency.DAILY]
-    else:
-        submits_timeframes = [submits_timeframe]
-    
-    makedirs(output_folder, exist_ok=True)
-    for freq in submits_timeframes:
-        makedirs(pathjoin(output_folder, f"{freq.name.lower()}"), exist_ok=True)
-    
-    users = users or get_ids(study_folder)
-    end_date = end_date or get_month_from_today()
-    
-    # Read, aggregate and clean data
-    agg_data = aggregate_surveys_config(
-        study_folder,
-        config_path,
-        tz_str,
-        users,
-        start_date,
-        end_date,
-        augment_with_answers=True,
-        include_audio_surveys=True,
+    raise RuntimeWarning(
+        "sycamore.base.get_submits_for_tableau() is fully deprecated and removed.\n"
+        "Use sycamore.base.compute_survey_stats() instead.\nzzzzzzzzzz"
+        "This function was meant for use on old versions of the Beiwe Platform server backend, "
+        "which has since migrated to the correct use of the compute_survey_stats function."
     )
-    
-    if agg_data.shape[0] == 0:
-        logger.error("Error: No survey data found in %s", study_folder)
-        return
-    
-    # Create survey submits detail and summary
-    ss_detail = survey_submits(
-        config_path, start_date, end_date, users, agg_data, interventions_filepath, history_path
-    )
-    
-    if ss_detail.shape[0] == 0:
-        logger.error("Error: no submission data found")
-        return
-    
-    # run once for every submits_timeframe, per-user is handled internally
-    for freq in submits_timeframes:
-        ss_summary = summarize_submits(ss_detail, freq, False)
-        write_data_by_user(ss_summary, f"{output_folder}/{freq.name.lower()}", users)
 
 
 def to_csv(folder: str, filename: str, df: DataFrame) -> None:

@@ -8,7 +8,7 @@ import datetime
 import logging
 import re
 from glob import glob
-from os import listdir, makedirs
+from os import listdir
 from os.path import basename, isdir as isdirectory, join as pathjoin
 
 import numpy as np
@@ -1004,31 +1004,3 @@ def get_choices_with_sep_values(
     else:
         logger.warning(NO_SURVEY_HISTORY_MSG)
     return qs_with_seps
-
-
-def write_data_by_user(
-    df_to_write: pd.DataFrame, output_folder: str, users: list | None = None
-) -> None:
-    """
-    Write a dataframe to csv files, with a csv file corresponding to each user.
-    
-    This function is used to mimic how files are written by
-        forest.jasmine.gps_stats_main and forest.willow.log_stats_main
-    
-    Args:
-        output_folder: path to folder to write csv files in
-        df_to_write: dataframe to be written
-        users: list of users to split dataframe by
-    """
-    
-    makedirs(output_folder, exist_ok=True)
-    
-    if users is None:
-        users = df_to_write.beiwe_id.unique().tolist()
-    for user in users:
-        current_df = df_to_write.loc[df_to_write.beiwe_id == user, :].copy()
-        if current_df.shape[0] == 0:
-            continue
-        current_df.drop("beiwe_id", axis=1, inplace=True)
-        path_to_write = pathjoin(output_folder, f"{user}.csv")
-        current_df.to_csv(path_to_write, index=False)
