@@ -179,16 +179,16 @@ def compute_survey_stats(
 
 
 def get_submits_for_tableau(
-    study_folder: str,
-    output_folder: str,
-    config_path: str,
-    tz_str: str = "UTC",
-    start_date: str = EARLIEST_DATE,
-    end_date: str | None = None,
-    users: list | None = None,
-    interventions_filepath: str | None = None,
-    submits_timeframe: Frequency = Frequency.DAILY,
-    history_path: str | None = None,
+    study_folder: str,                               # noqa
+    output_folder: str,                              # noqa
+    config_path: str,                                # noqa
+    tz_str: str = "UTC",                             # noqa
+    start_date: str = EARLIEST_DATE,                 # noqa
+    end_date: str | None = None,                     # noqa
+    users: list | None = None,                       # noqa
+    interventions_filepath: str | None = None,       # noqa
+    submits_timeframe: Frequency = Frequency.DAILY,  # noqa
+    history_path: str | None = None,                 # noqa
 ) -> None:
     """Get survey submissions per day for integration into Tableau WDC
     
