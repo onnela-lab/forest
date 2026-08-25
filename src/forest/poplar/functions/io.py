@@ -73,9 +73,7 @@ def read_json(filepath: str) -> dict | None:
         return None
 
 
-def setup_csv(
-    name: str, dirpath: str, header: list[str]
-) -> str:
+def setup_csv(name: str, dirpath: str, header: list[str]) -> str:
     """
     Creates a csv file with the given column labels. Overwrites a file with the same name.
 
@@ -117,6 +115,6 @@ def write_to_csv(filepath: str, line: list[str], missing_strings: list[str] = ["
         
         with open(filepath, "a") as file:
             file.write(",".join(line) + "\n")
-
+    
     except Exception:
         logger.warning("Unable to append line to CSV.")

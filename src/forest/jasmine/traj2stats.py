@@ -4,8 +4,8 @@ calculate summary statistics of imputed trajectories.
 
 Original Authors: Georgios Efstathiadis, Zachary Clement, Josh Barback
 Optimization work: Eli Jones
-
 """
+
 import json
 import logging
 import os

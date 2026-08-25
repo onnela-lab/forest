@@ -1,7 +1,7 @@
 # Poplar  
 
 ## Usage:  
-Universal information about raw data stream structures, constants, and data cleaning procedures for all Beiwe data. Includes legacy code and its dependencies. 
+Universal information about raw data stream structures, constants, and data cleaning procedures for all Beiwe data. Includes some legacy code and their dependencies. 
 
 ## Data:   
 Methods can be used on all data streams.
@@ -11,11 +11,8 @@ Methods can be used on all data streams.
 ___
 ## Functions
 1.  [`poplar.raw`](#1-poplarraw)  
-2.  [`poplar.constants`](#2-poplarconstants)
-3.  [`poplar.functions`](#3-poplarfunctions)
-4.  [`poplar.classes`](#4-poplarclasses)
-5.  [`poplar.legacy`](#5-poplarlegacy)
-6.  [Maintenance Notes](#6-maintenance-notes)
+2.  [`poplar.functions`](#2-poplarfunctions)
+3.  [`poplar.legacy`](#3-poplarlegacy)
 
 ___
 ## 1. `poplar.raw`
@@ -32,16 +29,7 @@ ___
 	* **`power_events.json`**: Basic framework for organizing events reported in raw Bewe `power_state` files.
 
 
-___
-## 2. `poplar.constants`
-
-* **`poplar.constants.time`**:  Formats of dates and times found in raw Beiwe data; conversion factors for commonly used time units. 
-
-* **`forest.constants`**:  Miscellaneous constants used when processing raw Beiwe data.
-
-
-___
-## 3. `poplar.functions`
+## 2. `poplar.functions`
 
 * **`poplar.functions.io`**:  Functions for reading/writing JSON files, and for writing to CSV files.  May need to be supplemented with corresponding functions for S3 buckets.
 
@@ -57,35 +45,12 @@ ___
 
 
 ___
-## 4. `poplar.classes`
-
-These empty modules are placeholders for future software.
-
-* **`poplar.classes.template`**:  We anticipate the need for classes that will enable object & data persistence.  This module is a proposed location for template(s) for such classes.
-
-* **`poplar.classes.registry`**:  Future location of identifier management tools and directory management tools.
-
-* **`poplar.classes.history`**:  Future location of tools for handling longitudinal tracking of categorical variables  (e.g. timezones, device power states).
-
-* **`poplar.classes.trackers`**:  Future location of tools for handling online calculation of summary statistics, such as an implementation of Welford's algorithm.
-
-
-___
-## 5. `poplar.legacy`
+## 3. `poplar.legacy`
 The `legacy` directory contains untested modules that may or may not be essential for other Forest subpackages.  The contents of these modules should be either (1) deleted or (2)  reviewed, updated, and moved to a suitable module elsewhere.
 
 * **`poplar.legacy.common_funcs`**
 
-
-
-
-
 ___
-## 6. Maintenance Notes
-
-Maintenance notes are in progress!  
-
-## References  
 
 ## Contact information for questions: 
 [Email the Onnela Lab](mailto:onnela.lab@gmail.com)
