@@ -249,9 +249,11 @@ The summary statistics that are generated are listed below:
 ### Surveys
 
 ```{note}
-For best performance with Sycamore, do not change survey questions and answer after the study period has started. 
+Sycamore supports identifying the historical changes made during the study period to your surveys if you download and supply the appropriate data file using either Mano or the Study Configuration page. However, it is not guaranteed that your participant's app updated its copy of the surveys in a timely manner, so they there is some room for error in that process.
 ```
-The following variables are created in the "submits_summary.csv" file. This file will only be generated if the config file and intervention timings file are provided. The `submits_summary_daily.csv` and `submits_summary_hourly.csv` files contain the same columns, but with additional granularity at the day or hourly levels rather than at the user level. 
+
+The following columns are present in the "submits_summary.csv" file. This file will only be generated if the config file and intervention timings file are provided. The `submits_summary_daily.csv` and `submits_summary_hourly.csv` files contain the same columns, but with additional granularity at the day or hourly levels rather than at the user level. 
+
 ```{list-table}
 :header-rows: 1
 * - Variable
@@ -293,6 +295,7 @@ The following variables are created in the "submits_summary.csv" file. This file
 ```
 
 The following variables are created in the "submits_and_deliveries.csv" file. This file will only be generated if the config file and intervention timings file are provided.
+
 ```{list-table}
 :header-rows: 1
 * - Variable
