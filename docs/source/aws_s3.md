@@ -12,7 +12,7 @@ The workflow showed below leads to reading in the data as a `pandas` `DataFrame`
 
 One major change on S3 the storage side of The Beiwe Platform is that data storage is now compressed, and S3 paths will have `.zst` at the end. Panda's `read_csv` function now supports compressed files, and the code below has been updated to enable it, just make sure you have installed a recent version.
 
-```python
+
 
 ## Amazon S3 (Simple Storage Service)
 
