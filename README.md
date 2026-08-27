@@ -31,28 +31,82 @@ Output: typically summary files
   - Daily summaries of call & text metadata: use **willow**
   - Survey completion time from survey metadata: use **sycamore**
 
+## Recent Additions and Improvements
+
+### Optimizations
+- Jasmine's PCR (Physical Circadian Rhythm) feature, which is highly computationally intensive, has been substantially optimized. It is roughly 13x faster and no longer spikes in memory usage.
+- Other components of Jasmine also benefitted from these optimizations but were not as highly tracked.
+- File read-in was found to use a slow approach is at least one scenario, this has been fixed and is about 2x faster.
+
+### Features
+- Forest now supports `.zst` compressed data files! These files can be downloaded directly from The Beiwe Platform, and also our in-development version of Mano. They are transparently consumed if present, and take up roughly 1/5th the space. (Decompression of these is on the order of gigabytes-per-second, so tend to be _faster_ to import than uncompressed .csv files, especially off slower storage devices.)
+
 # Usage
 
-Please note that Forest requires Python 3.12. To install:
-```console
+### Installation
+
+Forest requires Python version 3.12 or greater. <details> <summary>click for more Python version details</summary>
+
+Python version 3.15 is not currently enabled in the `pyproject.toml` file because dependencies were not available at time of writing. To check if Forest is compatible with 3.15+, clone the repo (details below) and edit the `requires-python` line in the pyproject.toml file to a include a higher version number, then install in editable mode. At time of writing this process fails, but packages will be available soon, and we expect no incompatibilities.
+
+Python free-threaded builds are not actively tested, however compatibility is not expected to require changes.
+
+</details>
+
+To install:
+
+```bash
 pip install beiwe-forest
-```
-
-Alternatively, [install directly from GitHub](https://pip.pypa.io/en/stable/cli/pip_install/#examples) with `pip`. As the repo is public, it won't prompt you to login. If you've used forest in the past, it might be prudent to do a `pip uninstall forest` first.
-
-```console
+# or, if you want support and our most up-to-date fixes, you can install our active development branch with:
 pip install git+https://github.com/onnela-lab/forest
 ```
 
-If you want to have make edits to or develop the codebase, clone the repository and install like this:
+_Note that if you swap between versions of Forest (usually because we may not increment the package version number on our development branch) you might need run an uninstall of the old version first, and you may need to bypass the pip cache when you install._
 
+```bash
+# To do this crun these commands:
+pip uninstall beiwe-forest
+pip install --no-cache-dir git+https://github.com/onnela-lab/forest
 ```
-pip install --editable .[dev]
+
+### Installing Forest for Debugging
+
+If you want to view, debug, or just swap between branches with lower friction, you can clone the repo and install that specific folder using Pip's `--editable` flag as your own local copy of the Forest package. This makes debugging much easier, and lets you view the code in a full IDE, like VS Code or PyCharm. If you are submitting a bug report we will request that you install the package in this way.
+
+```bash
+git clone https://github.com/onnela-lab/forest.git
+# or, if you have GitHub SSH access configured, `git clone git@github.com:onnela-lab/forest.git`
+# then cd into the forest folder you just cloned and install the package with development dependencies
+cd forest
+pip install --editable .\[dev]
+# the \ above is for compatibility across commandline shells, it is required on the default shell, `zsh`, on Mac.
 ```
-_(This creates links mapping your copy into your python environment so that any edits you make are reflected live in your Python environment.)_
 
+### Live Reloading Forest
 
-To immediately test out forest, adapt the filepaths in the code below and run:
+If you find yourself in a situation where you are tweaking or developing Forest with data already loaded, frequently from within a Jupyter Notebook cell, you will find you have an older version of the Forest package loaded. You can reload the package manually like this:
+
+```python
+# Note that you have to reload the module containing your target function, and that further
+# imports won't cascade, only the target _file_ will be reloaded.
+import importlib
+importlib.reload("forest.jasmine.traj2stats")
+```
+
+You can also try Jupyter Notebook's `%autoreload` magic command. This should watch files for changes.
+
+```ipython
+# Put these lines in your notebook cell and then just execute it normally.
+# The first line loads the feature, the second line sets it to run universally.
+# (If you want to see when reloads happen you will need to put print statements in the module you are reloading.)
+%load_ext autoreload
+%autoreload 2
+
+# to disable it execute this in your notebook cell:
+%autoreload 0
+```
+
+### To immediately test out Forest, adapt the filepaths in the code below and run:
 
 ```python
 # Currently, all imports from `forest` must be explicit.  For the below example you need to import the following

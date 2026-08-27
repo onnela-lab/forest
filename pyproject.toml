@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "beiwe-forest"
-version = "1.0"
+version = "1.0.1beta"
 description = "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data"
 authors = [
     {name = "Jukka-Pekka Onnela"},
@@ -142,23 +142,6 @@ max-line-length = 105  # only go above 100 when it makes the code clearer.
 indent-style = "space"  # use spaces for indentation
 line-ending = "lf"      # use \n for line endings
 skip-magic-trailing-comma = true  # even with this set to true the , is added to imports
-
-
-# [tool.ruff.lint.isort]
-# Cannot get this to match isort hanging indent style
-# case-sensitive = false
-# combine-as-imports = true
-# force-single-line = false
-# force-sort-within-sections = false  # module imports pushed to their own section
-# force-wrap-aliases = true
-# from-first = false
-# lines-after-imports = 2
-# lines-between-types = 1
-# order-by-type = false
-# split-on-trailing-comma = true  # should make it not break inside parentheses, doesn't
-# known-third-party = []  # Force these libraries to a special spot in import order (second to bottom)
-# known-local-folder = []
-# known-first-party = []  # Force these libraries to a special spot in import order (bottom)
 
 
 [tool.ruff.lint]
