@@ -18,7 +18,7 @@
 
 project = 'Forest'
 copyright = '2022, The President and Fellows of Harvard College'
-author = 'Greyson Liu, Josh Barback, and Nellie Ponarul'
+author = 'Onnela Lab'
 
 # The full version, including alpha/beta/rc tags
 version = release = '1.0'
