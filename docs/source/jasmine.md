@@ -46,7 +46,7 @@ You can also tweak the parameters that change the assumptions of the imputation 
 (10) `d`: the number of basis vectors for flights and pauses using latitude/longitude as X in the kernel function. If N is specified here, there will be 4N basis vectors in total;   
 (11) `sigma2`: the variance parameter in sparse online gaussian process;   
 (12) `tol`: the tolerance/threshold of the residual to add the current observation to the basis vector set;   
-(13) `switch`: the number of binary variables we want to generate in fucntion `I_flight`, which controls the difficulty to change the status from flight to pause or from pause to flight;   
+(13) `switch`: the number of binary variables we want to generate in function `I_flight`, which controls the difficulty to change the status from flight to pause or from pause to flight;   
 (14) `num`: If specified as K, we will use top K trajectories in terms of the similarity to the current time and location in fucntion `I_flight`(to avoid the cumulative effect of many low prob trajs);   
 (15) `linearity`: a scalar that controls the smoothness of a trajectory: a large linearity tends to have a more linear traj from starting point toward destination, a small one tends to have more random directions;   
 (16) `method`: it should be 'TL', or 'GL' or 'GLC' (corresponding to temporal kernel only, geographical kernel only and combined kernel);   
@@ -95,7 +95,7 @@ This file contains the functions to convert the raw GPS data to a mobility matri
 - In addition, it has a few helper functions:
 - `collapse_data`: the GPS data is usually sampled at 1 Hz. We collapse the data every 10 seconds and calculate the average to reduce the noise in the raw data.
 - `exist_knot`: given a matrix with columns [timestamp, latitude, longitude], return if the trajectories depicted by those coordinates can be approximated as a straight line. The parameter $w$ represents the tolerance of deviation. It return 1 if there exists at least one knot in the trajectory and it returns 0 otherwise.
-- `extract_flights`: given a matrix with columns [timestamp, latitude, longitude] in a burst period (when the GPS is on), return a summary of trajectories (2d array) with columns as [movement status, start_timestamp, start_latitude, start_longitude, end_timestamp, end_latitude, end_longitude]. It uses the helper funtions `mark_single_measure`, `mark_complete_pause`, `detect_knots` and `prepare_output_data`.
+- `extract_flights`: given a matrix with columns [timestamp, latitude, longitude] in a burst period (when the GPS is on), return a summary of trajectories (2d array) with columns as [movement status, start_timestamp, start_latitude, start_longitude, end_timestamp, end_latitude, end_longitude]. It uses the helper functions `mark_single_measure`, `mark_complete_pause`, `detect_knots` and `prepare_output_data`.
 - `infer_mobmat`: tidy up the trajectory matrix (infer undecided pieces, combine flights/pauses.). It uses the helper functions `compute_flight_positions`, `compute_future_flight_positions`, `infer_status_and_positions`, `merge_pauses_and_bridge_gaps` and `correct_missing_intervals`.
 
 `sogp_gps.py`
@@ -122,7 +122,7 @@ This file imputes the missing trajectories based on the observed trajectory matr
 `traj2stats.py`
 This file converts the imputed trajectory matrix to summary statistics.
 - `Hyperparameters`: dataclass to store the hyperparameters for the imputation and summary statistics.
-- `transform_point_to_circle`: transform a transforms a set of cooordinates to a shapely circle with a provided radius.
+- `transform_point_to_circle`: transform a transforms a set of coordinates to a shapely circle with a provided radius.
 - `get_nearby_locations`: return a dictionary of nearby locations, a dictionary of nearby locations' names, and a dictionary of nearby locations' coordinates.
 - `gps_summaries`: converts the imputed trajectory matrix to summary statistics.
 - `gps_quality_check`: checks the data quality of GPS data. If the quality is poor, the imputation will not be executed.
