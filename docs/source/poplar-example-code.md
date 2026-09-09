@@ -34,7 +34,7 @@ ___
 
 Formats of dates and times found in raw Beiwe data; conversion factors for commonly used time units. 
 
-### **`poplar.constants.misc`**
+### **`forest.constants`**
 
 Miscellaneous constants used when processing raw Beiwe data.
 

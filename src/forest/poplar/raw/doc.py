@@ -1,14 +1,17 @@
-""" Access to documentation from the following files:
-
-    - data_streams.csv
-    - headers.json
-    - question_type_names.json
-    - power_events.csv
-
 """
-from logging import getLogger
+Access to documentation from the following files:
+- data_streams.csv
+- headers.json
+- question_type_names.json
+- power_events.csv
+
+Original Authors: Josh Barback, Georgios Efstathiadis
+"""
+
 from importlib.resources import files
-from ..functions.io import read_json
+from logging import getLogger
+
+from forest.poplar.functions.io import read_json
 
 
 logger = getLogger(__name__)

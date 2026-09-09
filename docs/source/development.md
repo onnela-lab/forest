@@ -3,12 +3,17 @@
 Information for contributors
 
 ## Quick start
-* Change current directory to the top level of your local Forest repository
-* Install Forest in editable mode along with development tools: `pip install -e ".[dev]"`
-* Check code style: `flake8 --toml-config pyproject.toml` (we are moving to `ruff`)
-* Run static type checks: `mypy`
-* Run the test suite: `pytest`
-* Validate the citation file: `cffconvert -i CITATION.cff --validate`
+In your terminal, navigate to your local copy of the Forest repo and...
+* Install Forest in "editable" mode along with development libraries and typing stubs:
+  * `pip install -e ".[dev]"`
+  * `mypy --install-types --non-interactive`
+* With stubs installed, you can then just run `mypy` confirm type checking will pass.
+* To check code style and other linting details run:
+  * `ruff check`
+  * There are `ruff` extensions for the major IDEs, we recommend you use them.
+* Run the test suite with `pytest`
+  * _Or speed it up with `pytest -n 10` to run tests in parallel_
+* To validate the citation file: `cffconvert -i CITATION.cff --validate`
 
 ### Documentation
 Install required dependencies:

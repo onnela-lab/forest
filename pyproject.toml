@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "beiwe-forest"
-version = "1.0"
+version = "1.0.1beta"
 description = "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data"
 authors = [
     {name = "Jukka-Pekka Onnela"},
@@ -12,6 +12,7 @@ authors = [
     {name = "Hassan Dawood"},
     {name = "Georgios Efstathiadis"},
     {name = "Patrick Emedom-Nnamdi"},
+    {name = "Ceyhun Olcan"},
     {name = "Emily J. Huang"},
     {name = "Marta Karas"},
     {name = "Gang Liu"},
@@ -21,25 +22,28 @@ authors = [
     {name = "Ilya Sytchev"},
     {name = "Anna Beukenhorst"},
 ]
+
 maintainers = [
-    {name = "Onnela Lab", email = "onnela.lab@gmail.com"}
+    {name = "Onnela Lab", email = "onnela.lab@gmail.com"},
+    {name = "Eli Jones", email = "biblicabeebli@gmail.com"},
 ]
 readme = "README.md"
 license = {text = "BSD-3-Clause"}
-requires-python = "==3.12.*"
+requires-python = ">=3.12, <3.15"
 dependencies = [
+    "audioread",
     "holidays",
-    "librosa",
     "numpy",
     "openrouteservice",
     "pandas",
     "pyproj",
     "python-dateutil",
-    "pytz",
+    "tzdata",
     "ratelimit",
     "requests",
     "scipy",
     "shapely",
+    "soundfile",
     "ssqueezepy",
     "timezonefinder",
     "zstandard",
@@ -74,28 +78,70 @@ dev = [
     "flake8-pytest-style",
     "flake8-pyproject",
     "mypy",
+    "pandas-stubs",
     "pytest",
     "pytest-mock",
     "pytest-xdist",
     "twine",
     "types-python-dateutil",
-    "types-pytz",
     "types-requests",
     "types-setuptools",
 ]
 
 
+[tool.setuptools.package-data]
+"forest.poplar.raw" = ["noncode/*.csv", "noncode/*.json"]
+
+#
+## Type checker config
+#
+
+[tool.mypy]
+mypy_path = "src"
+packages = ["forest"]
+python_version = "3.12"
+
+
+[[tool.mypy.overrides]]
+# remember to run mypy --install-types
+module = [
+    "audioread",
+    "audioread.*",
+    "openrouteservice",
+    "openrouteservice.*",
+    "scipy.*",
+    "soundfile",
+    "ssqueezepy",
+]
+ignore_missing_imports = true
+
+#
+## Pytest config
+#
+
+[tool.pytest.ini_options]
+# addopts = "--import-mode=importlib"  # this does not seem to be necessary anymore
+
+testpaths = ["tests"]
+
+#
+## Linting and type checking tools
+#
+
+## Ruff
 [tool.ruff]
-line-length = 105  # # this is the maximum that should emit a warning, its ok to over sometimes.
+line-length = 100  # target a 100 character line length
 indent-width = 4
 
+
 [tool.ruff.lint.pycodestyle]
-max-line-length = 120  # actual maximum line length for python files
+max-line-length = 105  # only go above 100 when it makes the code clearer.
 
 
 [tool.ruff.format]
 indent-style = "space"  # use spaces for indentation
-line-ending = "lf"  # use \n for line endings
+line-ending = "lf"      # use \n for line endings
+skip-magic-trailing-comma = true  # even with this set to true the , is added to imports
 
 
 [tool.ruff.lint]
@@ -108,6 +154,15 @@ select = [  # (linting directives to enable)
     "UP",      # pyupgrade codes
     "COM818",  # trailing-comma-on-bare-tuple
     "A",       # flake8-annotations codes
+    "SIM",     # code simplification rules - noqa with a reason if you ignore
+    "TID",     # "tidy import" checks
+    "ARG",     # argument-related checks, unused args, (at least hide them with an _underscore)
+    # "I",       # import checks and sorting - cannot get this to match isort
+    # "DTZ",     # Timezone checks - can't enable due to datetime handling
+]
+
+extend-ignore = [  # (linting directives to ignore)
+    "W293",  # blank line contains whitespace
 ]
 
 exclude = [
@@ -115,12 +170,18 @@ exclude = [
     ".venv",
     "venv",
     "*.ipynb",
+    "private",
 ]
 
 
+## Flake8 - not actually used, but IDEs using it need it configured.
 [tool.flake8]
-line-length = 105
-max-line-length = 105
+line-length = 100
+max-line-length = 100
+
+extend-ignore = [
+    "W293",  # blank line contains whitespace
+]
 
 exclude = [
     "build",
@@ -128,5 +189,22 @@ exclude = [
     "venv",
 ]
 
-[tool.setuptools.package-data]
-"forest.poplar.raw" = ["noncode/*.csv", "noncode/*.json"]
+
+## isort - import formatter - (would use ruff, cannot get identical formatting out of it)
+[tool.isort]
+combine_as_imports = true
+float_to_top = true
+honor_noqa = true
+line_length = 100
+lines_after_imports = 2
+multi_line_output = 10  # "HANGING_INDENT_WITH_PARENTHESES"
+py_version = 312
+remove_redundant_aliases = true
+star_first = true
+use_parentheses = true
+
+known_third_party = []  # Force these libraries to a special spot in import order (second to bottom)
+
+known_local_folder = []
+
+known_first_party = []  # Force these libraries to a special spot in import order (bottom)

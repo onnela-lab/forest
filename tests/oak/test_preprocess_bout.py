@@ -1,4 +1,4 @@
-from forest.oak.base import preprocess_bout
+from forest.oak.preprocess import preprocess_bout
 
 
 def test_preprocess_bout(signal_bout):

@@ -1,5 +1,6 @@
 import os
 
+
 os.environ['BEIWE_URL'] = 'https://studies.beiwe.org'  # Insert server name
 # (e.g. https://studies.beiwe.org)
 os.environ['BEIWE_USERNAME'] = ''  # Insert username to Beiwe deployment

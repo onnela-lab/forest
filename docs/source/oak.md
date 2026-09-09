@@ -9,7 +9,7 @@ For instructions on how to install forest, please visit [here](https://github.co
 
 ## Usage:
 ```
-from forest.oak.base import run
+from forest.oak.runners import run
 from forest.constants import Frequency
 
 
