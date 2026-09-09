@@ -18,7 +18,7 @@
 
 project = "Forest"
 
-copyright = "2022, The President and Fellows of Harvard College"
+copyright = "2022, The President and Fellows of Harvard College"  # noqa
 author = "Onnela Lab"
 
 # The full version, including alpha/beta/rc tags
