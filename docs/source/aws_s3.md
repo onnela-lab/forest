@@ -272,7 +272,7 @@ len(lrf_out_l)
 
     19097
 
-For non-chunked data, the data files have paths of different number of path elemements:
+For non-chunked data, the data files have paths of different number of path elements: 
 
 (a) files which path has 2 elements: `<STUDY_NAME>/<file_name>`;
 (b) files which path has 3 elements: `<STUDY_NAME>/<beiwe_id>/<file name>`;
