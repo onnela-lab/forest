@@ -15,6 +15,9 @@ In your terminal, navigate to your local copy of the Forest repo and...
   * _Or speed it up with `pytest -n 10` to run tests in parallel_
 * To validate the citation file: `cffconvert -i CITATION.cff --validate`
 
+Please see the [CONTRIBUTING.md](../../CONTRIBUTING.md) file for more detailed information on
+contributing to Forest.
+
 ### Documentation
 Install required dependencies:
 ```shell
