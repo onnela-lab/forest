@@ -15,8 +15,10 @@ In your terminal, navigate to your local copy of the Forest repo and...
   * _Or speed it up with `pytest -n 10` to run tests in parallel_
 * To validate the citation file: `cffconvert -i CITATION.cff --validate`
 
-Please see the [CONTRIBUTING.md](../../CONTRIBUTING.md) file for more detailed information on
-contributing to Forest.
+Please see the [CONTRIBUTING.md](https://github.com/onnela-lab/forest/blob/develop/CONTRIBUTING.md)
+file for more detailed information on contributing to Forest.
+
+For a short start you can look at [our support page](https://github.com/onnela-lab/forest/blob/develop/SUPPORT.md)
 
 ### Documentation
 Install required dependencies:
@@ -43,13 +45,22 @@ Open `docs/_build/html/index.html` in a web browser to check the results
 * Write tests for all new code
 
 ## Python
-* Follow [PEP 8](https://www.python.org/dev/peps/pep-0008/), [The Zen of Python](https://www.python.org/dev/peps/pep-0020/), [Google style guide for docstrings](https://google.github.io/styleguide/pyguide.html#s3.8.1-comments-in-doc-strings), and [The Elements of Python Style](https://github.com/amontalenti/elements-of-python-style) guidelines
-* Avoid one character names (except with `lambda`, generator expressions, and with unpacking when using `_` as a throwaway character)
+
+There are many authors of Forest so style may not be consistent, particularly across Forest Trees.
+We do _not_ use a code formatter tool like `black`, and we do not enforce PEP8.
+
+* Target a code width of 100 characters, its ok to go up to 105, above that `ruff check` will error.
+* Do not target code width of 80 characters. (PEP8 is deprecated for a reason.)
+* Use descriptive variable and function names. Assume the reader of your code does not have the full
+  context of how your code is used. Sometimes length is necessary for clarity, use discression.
+* Except with `lambda`s, generator expressions, comprehensions, and when using `_` as for a
+  throwaway variable, avoid one character names. Occasionally, like in well named pure math
+  functions, one character names are acceptable.
 * Use double quotes for strings and use single quotes only to avoid backslashes in the string
-* Alphabetize imports within blocks
-* Use parentheses for [continuations](https://github.com/amontalenti/elements-of-python-style#use-parens--for-continuations) and [method chaining](https://github.com/amontalenti/elements-of-python-style#use-parens--for-fluent-apis)
-* Put a line break before a binary operator
-* Use the [logging module](https://docs.python.org/3/library/logging.html) instead of `print()`
+* Alphabetize imports within blocks. We have an isort configuration that you can use as well.
+* Try to use parentheses for [continuations](https://github.com/amontalenti/elements-of-python-style#use-parens--for-continuations) and [method chaining](https://github.com/amontalenti/elements-of-python-style#use-parens--for-fluent-apis).
+* Place whitespace before and after your operators (like "a | b", not "a|b")
+* Use the [logging module](https://docs.python.org/3/library/logging.html) instead of `print()` in all final code.
 * [Formatting log messages](http://reinout.vanrees.org/weblog/2015/06/05/logging-formatting.html): `logger.info("%s went %s wrong", 42, 'very')`
 * Continue writing code and comments all the way until the end of the line then indent appropriately
 * [Packaging Python Projects](https://packaging.python.org/en/latest/tutorials/packaging-projects)
@@ -101,6 +112,8 @@ Development workflow:
 * Keep PRs small (ideally, under 100 lines of code) and self-contained (code + tests + docs) to make reviews easier and faster
 * If you need to update an existing PR simply add commits to the corresponding feature branch instead of creating a new separate PR
 * Make sure your PR has the latest changes from the develop branch and that it passes the [build process](https://github.com/onnela-lab/forest/actions/workflows/build.yml)
+* Name your PR based on the task it serves to complete, not the changes that it implements.
+
 
 #### Create a PR
 1. Create a feature branch off the default branch: `git switch -c new-feature develop`
@@ -113,6 +126,8 @@ Development workflow:
 1. Push commits to the upstream feature branch to update the PR or respond to reviewer's comments
 1. [Re-request the review](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/requesting-a-pull-request-review) after each round of changes
 1. After the PR is merged delete the feature branch in your local repository: `git branch -d new-feature`
+1. You can see some further information about expectations for PRs on [our support document](https://github.com/onnela-lab/forest/blob/develop/SUPPORT.md).
+
 
 #### Review a PR
 1. [Comment on proposed changes](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/commenting-on-a-pull-request)

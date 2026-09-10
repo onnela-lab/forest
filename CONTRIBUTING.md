@@ -55,7 +55,7 @@ do this, and you can ask an LLM too.
 
 ## Adding a new tree
 
-Forest is organized into independent subpackages called trees, each implementing one methodological
+Forest is organized into independent subpackages called Trees, each implementing one methodological
 pipeline. A new tree should implement a method that has been described in the peer-reviewed
 literature, use the shared data structures and conventions provided by the Poplar utility layer, and
 ship with tests and documentation.
