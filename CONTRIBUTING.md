@@ -72,8 +72,10 @@ ship with tests and documentation.
   instances in the repository for reference.
 - LLM-generated contributions must be clearly indicated, and you must include information about
   _both the model and platform used, and the nature of its contribution_ in the code and in the pull
-  request. Pull requests with LLM contributions must be heavily reviewed by you and other people
-  before we will merge them.
+  request. Pull requests with LLM contributions must be heavily reviewed by you and others before we
+  will merge them. Expect more scrutiny placed on the maintainer's review of the code. There must be
+  a statement in the code that you certify the concepts are your own and that you have understood
+  and verified the contribution made by the LLM.
   
 # Academic contributions:
 - Be Patient. We cannot rush this process.
