@@ -21,7 +21,7 @@ copyright = '2022, The President and Fellows of Harvard College'  # noqa - shado
 author = 'Greyson Liu, Josh Barback, and Nellie Ponarul, Eli Jones, Ilya Sychev, Zachary Clement'
 
 # The full version, including alpha/beta/rc tags
-version = release = '1.0'
+version = release = "1.0.1b"  # must be updated in pyproject.toml
 
 
 # -- General configuration ---------------------------------------------------
