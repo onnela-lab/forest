@@ -6,10 +6,6 @@ Forest is developed and maintained by the [Onnela Lab](https://www.hsph.harvard.
 the Department of Biostatistics at the Harvard T.H. Chan School of Public Health, alongside the
 [Beiwe platform](https://github.com/onnela-lab/beiwe-backend).
 
-## Code of conduct
-
-By participating in this project you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
-
 ## Getting started
 
 Follow the directions for running the latest development version of the Forest package as your
