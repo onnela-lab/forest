@@ -22,7 +22,7 @@ copyright = "2022, The President and Fellows of Harvard College"  # noqa
 author = "Onnela Lab"
 
 # The full version, including alpha/beta/rc tags
-version = release = "1.0"
+version = release = "1.0.1b"  # must be updated in pyproject.toml
 
 
 # -- General configuration ---------------------------------------------------
