@@ -5,6 +5,7 @@
 bonsai.md
 jasmine.md
 oak.md
+rhythms.md
 poplar.md
 poplar-example-code.md
 sycamore.md
