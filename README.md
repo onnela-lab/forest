@@ -281,7 +281,7 @@ log_stats_main(
 * [Onnela lab](https://www.hsph.harvard.edu/onnela-lab/)
 
 ## Publications
-* Straczkiewicz, M., Huang, E.J., and Onnela, JP. A “one-size-fits-most” walking recognition method for smartphones, smartwatches, and wearable accelerometers. _npj Digit. Med._ **6**, 29 (2023) [![DOI](https://img.shields.io/badge/DOI-10.1038%2Fs41746--022--00745--z-blue)](https://doi.org/10.1038/s41746-022-00745-z) [Open Access](https://rdcu.be/c6dGV)
+* Straczkiewicz, M., Huang, E.J., and Onnela, JP. A “one-size-fits-most” walking recognition method for smartphones, smartwatches, and wearable accelerometers. _npj Digit. Med._ **6**, 29 (2023) [![DOI](https://img.shields.io/badge/DOI-10.1038%2Fs41746--022--00745--z-blue)](https://doi.org/10.1038/s41746-022-00745-z) _[(view this open access link if inaccessible)](https://rdcu.be/c6dGV)_
 * Huang E, Yan K, and Onnela JP. Smartphone-Based Activity Recognition Using Multistream Movelets Combining Accelerometer and Gyroscope Data. Sensors 22 (7), 2618 (2022) [![DOI](https://img.shields.io/badge/DOI-10.3390%2Fs22072618-blue)](https://doi.org/10.3390/s22072618)
 * Onnela JP, Dixon C, Griffin K, Jaenicke T, Minowada L, Esterkin S, Siu A, Zagorsky J, and Jones E. Beiwe: A data collection platform for high-throughput digital phenotyping. Journal of Open Source Software, 6(68), 3417 (2021) [![DOI](https://joss.theoj.org/papers/10.21105/joss.03417/status.svg)](https://doi.org/10.21105/joss.03417)
 * Liu G and Onnela JP. Bidirectional imputation of spatial GPS trajectories with missingness using sparse online Gaussian Process. Journal of the American Medical Informatics Association 28(8), 1777 (2021) [![DOI](https://img.shields.io/badge/DOI-10.1093%2Fjamia%2Focab069-blue)](https://doi.org/10.1093/jamia/ocab069)
