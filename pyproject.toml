@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "beiwe-forest"
-version = "1.0.1beta"
+version = "1.0.1beta"  # must be updated in docs/source/conf.py
 description = "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data"
 authors = [
     {name = "Jukka-Pekka Onnela"},
@@ -73,15 +73,19 @@ Source = "https://github.com/onnela-lab/forest"
 dev = [
     "build",
     "cffconvert",
-    "ruff",
-    "flake8",
-    "flake8-pytest-style",
     "flake8-pyproject",
+    "flake8-pytest-style",
+    "flake8",
     "mypy",
+    "myst-parser",
     "pandas-stubs",
-    "pytest",
     "pytest-mock",
     "pytest-xdist",
+    "pytest",
+    "ruff",
+    "sphinx_rtd_theme",
+    "sphinx-copybutton",
+    "sphinx",
     "twine",
     "types-python-dateutil",
     "types-requests",
