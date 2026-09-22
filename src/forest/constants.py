@@ -61,6 +61,7 @@ UTC = ZoneInfo("UTC")
 FP_TOLERANCE = 1e-6  # a minimum threshold (Jasmine)
 
 SECONDS_IN_DAY = 60 * 60 * 24
+SECONDS_IN_WEEK = 60 * 60 * 24 * 7
 
 SECONDS_PER_DAY_TIMES_PI = 86_400 * math.pi  ## src: SOGP
 SECONDS_PER_WEEK_TIMES_PI = 604_800 * math.pi
