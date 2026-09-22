@@ -13,12 +13,9 @@ Create summaries of calls and texts data from the Beiwe app. The master function
      If `time_start` is None and `time_end` is given, then it reads all the files before the given time.   
      If `time_start` is given and `time_end` is None, then it reads all the files after the given time.   
 - `beiwe_id`: a list of beiwe IDs. If it is set to None (default), then it is a list of all available beiwe IDs in your study folder.
-  
 
-## Installation Instruction: 
-`from forest import willow`
+---
 
-___
 ## Functions
 
 ## `willow.log_stats`  

@@ -3,9 +3,6 @@
 ## Executive Summary: 
 Use `oak` to calculate number of steps using Beiwe accelerometer data.
 
-## Installation Instruction
-For instructions on how to install forest, please visit [here](https://github.com/onnela-lab/forest). 
-`from forest import oak`
 
 ## Usage:
 ```

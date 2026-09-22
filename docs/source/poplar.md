@@ -5,9 +5,6 @@ Universal information about raw data stream structures, constants, and data clea
 
 ## Data:   
 Methods can be used on all data streams.
-
-## Installation Instruction: 
-`from forest import poplar`
 ___
 ## Functions
 1.  [`poplar.raw`](#1-poplarraw)  
