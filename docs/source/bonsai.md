@@ -4,9 +4,6 @@
 
 Bonsai is used to simulate realistic GPS trajectories and call/text log data that resemble the ones returned from the Beiwe API. It is used to test the forest library using generated datasets.
 
-## Installation Instruction
-
-For instructions on how to install forest, please visit [here](https://github.com/onnela-lab/forest).
 `from forest import bonsai`
 
 ## Data
