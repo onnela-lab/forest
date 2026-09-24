@@ -20,12 +20,10 @@ project = "Forest"
 
 copyright = "2022, The President and Fellows of Harvard College"  # noqa
 
-# TODO: check with Hassan/JOSS review who should be listed here, do we match the other authors list
-# author = 'Greyson Liu, Josh Barback, Nellie Ponarul, Zachary Clement'
+# this authors list is not canonical, or to my knowledge visible anywhere.
 author = "Onnela Lab"
 
 # The full version, including alpha/beta/rc tags
-
 version = release = "1.0.1b"  # must be updated in pyproject.toml
 
 
