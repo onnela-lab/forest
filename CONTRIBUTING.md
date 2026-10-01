@@ -72,15 +72,29 @@ ship with tests and documentation.
   will merge them. Expect more scrutiny placed on the maintainer's review of the code. There must be
   a statement in the code that you certify the concepts are your own and that you have understood
   and verified the contribution made by the LLM.
-  
+
 # Academic contributions:
-- Be Patient. We cannot rush this process.
-- This process will be facilitated by the Forest maintainer(s).
-- A maintainer has to review your work for _code quality_ first. All code requires maintenance,
-  and pull requests must be kept fresh with other work in the repository. 
-- We need to identify someone with the appropriate background and expertise to review your
-  contribution, and they need to find the time to review it.
+
+Note that we periodically interface with JOSS (Journal of Open Source Software), which reviews our
+repository, and some of our process requirements will be influenced by their guidelines.
+
+- Be Patient. We cannot rush this process, and it must be publicly visible via GitHub.
+- We will need your name, affiliations, and relevant academic credentials. This information will be
+  present at the top of files that you are contributing to. (see examples on trees in our codebase)
+- Post on the repo or make a pull request, a maintainer will respond and guide you through this
+  process.
+- A maintainer has to review your work and comment on _code quality_ first. All code requires
+  maintenance, and you must keep pull requests up to date with the state of the repo. Ask questions
+  in your thread.
+- You simply must have _practical and useful_ tests covering your work, with full coverage of
+  methodological details - any code that is "just math". Building these tests is your responsibility,
+  but you can ask us for help and advice.
 - It may help to get in contact with us directly. The human factor always matters, and we need to
   ensure academic credit is properly assigned.
-- We also periodically interface with JOSS (Journal of Open Source Software), which reviews the
-  content of this repo, and may have their own thoughts or processes.
+- Eventually we start the more academic level of review. We need to identify someone with the
+  appropriate background and expertise to review your contribution, and they need to find the time
+  to review it. We will notify our PI, Professor Jukka-Pekka Onnela, who may provide additional
+  oversight.
+- Like the code quality review, the academic level review will take place publicly on GitHub.
+- When review is completed, our PI will make a final assessment for whether the contribution meets
+  acceptable standards for inclusion in the repository.
