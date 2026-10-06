@@ -26,8 +26,7 @@ def get_mean_responsiveness(
     received_values_list: list,
     sent_values_list: list,
 ) -> float | NAType:
-    """Calculate the mean time in minutes between recieving and sending a
-    message
+    """ Calculate the mean time in minutes between recieving and sending a message.
     
     Args:
         df: The dataframe with calls or texts
@@ -186,7 +185,8 @@ def text_analysis(
             text_reciprocity_outgoing += sum(
                 index_s * (np.array(temp_text["hashed phone number"]) == tel)
             )
-    
+
+    # Wow Pylance really does not like the typing of this dictionary, mypy is fine with it though.
     return {
         "num_s": num_s,
         "num_r": num_r,
