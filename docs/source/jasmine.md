@@ -78,7 +78,7 @@ You can optionally restrict analysis to specific participants or to a given time
   https://github.com/onnela-lab/forest/issues/334 You can begin reading about OpenStreetMaps here:
   https://wiki.openstreetmap.org/wiki/Map_features
 
-# Imputation parameters
+#### Imputation Parameters
 
 - `parameters`, a HyperParameter object for the imputation, detailed below. import as
   `from forest.jasmine.common import HyperParameter` 
@@ -162,7 +162,7 @@ and consequent output summary statistics.
 
 ## Description of functions in package:
 
-#### `data2mobmat.py`
+**`data2mobmat.py`**
 
 This file contains the functions to convert the raw GPS data to a mobility matrix (2d numpy array),
 where each column represents movement status(flight/pause/undecided), starting latitude, starting
@@ -189,7 +189,8 @@ focuses on summarizing observed data to trajectories but not unobserved period.
   It uses the helper functions `compute_flight_positions`, `compute_future_flight_positions`,
   `infer_status_and_positions`, `merge_pauses_and_bridge_gaps` and `correct_missing_intervals`.
 
-#### `sogp_gps.py` This file is the core of sparse online Gaussian Process. It covers the algorithm
+### `sogp_gps.py`
+This file is the core of sparse online Gaussian Process. It covers the algorithm
 described in [Csato and Opper (2001)](https://eprints.soton.ac.uk/259182/1/gp2.pdf).
 
 - `calculate_k0`: a kernel function to measure the similarity between x1 and x2.
