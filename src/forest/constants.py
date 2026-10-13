@@ -1,6 +1,5 @@
 """ Contains numerous constants used throughout the forest package. """
 
-import math
 import os
 from enum import Enum
 from zoneinfo import ZoneInfo
