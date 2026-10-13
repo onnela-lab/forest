@@ -14,13 +14,13 @@
 ### **`poplar.raw.doc`**
 This module provides access to documentation of basic features of the Beiwe platform.  Documentation can be imported as dictionaries, for example:
 ```
-from poplar.raw.doc import HEADERS
+from forest.poplar.raw.doc import HEADERS
 HEADERS[][]
 >>>
 ```
 Alternatively, documentation can be accessed in `CSV` or `JSON` format:
 ```
-from poplar.raw.doc import DOCPATHS
+from forest.poplar.raw.doc import DOCPATHS
 print(DOCPATHS.keys())
 >>>
 DOCPATHS['headers.json']

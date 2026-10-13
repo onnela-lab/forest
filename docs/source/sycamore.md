@@ -6,24 +6,31 @@ Use `sycamore` to process and analyze Beiwe survey data.
 
 ## Installation
 
-Before using sycamore, system dependencies for audioread and soundfile (ffmpeg and libsndfile1) must be installed first in order to enable processing of audio survey files.  
+If you wish to use sycamore on audio survey files, you will need to install two dependencies, ffmpeg
+and libsndfile. These must be installed first in order to enable processing of audio survey files.
 
-To install these dependencies on ubuntu, simply run:  
+On macOS, you can install these dependencies most easily using Homebrew:
+`brew install ffmpeg libsndfile`
+
+To install these dependencies on Ubuntu:
 `sudo apt install -y ffmpeg libsndfile1`
+
+To install on Windows, when using Chocolatey:
+`choco install ffmpeg libsndfile`
 
 ## Import
 
-User-facing functions can be imported directly from sycamore. 
+User-facing functions can be imported directly from sycamore.
 
 ### Main Function
-`from forest.sycamore import compute_survey_stats`  
+`from forest.sycamore import compute_survey_stats`
 
 ### Less commonly used functions
 ```python
+from forest.sycamore import agg_changed_answers_summary
 from forest.sycamore import aggregate_surveys_config
 from forest.sycamore import survey_submits
 from forest.sycamore import survey_submits_no_config
-from forest.sycamore import agg_changed_answers_summary
 ```
 
 Note: Most users will only use compute_survey_stats. However, other functions are listed for users interested in code development, or for users running Sycamore on studies with a very large number of surveys. If a very large number of surveys are collected, the main function (`compute_survey_stats`), which runs all the other functions, may take a long time when a researcher may only be interested in a specific output
@@ -34,16 +41,16 @@ Download raw data from your Beiwe server and use this package to process survey 
 ## Data
 Methods are designed for use on the `survey_timings`, `survey_answers`, and `audio_recordings` data from the Beiwe app.
 
-The `survey_timings` and `survey_answers` data streams are required for optimal data processing. The `survey_timings` stream is the best source of survey data because it has information on when a user responded to each question. Because survey files are not always uploaded to the Beiwe server, the `survey_answers` data stream is used as a backup to the `survey_timings` stream. The `survey_answers` stream only contains information about survey responses and the time of the survey's final submission, so the `survey_answers` stream alone shouldn't be used for survey processing. 
+The `survey_timings` and `survey_answers` data streams are required for optimal data processing. The `survey_timings` stream is the best source of survey data because it has information on when a user responded to each question. Because survey files are not always uploaded to the Beiwe server, the `survey_answers` data stream is used as a backup to the `survey_timings` stream. The `survey_answers` stream only contains information about survey responses and the time of the survey's final submission, so the `survey_answers` stream alone shouldn't be used for survey processing.
 
-The `audio_recordings` data stream can also be included in survey summary outputs. Sycamore does not process the audio data returned as part of audio surveys, but it can generate summaries with submission frequencies and survey duration for audio surveys. 
+The `audio_recordings` data stream can also be included in survey summary outputs. Sycamore does not process the audio data returned as part of audio surveys, but it can generate summaries with submission frequencies and survey duration for audio surveys.
 
 ## Auxiliary files
-Sycamore requires users to manually download files from the Beiwe website to create some outputs. These files can be downloaded by clicking "Edit this Study" on the study page, and clicking on the relevant file. 
+Sycamore requires users to manually download files from the Beiwe website to create some outputs. These files can be downloaded by clicking "Edit this Study" on the study page, and clicking on the relevant file.
 
-The file supplied to `config_path` can be downloaded by clicking "Export study settings JSON file" under "Export/Import study settings" on the study settings page.  If the `config_path` argument is not supplied, the `submits_and_deliveries.csv`, `submits_summary_daily.csv`, and `submits_summary_hourly.csv` files will not be generated. This is because these files rely on an estimate of when surveys were delivered, and Sycamore gets information about when survey deliveries are made from the study configuration file.  
+The file supplied to `config_path` can be downloaded by clicking "Export study settings JSON file" under "Export/Import study settings" on the study settings page.  If the `config_path` argument is not supplied, the `submits_and_deliveries.csv`, `submits_summary_daily.csv`, and `submits_summary_hourly.csv` files will not be generated. This is because these files rely on an estimate of when surveys were delivered, and Sycamore gets information about when survey deliveries are made from the study configuration file.
 
-The file supplied to `interventions_filepath` can be downloaded by clicking "Download Interventions" next to "Intervention Data" on the study settings page. If the `interventions_filepath` argument is not supplied, and if your study used relative surveys (i.e. surveys are delivered 12 days after a participant's start date), the `submits_and_deliveries.csv`, `submits_summary_daily.csv`, and `submits_summary_hourly.csv` files will not be generated. This is because the interventions file contains information about each Beiwe user's intervention date, and Sycamore cannot guess a user's intervention date from survey data alone. When running Sycamore, be sure to use an up-to-date version of the interventions file which contains intervention dates for users recently added to your study.  
+The file supplied to `interventions_filepath` can be downloaded by clicking "Download Interventions" next to "Intervention Data" on the study settings page. If the `interventions_filepath` argument is not supplied, and if your study used relative surveys (i.e. surveys are delivered 12 days after a participant's start date), the `submits_and_deliveries.csv`, `submits_summary_daily.csv`, and `submits_summary_hourly.csv` files will not be generated. This is because the interventions file contains information about each Beiwe user's intervention date, and Sycamore cannot guess a user's intervention date from survey data alone. When running Sycamore, be sure to use an up-to-date version of the interventions file which contains intervention dates for users recently added to your study.
 
 The file supplied to `history_path` can be downloaded by clicking "Download Surveys" next to "Survey History" on the study settings page. If this file is not supplied, Sycamore will not be able to provide prompts corresponding to audio surveys in output files. In addition, if this file is not supplied, and if the text of survey questions was changed during the study, surveys recovered from `survey_answers` files may not have the correct question IDs.
 
@@ -66,17 +73,17 @@ compute_survey_stats runs aggregate_surveys_config, survey_submits, survey_submi
 `tz_str`: the time zone where the study was conducted. (if not defined, defaults to 'UTC'). You can see a list of all possible timezone names by importing `pytz` and using `pytz.all_timezones`
 `beiwe_ids`: the list of Beiwe IDs to run Forest on. If this is not specified, sycamore will run on all users in the data_dir directory.
 `config_path`: the filepath to your downloaded survey config file. See above for explanations about downloading auxiliary files.
-`interventions_filepath`: the filepath to your downloaded interventions timing file. 
+`interventions_filepath`: the filepath to your downloaded interventions timing file.
 `history_path`: the filepath to your downloaded survey history file
-`start_date`: the earliest date you think you might want survey information. Beiwe will generate survey deliveries starting at this date, and it will not include any surveys taken prior to this date in any outputs. 
-`end_date`: the latest date you think you might want survey information. Beiwe will generate survey deliveries ending at this date, and it will not include any surveys taken after to this date in any outputs. 
+`start_date`: the earliest date you think you might want survey information. Beiwe will generate survey deliveries starting at this date, and it will not include any surveys taken prior to this date in any outputs.
+`end_date`: the latest date you think you might want survey information. Beiwe will generate survey deliveries ending at this date, and it will not include any surveys taken after to this date in any outputs.
 `submits_timeframe`: Which timeframe to generate submission summaries. This must be one of the frequencies specified in  `forest.constants.Frequency`. It determines whether `submits_summary_daily.csv` or `submits_summary_hourly.csv` (which aggregate survey deliveries and deliveries at the daily or hourly levels) get generated. The default for this is to generate both hourly and daily summaries, so you can probably just leave this argument alone and delete any unwanted files. But, if you want, you can specify one timeframe.
 
-*Example (without config file)*    
+*Example (without config file)*
 ```python
 from forest.sycamore import compute_survey_stats
 
-study_dir = path/to/data  
+study_dir = path/to/data
 output_dir = path/to/output
 beiwe_ids = list of ids in study_dir
 start_date = "2022-01-01"
@@ -84,18 +91,18 @@ end_date = "2022-06-04"
 tz_str = "America/New_York"
 
 compute_survey_stats(
-    study_dir, output_dir, tz_str, beiwe_ids, start_date=start_date, 
+    study_dir, output_dir, tz_str, beiwe_ids, start_date=start_date,
     end_date=end_date
 )
 ```
 
-*Example (with config file)* 
+*Example (with config file)*
 ```python
 from forest.constants import Frequency
 config_path = path/to/config file
 interventions_filepath = path/to/interventions file
 history_path = path/to/history/file
-study_dir = path/to/data  
+study_dir = path/to/data
 output_dir = path/to/output
 beiwe_ids = list of ids in study_dir
 start_date = "2022-01-01"
@@ -105,20 +112,20 @@ submits_timeframe = Frequency.HOURLY_AND_DAILY
 
 
 compute_survey_stats(
-    study_dir, output_dir, study_tz, beiwe_ids, start_date=start_date, 
+    study_dir, output_dir, study_tz, beiwe_ids, start_date=start_date,
     end_date=end_date, config_path = config_path, interventions_filepath = interventions_filepath,
     history_path=history_path, submits_timeframe = submits_timeframe
 )
 ```
 
-Most users should be able to use `compute_survey_stats` for all of their survey processing needs. However, if a study has collected a very large number of surveys, subprocesses are also exposed to reduce processing time. 
+Most users should be able to use `compute_survey_stats` for all of their survey processing needs. However, if a study has collected a very large number of surveys, subprocesses are also exposed to reduce processing time.
 
 ___
 ### `sycamore.common.aggregate_surveys_config`
 
 Aggregate all survey information from a study, using the config file to infer information about surveys
 
-*Example*  
+*Example*
 ```python
 from forest.sycamore import aggregate_surveys_config
 
@@ -129,14 +136,14 @@ ___
 
 Extract and summarize delivery and submission times
 
-*Example*  
+*Example*
 ```python
 from forest.sycamore.submits import survey_submits
 
 config_path = path/to/config file
 interventions_path = path/to/interventions file
 history_path = path/to/history/file
-study_dir = path/to/data  
+study_dir = path/to/data
 output_dir = path/to/output
 beiwe_ids = list of ids in study_dir
 start_date = "2022-01-01"
@@ -146,7 +153,7 @@ tz_str = "America/New_York"
 agg_data = aggregate_surveys_config(study_dir, config_path, tz_sttr)
 
 submits_detail, submits_summary = survey_submits(
-    config_path, start_date, end_date, beiwe_ids, interventions_path, agg_data, 
+    config_path, start_date, end_date, beiwe_ids, interventions_path, agg_data,
     history_path
 )
 ```
@@ -154,7 +161,7 @@ ___
 ### `sycamore.submits.survey_submits_no_config`
 Used to extract an alternative survey submits table that does not include delivery times
 
-*Example*  
+*Example*
 ```python
 from forest.sycamore import survey_submits_no_config
 
@@ -165,18 +172,18 @@ submits_tbl = survey_submits_no_config(study_dir)
 ___
 ### `sycamore.responses.agg_changed_answers_summary`
 Used to extract data summarizing user responses
- 
-*Example*  
+
+*Example*
 ```python
 from forest.sycamore import agg_changed_answers_summary
 
 config_path = path/to/config file
 history_path = path/to/history/file
-study_dir = path/to/data  
+study_dir = path/to/data
 output_dir = path/to/output
 beiwe_ids = list of ids in study_dir
 time_start = start time
-time_end = end time  
+time_end = end time
 study_tz = Timezone of study (if not defined, defaults to 'UTC')
 
 agg_data = aggregate_surveys_config(study_dir, config_path, study_tz, history_path=history_path)
@@ -186,19 +193,19 @@ ca_detail, ca_summary = agg_changed_answers_summary(config_path, agg_data)
 
 ## FAQ
 
-**In the `submits_summary.csv` file, there are some rows where `num_submitted_surveys` is greater than `num_surveys`. How could a user have submitted more surveys than were delivered to them?**   
+**In the `submits_summary.csv` file, there are some rows where `num_submitted_surveys` is greater than `num_surveys`. How could a user have submitted more surveys than were delivered to them?**
 
-Sycamore doesn't know exactly when surveys were delivered to users. Survey delivery times are estimated using the study configuration file which you enter when you run the code. For example, imagine that you started running a study in March with survey deliveries happening daily, and in April you decided to switch your surveys to be delivered weekly. If you ran Sycamore in April, your config file would tell Sycamore that surveys were delivered weekly throughout the whole study. So, if you had a user submitting surveys daily during March, they would have ~30 survey submissions, but Sycamore would think that only ~5 surveys had been delivered during that time.   
+Sycamore doesn't know exactly when surveys were delivered to users. Survey delivery times are estimated using the study configuration file which you enter when you run the code. For example, imagine that you started running a study in March with survey deliveries happening daily, and in April you decided to switch your surveys to be delivered weekly. If you ran Sycamore in April, your config file would tell Sycamore that surveys were delivered weekly throughout the whole study. So, if you had a user submitting surveys daily during March, they would have ~30 survey submissions, but Sycamore would think that only ~5 surveys had been delivered during that time.
 
-In addition, this may happen if a researcher manually re-sends surveys, because Sycamore has no information about manual (unscheduled) deliveries.   
+In addition, this may happen if a researcher manually re-sends surveys, because Sycamore has no information about manual (unscheduled) deliveries.
 
-**In the `submits_and_deliveries.csv` file, there are a ton of rows with deliveries but no submissions. Why is this happening?**    
+**In the `submits_and_deliveries.csv` file, there are a ton of rows with deliveries but no submissions. Why is this happening?**
 
-If surveys are sent on a weekly schedule, Sycamore assumes that there is a survey delivered every week between the `start_date` and `end_date` which you entered. If you want there to be fewer empty rows in your output, you can move `start_date` and `end_date` to be closer to the actual start and end dates of your study.   
+If surveys are sent on a weekly schedule, Sycamore assumes that there is a survey delivered every week between the `start_date` and `end_date` which you entered. If you want there to be fewer empty rows in your output, you can move `start_date` and `end_date` to be closer to the actual start and end dates of your study.
 
-**What does `surv_inst_flg` mean in the outputs?**   
+**What does `surv_inst_flg` mean in the outputs?**
 
-`surv_inst_flg` is a unique identifying number to distinguish different times when the same individual took the same survey. This column is useful for joining outputs together.  
+`surv_inst_flg` is a unique identifying number to distinguish different times when the same individual took the same survey. This column is useful for joining outputs together.
 
 
 ## List of summary statistics
@@ -230,7 +237,7 @@ The following variables are created in the “submits_and_deliveries.csv” file
 |     submit_flg    	|        str      	|     Either the time when the user hit submit or the time when the individual stopped interacting with the survey for that session      |
 |     time_to_submit                   	|      float        	|     Time between survey delivery and survey submission, in seconds. If a survey was incomplete, this will be blank.            	|
 |     time_to_open                   	|      float        	|     Time between survey delivery time and the first recorded survey answer, in seconds (for responses where a survey_timings file was available; if only a survey_answers file was available, this will be 0)     	|
-|     survey_duration               	|        float      	|     Time between the first recorded survey answer and the survey submission, in seconds (for responses where a survey_timings file was available; if only a survey_answers file was available, this will be NA)|                                   	
+|     survey_duration               	|        float      	|     Time between the first recorded survey answer and the survey submission, in seconds (for responses where a survey_timings file was available; if only a survey_answers file was available, this will be NA)|
 
 <br>
 The following variables are created in the “answers_data.csv” file. This file will be generated if a survey config file is available.
