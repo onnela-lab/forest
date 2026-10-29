@@ -1,0 +1,7 @@
+profiles/
+reference_actcr.csv
+reference_cosinor.csv
+forest_comparison.csv
+validation_audit.csv
+__pycache__/
+.venv-reference/
