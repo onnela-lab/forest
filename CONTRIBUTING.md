@@ -1,6 +1,6 @@
 # Contributing to Forest
 
-Thanks you for your interest in contributing.
+Thank you for your interest in contributing.
 
 Forest is developed and maintained by the [Onnela Lab](https://www.hsph.harvard.edu/onnela-lab/) in
 the Department of Biostatistics at the Harvard T.H. Chan School of Public Health, alongside the
@@ -13,7 +13,7 @@ local, editable copy of the package. Please report any difficulties you encounte
 make our ReadMe directions as effective as possible.
 
 If you are interested in more active development, running your work directly off our Forest repo
-instead of a fork, or any kind of maintenance or issue moderatuion role, please reach out to us.
+instead of a fork, or any kind of maintenance or issue moderation role, please reach out to us.
 
 ## Basics and Branches
 
@@ -39,12 +39,12 @@ do this, and you can ask an LLM too.
   you invest the effort. (We may need to bring in that pull request on a new Onnela-Lab repo Forest
   branch, which might close that pull request in a way where it cannot be reopened.)
 - **Improve documentation.** Good documentation is _hard._ If you notice gaps or errors in the
-  documentation, its all contained in the docs/sources folder and all you need to know is markdown.
+  documentation, it is all contained in the docs/sources folder and all you need to know is markdown.
   We will probably accept any improvement you make.
 - **Let us know about your use-case.** Share details about how you are using Forest, let us know
   about specific requirements you have, we will try to help you out.
 - **Ask what we are working on.** We just need to know you want to help. Find the email address of
-  our maintainer, its not hidden, and ask.
+  our maintainer, it is not hidden, and ask.
 - **Request a feature or inform us of a new method.** Open an issue describing the analysis you have
   an interest in and the published method it is based on. (We are an academic group and interested
   in incorporating scientifically sound methods.)
@@ -73,28 +73,25 @@ ship with tests and documentation.
   a statement in the code that you certify the concepts are your own and that you have understood
   and verified the contribution made by the LLM.
 
-# Academic contributions:
+## Review process for statistical contributions
 
-Note that we periodically interface with JOSS (Journal of Open Source Software), which reviews our
-repository, and some of our process requirements will be influenced by their guidelines.
+Code that implements a statistical or computational procedure needs one more review than other
+changes, because we have to confirm that it does what it claims. Anyone in our group can carry out
+this statistical review.
 
-- Be Patient. We cannot rush this process, and it must be publicly visible via GitHub.
 - We will need your name, affiliations, and relevant academic credentials. This information will be
-  present at the top of files that you are contributing to. (see examples on trees in our codebase)
-- Post on the repo or make a pull request, a maintainer will respond and guide you through this
+  present at the top of the files you contribute to (see examples in the existing trees).
+- Post on the repository or open a pull request. A maintainer will respond and guide you through the
   process.
-- A maintainer has to review your work and comment on _code quality_ first. All code requires
-  maintenance, and you must keep pull requests up to date with the state of the repo. Ask questions
-  in your thread.
-- You simply must have _practical and useful_ tests covering your work, with full coverage of
-  methodological details - any code that is "just math". Building these tests is your responsibility,
-  but you can ask us for help and advice.
+- A maintainer first reviews your work for _code quality_. All code requires maintenance, and you
+  must keep pull requests up to date with the state of the repo. Ask questions in your thread.
+- You must have _practical and useful_ tests covering your work, with full coverage of methodological
+  details, meaning any code that is "just math". Building these tests is your responsibility, but you
+  can ask us for help and advice.
 - It may help to get in contact with us directly. The human factor always matters, and we need to
   ensure academic credit is properly assigned.
-- Eventually we start the more academic level of review. We need to identify someone with the
-  appropriate background and expertise to review your contribution, and they need to find the time
-  to review it. We will notify our PI, Professor Jukka-Pekka Onnela, who may provide additional
-  oversight.
-- Like the code quality review, the academic level review will take place publicly on GitHub.
-- When review is completed, our PI will make a final assessment for whether the contribution meets
+- After the code quality review, someone with the appropriate background and expertise reviews the
+  statistical methodology. We will notify our PI, who may provide additional oversight.
+- Both reviews take place publicly on GitHub.
+- When the reviews are complete, our PI makes the final assessment of whether the contribution meets
   acceptable standards for inclusion in the repository.
