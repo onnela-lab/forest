@@ -32,7 +32,7 @@ Forest requires Python version 3.12 or greater.
 
 <details> <summary><i><b>Click Here</b> for more Python version details.</i></summary>
 
-Python version 3.15 is not currently enabled in the `pyproject.toml` file because dependencies were not available at time of writing. To check if Forest is compatible with 3.15+, clone the repo (details below) and edit the `requires-python` line in the pyproject.toml file to a include a higher version number, then install in editable mode. At time of writing this process fails, but packages will be available soon, and we expect no incompatibilities.
+Forest supports Python versions 3.12 through 3.15. Newer versions are not yet enabled in the `pyproject.toml` file. To check if Forest is compatible with a newer version, clone the repo (details below) and edit the `requires-python` line in the pyproject.toml file to include a higher version number, then install in editable mode.
 
 Python free-threaded builds are not actively tested, however compatibility is not expected to require changes.
 
