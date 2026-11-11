@@ -8,7 +8,7 @@ Original Authors: Georgios Efstathiadis, Josh Barback
 """
 import logging
 
-from .io import setup_csv
+from forest.poplar.functions.io import setup_csv
 
 
 logger = logging.getLogger(__name__)
