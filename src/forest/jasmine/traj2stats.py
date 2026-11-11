@@ -6,10 +6,7 @@ Original Authors: Georgios Efstathiadis, Zachary Clement, Josh Barback
 Optimization work: Eli Jones
 """
 
-import json
-import logging
-import os
-import pickle
+import json, logging, os, pickle
 from datetime import datetime
 
 import numba
@@ -19,9 +16,9 @@ import requests
 from numpy.typing import NDArray
 from pandas._libs.missing import NAType
 from pyproj import Transformer
+from shapely import transform
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
-from shapely.ops import transform
 
 from forest.bonsai.simulate_gps_data import bounding_box
 from forest.constants import (BoolArr, COORDS_OUT_OF_RANGE_MSG, FP64Arr, Frequency,
@@ -59,10 +56,13 @@ def transform_point_to_circle(lat: float, lon: float, radius: float) -> Polygon:
         local_azimuthal_projection, "+proj=longlat +datum=WGS84 +no_defs"
     ).transform
     
+    # shapely's type hints for transform() only describe the default interleaved=True form, where it
+    # takes one 2d array. interleaved=False takes it as f(x, y), the same as pyproj's
+    # Transformer.transform. The code is correct and the hint is wrong.
     center = Point(lat, lon)
-    point_transformed = transform(wgs84_to_aeqd, center)
+    point_transformed = transform(center, wgs84_to_aeqd, interleaved=False)  # type: ignore[arg-type]
     buffer = point_transformed.buffer(radius)
-    return transform(aeqd_to_wgs84, buffer)
+    return transform(buffer, aeqd_to_wgs84, interleaved=False)  # type: ignore[arg-type]
 
 
 def get_nearby_locations(

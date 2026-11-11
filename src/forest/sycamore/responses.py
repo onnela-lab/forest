@@ -78,7 +78,9 @@ def agg_changed_answers(agg: pd.DataFrame) -> pd.DataFrame:
     # time to answer is meaningless if the result came from survey_answers, where all questions in a
     # survey have the same time.
     agg["time_to_answer"] = np.where(
-        agg["data_stream"] == "survey_answers", agg["time_to_answer"], np.datetime64('NaT')
+        agg["data_stream"] == "survey_answers",
+        agg["time_to_answer"],
+        np.timedelta64("NaT", "ns"), # unit required for NumPy timedelta NaT
     )
     # Filter agg down to the line of the last question time
     agg = agg.loc[agg["Local time"] == agg["last_time"]]

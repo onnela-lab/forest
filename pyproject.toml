@@ -42,11 +42,11 @@ dependencies = [
     "ratelimit",
     "requests",
     "scipy",
-    "shapely",
+    "shapely>=2.1",  # min version due to shapely.transform
     "soundfile",
     "ssqueezepy",
     "timezonefinder",
-    "zstandard",
+    "zstandard",  # zstandard is a dependency of some versions of pandas to support zst files
 ]
 keywords = ["digital phenotyping", "smartphone", "statistics", "accelerometer", "GPS"]
 classifiers = [
@@ -170,6 +170,7 @@ select = [  # (linting directives to enable)
 
 extend-ignore = [  # (linting directives to ignore)
     "W293",  # blank line contains whitespace
+    "E401",  # multiple imports on one line - allowed, e.g. `import datetime, logging, math`
 ]
 
 exclude = [
@@ -188,6 +189,7 @@ max-line-length = 100
 
 extend-ignore = [
     "W293",  # blank line contains whitespace
+    "E401",  # multiple imports on one line
 ]
 
 exclude = [
@@ -200,6 +202,7 @@ exclude = [
 ## isort - import formatter - (would use ruff, cannot get identical formatting out of it)
 [tool.isort]
 combine_as_imports = true
+combine_straight_imports = true  # keep `import a, b, c` on one line (ruff E401 is ignored)
 float_to_top = true
 honor_noqa = true
 line_length = 100
