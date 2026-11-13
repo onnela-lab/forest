@@ -35,7 +35,8 @@ dependencies = [
     "holidays",
     "numpy",
     "openrouteservice",
-    "pandas",
+    "pandas>3.0",
+    "pandas<3.2",  # pandas 3.1 has a warning about a future breaking change in inplace operations
     "pyproj",
     "python-dateutil",
     "tzdata",
@@ -130,6 +131,13 @@ ignore_missing_imports = true
 # addopts = "--import-mode=importlib"  # this does not seem to be necessary anymore
 
 testpaths = ["tests"]
+
+# Hide pandas 3.1+ deprecation warnings we are not ready to fix yet. Fixing the `inplace` ones
+# would change public behavior (e.g. `clean_dataframe` modifies its input in place).
+filterwarnings = [
+    "ignore:The inplace keyword in .*:DeprecationWarning",
+    "ignore:Series.dt.dayofweek is deprecated.*:DeprecationWarning",
+]
 
 #
 ## Linting and type checking tools
