@@ -233,15 +233,15 @@ ___
 If we don't monitor log records, the script looks like this:
 
 ```
-from forest_module import f    # Import the function.
-f(x)                           # Run the function.
+from forest.forest_module.etc import f    # Import the function explicitly
+f(x)                                      # Run the function.
 ```
 
 For basic log records written to CSV, make three changes:
 
 ```
-from trunk.log import log_to_csv          # 1. Import this function.
-from forest_module import f
+from forest.poplar.functions.log import log_to_csv                # 1. Import this function.
+from forest.forest_module.etc import f
 log_dir = 'path/to/log/output/directory'  # 2. Choose where to write log records.
 log_to_csv(log_dir)                       # 3. Initialize log file and handler.
 f(x)
@@ -250,8 +250,8 @@ f(x)
 For comprehensive logging written to CSV, including traceback information:
 
 ```
-from log import TRACEBACK_CSV_LOG, log_to_csv
-from forest_module import f
+from forest.poplar.functions.log import TRACEBACK_CSV_LOG, log_to_csv
+from forest.forest_module.etc import f
 log_dir = 'path/to/log/output/directory'
 log_to_csv(log_dir, 
            log_format = TRACEBACK_CSV_LOG.attributes,
@@ -262,8 +262,8 @@ f(x)
 For custom logging written to CSV:
 
 ```
-from log import attributes_to_csv, log_to_csv
-from forest_module import f
+from forest.poplar.functions.log import attributes_to_csv, log_to_csv
+from forest.forest_module.etc import f
 log_dir = 'path/to/log/output/directory'  
 CUSTOM_FORMAT = attributes_to_csv(['created',  # Just show a timestamp
                                    'message']) # and the log message.
@@ -278,7 +278,7 @@ For custom logging sent to console:
 
 ```
 import logging
-from forest_module import f
+from forest.forest_module.etc import f
 CUSTOM_FORMAT = '%(created)f %(levelname)-8s %(message)s'
 logging.basicConfig(format = CUSTOM_FORMAT, # See links above for format documentation.
                     level = logging.DEBUG,  # Ensure that all messages are printed.
@@ -298,7 +298,7 @@ Without log handling, the module looks like this:
 
 ```
 import logging
-from some_other_forest_module import f, g, h
+from forest.some_other_forest_module import f, g, h
 
 logger = logging.getLogger(__name__)
 
@@ -321,8 +321,8 @@ When this wrapper is called:
  shows how an end-user can handle all these records when calling the wrapper.  The end-user would do something like this at runtime:
 
 ```
-from log import log_to_csv
-from forest_module import wrapper
+from forest.poplar.functions.log import log_to_csv
+from forest.forest_module.etc import wrapper
 log_dir = 'path/to/log/output/directory'
 log_to_csv(log_dir)
 a, b, c = wrapper(x, y, z)
@@ -332,13 +332,13 @@ But it might be useful for the wrapper to handle these records by itself.  That 
 
 ```
 import logging
-from log import log_to_csv                   # 1. Import this function.
-from some_other_forest_module import f, g, h
+from forest.poplar.functions.log import log_to_csv   # 1. Import this function.
+from forest.some_other_forest_module import f, g, h  # (and any others you may need)
 
 logger = logging.getLogger(__name__)
 
-def wrapper(x, y, z, log_dir):               # 2. Add an output directory argument.
-    log_to_csv(log_dir)                      # 3. Initialize log file & handler.
+def wrapper(x, y, z, log_dir):                       # 2. Add an output directory argument.
+    log_to_csv(log_dir)                              # 3. Initialize log file & handler.
     logger.info('Getting started...')
     a = f(x)
     b = g(y)
@@ -350,7 +350,7 @@ def wrapper(x, y, z, log_dir):               # 2. Add an output directory argume
 Now the end user simply does this at runtime:
 
 ```
-from forest_module import wrapper
+from forest.forest_module.etc import wrapper
 a, b, c = wrapper(x, y, z, 'path/to/log/output/directory')
 ```
 

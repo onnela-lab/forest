@@ -8,15 +8,15 @@ version = "1.0.1beta"  # must be updated in docs/source/conf.py
 description = "Forest is a library for analyzing smartphone-based high-throughput digital phenotyping data"
 authors = [
     {name = "Jukka-Pekka Onnela"},
-    {name = "Josh Barback"},
     {name = "Zachary Clement"},
     {name = "Hassan Dawood"},
     {name = "Georgios Efstathiadis"},
     {name = "Patrick Emedom-Nnamdi"},
-    {name = "Ceyhun Olcan"},
+    # {name = "Ceyhun Olcan"},  # pending policy on attribution from Onnela Lab
     {name = "Emily J. Huang"},
     {name = "Marta Karas"},
     {name = "Gang Liu"},
+    {name = "Max Melnikas"},
     {name = "Nellie Ponarul"},
     {name = "Marcin Straczkiewicz"},
     {name = "Ilya Sytchev"},
@@ -29,24 +29,25 @@ maintainers = [
 ]
 readme = "README.md"
 license = {text = "BSD-3-Clause"}
-requires-python = ">=3.12, <3.15"
+requires-python = ">=3.12, <3.16"
 dependencies = [
     "audioread",
     "holidays",
     "numpy",
     "openrouteservice",
-    "pandas",
+    "pandas>3.0",
+    "pandas<3.2",  # pandas 3.1 has a warning about a future breaking change in inplace operations
     "pyproj",
     "python-dateutil",
     "tzdata",
     "ratelimit",
     "requests",
     "scipy",
-    "shapely",
+    "shapely>=2.1",  # min version due to shapely.transform
     "soundfile",
     "ssqueezepy",
     "timezonefinder",
-    "zstandard",
+    "zstandard",  # zstandard is a dependency of some versions of pandas to support zst files
 ]
 keywords = ["digital phenotyping", "smartphone", "statistics", "accelerometer", "GPS"]
 classifiers = [
@@ -60,6 +61,9 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 
@@ -73,15 +77,19 @@ Source = "https://github.com/onnela-lab/forest"
 dev = [
     "build",
     "cffconvert",
-    "ruff",
-    "flake8",
-    "flake8-pytest-style",
     "flake8-pyproject",
+    "flake8-pytest-style",
+    "flake8",
     "mypy",
+    "myst-parser",
     "pandas-stubs",
-    "pytest",
     "pytest-mock",
     "pytest-xdist",
+    "pytest",
+    "ruff",
+    "sphinx_rtd_theme",
+    "sphinx-copybutton",
+    "sphinx",
     "twine",
     "types-python-dateutil",
     "types-requests",
@@ -124,6 +132,13 @@ ignore_missing_imports = true
 
 testpaths = ["tests"]
 
+# Hide pandas 3.1+ deprecation warnings we are not ready to fix yet. Fixing the `inplace` ones
+# would change public behavior (e.g. `clean_dataframe` modifies its input in place).
+filterwarnings = [
+    "ignore:The inplace keyword in .*:DeprecationWarning",
+    "ignore:Series.dt.dayofweek is deprecated.*:DeprecationWarning",
+]
+
 #
 ## Linting and type checking tools
 #
@@ -163,6 +178,7 @@ select = [  # (linting directives to enable)
 
 extend-ignore = [  # (linting directives to ignore)
     "W293",  # blank line contains whitespace
+    "E401",  # multiple imports on one line - allowed, e.g. `import datetime, logging, math`
 ]
 
 exclude = [
@@ -181,6 +197,7 @@ max-line-length = 100
 
 extend-ignore = [
     "W293",  # blank line contains whitespace
+    "E401",  # multiple imports on one line
 ]
 
 exclude = [
@@ -193,6 +210,7 @@ exclude = [
 ## isort - import formatter - (would use ruff, cannot get identical formatting out of it)
 [tool.isort]
 combine_as_imports = true
+combine_straight_imports = true  # keep `import a, b, c` on one line (ruff E401 is ignored)
 float_to_top = true
 honor_noqa = true
 line_length = 100

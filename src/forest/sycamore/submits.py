@@ -4,9 +4,7 @@ Module for survey submits and survey schedule generation
 Original Authors: Nellie Ponarul, Zachary Clement, Georgios Efstathiadis
 """
 
-import datetime
-import logging
-import math
+import datetime, logging, math
 
 import numpy as np
 import pandas as pd
@@ -420,7 +418,7 @@ def survey_submits(
     # If they didn't open, they couldn't have started the survey
     submit_lines["start_time"] = np.where(
         (submit_lines["opened_flg"] == 0) & (submit_lines["submit_flg"] == 0),
-        np.datetime64("NaT"),
+        np.datetime64("NaT", "ns"),  # requires a unit
         submit_lines["start_time"],
     )
     # If they didn't open, it doesn't make sense to have questions answered

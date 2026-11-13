@@ -32,7 +32,7 @@ Forest requires Python version 3.12 or greater.
 
 <details> <summary><i><b>Click Here</b> for more Python version details.</i></summary>
 
-Python version 3.15 is not currently enabled in the `pyproject.toml` file because dependencies were not available at time of writing. To check if Forest is compatible with 3.15+, clone the repo (details below) and edit the `requires-python` line in the pyproject.toml file to a include a higher version number, then install in editable mode. At time of writing this process fails, but packages will be available soon, and we expect no incompatibilities.
+Forest supports Python versions 3.12 through 3.15. Newer versions are not yet enabled in the `pyproject.toml` file. To check if Forest is compatible with a newer version, clone the repo (details below) and edit the `requires-python` line in the pyproject.toml file to include a higher version number, then install in editable mode.
 
 Python free-threaded builds are not actively tested, however compatibility is not expected to require changes.
 
@@ -279,6 +279,10 @@ log_stats_main(
 ## More info
 * [Beiwe platform for smartphone data collection](http://www.beiwe.org/)
 * [Onnela lab](https://www.hsph.harvard.edu/onnela-lab/)
+* Interested in contributing to Forest? See our [CONTRIBUTING.md](CONTRIBUTING.md).
+* Found a bug? Need some help? See [SUPPORT.md](SUPPORT.md).
+* You can find our full documentation at [forest.beiwe.org](https://forest.beiwe.org).
+
 
 ## Publications
 * Straczkiewicz, M., Huang, E.J., and Onnela, JP. A “one-size-fits-most” walking recognition method for smartphones, smartwatches, and wearable accelerometers. _npj Digit. Med._ **6**, 29 (2023) [![DOI](https://img.shields.io/badge/DOI-10.1038%2Fs41746--022--00745--z-blue)](https://doi.org/10.1038/s41746-022-00745-z) _[(view this open access link if inaccessible)](https://rdcu.be/c6dGV)_
